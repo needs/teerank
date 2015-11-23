@@ -7,41 +7,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 
-#define MAX_PLAYERS 16
-struct delta {
-	time_t elapsed;
-	unsigned length;
-	struct player {
-		char *name, *clan;
-		long delta;
-		long score;
-		long elo;
-	} players[MAX_PLAYERS];
-};
-
-static int read_delta(struct delta *delta)
-{
-	unsigned i;
-	int ret;
-
-	assert(delta != NULL);
-
-	ret = scanf(" %u %ld", &delta->length, &delta->elapsed);
-	if (ret == EOF)
-		return 0;
-	assert(ret == 2);
-
-	for (i = 0; i < delta->length; i++) {
-		ret = scanf(" %ms %ms %ld %ld",
-		            &delta->players[i].name,
-		            &delta->players[i].clan,
-		            &delta->players[i].score,
-		            &delta->players[i].delta);
-		assert(ret == 4);
-	}
-
-	return 1;
-}
+#include "delta.h"
 
 /* Prefix is set in main() */
 static char *prefix;
@@ -56,7 +22,7 @@ static char *get_path(char *player, char *suffix)
 	return path;
 }
 
-static int read_elo(struct player *player)
+static int read_elo(struct player_delta *player)
 {
 	FILE *file;
 	char *path;
@@ -65,15 +31,8 @@ static int read_elo(struct player *player)
 
 	path = get_path(player->name, "elo");
 
-	file = fopen(path, "r");
-	if (!file) {
-		if (errno == ENOENT) {
-			player->elo = 1500;
-			return 1;
-		}
-		perror(path);
-		return 0;
-	}
+	if (!(file = fopen(path, "r")))
+		return perror(path), 0;
 
 	if (fscanf(file, "%ld", &player->elo) == 1)
 		return fclose(file), 1;
@@ -81,7 +40,7 @@ static int read_elo(struct player *player)
 		return fclose(file), 0;
 }
 
-static int write_elo(struct player *player)
+static int write_elo(struct player_delta *player)
 {
 	FILE *file;
 	char *path;
@@ -114,7 +73,7 @@ static double p(double delta)
 }
 
 /* Classic ELO formula for two players */
-static int compute_elo_delta(struct player *player, struct player *opponent)
+static int compute_elo_delta(struct player_delta *player, struct player_delta *opponent)
 {
 	static const unsigned K = 10;
 	double W;
@@ -142,7 +101,7 @@ static int compute_elo_delta(struct player *player, struct player *opponent)
  * other player and each time we add the ELO delta.  The final ELO delta
  * is then added to the player's ELO to get his new ELO score.
  */
-static int sum_elo_delta(struct delta *delta, struct player *player)
+static int sum_elo_delta(struct delta *delta, struct player_delta *player)
 {
 	unsigned i;
 	int elo_delta = 0;
@@ -151,7 +110,7 @@ static int sum_elo_delta(struct delta *delta, struct player *player)
 	assert(player != NULL);
 
 	for (i = 0; i < delta->length; i++) {
-		struct player *opponent = &delta->players[i];
+		struct player_delta *opponent = &delta->players[i];
 
 		if (opponent != player)
 			elo_delta += compute_elo_delta(player, opponent);
@@ -176,41 +135,18 @@ static int load_elos(struct delta *delta)
 	return 1;
 }
 
-static int create_players_directory(struct delta *delta)
-{
-	unsigned i;
-	char *path;
-
-	assert(delta != NULL);
-
-	for (i = 0; i < delta->length; i++) {
-		path = get_path(delta->players[i].name, "");
-
-		if (mkdir(path, S_IRWXU) == -1) {
-			if (errno != EEXIST) {
-				perror(path);
-				return 0;
-			}
-		}
-	}
-
-	return 1;
-}
-
 static void update(struct delta *delta)
 {
 	unsigned i;
 
 	assert(delta != NULL);
 
-	if (!create_players_directory(delta))
-		return;
 	if (!load_elos(delta))
 		return;
 
 	printf("Elapsed = %ld\n", delta->elapsed);
 	for (i = 0; i < delta->length; i++) {
-		struct player *player;
+		struct player_delta *player;
 
 		player = &delta->players[i];
 		printf("Player: \"%s\",\tDelta: %ld,\tbefore: %ld,\t",
@@ -229,7 +165,7 @@ static void remove_unrankable_players(struct delta *delta)
 	assert(delta != NULL);
 
 	for (i = 0; i < delta->length; i++) {
-		struct player *player = &delta->players[i];
+		struct player_delta *player = &delta->players[i];
 
 		if (player->score <= 0 || player->delta < -5) {
 			delta->players[i] = delta->players[delta->length - 1];
@@ -268,7 +204,7 @@ int main(int argc, char **argv)
 
 	prefix = argv[1];
 
-	while (read_delta(&delta))
+	while (scan_delta(&delta))
 		if (is_rankable(&delta))
 			update(&delta);
 

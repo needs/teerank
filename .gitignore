@@ -6,5 +6,6 @@
 /generate_index
 /update_players_elo
 /update_servers
+/update_players_infos
 
 /index.html

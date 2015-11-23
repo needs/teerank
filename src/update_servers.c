@@ -15,6 +15,7 @@
 
 #include "network.h"
 #include "pool.h"
+#include "delta.h"
 
 static const unsigned char MSG_GETINFO[] = {
 	255, 255, 255, 255, 'g', 'i', 'e', '3'
@@ -377,17 +378,6 @@ static struct client *get_player(
 	return NULL;
 }
 
-struct delta {
-	time_t elapsed;
-	unsigned num_players;
-
-	/* struct delta only contains player's delta */
-	struct player_delta {
-		char *name, *clan;
-		long score, delta;
-	} players[MAX_CLIENTS];
-};
-
 static void print_server_info_delta(
 	struct server_info *old, struct server_info *new)
 {
@@ -404,7 +394,7 @@ static void print_server_info_delta(
 	assert(!strcmp(old->gametype, "CTF"));
 
 	delta.elapsed = new->time - old->time;
-	delta.num_players = 0;
+	delta.length = 0;
 	for (i = 0; i < new->num_clients; i++) {
 		struct client *old_player, *new_player;
 
@@ -413,25 +403,16 @@ static void print_server_info_delta(
 
 		if (old_player) {
 			struct player_delta *player;
-			player = &delta.players[delta.num_players];
+			player = &delta.players[delta.length];
 			player->name = new_player->name;
 			player->clan = new_player->clan;
 			player->score = new_player->score;
 			player->delta = new_player->score - old_player->score;
-			delta.num_players++;
+			delta.length++;
 		}
 	}
 
-	if (delta.num_players) {
-		printf("%u %ld\n", delta.num_players, delta.elapsed);
-		for (i = 0; i < delta.num_players; i++) {
-			printf("%s %s %ld %ld\n",
-			       delta.players[i].name,
-			       delta.players[i].clan,
-			       delta.players[i].score,
-			       delta.players[i].delta);
-		}
-	}
+	print_delta(&delta);
 }
 
 static void remove_spectators(struct server_info *info)

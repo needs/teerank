@@ -1,5 +1,7 @@
 /data/
 
+*.o
+
 /add_new_servers
 /generate_index
 /update_players_elo

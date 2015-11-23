@@ -1,0 +1,91 @@
+html {
+	background: #9EB5D6 url("images/bg.png") repeat-x scroll left top;
+}
+
+body {
+	display: flex;
+	flex-direction: column;
+	color: #666;
+
+	font-family: Verdana,Arial,Helvetica,sans-serif;
+}
+
+body > * {
+	margin-left: auto;
+	margin-right: auto;
+	width: 90%;
+	min-width: 880px;
+	max-width: 1100px;
+}
+
+body > header {
+	margin-bottom: 1em;
+}
+
+body > main {
+	background-color: #e7e5be;
+	border-radius: 10px;
+	box-shadow: 0px 0px 2px #aaa;
+}
+
+body > main > nav {
+	margin-top: -5px;
+	margin-left: 30px;
+	margin-right: 30px;
+	display: flex;
+	flex-direction: row;
+}
+
+body > main > nav > a {
+	color: #666;
+	background-color: white;
+	border-radius: 5px 5px 0px 0px;
+	border: 1px solid #dddddd;
+	border-bottom: 0px;
+	text-decoration: none;
+
+	padding: 7px 1em 7px 1em;
+	margin-right: 0.5em;
+}
+
+body > main > nav > a:last-child {
+	margin-right: 0px;
+}
+
+body > main > section {
+	border-radius: 10px;
+	background-color: white;
+	padding: 5em;
+
+	box-shadow: 0px 0px 2px #aaa;
+}
+
+/* Table */
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+table th, table td {
+	padding: 0.5em 1em 0.5em 1em;
+}
+
+table thead tr th {
+	border-bottom: 1px solid #dbdbda;
+}
+
+table th {
+	color: #970;
+	font-size: 1.2em;
+	font-weight: bold;
+	text-align: left;
+}
+
+table > * > tr > td:nth-child(2),
+table > * > tr > td:nth-child(3) {
+	width: 50%;
+}
+
+table > * > tr > td:last-child {
+	text-align: right;
+}

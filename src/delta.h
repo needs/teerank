@@ -11,7 +11,7 @@ struct delta {
 		char *name, *clan;
 		long delta;
 		long score;
-		long elo;
+		int elo;
 	} players[MAX_PLAYERS];
 };
 

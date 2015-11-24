@@ -6,7 +6,7 @@
 #include <limits.h>
 #include <errno.h>
 
-#define MAX_NAME_LENGTH 32
+#include "io.h"
 
 static void print_file(char *path)
 {
@@ -27,95 +27,6 @@ struct player {
 	char clan[MAX_NAME_LENGTH];
 	int elo;
 };
-
-static void hex_to_string(char *hex, char *name)
-{
-	assert(hex != NULL);
-	assert(name != NULL);
-
-	for (; hex[0] != '0' || hex[1] != '0'; hex += 2, name++) {
-		char tmp[3] = { hex[0], hex[1], '\0' };
-		*name = strtol(tmp, NULL, 16);
-	}
-
-	*name = '\0';
-}
-
-static void html(char *str)
-{
-	assert(str != NULL);
-
-	do {
-		switch (*str) {
-		case '<':
-			fputs("&lt;", stdout); break;
-		case '>':
-			fputs("&gt;", stdout); break;
-		case '&':
-			fputs("&amp;", stdout); break;
-		case '"':
-			fputs("&quot;", stdout); break;
-		default:
-			putchar(*str);
-		}
-	} while (*str++);
-}
-
-static char *join(char *dir, char *player, char *filename)
-{
-	static char path[PATH_MAX];
-
-	assert(strlen(dir) + strlen(player) + strlen(filename) + 2 < PATH_MAX);
-
-	sprintf(path, "%s/%s/%s", dir, player, filename);
-	return path;
-}
-
-static int read_elo(char *dir, char *player, int *elo)
-{
-	FILE *file;
-	char *path;
-
-	assert(dir != NULL);
-	assert(player != NULL);
-	assert(elo != NULL);
-
-	path = join(dir, player, "elo");
-
-	file = fopen(path, "r");
-	if (!file)
-		return perror(path), 0;
-
-	if (fscanf(file, "%d", elo) == 1)
-		return fclose(file), 1;
-	else
-		return fclose(file), 0;
-}
-
-static void read_clan(char *dir, char *player, char *pclan)
-{
-	FILE *file;
-	char *path;
-	char clan[MAX_NAME_LENGTH * 3] = "00";
-
-	assert(dir != NULL);
-	assert(player != NULL);
-	assert(clan != NULL);
-
-	path = join(dir, player, "clan");
-
-	if (!(file = fopen(path, "r"))) {
-		if (errno != ENOENT)
-			perror(path);
-		goto end;
-	}
-
-	fscanf(file, "%s", clan);
-	fclose(file);
-
-end:
-	hex_to_string(clan, pclan);
-}
 
 struct player_array {
 	struct player* players;
@@ -138,23 +49,39 @@ static void add_player(struct player_array *array, struct player *player)
 	array->players[array->length++] = *player;
 }
 
-static void load_players(char *path, struct player_array *array)
+static void load_players(char *root, struct player_array *array)
 {
 	DIR *dir;
 	struct dirent *dp;
+	static char path[PATH_MAX];
 
-	if (!(dir = opendir(path)))
-		perror(path), exit(EXIT_FAILURE);
+	assert(root != NULL);
+	assert(array != NULL);
+
+	if (!(dir = opendir(root)))
+		perror(root), exit(EXIT_FAILURE);
 
 	while ((dp = readdir(dir))) {
 		struct player player;
+		char clan[MAX_NAME_LENGTH];
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 
+		/* Name */
 		hex_to_string(dp->d_name, player.name);
-		read_elo(path, dp->d_name, &player.elo);
-		read_clan(path, dp->d_name, player.clan);
+
+		/* Clan */
+		sprintf(path, "%s/%s/%s", root, dp->d_name, "clan");
+		if (read_file(path, "%s", clan) != -1)
+			hex_to_string(clan, player.clan);
+		else
+			player.clan[0] = '\0';
+
+		/* ELO */
+		sprintf(path, "%s/%s/%s", root, dp->d_name, "elo");
+		if (read_file(path, "%d", &player.elo) == -1)
+			continue;
 
 		add_player(array, &player);
 	}

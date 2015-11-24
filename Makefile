@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
-BINS = add_new_servers update_servers update_players_elo generate_index update_players_infos
+BINS = add_new_servers update_servers generate_index update_players
 
 .PHONY: all clean
 
@@ -11,14 +11,11 @@ add_new_servers: src/add_new_servers.o src/network.o
 update_servers: src/update_servers.o src/network.o src/pool.o src/delta.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-update_players_elo: src/update_players_elo.o src/delta.o
-	$(CC) -o $@ $(CFLAGS) -lm $^
-
-generate_index: src/generate_index.o
+generate_index: src/generate_index.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-update_players_infos: src/update_players_infos.o src/delta.o
-	$(CC) -o $@ $(CFLAGS) $^
+update_players: src/update_players.o src/delta.o src/elo.o src/io.o
+	$(CC) -o $@ $(CFLAGS) $^ -lm
 
 clean:
 	rm -f src/*.o $(BINS)

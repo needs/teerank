@@ -4,8 +4,7 @@
 
 /add_new_servers
 /generate_index
-/update_players_elo
+/update_players
 /update_servers
-/update_players_infos
 
 /index.html

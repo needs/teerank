@@ -76,6 +76,31 @@ static unsigned is_rankable(struct delta *delta)
 	return 1;
 }
 
+static int load_elo(struct player_delta *player, int force_init)
+{
+	char *path;
+
+	assert(player != NULL);
+
+	path = join(dir, player->name, "elo");
+
+	if (force_init)
+		goto init;
+	if (!read_file(path, "%d", &player->elo)) {
+		if (errno != ENOENT)
+			return 0;
+	init:
+		/*
+		 * Create "elo" file so the player will still appear
+		 * in database even if he is unrankable.
+		 */
+		write_file(path, "%d", 1500);
+		player->elo = 1500;
+	}
+
+	return 1;
+}
+
 int main(int argc, char **argv)
 {
 	struct delta delta;
@@ -100,15 +125,8 @@ next:
 
 			if (status == ERROR)
 				goto next;
-			else if (status == NEW)
-				player->elo = 1500;
-			else if (read_file(join(dir, player->name, "elo"),
-			                   "%d", &player->elo) == -1) {
-				if (errno == ENOENT)
-					player->elo = 1500;
-				else
-					goto next;
-			}
+			if (!load_elo(player, status == NEW))
+				goto next;
 
 			write_file(join(dir, player->name, "clan"),
 			           "%s", player->clan);

@@ -50,7 +50,12 @@ static void remove_unrankable_players(struct delta *delta)
 	for (i = 0; i < delta->length; i++) {
 		struct player_delta *player = &delta->players[i];
 
-		if (player->score <= 0 || player->delta < -5) {
+		/*
+		 * A positive delta is necessary to not punish player's AFK
+		 * and also to avoid the case were someone play on a server
+		 * full of AFK or newbies to farm his rank.
+		 */
+		if (player->score <= 0 || player->delta <= 0) {
 			delta->players[i] = delta->players[delta->length - 1];
 			delta->length--;
 			i--;

@@ -16,6 +16,7 @@
 #include "network.h"
 #include "pool.h"
 #include "delta.h"
+#include "io.h"
 
 static const unsigned char MSG_GETINFO[] = {
 	255, 255, 255, 255, 'g', 'i', 'e', '3'
@@ -100,25 +101,6 @@ static long int unpack_int(struct unpacker *up)
 	return ret;
 }
 
-static char *to_hex(char *str)
-{
-	char *ret, *tmp;
-
-	/* +3 for the terminating '00' and '\0' */
-	if (!(ret = malloc(strlen(str) * 2 + 3))) {
-		fprintf(stderr, "to_hex(%s): %s\n", str, strerror(errno));
-		return NULL;
-	}
-
-	for (tmp = ret; *str; str++) {
-		sprintf(tmp, "%2x", *str);
-		tmp += 2;
-	}
-	strcpy(tmp, "00\0");
-
-	return ret;
-}
-
 #define MAX_CLIENTS 16
 
 struct server_info {
@@ -126,7 +108,7 @@ struct server_info {
 
 	int num_clients;
 	struct client {
-		char *name, *clan;
+		char name[MAX_NAME_LENGTH], clan[MAX_NAME_LENGTH];
 		long int score;
 		long int ingame;
 	} clients[MAX_CLIENTS];
@@ -136,6 +118,8 @@ struct server_info {
 
 static int validate_client_info(struct client *client)
 {
+	char tmp[MAX_NAME_LENGTH];
+
 	assert(client != NULL);
 	assert(client->name != NULL);
 	assert(client->clan != NULL);
@@ -145,10 +129,10 @@ static int validate_client_info(struct client *client)
 	if (strlen(client->clan) > 16)
 		return 0;
 
-	if (!(client->name = to_hex(client->name)))
-		return 0;
-	if (!(client->clan = to_hex(client->clan)))
-		return free(client->name), 0;
+	string_to_hex(client->name, tmp);
+	strcpy(client->name, tmp);
+	string_to_hex(client->clan, tmp);
+	strcpy(client->clan, tmp);
 
 	return 1;
 }
@@ -161,16 +145,8 @@ static int validate_clients_info(struct server_info *info)
 
 	for (i = 0; i < info->num_clients; i++)
 		if (!validate_client_info(&info->clients[i]))
-			goto free;
+			return 0;
 	return 1;
-
-free:
-	/* valide_client_info() alloc strings, free them */
-	while (--i) {
-		free(info->clients[i].name);
-		free(info->clients[i].clan);
-	}
-	return 0;
 }
 
 static int unpack_server_info(struct data *data, struct server_info *info)
@@ -208,15 +184,16 @@ static int unpack_server_info(struct data *data, struct server_info *info)
 		return 0;
 	}
 
+	/* Players */
 	for (i = 0; i < info->num_clients; i++) {
 		if (!can_unpack(&up, 5))
 			return 0;
 
-		info->clients[i].name = unpack_string(&up); /* Player name */
-		info->clients[i].clan = unpack_string(&up); /* Player clan */
-		unpack_string(&up);     /* Player country */
-		info->clients[i].score  = unpack_int(&up); /* Player score */
-		info->clients[i].ingame = unpack_int(&up); /* Player ingame? */
+		strcpy(info->clients[i].name, unpack_string(&up)); /* Name */
+		strcpy(info->clients[i].clan, unpack_string(&up)); /* Clan */
+		unpack_string(&up); /* Country */
+		info->clients[i].score  = unpack_int(&up); /* Score */
+		info->clients[i].ingame = unpack_int(&up); /* Ingame? */
 	}
 
 	if (up.offset != up.data->size) {
@@ -268,8 +245,8 @@ static int read_server_info(FILE *file, char *path, struct server_info *info)
 	for (i = 0; i < info->num_clients; i++) {
 		struct client *client = &info->clients[i];
 
-		ret = fscanf(file, " %ms %ms %ld",
-		             &client->name, &client->clan, &client->score);
+		ret = fscanf(file, " %s %s %ld",
+		             client->name, client->clan, &client->score);
 		if (ferror(file)) {
 			perror(path);
 			return 0;

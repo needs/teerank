@@ -8,7 +8,7 @@ all: $(BINS)
 add_new_servers: src/add_new_servers.o src/network.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-update_servers: src/update_servers.o src/network.o src/pool.o src/delta.o
+update_servers: src/update_servers.o src/network.o src/pool.o src/delta.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 generate_index: src/generate_index.o src/io.o

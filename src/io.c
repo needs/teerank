@@ -59,6 +59,7 @@ void string_to_hex(const char *str, char *hex)
 {
 	assert(str != NULL);
 	assert(hex != NULL);
+	assert(str != hex);
 
 	for (; *str; str++, hex += 2)
 		sprintf(hex, "%2x", *str);

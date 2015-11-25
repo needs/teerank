@@ -20,7 +20,7 @@ static double p(double delta)
 /* Classic ELO formula for two players */
 static int compute_elo_delta(struct player_delta *player, struct player_delta *opponent)
 {
-	static const unsigned K = 10;
+	static const unsigned K = 25;
 	double W;
 
 	assert(player != NULL);
@@ -43,23 +43,26 @@ static int compute_elo_delta(struct player_delta *player, struct player_delta *o
  * computed.
  *
  * To get the new ELO for a player, we match this player against every
- * other player and each time we add the ELO delta.  The final ELO delta
- * is then added to the player's ELO to get his new ELO score.
+ * other player and we make the average of every ELO deltas.  The ELO
+ * delta is then added to the player's ELO to get his new ELO score.
  */
 int compute_new_elo(struct delta *delta, struct player_delta *player)
 {
 	unsigned i;
-	int elo_delta = 0;
+	int total = 0;
 
 	assert(delta != NULL);
 	assert(player != NULL);
+	assert(delta->length > 0);
 
 	for (i = 0; i < delta->length; i++) {
 		struct player_delta *opponent = &delta->players[i];
 
 		if (opponent != player)
-			elo_delta += compute_elo_delta(player, opponent);
+			total += compute_elo_delta(player, opponent);
 	}
 
-	return player->elo + elo_delta;
+	total = total / (int)delta->length;
+
+	return player->elo + total;
 }

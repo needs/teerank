@@ -84,24 +84,32 @@ static unsigned is_rankable(struct delta *delta)
 static int load_elo(struct player_delta *player, int force_init)
 {
 	char *path;
+	int ret;
 
 	assert(player != NULL);
 
 	path = join(dir, player->name, "elo");
-
 	if (force_init)
 		goto init;
-	if (!read_file(path, "%d", &player->elo)) {
-		if (errno != ENOENT)
-			return 0;
-	init:
-		/*
-		 * Create "elo" file so the player will still appear
-		 * in database even if he is unrankable.
-		 */
-		write_file(path, "%d", 1500);
-		player->elo = 1500;
-	}
+
+	ret = read_file(path, "%d", &player->elo);
+	if (ret == -1 && errno != ENOENT)
+		return perror(path), 0;
+	if (ret == 0)
+		return fprintf(stderr, "%s: Cannot scan for Elo points\n", path), 0;
+
+init:
+	/*
+	 * Create "elo" file so the player will still appear
+	 * in database even if he is unrankable.
+	 *
+	 * If the write fail it's no big deal because if the player is:
+	 *   - rankable: another write_file() will be attempted to
+	 *     save his new elo.
+	 *   - unrankable: We will try again next time.
+	 */
+	write_file(path, "%d", 1500);
+	player->elo = 1500;
 
 	return 1;
 }
@@ -149,15 +157,17 @@ next:
 		for (i = 0; i < delta.length; i++) {
 			struct player_delta *player = &delta.players[i];
 			int elo;
-			char name[MAX_NAME_LENGTH];
+			char name[MAX_NAME_LENGTH], *path;
 
 			elo = compute_new_elo(&delta, player);
-
 			hex_to_string(player->name, name);
-			printf("%s: %d -> %d\n", name, player->elo, elo);
-			if (elo != player->elo)
-				write_file(join(dir, player->name, "elo"),
-				           "%d", elo);
+
+			printf("%s:\t %d -> %d\n", name, player->elo, elo);
+			if (elo == player->elo)
+				continue;
+			path = join(dir, player->name, "elo");
+			if (write_file(path, "%d", elo) == -1)
+				perror(path);
 		}
 	}
 

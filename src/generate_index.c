@@ -78,7 +78,7 @@ static void load_players(char *root, struct player_array *array)
 		else
 			player.clan[0] = '\0';
 
-		/* ELO */
+		/* Elo */
 		sprintf(path, "%s/%s/%s", root, dp->d_name, "elo");
 		if (read_file(path, "%d", &player.elo) == -1)
 			continue;

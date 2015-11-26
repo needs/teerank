@@ -5,7 +5,7 @@
 #include "delta.h"
 
 /*
- * p() func as defined by ELO.
+ * p() func as defined by Elo.
  */
 static double p(double delta)
 {
@@ -17,7 +17,7 @@ static double p(double delta)
 	return 1.0 / (1.0 + pow(10.0, -delta / 400.0));
 }
 
-/* Classic ELO formula for two players */
+/* Classic Elo formula for two players */
 static int compute_elo_delta(struct player_delta *player, struct player_delta *opponent)
 {
 	static const unsigned K = 25;
@@ -38,13 +38,13 @@ static int compute_elo_delta(struct player_delta *player, struct player_delta *o
 }
 
 /*
- * ELO has been designed for two players games only.  In order to have
- * meaningul value for multiplayer, we have to modify how ELO score is
+ * Elo has been designed for two players games only.  In order to have
+ * meaningul value for multiplayer, we have to modify how new Elos are
  * computed.
  *
- * To get the new ELO for a player, we match this player against every
- * other player and we make the average of every ELO deltas.  The ELO
- * delta is then added to the player's ELO to get his new ELO score.
+ * To get the new Elo for a player, we match this player against every
+ * other players and we make the average of every Elo deltas.  The Elo
+ * delta is then added to the player's Elo points.
  */
 int compute_new_elo(struct delta *delta, struct player_delta *player)
 {

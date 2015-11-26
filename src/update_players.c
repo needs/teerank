@@ -73,7 +73,7 @@ static unsigned is_rankable(struct delta *delta)
 		return 0;
 
 	/* We need at least 4 players really playing the game (ie. rankable)
-	 * to get meaningful ELO deltas. */
+	 * to get meaningful Elo deltas. */
 	remove_unrankable_players(delta);
 	if (delta->length < 4)
 		return 0;
@@ -105,7 +105,7 @@ init:
 	 *
 	 * If the write fail it's no big deal because if the player is:
 	 *   - rankable: another write_file() will be attempted to
-	 *     save his new elo.
+	 *     save his new Elo.
 	 *   - unrankable: We will try again next time.
 	 */
 	write_file(path, "%d", 1500);
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 next:
 	while (scan_delta(&delta)) {
 		/*
-		 * Create player if needed, Load player's ELO and update
+		 * Create player if needed, Load player's Elo and update
 		 * their clan.
 		 */
 		for (i = 0; i < delta.length; i++) {
@@ -146,8 +146,8 @@ next:
 		}
 
 		/*
-		 * Now that every players in delta have their ELO score loaded
-		 * we can compute for each players his new ELO and write it if
+		 * Now that every players in delta have their Elo score loaded,
+		 * we can compute for each players his new Elo and write it if
 		 * it has changed.
 		 */
 

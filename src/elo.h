@@ -4,8 +4,8 @@
 #include "delta.h"
 
 /*
- * Compute new player's elo and return it.  It assume every players in delta
- * have their ELO score set.
+ * Compute new player's Elo and return it.  It assume every players in delta
+ * have their Elo points set.
  */
 int compute_new_elo(struct delta *delta, struct player_delta *player);
 

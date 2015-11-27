@@ -93,10 +93,12 @@ static int load_elo(struct player_delta *player, int force_init)
 		goto init;
 
 	ret = read_file(path, "%d", &player->elo);
-	if (ret == -1 && errno != ENOENT)
-		return perror(path), 0;
+	if (ret == 1)
+		return 1;
 	if (ret == 0)
 		return fprintf(stderr, "%s: Cannot scan for Elo points\n", path), 0;
+	if (ret == -1 && errno != ENOENT)
+		return perror(path), 0;
 
 init:
 	/*

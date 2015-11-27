@@ -67,11 +67,6 @@ static unsigned is_rankable(struct delta *delta)
 {
 	assert(delta != NULL);
 
-	/* At least 2 minute should have passed since the last update,
-	 * otherwise the score delta is not meaningful enough. */
-	if (delta->elapsed < 3 * 60)
-		return 0;
-
 	/* We need at least 4 players really playing the game (ie. rankable)
 	 * to get meaningful Elo deltas. */
 	remove_unrankable_players(delta);

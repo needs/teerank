@@ -73,14 +73,14 @@ static void load_players(char *root, struct player_array *array)
 
 		/* Clan */
 		sprintf(path, "%s/%s/%s", root, dp->d_name, "clan");
-		if (read_file(path, "%s", clan) != -1)
+		if (read_file(path, "%s", clan) == 1)
 			hex_to_string(clan, player.clan);
 		else
 			player.clan[0] = '\0';
 
 		/* Elo */
 		sprintf(path, "%s/%s/%s", root, dp->d_name, "elo");
-		if (read_file(path, "%d", &player.elo) == -1)
+		if (read_file(path, "%d", &player.elo) != 1)
 			continue;
 
 		add_player(array, &player);

@@ -46,6 +46,7 @@ void hex_to_string(const char *hex, char *str)
 {
 	assert(hex != NULL);
 	assert(str != NULL);
+	assert(hex != str);
 
 	for (; hex[0] != '0' || hex[1] != '0'; hex += 2, str++) {
 		char tmp[3] = { hex[0], hex[1], '\0' };

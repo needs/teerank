@@ -89,3 +89,12 @@ table > * > tr > td:nth-child(3) {
 table > * > tr > td:last-child {
 	text-align: right;
 }
+
+table a {
+	color: #666;
+	text-decoration: none;
+}
+
+table a:hover {
+	text-decoration: underline;
+}

@@ -24,7 +24,7 @@ static void print_file(char *path)
 
 struct player {
 	char name[MAX_NAME_LENGTH];
-	char clan[MAX_NAME_LENGTH];
+	char clan[MAX_NAME_LENGTH], clan_hex[MAX_NAME_LENGTH];
 	int elo;
 };
 
@@ -63,7 +63,6 @@ static void load_players(char *root, struct player_array *array)
 
 	while ((dp = readdir(dir))) {
 		struct player player;
-		char clan[MAX_NAME_LENGTH];
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
@@ -73,8 +72,8 @@ static void load_players(char *root, struct player_array *array)
 
 		/* Clan */
 		sprintf(path, "%s/%s/%s", root, dp->d_name, "clan");
-		if (read_file(path, "%s", clan) == 1)
-			hex_to_string(clan, player.clan);
+		if (read_file(path, "%s", player.clan_hex) == 1)
+			hex_to_string(player.clan_hex, player.clan);
 		else
 			player.clan[0] = '\0';
 
@@ -114,11 +113,18 @@ int main(int argc, char *argv[])
 
 	print_file("html/header.inc.html");
 	for (i = 0; i < array.length; i++) {
+		struct player *player = &array.players[i];
+
 		printf("<tr><td>%u</td><td>", i + 1);
-		html(array.players[i].name);
+		html(player->name);
 		printf("</td><td>");
-		html(array.players[i].clan);
-		printf("</td><td>%d</td></tr>\n", array.players[i].elo);
+
+		if (player->clan != '\0') {
+			printf("<a href=\"clans/%s.html\">", player->clan_hex);
+			html(player->clan);
+			printf("</a>");
+		}
+		printf("</td><td>%d</td></tr>\n", player->elo);
 	}
 	print_file("html/footer.inc.html");
 

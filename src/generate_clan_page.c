@@ -66,6 +66,46 @@ static unsigned load_rank(const char *name)
 	return UNKNOWN_RANK;
 }
 
+struct player {
+	char name[MAX_NAME_LENGTH], name_hex[MAX_NAME_LENGTH];
+	int elo;
+	unsigned rank;
+};
+
+static void load_player(struct player *player, char *name)
+{
+	assert(player != NULL);
+	assert(name != NULL);
+
+	strcpy(player->name_hex, name);
+	hex_to_string(name, player->name);
+	player->elo = load_elo(name);
+	player->rank = load_rank(name);
+}
+
+struct player_array {
+	unsigned length;
+	struct player *players;
+};
+
+static void add_player(struct player_array *array, struct player *player)
+{
+	static const unsigned OFFSET = 1024;
+
+	assert(array != NULL);
+	assert(player != NULL);
+
+	if (array->length % 1024 == 0) {
+		void *tmp = realloc(array->players,
+		                    (array->length + OFFSET) * sizeof(*player));
+		if (!tmp)
+			return perror("Reallocating players array");
+		array->players = tmp;
+	}
+
+	array->players[array->length++] = *player;
+}
+
 static int extract_clan_string(char *clan_directory, char *clan)
 {
 	char *tmp;
@@ -97,10 +137,48 @@ static void print_file(char *path)
 	fclose(file);
 }
 
+static void print_player(struct player *player, char *clan)
+{
+	assert(player != NULL);
+	assert(clan != NULL);
+
+	printf("<tr>");
+
+	if (player->rank == UNKNOWN_RANK)
+		printf("<td>?</td>");
+	else
+		printf("<td>%u</td>", player->rank);
+
+	printf("<td>%s</td><td>%s</td>", player->name, clan);
+
+	if (player->elo == UNKNOWN_ELO)
+		printf("<td>?</td>");
+	else
+		printf("<td>%d</td>", player->elo);
+
+	printf("</tr>\n");
+}
+
+static const struct player_array PLAYER_ARRAY_ZERO;
+
+static int cmp_player(const void *p1, const void *p2)
+{
+	const struct player *a = p1, *b = p2;
+
+	/* We want them in reverse order */
+	if (b->rank > a->rank)
+		return -1;
+	if (b->rank < a->rank)
+		return 1;
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	FILE *file;
 	char name[MAX_NAME_LENGTH], clan[MAX_NAME_LENGTH];
+	struct player_array array = PLAYER_ARRAY_ZERO;
+	unsigned i;
 
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s <clan_directory> <players_directory>\n", argv[0]);
@@ -112,43 +190,33 @@ int main(int argc, char **argv)
 	if (!extract_clan_string(argv[1], clan))
 		return EXIT_FAILURE;
 
+	/* Load players */
+
 	sprintf(path, "%s/%s", argv[1], "members");
 	if (!(file = fopen(path, "r")))
 		return perror(path), EXIT_FAILURE;
 
-	print_file("html/header_clan.inc.html");
-
-	printf("<h2>%s</h2>\n", clan);
-	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead>\n<tbody>");
-
 	while (fscanf(file, " %s", name) == 1) {
-		int elo;
-		unsigned rank;
-		char _name[MAX_NAME_LENGTH];
-
-		elo = load_elo(name);
-		rank = load_rank(name);
-		hex_to_string(name, _name);
-
-		printf("<tr>");
-
-		if (rank == UNKNOWN_RANK)
-			printf("<td>?</td>");
-		else
-			printf("<td>%u</td>", rank);
-
-		printf("<td>%s</td><td>%s</td>", _name, clan);
-		if (elo == UNKNOWN_ELO)
-			printf("<td>?</td>");
-		else
-			printf("<td>%d</td>", elo);
-		printf("</tr>\n");
+		struct player player;
+		load_player(&player, name);
+		add_player(&array, &player);
 	}
+
+	fclose(file);
+
+	/* Sort players */
+	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
+
+	/* Finally, print them */
+	print_file("html/header_clan.inc.html");
+	printf("<h2>%s</h2>\n", clan);
+	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead>\n<tbody>\n");
+
+	for (i = 0; i < array.length; i++)
+		print_player(&array.players[i], clan);
 
 	printf("</tbody></table>");
 	print_file("html/footer_clan.inc.html");
-
-	fclose(file);
 
 	return EXIT_SUCCESS;
 }

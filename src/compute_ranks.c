@@ -1,32 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
-#include <string.h>
 #include <assert.h>
+#include <string.h>
+#include <dirent.h>
 #include <limits.h>
-#include <errno.h>
 
 #include "io.h"
 
-static void print_file(char *path)
-{
-	FILE *file = NULL;
-	int c;
-
-	if (!(file = fopen(path, "r")))
-		exit(EXIT_FAILURE);
-
-	while ((c = fgetc(file)) != EOF)
-		putchar(c);
-
-	fclose(file);
-}
-
 struct player {
 	char name[MAX_NAME_LENGTH];
-	char clan[MAX_NAME_LENGTH], clan_hex[MAX_NAME_LENGTH];
 	int elo;
-	unsigned rank;
 };
 
 struct player_array {
@@ -50,9 +33,6 @@ static void add_player(struct player_array *array, struct player *player)
 	array->players[array->length++] = *player;
 }
 
-static const int UNKNOWN_ELO = INT_MIN;
-static const unsigned UNKNOWN_RANK = UINT_MAX;
-
 static void load_players(char *root, struct player_array *array)
 {
 	DIR *dir;
@@ -72,24 +52,12 @@ static void load_players(char *root, struct player_array *array)
 			continue;
 
 		/* Name */
-		hex_to_string(dp->d_name, player.name);
-
-		/* Clan */
-		sprintf(path, "%s/%s/%s", root, dp->d_name, "clan");
-		if (read_file(path, "%s", player.clan_hex) == 1)
-			hex_to_string(player.clan_hex, player.clan);
-		else
-			player.clan[0] = '\0';
+		strcpy(player.name, dp->d_name);
 
 		/* Elo */
 		sprintf(path, "%s/%s/%s", root, dp->d_name, "elo");
 		if (read_file(path, "%d", &player.elo) != 1)
-			player.elo = UNKNOWN_ELO;
-
-		/* Rank */
-		sprintf(path, "%s/%s/%s", root, dp->d_name, "rank");
-		if (read_file(path, "%u", &player.rank) != 1)
-			player.rank = UNKNOWN_RANK;
+			continue;
 
 		add_player(array, &player);
 	}
@@ -102,11 +70,7 @@ static int cmp_player(const void *p1, const void *p2)
 	const struct player *a = p1, *b = p2;
 
 	/* We want them in reverse order */
-	if (b->rank > a->rank)
-		return -1;
-	if (b->rank < a->rank)
-		return 1;
-	return 0;
+	return b->elo - a->elo;
 }
 
 static const struct player_array PLAYER_ARRAY_ZERO;
@@ -124,41 +88,14 @@ int main(int argc, char *argv[])
 	load_players(argv[1], &array);
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
-	print_file("html/header.inc.html");
 	for (i = 0; i < array.length; i++) {
 		struct player *player = &array.players[i];
+		static char path[PATH_MAX];
 
-		printf("<tr>");
-
-		/* Rank */
-		if (player->rank == UNKNOWN_RANK)
-			printf("<td>?</td>");
-		else
-			printf("<td>%u</td>", player->rank);
-
-		/* Name */
-		printf("<td>");
-		html(player->name);
-		printf("</td>");
-
-		/* Clan */
-		printf("<td>");
-		if (player->clan[0] != '\0') {
-			printf("<a href=\"clans/%s.html\">", player->clan_hex);
-			html(player->clan);
-			printf("</a>");
-		}
-		printf("</td>");
-
-		/* Elo */
-		if (player->elo == UNKNOWN_ELO)
-			printf("<td>?</td>");
-		else
-			printf("<td>%d</td>", player->elo);
-
-		printf("</tr>\n");
+		sprintf(path, "%s/%s/%s", argv[1], player->name, "rank");
+		if (write_file(path, "%u", i + 1) == -1)
+			perror(path);
 	}
-	print_file("html/footer.inc.html");
 
 	return EXIT_SUCCESS;
 }

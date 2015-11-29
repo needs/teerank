@@ -18,6 +18,13 @@ static char *players_directory;
  */
 #define UNKNOWN_ELO INT_MIN
 
+/*
+ * Same as UNKNOWN_ELO but this time UINT_MAX is choosen so even if rank is
+ * displayed as it is, players with unknown rank will be at the end since
+ * players are sorted in decreasing order.
+ */
+#define UNKNOWN_RANK UINT_MAX
+
 static int load_elo(const char *name)
 {
 	int ret, elo;
@@ -36,6 +43,27 @@ static int load_elo(const char *name)
 		fprintf(stderr, "%s: Cannot match Elo\n", path);
 
 	return UNKNOWN_ELO;
+}
+
+static unsigned load_rank(const char *name)
+{
+	unsigned rank;
+	int ret;
+
+	assert(name != NULL);
+
+	sprintf(path, "%s/%s/%s", players_directory, name, "rank");
+
+	/* Failing at reading rank is not fatal, we will just output '?' */
+	ret = read_file(path, "%u", &rank);
+	if (ret == 1)
+		return rank;
+	else if (ret == -1)
+		perror(path);
+	else
+		fprintf(stderr, "%s: Cannot match rank\n", path);
+
+	return UNKNOWN_RANK;
 }
 
 static int extract_clan_string(char *clan_directory, char *clan)
@@ -95,12 +123,20 @@ int main(int argc, char **argv)
 
 	while (fscanf(file, " %s", name) == 1) {
 		int elo;
+		unsigned rank;
 		char _name[MAX_NAME_LENGTH];
 
 		elo = load_elo(name);
+		rank = load_rank(name);
 		hex_to_string(name, _name);
 
-		printf("<tr><td></td>");
+		printf("<tr>");
+
+		if (rank == UNKNOWN_RANK)
+			printf("<td>?</td>");
+		else
+			printf("<td>%u</td>", rank);
+
 		printf("<td>%s</td><td>%s</td>", _name, clan);
 		if (elo == UNKNOWN_ELO)
 			printf("<td>?</td>");

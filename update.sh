@@ -2,7 +2,7 @@
 
 db=data
 
-mkdir -p $db/servers $db/players $db/clans
+mkdir -p $db/servers $db/players $db/clans $db/pages
 
 #
 # Database update
@@ -11,15 +11,16 @@ mkdir -p $db/servers $db/players $db/clans
 # Update servers list and players
 ./add_new_servers $db/servers
 ./update_servers $db/servers/* | ./update_players $db/players
-./compute_ranks $db/players
+./compute_ranks $db/players >$db/ranks
 ./update_clans $db/clans $db/players
+./paginate_ranks <$db/ranks 100 $db/pages/%u
 
 #
 # HTML pages generation
 #
 
 # Index
-./generate_index $db/players/ > index.html
+./generate_index $db/players/ >index.html
 
 # Rank pages
 mkdir -p pages

@@ -95,6 +95,8 @@ int main(int argc, char *argv[])
 		sprintf(path, "%s/%s/%s", argv[1], player->name, "rank");
 		if (write_file(path, "%u", i + 1) == -1)
 			perror(path);
+
+		printf("%u %s\n", i, player->name);
 	}
 
 	return EXIT_SUCCESS;

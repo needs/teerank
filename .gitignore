@@ -12,5 +12,6 @@
 /generate_clan_page
 /compute_ranks
 /generate_rank_pages
+/paginate_ranks
 
 /index.html

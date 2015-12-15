@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "io.h"
 
@@ -42,18 +43,38 @@ int write_file(const char *path, const char *format, ...)
 	return ret;
 }
 
-void print_file(const char *path)
+void print_header(void)
 {
-	FILE *file;
-	int c;
+	static const char str[] =
+		"<!doctype html>"
+		"<html>"
+		"	<head>"
+		"		<meta charset=\"utf-8\" />"
+		"		<title>Teerank</title>"
+		"		<link rel=\"stylesheet\" href=\"/style.css\"/>"
+		"	</head>"
+		"	<body>"
+		"		<header>"
+		"			<a href=\"/index.html\"><img src=\"/images/logo.png\" alt=\"Logo\" /></a>"
+		"		</header>"
+		"		<main>"
+		"			<nav>"
+		"				<a href=\"/index.html\">CTF</a>"
+		"			</nav>"
+		"			<section>"
+		;
+	puts(str);
+}
 
-	if (!(file = fopen(path, "r")))
-		exit(EXIT_FAILURE);
-
-	while ((c = fgetc(file)) != EOF)
-		putchar(c);
-
-	fclose(file);
+void print_footer(void)
+{
+	static const char str[] =
+		"			</section>"
+		"		</main>"
+		"	</body>"
+		"</html>"
+		;
+	puts(str);
 }
 
 void hex_to_string(const char *hex, char *str)

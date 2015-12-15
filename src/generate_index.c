@@ -110,7 +110,9 @@ int main(int argc, char *argv[])
 	load_players(argv[1], &array);
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
-	print_file("html/header.inc.html");
+	print_header();
+	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
+
 	for (i = 0; i < array.length; i++) {
 		struct player *player = &array.players[i];
 
@@ -144,7 +146,9 @@ int main(int argc, char *argv[])
 
 		printf("</tr>\n");
 	}
-	print_file("html/footer.inc.html");
+
+	printf("</tbody></table>\n");
+	print_footer();
 
 	return EXIT_SUCCESS;
 }

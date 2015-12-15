@@ -13,7 +13,8 @@
 int read_file(const char *path, const char *format, ...);
 int write_file(const char *path, const char *format, ...);
 
-void print_file(const char *path);
+void print_header(void);
+void print_footer(void);
 
 void hex_to_string(const char *hex, char *str);
 void string_to_hex(const char *str, char *hex);

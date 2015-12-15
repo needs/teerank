@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
 	/* Eventually, print them */
-	print_file("html/header_clan.inc.html");
+	print_header();
 	printf("<h2>%s</h2>\n", clan);
 	printf("<p>%u member(s)</p>\n", array.length);
 	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead>\n<tbody>\n");
@@ -202,8 +202,8 @@ int main(int argc, char **argv)
 	for (i = 0; i < array.length; i++)
 		print_player(&array.players[i], clan);
 
-	printf("</tbody></table>");
-	print_file("html/footer_clan.inc.html");
+	printf("</tbody></table>\n");
+	print_footer();
 
 	return EXIT_SUCCESS;
 }

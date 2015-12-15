@@ -124,19 +124,41 @@ static void print_array(struct player_array *array)
 }
 
 static const struct player_array PLAYER_ARRAY_ZERO;
+enum mode {
+	FULL_PAGE, ONLY_ROWS
+};
 
 int main(int argc, char **argv)
 {
 	struct player_array array = PLAYER_ARRAY_ZERO;
+	enum mode mode;
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <players_directory>\n", argv[0]);
+	if (argc != 3) {
+		fprintf(stderr, "usage: %s [full-page|only-rows] <players_directory>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	root = argv[1];
+	root = argv[2];
+	if (!strcmp(argv[1], "full-page"))
+		mode = FULL_PAGE;
+	else if (!strcmp(argv[1], "only-rows"))
+		mode = ONLY_ROWS;
+	else {
+		fprintf(stderr, "First argument must be either \"full-page\" or \"only-rows\"\n");
+		return EXIT_FAILURE;
+	}
+
 	load_players(&array);
+
+	if (mode == FULL_PAGE) {
+		print_header();
+		printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
+	}
 	print_array(&array);
+	if (mode == FULL_PAGE) {
+		printf("</tbody></table>");
+		print_footer();
+	}
 
 	return EXIT_SUCCESS;
 }

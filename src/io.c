@@ -56,6 +56,20 @@ void print_file(const char *path)
 	fclose(file);
 }
 
+void fprint_file(FILE *dest, const char *path)
+{
+	FILE *file;
+	int c;
+
+	if (!(file = fopen(path, "r")))
+		exit(EXIT_FAILURE);
+
+	while ((c = fgetc(file)) != EOF)
+		fputc(c, dest);
+
+	fclose(file);
+}
+
 void hex_to_string(const char *hex, char *str)
 {
 	assert(hex != NULL);
@@ -97,6 +111,27 @@ void html(char *str)
 			fputs("&quot;", stdout); break;
 		default:
 			putchar(*str);
+		}
+	} while (*str++);
+}
+
+void fhtml(FILE *file, char *str)
+{
+	assert(str != NULL);
+	assert(file != NULL);
+
+	do {
+		switch (*str) {
+		case '<':
+			fputs("&lt;", file); break;
+		case '>':
+			fputs("&gt;", file); break;
+		case '&':
+			fputs("&amp;", file); break;
+		case '"':
+			fputs("&quot;", file); break;
+		default:
+			fputc(*str, file);
 		}
 	} while (*str++);
 }

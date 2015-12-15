@@ -24,7 +24,9 @@ mkdir -p $db/servers $db/players $db/clans $db/pages
 
 # Rank pages
 mkdir -p pages
-./generate_rank_pages $db/players pages/
+for file in $db/pages/*; do
+    ./generate_rank_page $db/players <$file >pages/$(basename $file).html
+done
 
 # Clan pages
 mkdir -p clans

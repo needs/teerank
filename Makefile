@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
-BINS = add_new_servers update_servers generate_index update_players update_clans generate_clan_page compute_ranks generate_rank_pages paginate_ranks
+BINS = add_new_servers update_servers generate_index update_players update_clans generate_clan_page compute_ranks generate_rank_page paginate_ranks
 
 .PHONY: all clean
 
@@ -26,7 +26,7 @@ generate_clan_page: src/generate_clan_page.o src/io.o
 compute_ranks: src/compute_ranks.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-generate_rank_pages: src/generate_rank_pages.o src/io.o
+generate_rank_page: src/generate_rank_page.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 paginate_ranks: src/paginate_ranks.o

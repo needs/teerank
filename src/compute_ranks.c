@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 		if (write_file(path, "%u", i + 1) == -1)
 			perror(path);
 
-		printf("%u %s\n", i, player->name);
+		printf("%s\n", player->name);
 	}
 
 	return EXIT_SUCCESS;

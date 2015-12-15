@@ -123,20 +123,6 @@ static int extract_clan_string(char *clan_directory, char *clan)
 	return 1;
 }
 
-static void print_file(char *path)
-{
-	FILE *file = NULL;
-	int c;
-
-	if (!(file = fopen(path, "r")))
-		exit(EXIT_FAILURE);
-
-	while ((c = fgetc(file)) != EOF)
-		putchar(c);
-
-	fclose(file);
-}
-
 static void print_player(struct player *player, char *clan)
 {
 	assert(player != NULL);
@@ -207,7 +193,7 @@ int main(int argc, char **argv)
 	/* Sort players */
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
-	/* Finally, print them */
+	/* Eventually, print them */
 	print_file("html/header_clan.inc.html");
 	printf("<h2>%s</h2>\n", clan);
 	printf("<p>%u member(s)</p>\n", array.length);

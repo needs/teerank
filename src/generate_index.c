@@ -8,20 +8,6 @@
 
 #include "io.h"
 
-static void print_file(char *path)
-{
-	FILE *file = NULL;
-	int c;
-
-	if (!(file = fopen(path, "r")))
-		exit(EXIT_FAILURE);
-
-	while ((c = fgetc(file)) != EOF)
-		putchar(c);
-
-	fclose(file);
-}
-
 struct player {
 	char name[MAX_NAME_LENGTH];
 	char clan[MAX_NAME_LENGTH], clan_hex[MAX_NAME_LENGTH];

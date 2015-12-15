@@ -42,6 +42,20 @@ int write_file(const char *path, const char *format, ...)
 	return ret;
 }
 
+void print_file(const char *path)
+{
+	FILE *file;
+	int c;
+
+	if (!(file = fopen(path, "r")))
+		exit(EXIT_FAILURE);
+
+	while ((c = fgetc(file)) != EOF)
+		putchar(c);
+
+	fclose(file);
+}
+
 void hex_to_string(const char *hex, char *str)
 {
 	assert(hex != NULL);

@@ -98,3 +98,71 @@ table a {
 table a:hover {
 	text-decoration: underline;
 }
+
+/* Pages navigation */
+nav.pages {
+	display: flex;
+	margin-top: -3em;
+	margin-bottom: 2em;
+	font-size: 0.9em;
+
+	border: 1px solid #ccc;
+	border-radius: 3px;
+}
+
+nav.pages a, nav.pages span {
+	background-color: white;
+	border-right: 1px solid #ccc;
+
+	margin: 0.5em 0 0.5em 0;
+	padding: 0 0.7em 0 0.7em;
+
+	color: #ccc;
+}
+
+nav.pages a {
+	text-decoration: none;
+	cursor: not-allowed;
+}
+
+nav.pages a[href] {
+	color: #970;
+	cursor: pointer;
+}
+
+nav.pages a[href]:hover {
+	color: #b42000;
+	text-decoration: underline;
+}
+
+nav.pages span {
+	color: #666;
+}
+
+nav.pages a.current {
+	font-weight: bold;
+	color: #666;
+	cursor: default;
+}
+
+nav.pages a.previous, nav.pages a.next {
+	margin-top: 0;
+	margin-bottom: 0;
+	padding: 0.5em 1em 0.5em 1em;
+
+	background-color: #f7f7f7;
+}
+
+nav.pages a.previous {
+	margin-right: auto;
+}
+nav.pages a.next {
+	margin-left: auto;
+	border-right: none;
+	border-left: 1px solid #ccc;
+}
+
+/* a:nth-last-child(2) is the last number of the pages numbers list. */
+nav.pages a:nth-last-child(2) {
+	border-right: none;
+}

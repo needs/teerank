@@ -35,7 +35,7 @@ static int validate_players_per_page(const char *str, unsigned *ret)
 
 int main(int argc, char *argv[])
 {
-	unsigned players_per_page, lines = 0;
+	unsigned players_per_page, players_count, lines = 0;
 	FILE *file = NULL;
 	int c;
 
@@ -49,6 +49,12 @@ int main(int argc, char *argv[])
 	if (!validate_path_format(argv[2]))
 		return EXIT_FAILURE;
 
+	/* First line contains the number of players */
+	if (scanf("%u players ", &players_count) != 1) {
+		fprintf(stderr, "Can't read the number of players\n");
+		return EXIT_FAILURE;
+	}
+
 	goto start;
 	while ((c = getchar()) != EOF) {
 		fputc(c, file);
@@ -61,9 +67,14 @@ int main(int argc, char *argv[])
 					fclose(file);
 
 			start:
-				sprintf(path, argv[2], lines / players_per_page);
+				sprintf(path, argv[2], lines / players_per_page + 1);
 				if (!(file = fopen(path, "w")))
 					return perror(path), EXIT_FAILURE;
+
+				/* Print page header */
+				fprintf(file, "page %u/%u\n",
+				        lines / players_per_page + 1,
+				        players_count / players_per_page + 1);
 			}
 		}
 	}

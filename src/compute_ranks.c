@@ -88,6 +88,10 @@ int main(int argc, char *argv[])
 	load_players(argv[1], &array);
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
+	/* Print the number of players first... */
+	printf("%u players\n", array.length);
+
+	/* ...and then dump player's name, one per line. */
 	for (i = 0; i < array.length; i++) {
 		struct player *player = &array.players[i];
 		static char path[PATH_MAX];

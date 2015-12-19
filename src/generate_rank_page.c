@@ -14,27 +14,29 @@ struct player {
 	unsigned rank;
 };
 
-struct player_array {
-	struct player *players;
+struct page {
+	unsigned number, total;
+
 	unsigned length;
+	struct player *players;
 };
 
-static void add_player(struct player_array *array, struct player *player)
+static void add_player(struct page *page, struct player *player)
 {
 	static const unsigned OFFSET = 1024;
 
-	assert(array != NULL);
+	assert(page != NULL);
 	assert(player != NULL);
 
-	if (array->length % OFFSET == 0) {
+	if (page->length % OFFSET == 0) {
 		struct player *players;
-		players = realloc(array->players, (array->length + OFFSET) * sizeof(*player));
+		players = realloc(page->players, (page->length + OFFSET) * sizeof(*player));
 		if (!players)
-			return perror("Re-allocating player array");
-		array->players = players;
+			return perror("Re-allocating page players array");
+		page->players = players;
 	}
 
-	array->players[array->length++] = *player;
+	page->players[page->length++] = *player;
 }
 
 static const int UNKNOWN_ELO = INT_MIN;
@@ -69,27 +71,32 @@ static void load_player(struct player *player, char *name)
 		player->rank = UNKNOWN_RANK;
 }
 
-static void load_players(struct player_array *array)
+static void load_page(struct page *page)
 {
 	char name[MAX_NAME_LENGTH];
 
-	assert(array != NULL);
+	assert(page != NULL);
+
+	if (scanf("page %u/%u ", &page->number, &page->total) != 2) {
+		fprintf(stderr, "Cannot match page header\n");
+		exit(EXIT_FAILURE);
+	}
 
 	while (scanf("%s", name) == 1) {
 		struct player player;
 		load_player(&player, name);
-		add_player(array, &player);
+		add_player(page, &player);
 	}
 }
 
-static void print_array(struct player_array *array)
+static void print_page(struct page *page)
 {
 	unsigned i;
 
-	assert(array != NULL);
+	assert(page != NULL);
 
-	for (i = 0; i < array->length; i++) {
-		struct player *player = &array->players[i];
+	for (i = 0; i < page->length; i++) {
+		struct player *player = &page->players[i];
 
 		printf("<tr>");
 
@@ -123,14 +130,63 @@ static void print_array(struct player_array *array)
 	}
 }
 
-static const struct player_array PLAYER_ARRAY_ZERO;
+static unsigned min(unsigned a, unsigned b)
+{
+	return (a < b) ? a : b;
+}
+
+static void print_nav(struct page *page)
+{
+	/* Number of pages shown before and after the current page */
+	static const unsigned PAGE_SHOWN = 3;
+	unsigned i;
+
+	assert(page != NULL);
+
+	printf("<nav class=\"pages\">");
+	if (page->number == 1)
+		printf("<a class=\"previous\">Previous</a>");
+	else
+		printf("<a class=\"previous\" href=\"/pages/%u.html\">Previous</a>",
+		       page->number - 1);
+
+	if (page->number > PAGE_SHOWN + 1)
+		printf("<a href=\"/pages/1.html\">1</a>");
+	if (page->number > PAGE_SHOWN + 2)
+		printf("<span>...</span>");
+
+	for (i = min(PAGE_SHOWN, page->number - 1); i > 0; i--)
+		printf("<a href=\"/pages/%u.html\">%u</a>",
+		       page->number - i, page->number - i);
+
+	printf("<a class=\"current\">%u</a>", page->number);
+
+	for (i = 1; i <= min(PAGE_SHOWN, page->total - page->number); i++)
+		printf("<a href=\"/pages/%u.html\">%u</a>",
+		       page->number + i, page->number + i);
+
+	if (page->number + PAGE_SHOWN + 1 < page->total)
+		printf("<span>...</span>");
+	if (page->number + PAGE_SHOWN < page->total)
+		printf("<a href=\"/pages/%u.html\">%u</a>",
+		       page->total, page->total);
+
+	if (page->number == page->total)
+	printf("<a class=\"next\">Next</a>");
+	else
+		printf("<a class=\"next\" href=\"/pages/%u.html\">Next</a>",
+		       page->number + 1);
+	printf("</nav>");
+}
+
+static const struct page PAGE_ZERO;
 enum mode {
 	FULL_PAGE, ONLY_ROWS
 };
 
 int main(int argc, char **argv)
 {
-	struct player_array array = PLAYER_ARRAY_ZERO;
+	struct page page = PAGE_ZERO;
 	enum mode mode;
 
 	if (argc != 3) {
@@ -148,13 +204,17 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	load_players(&array);
+	load_page(&page);
 
 	if (mode == FULL_PAGE) {
 		print_header();
+		print_nav(&page);
+
 		printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
 	}
-	print_array(&array);
+
+	print_page(&page);
+
 	if (mode == FULL_PAGE) {
 		printf("</tbody></table>");
 		print_footer();

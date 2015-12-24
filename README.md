@@ -3,16 +3,21 @@ Teerank
 
 Teerank is a simple ranking system for teeworlds.  You can test the lastest stable version at [teerank.com](http://teerank.com/).
 
-How to build and use
-====================
+How to build
+============
 
-To use it, you must first compile the binaries.
+Simple:
 
 ```bash
 make
 ```
 
-Then you can generate the `index.html` file with:
+How to use
+==========
+
+Teerank use a database to generate HTML files.  In order to get the
+HTML files, you must create and fill the database.  This is done by
+running:
 
 ```bash
 ./update.sh

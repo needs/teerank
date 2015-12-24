@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
-BINS = add_new_servers update_servers generate_index update_players update_clans generate_clan_page compute_ranks generate_rank_page paginate_ranks
+BINS = add_new_servers update_servers generate_index update_players update_clans generate_clan_page compute_ranks generate_rank_page paginate_ranks teerank.cgi
 
 .PHONY: all clean
 
@@ -30,6 +30,9 @@ generate_rank_page: src/generate_rank_page.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 paginate_ranks: src/paginate_ranks.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+teerank.cgi: src/cgi.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 clean:

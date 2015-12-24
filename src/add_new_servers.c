@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 		char *dirname = addr_to_dirname(&list.addrs[i]);
 		int ret;
 
-		ret = mkdirat(fd, dirname, S_IRWXU);
+		ret = mkdirat(fd, dirname, 0777);
 		if (ret == -1 && errno != EEXIST)
 			fprintf(stderr, "%s/%s: %s\n",
 			        argv[1], dirname, strerror(errno));

@@ -31,7 +31,7 @@ static enum status create_directory(struct player_delta *player)
 
 	path = join(dir, player->name, "");
 
-	if (mkdir(path, S_IRWXU) == -1) {
+	if (mkdir(path, 0777) == -1) {
 		if (errno == EEXIST)
 			return EXIST;
 		perror(path);

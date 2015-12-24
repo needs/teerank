@@ -128,7 +128,7 @@ static void write_clan_array(struct clan_array *clans)
 
 		/* Create directory */
 		sprintf(path, "%s/%s", clans_directory, clan->name);
-		if (mkdir(path, S_IRWXU) == -1 && errno != EEXIST) {
+		if (mkdir(path, 0777) == -1 && errno != EEXIST) {
 			perror(path);
 			continue;
 		}

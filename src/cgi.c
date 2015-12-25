@@ -199,11 +199,11 @@ static void generate(struct page *page)
 	close(dest);
 
 	if (page->type == INDEX)
-		execl("./generate_index", "./generate_index", page->deps[0], NULL);
+		execl("./teerank-generate-index", "./teerank-generate-index", page->deps[0], NULL);
 	else if (page->type == PAGES)
-		execl("./generate_rank_page", "./generate_rank_page", "full-page", page->deps[0], NULL);
+		execl("./teerank-generate-rank-page", "./teerank-generate-rank-page", "full-page", page->deps[0], NULL);
 	else if (page->type == CLANS)
-		execl("./generate_clan_page", "./generate_clan_page", page->deps[1], page->deps[0], NULL);
+		execl("./teerank-generate-clan-page", "./teerank-generate-clan-page", page->deps[1], page->deps[0], NULL);
 
 	fprintf(stderr, "execl(): %s\n", strerror(errno));
 	exit(EXIT_FAILURE);

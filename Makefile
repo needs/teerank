@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
-BINS = add_new_servers update_servers generate_index update_players update_clans generate_clan_page compute_ranks generate_rank_page paginate_ranks teerank.cgi init_database
+BINS = $(addprefix teerank-,add-new-servers update-servers generate-index update-players update-clans generate-clan-page compute-ranks generate-rank-page paginate-ranks init-database update) teerank.cgi
 
 .PHONY: all clean
 
@@ -8,38 +8,41 @@ all: $(BINS)
 # All binaries share the same configuration
 $(BINS): src/config.o
 
-add_new_servers: src/add_new_servers.o src/network.o
+teerank-add-new-servers: src/add-new-servers.o src/network.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-update_servers: src/update_servers.o src/network.o src/pool.o src/delta.o src/io.o
+teerank-update-servers: src/update-servers.o src/network.o src/pool.o src/delta.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-generate_index: src/generate_index.o src/io.o
+teerank-generate-index: src/generate-index.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-update_players: src/update_players.o src/delta.o src/elo.o src/io.o
+teerank-update-players: src/update-players.o src/delta.o src/elo.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^ -lm
 
-update_clans: src/update_clans.o src/io.o
+teerank-update-clans: src/update-clans.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-generate_clan_page: src/generate_clan_page.o src/io.o
+teerank-generate-clan-page: src/generate-clan-page.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-compute_ranks: src/compute_ranks.o src/io.o
+teerank-compute-ranks: src/compute-ranks.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-generate_rank_page: src/generate_rank_page.o src/io.o
+teerank-generate-rank-page: src/generate-rank-page.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-paginate_ranks: src/paginate_ranks.o
+teerank-paginate-ranks: src/paginate-ranks.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+teerank-init-database: src/init-database.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank.cgi: src/cgi.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-init_database: src/init_database.o
-	$(CC) -o $@ $(CFLAGS) $^
+teerank-update: update.sh
+	cp update.sh teerank-update
 
 clean:
 	rm -f src/*.o $(BINS)

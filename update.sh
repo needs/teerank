@@ -5,9 +5,9 @@ export PATH=.:"$PATH"
 #
 # Database update
 #
-init_database
-add_new_servers
-update_servers | ./update_players
-compute_ranks
-update_clans
-paginate_ranks 100
+teerank-init-database
+teerank-add-new-servers
+teerank-update-servers | teerank-update-players
+teerank-compute-ranks
+teerank-update-clans
+teerank-paginate-ranks 100

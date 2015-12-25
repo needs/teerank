@@ -1,19 +1,19 @@
 /data/
 /clans/
 /pages/
+/index.html
 
 *.o
 
-/add_new_servers
-/generate_index
-/update_players
-/update_servers
-/update_clans
-/generate_clan_page
-/compute_ranks
-/generate_rank_page
-/paginate_ranks
+/teerank-add-new-servers
+/teerank-generate-index
+/teerank-update-players
+/teerank-update-servers
+/teerank-update-clans
+/teerank-generate-clan-page
+/teerank-compute-ranks
+/teerank-generate-rank-page
+/teerank-paginate-ranks
+/teerank-init-database
+/teerank-update
 /teerank.cgi
-/init_database
-
-/index.html

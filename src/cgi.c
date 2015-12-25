@@ -12,9 +12,7 @@
 #include <fcntl.h>
 
 #include "io.h"
-
-static const char cache_root[] = "/var/cache/teerank";
-static const char db_root[] = "./data";
+#include "config.h"
 
 static char *reason_phrase(int code)
 {
@@ -89,22 +87,22 @@ static void get_page(const char *path, struct page *page)
 
 	if (!strcmp(path, "/") || !strcmp(path, "/index.html")) {
 		page->type = INDEX;
-		sprintf(page->dest, "%s/%s", cache_root, "index.html");
-		sprintf(page->deps[0], "%s/%s", db_root, "players/");
+		sprintf(page->dest, "%s/%s", config.cache_root, "index.html");
+		sprintf(page->deps[0], "%s/%s", config.root, "players/");
 		page->ndeps = 1;
 		page->src = NULL;
 	} else if ((str = extract_string_between("/pages/", ".html", path))) {
 		page->type = PAGES;
-		sprintf(page->dest, "%s/pages/%s.html", cache_root, str);
-		sprintf(page->deps[0], "%s/%s", db_root, "players/");
-		sprintf(page->deps[1], "%s/pages/%s", db_root, str);
+		sprintf(page->dest, "%s/pages/%s.html", config.cache_root, str);
+		sprintf(page->deps[0], "%s/%s", config.root, "players/");
+		sprintf(page->deps[1], "%s/pages/%s", config.root, str);
 		page->ndeps = 2;
 		page->src = page->deps[1];
 	} else if ((str = extract_string_between("/clans/", ".html", path))) {
 		page->type = CLANS;
-		sprintf(page->dest, "%s/clans/%s.html", cache_root, str);
-		sprintf(page->deps[0], "%s/%s", db_root, "players/");
-		sprintf(page->deps[1], "%s/clans/%s", db_root, str);
+		sprintf(page->dest, "%s/clans/%s.html", config.cache_root, str);
+		sprintf(page->deps[0], "%s/%s", config.root, "players/");
+		sprintf(page->deps[1], "%s/clans/%s", config.root, str);
 		page->ndeps = 2;
 		page->src = page->deps[1];
 	} else {
@@ -226,24 +224,26 @@ static void print(struct page *page)
 	fclose(file);
 }
 
-static void create_cache(void)
+static void create_directory(char *fmt, ...)
 {
-	static char path[PATH_MAX];
+	va_list ap;
+	char path[PATH_MAX];
 	int ret;
 
-	if ((ret = mkdir(cache_root, 0777)) == -1)
-		if (errno != EEXIST)
-			error(500, "%s: %s\n", cache_root, strerror(errno));
+	va_start(ap, fmt);
+	vsprintf(path, fmt, ap);
+	va_end(ap);
 
-	sprintf(path, "%s/%s", cache_root, "pages");
 	if ((ret = mkdir(path, 0777)) == -1)
 		if (errno != EEXIST)
 			error(500, "%s: %s\n", path, strerror(errno));
+}
 
-	sprintf(path, "%s/%s", cache_root, "clans");
-	if ((ret = mkdir(path, 0777)) == -1)
-		if (errno != EEXIST)
-			error(500, "%s: %s\n", path, strerror(errno));
+static void create_cache(void)
+{
+	create_directory("%s", config.cache_root);
+	create_directory("%s/pages", config.cache_root);
+	create_directory("%s/clans", config.cache_root);
 }
 
 int main(int argc, char **argv)
@@ -251,6 +251,7 @@ int main(int argc, char **argv)
 	struct page page;
 	char *path;
 
+	load_config();
 	create_cache();
 
 	if (!(path = getenv("DOCUMENT_URI")))

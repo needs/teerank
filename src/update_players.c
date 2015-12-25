@@ -8,15 +8,7 @@
 #include "delta.h"
 #include "elo.h"
 #include "io.h"
-
-static char *join(char *dir1, char *dir2, char *filename)
-{
-	static char path[PATH_MAX];
-	sprintf(path, "%s/%s/%s", dir1, dir2, filename);
-	return path;
-}
-
-static char *dir;
+#include "config.h"
 
 enum status {
 	ERROR = 0,
@@ -25,12 +17,11 @@ enum status {
 
 static enum status create_directory(struct player_delta *player)
 {
-	char *path;
+	static char path[PATH_MAX];
 
 	assert(player != NULL);
 
-	path = join(dir, player->name, "");
-
+	sprintf(path, "%s/players/%s", config.root, player->name);
 	if (mkdir(path, 0777) == -1) {
 		if (errno == EEXIST)
 			return EXIST;
@@ -87,12 +78,12 @@ static unsigned is_rankable(struct delta *delta)
 
 static int load_elo(struct player_delta *player, int force_init)
 {
-	char *path;
+	static char path[PATH_MAX];
 	int ret;
 
 	assert(player != NULL);
 
-	path = join(dir, player->name, "elo");
+	sprintf(path, "%s/players/%s/elo", config.root, player->name);
 	if (force_init)
 		goto init;
 
@@ -123,14 +114,14 @@ init:
 int main(int argc, char **argv)
 {
 	struct delta delta;
+	static char path[PATH_MAX];
 	unsigned i;
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <player_directory>\n", argv[0]);
+	load_config();
+	if (argc != 1) {
+		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
-
-	dir = argv[1];
 
 next:
 	while (scan_delta(&delta)) {
@@ -147,8 +138,9 @@ next:
 			if (!load_elo(player, status == NEW))
 				goto next;
 
-			write_file(join(dir, player->name, "clan"),
-			           "%s", player->clan);
+			sprintf(path, "%s/players/%s/clan",
+			        config.root, player->name);
+			write_file(path, "%s", player->clan);
 		}
 
 		/*
@@ -163,7 +155,7 @@ next:
 		for (i = 0; i < delta.length; i++) {
 			struct player_delta *player = &delta.players[i];
 			int elo;
-			char name[MAX_NAME_LENGTH], *path;
+			char name[MAX_NAME_LENGTH];
 
 			elo = compute_new_elo(&delta, player);
 			hex_to_string(player->name, name);
@@ -171,7 +163,8 @@ next:
 			printf("%s:\t %d -> %d\n", name, player->elo, elo);
 			if (elo == player->elo)
 				continue;
-			path = join(dir, player->name, "elo");
+			sprintf(path, "%s/players/%s/elo",
+			        config.root, player->name);
 			if (write_file(path, "%d", elo) == -1)
 				perror(path);
 		}

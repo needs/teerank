@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <errno.h>
 #include <limits.h>
+#include <dirent.h>
 
 #include <netinet/in.h>
 
@@ -17,6 +18,7 @@
 #include "pool.h"
 #include "delta.h"
 #include "io.h"
+#include "config.h"
 
 static const unsigned char MSG_GETINFO[] = {
 	255, 255, 255, 255, 'g', 'i', 'e', '3'
@@ -209,7 +211,7 @@ static int unpack_server_info(struct data *data, struct server_info *info)
 }
 
 struct server {
-	char *dirname;
+	char dirname[PATH_MAX];
 	struct sockaddr_storage addr;
 	struct pool_entry entry;
 };
@@ -505,40 +507,52 @@ static int extract_ip_and_port(char *pathname, char *_ip, char *_port)
 	return 1;
 }
 
-static int fill_server_list(struct server_list *list, int argc, char **argv)
+static int add_server(struct server_list *list, struct server *server)
 {
-	struct server *server;
+	static const unsigned OFFSET = 1024;
+
+	if (list->length % OFFSET == 0) {
+		struct server *servers;
+		servers = realloc(list->servers, sizeof(*servers) * (list->length + OFFSET));
+		if (!servers)
+			return 0;
+		list->servers = servers;
+	}
+
+	list->servers[list->length++] = *server;
+	return 1;
+}
+
+static int fill_server_list(struct server_list *list)
+{
+	DIR *dir;
+	struct dirent *dp;
+	char path[PATH_MAX];
 
 	assert(list != NULL);
-	assert(argc > 1);
 
-	/* Skip program name */
-	argc--; argv++;
-
-	/* Alloc array */
-	list->servers = malloc(argc * sizeof(*list->servers));
-	if (!list->servers) {
-		perror("malloc(server_list)");
-		return 0;
-	}
+	sprintf(path, "%s/servers", config.root);
+	if (!(dir = opendir(path)))
+		return perror(path), 0;
 
 	/* Fill array (ignore server on error) */
-	server = list->servers;
-	while (*argv) {
+	while ((dp = readdir(dir))) {
 		char ip[IP_LENGTH + 1], port[PORT_LENGTH + 1];
+		struct server server;
 
-		server->dirname = *argv;
-		if (!extract_ip_and_port(*argv, ip, port))
-			goto next;
-		if (!get_sockaddr(ip, port, &server->addr))
-			goto next;
-		server++;
-	next:
-		argv++;
+		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
+			continue;
+
+		sprintf(server.dirname, "%s/%s", path, dp->d_name);
+		if (!extract_ip_and_port(dp->d_name, ip, port))
+			continue;
+		if (!get_sockaddr(ip, port, &server.addr))
+			continue;
+		if (!add_server(list, &server))
+			continue;
 	}
 
-	/* Compute length */
-	list->length = server - list->servers;
+	closedir(dir);
 
 	return 1;
 }
@@ -575,17 +589,20 @@ static void poll_servers(struct server_list *list, struct sockets *sockets)
 		handle_data(&answer, get_server(entry));
 }
 
+static const struct server_list SERVER_LIST_ZERO;
+
 int main(int argc, char **argv)
 {
 	struct sockets sockets;
-	struct server_list list;
+	struct server_list list = SERVER_LIST_ZERO;
 
-	if (argc == 1) {
-		fprintf(stderr, "usage: %s <server_directories>\n", *argv);
+	load_config();
+	if (argc != 1) {
+		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	if (!fill_server_list(&list, argc, argv))
+	if (!fill_server_list(&list))
 		return EXIT_FAILURE;
 
 	if (!init_sockets(&sockets))

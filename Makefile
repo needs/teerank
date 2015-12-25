@@ -1,9 +1,12 @@
 CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
-BINS = add_new_servers update_servers generate_index update_players update_clans generate_clan_page compute_ranks generate_rank_page paginate_ranks teerank.cgi
+BINS = add_new_servers update_servers generate_index update_players update_clans generate_clan_page compute_ranks generate_rank_page paginate_ranks teerank.cgi init_database
 
 .PHONY: all clean
 
 all: $(BINS)
+
+# All binaries share the same configuration
+$(BINS): src/config.o
 
 add_new_servers: src/add_new_servers.o src/network.o
 	$(CC) -o $@ $(CFLAGS) $^
@@ -33,6 +36,9 @@ paginate_ranks: src/paginate_ranks.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank.cgi: src/cgi.o src/io.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+init_database: src/init_database.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 clean:

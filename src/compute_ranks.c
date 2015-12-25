@@ -6,6 +6,7 @@
 #include <limits.h>
 
 #include "io.h"
+#include "config.h"
 
 struct player {
 	char name[MAX_NAME_LENGTH];
@@ -33,17 +34,17 @@ static void add_player(struct player_array *array, struct player *player)
 	array->players[array->length++] = *player;
 }
 
-static void load_players(char *root, struct player_array *array)
+static void load_players(struct player_array *array)
 {
 	DIR *dir;
 	struct dirent *dp;
 	static char path[PATH_MAX];
 
-	assert(root != NULL);
 	assert(array != NULL);
 
-	if (!(dir = opendir(root)))
-		perror(root), exit(EXIT_FAILURE);
+	sprintf(path, "%s/players", config.root);
+	if (!(dir = opendir(path)))
+		perror(path), exit(EXIT_FAILURE);
 
 	while ((dp = readdir(dir))) {
 		struct player player;
@@ -55,7 +56,7 @@ static void load_players(char *root, struct player_array *array)
 		strcpy(player.name, dp->d_name);
 
 		/* Elo */
-		sprintf(path, "%s/%s/%s", root, dp->d_name, "elo");
+		sprintf(path, "%s/players/%s/elo", config.root, dp->d_name);
 		if (read_file(path, "%d", &player.elo) != 1)
 			continue;
 
@@ -79,29 +80,38 @@ int main(int argc, char *argv[])
 {
 	struct player_array array = PLAYER_ARRAY_ZERO;
 	unsigned i;
+	FILE *file;
+	char path[PATH_MAX];
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s <players_directory>\n", argv[0]);
+	load_config();
+	if (argc != 1) {
+		fprintf(stderr, "Usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	load_players(argv[1], &array);
+	load_players(&array);
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
+	sprintf(path, "%s/ranks", config.root);
+	if (!(file = fopen(path, "w")))
+		return perror(path), EXIT_FAILURE;
+
 	/* Print the number of players first... */
-	printf("%u players\n", array.length);
+	fprintf(file, "%u players\n", array.length);
 
 	/* ...and then dump player's name, one per line. */
 	for (i = 0; i < array.length; i++) {
 		struct player *player = &array.players[i];
 		static char path[PATH_MAX];
 
-		sprintf(path, "%s/%s/%s", argv[1], player->name, "rank");
+		sprintf(path, "%s/players/%s/rank", config.root, player->name);
 		if (write_file(path, "%u", i + 1) == -1)
 			perror(path);
 
-		printf("%s\n", player->name);
+		fprintf(file, "%s\n", player->name);
 	}
+
+	fclose(file);
 
 	return EXIT_SUCCESS;
 }

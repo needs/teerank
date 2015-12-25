@@ -13,7 +13,9 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <poll.h>
+#include <limits.h>
 
+#include "config.h"
 #include "network.h"
 
 struct master {
@@ -194,15 +196,18 @@ int main(int argc, char **argv)
 	struct server_list list;
 	int fd;
 	unsigned i;
+	static char path[PATH_MAX];
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <dest_dir>\n", argv[0]);
+	load_config();
+	if (argc != 1) {
+		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	fd = open(argv[1], O_RDONLY | O_DIRECTORY);
+	sprintf(path, "%s/servers", config.root);
+	fd = open(path, O_RDONLY | O_DIRECTORY);
 	if (fd == -1) {
-		perror(argv[1]);
+		perror(path);
 		return EXIT_FAILURE;
 	}
 

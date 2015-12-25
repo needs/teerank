@@ -9,12 +9,7 @@
 #include <sys/stat.h>
 
 #include "io.h"
-
-/* Make path handling easier */
-static char path[PATH_MAX];
-
-/* Defined by argv[1] and argv[2] */
-static char *clans_directory, *players_directory;
+#include "config.h"
 
 struct player;
 struct clan {
@@ -96,13 +91,14 @@ static struct clan *get_clan(struct clan_array *array, struct player *player)
 static int init_player(struct player *player, char *name)
 {
 	FILE *file;
+	char path[PATH_MAX];
 
 	assert(player != NULL);
 
 	strcpy(player->name, name);
 
 	/* No clan file means empty clan name */
-	sprintf(path, "%s/%s/%s", players_directory, name, "clan");
+	sprintf(path, "%s/players/%s/clan", config.root, name);
 	if ((file = fopen(path, "r"))) {
 		if (!fgets(player->clan, MAX_NAME_LENGTH, file))
 			return perror(path), fclose(file), 0;
@@ -124,17 +120,18 @@ static void write_clan_array(struct clan_array *clans)
 
 	for (i = 0; i < clans->length; i++) {
 		struct clan *clan = &clans->clans[i];
+		char path[PATH_MAX];
 		FILE *file;
 
 		/* Create directory */
-		sprintf(path, "%s/%s", clans_directory, clan->name);
+		sprintf(path, "%s/clans/%s", config.root, clan->name);
 		if (mkdir(path, 0777) == -1 && errno != EEXIST) {
 			perror(path);
 			continue;
 		}
 
 		/* Write member list */
-		sprintf(path, "%s/%s/%s", clans_directory, clan->name, "members");
+		sprintf(path, "%s/clans/%s/members", config.root, clan->name);
 		if (!(file = fopen(path, "w"))) {
 			perror(path);
 			continue;
@@ -152,17 +149,18 @@ int main(int argc, char **argv)
 	DIR *dir;
 	struct dirent *dp;
 	struct clan_array clans = CLAN_ARRAY_ZERO;
+	char path[PATH_MAX];
 
-	if (argc != 3) {
-		fprintf(stderr, "usage: %s <clans_directory> <players_directory>\n", argv[0]);
+	load_config();
+	if (argc != 1) {
+		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	clans_directory = argv[1];
-	players_directory = argv[2];
-
 	/* Build in memory the list of all clans with their members */
-	dir = opendir(players_directory);
+	sprintf(path, "%s/players", config.root);
+	if (!(dir = opendir(path)))
+		return perror(path), EXIT_FAILURE;
 	while ((dp = readdir(dir))) {
 		struct player player;
 		struct clan *clan;

@@ -4,6 +4,7 @@
 struct config {
 	char *root;
 	char *cache_root;
+	char *tmp_root;
 };
 
 extern struct config config;

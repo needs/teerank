@@ -11,6 +11,7 @@
 struct config config = {
 	.root = "data",
 	.cache_root = ".",
+	.tmp_root = ".",
 };
 
 void load_config(void)
@@ -21,4 +22,8 @@ void load_config(void)
 		config.root = tmp;
 	if ((tmp = getenv("TEERANK_CACHE_ROOT")))
 		config.cache_root = tmp;
+	if ((tmp = getenv("TEERANK_TMP_ROOT")))
+		config.tmp_root = tmp;
+	else
+		config.tmp_root = config.cache_root;
 }

@@ -217,6 +217,7 @@ int main(int argc, char **argv)
 
 	if (mode == FULL_PAGE) {
 		printf("</tbody></table>");
+		print_nav(&page);
 		print_footer();
 	}
 

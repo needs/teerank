@@ -55,7 +55,7 @@ body > main > nav > a:last-child {
 body > main > section {
 	border-radius: 10px;
 	background-color: white;
-	padding: 5em;
+	padding: 2em 5em 2em 5em;
 
 	box-shadow: 0px 0px 2px #aaa;
 }
@@ -64,6 +64,7 @@ body > main > section {
 table {
 	width: 100%;
 	border-collapse: collapse;
+	margin-bottom: 1em;
 }
 
 table th, table td {
@@ -102,8 +103,7 @@ table a:hover {
 /* Pages navigation */
 nav.pages {
 	display: flex;
-	margin-top: -3em;
-	margin-bottom: 2em;
+	margin-bottom: 1em;
 	font-size: 0.9em;
 
 	border: 1px solid #ccc;

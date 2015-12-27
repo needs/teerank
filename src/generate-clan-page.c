@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "io.h"
+#include "config.h"
 
 static char path[PATH_MAX];
 
@@ -166,6 +167,7 @@ int main(int argc, char **argv)
 	struct player_array array = PLAYER_ARRAY_ZERO;
 	unsigned i;
 
+	load_config();
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s <clan_directory> <players_directory>\n", argv[0]);
 		return EXIT_FAILURE;

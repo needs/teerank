@@ -6,6 +6,7 @@
 #include <dirent.h>
 
 #include "io.h"
+#include "config.h"
 
 struct player {
 	char name[MAX_NAME_LENGTH];
@@ -189,6 +190,7 @@ int main(int argc, char **argv)
 	struct page page = PAGE_ZERO;
 	enum mode mode;
 
+	load_config();
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s [full-page|only-rows] <players_directory>\n", argv[0]);
 		return EXIT_FAILURE;

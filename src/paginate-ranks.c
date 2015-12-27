@@ -30,6 +30,7 @@ int main(int argc, char *argv[])
 	char path[PATH_MAX];
 	int c;
 
+	load_config();
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s players_per_page\n", argv[0]);
 		return EXIT_FAILURE;

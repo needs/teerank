@@ -7,6 +7,7 @@
 #include <errno.h>
 
 #include "io.h"
+#include "config.h"
 
 struct player {
 	char name[MAX_NAME_LENGTH];
@@ -102,6 +103,7 @@ int main(int argc, char *argv[])
 	struct player_array array = PLAYER_ARRAY_ZERO;
 	unsigned i;
 
+	load_config();
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s <players_directory>\n", argv[0]);
 		return EXIT_FAILURE;

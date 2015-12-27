@@ -68,7 +68,7 @@ static char *extract_string_between(char *start, char *end, const char *str)
 	return ret;
 }
 
-enum type { INDEX, PAGES, CLANS };
+enum type { INDEX, ABOUT, PAGES, CLANS };
 
 struct page {
 	enum type type;
@@ -87,9 +87,14 @@ static void get_page(const char *path, struct page *page)
 
 	if (!strcmp(path, "/") || !strcmp(path, "/index.html")) {
 		page->type = INDEX;
-		sprintf(page->dest, "%s/%s", config.cache_root, "index.html");
+		sprintf(page->dest, "%s/index.html", config.cache_root);
 		sprintf(page->deps[0], "%s/%s", config.root, "players/");
 		page->ndeps = 1;
+		page->src = NULL;
+	} else if (!strcmp(path, "/about.html")) {
+		page->type = ABOUT;
+		sprintf(page->dest, "%s/about.html", config.cache_root);
+		page->ndeps = 0;
 		page->src = NULL;
 	} else if ((str = extract_string_between("/pages/", ".html", path))) {
 		page->type = PAGES;
@@ -219,6 +224,8 @@ static void generate(struct page *page)
 	/* Eventually, run the program */
 	if (page->type == INDEX)
 		execl("./teerank-generate-index", "./teerank-generate-index", page->deps[0], NULL);
+	else if (page->type == ABOUT)
+		execl("./teerank-generate-about", "./teerank-generate-about", NULL);
 	else if (page->type == PAGES)
 		execl("./teerank-generate-rank-page", "./teerank-generate-rank-page", "full-page", page->deps[0], NULL);
 	else if (page->type == CLANS)

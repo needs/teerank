@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
 	/* Eventually, print them */
-	print_header();
+	print_header(CTF_TAB);
 	printf("<h2>%s</h2>\n", clan);
 	printf("<p>%u member(s)</p>\n", array.length);
 	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead>\n<tbody>\n");

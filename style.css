@@ -10,6 +10,15 @@ body {
 	font-family: Verdana,Arial,Helvetica,sans-serif;
 }
 
+a {
+	color: #970;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
 body > * {
 	margin-left: auto;
 	margin-right: auto;
@@ -38,18 +47,26 @@ body > main > nav {
 
 body > main > nav > a {
 	color: #666;
-	background-color: white;
+	background: linear-gradient(#ffffff, #cccccc);
 	border-radius: 5px 5px 0px 0px;
 	border: 1px solid #dddddd;
 	border-bottom: 0px;
-	text-decoration: none;
 
 	padding: 7px 1em 7px 1em;
 	margin-right: 0.5em;
 }
 
+body > main > nav > a:hover {
+	text-decoration: none;
+}
+
 body > main > nav > a:last-child {
 	margin-right: 0px;
+	margin-left: auto;
+}
+
+body > main > nav > a.active {
+	background: white;
 }
 
 body > main > section {

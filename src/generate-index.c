@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 	load_players(argv[1], &array);
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
-	print_header();
+	print_header(CTF_TAB);
 	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
 
 	for (i = 0; i < array.length; i++) {

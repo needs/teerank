@@ -43,9 +43,10 @@ int write_file(const char *path, const char *format, ...)
 	return ret;
 }
 
-void print_header(void)
+void print_header(enum tab active)
 {
-	static const char str[] =
+	unsigned i;
+	static const char before[] =
 		"<!doctype html>"
 		"<html>"
 		"	<head>"
@@ -59,11 +60,23 @@ void print_header(void)
 		"		</header>"
 		"		<main>"
 		"			<nav>"
-		"				<a href=\"/index.html\">CTF</a>"
+		;
+	static const char after[] =
 		"			</nav>"
 		"			<section>"
 		;
-	puts(str);
+	struct tab {
+		char *name, *href;
+	} tabs[] = {
+		{ "CTF", "/index.html" },
+		{ "About", "/about.html" },
+	};
+
+	puts(before);
+	for (i = 0; i < TAB_COUNT; i++)
+		printf("<a href=\"%s\"%s>%s</a>", tabs[i].href,
+		       i == active ? " class=\"active\"" : "", tabs[i].name);
+	puts(after);
 }
 
 void print_footer(void)

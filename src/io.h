@@ -13,7 +13,8 @@
 int read_file(const char *path, const char *format, ...);
 int write_file(const char *path, const char *format, ...);
 
-void print_header(void);
+enum tab { CTF_TAB, ABOUT_TAB, TAB_COUNT };
+void print_header(enum tab active);
 void print_footer(void);
 
 void hex_to_string(const char *hex, char *str);

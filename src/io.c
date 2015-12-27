@@ -56,7 +56,7 @@ void print_header(enum tab active)
 		"	</head>"
 		"	<body>"
 		"		<header>"
-		"			<a href=\"/index.html\"><img src=\"/images/logo.png\" alt=\"Logo\" /></a>"
+		"			<a href=\"/\"><img src=\"/images/logo.png\" alt=\"Logo\" /></a>"
 		"		</header>"
 		"		<main>"
 		"			<nav>"
@@ -68,7 +68,7 @@ void print_header(enum tab active)
 	struct tab {
 		char *name, *href;
 	} tabs[] = {
-		{ "CTF", "/index.html" },
+		{ "CTF", "/" },
 		{ "About", "/about.html" },
 	};
 

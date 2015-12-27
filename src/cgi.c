@@ -223,13 +223,13 @@ static void generate(struct page *page)
 
 	/* Eventually, run the program */
 	if (page->type == INDEX)
-		execl("./teerank-generate-index", "./teerank-generate-index", page->deps[0], NULL);
+		execl("teerank-generate-index", "teerank-generate-index", page->deps[0], NULL);
 	else if (page->type == ABOUT)
-		execl("./teerank-generate-about", "./teerank-generate-about", NULL);
+		execl("teerank-generate-about", "teerank-generate-about", NULL);
 	else if (page->type == PAGES)
-		execl("./teerank-generate-rank-page", "./teerank-generate-rank-page", "full-page", page->deps[0], NULL);
+		execl("teerank-generate-rank-page", "teerank-generate-rank-page", "full-page", page->deps[0], NULL);
 	else if (page->type == CLANS)
-		execl("./teerank-generate-clan-page", "./teerank-generate-clan-page", page->deps[1], page->deps[0], NULL);
+		execl("teerank-generate-clan-page", "teerank-generate-clan-page", page->deps[1], page->deps[0], NULL);
 
 	fprintf(stderr, "execl(): %s\n", strerror(errno));
 	exit(EXIT_FAILURE);

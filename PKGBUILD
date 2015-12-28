@@ -1,5 +1,5 @@
 pkgname=teerank
-pkgver=$(git describe --long --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g')
+pkgver=$(git describe --long | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g')
 pkgrel=1
 pkgdesc="Fast and simple ranking system for Teeworlds"
 arch=('i686' 'x86_64')
@@ -18,5 +18,5 @@ build() {
 
 package() {
 	cd "$pkgname"
-	./install.sh "$pkgdir/"
+	make prefix="$pkgdir" install
 }

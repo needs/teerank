@@ -9,7 +9,7 @@
  * without any extra steps.
  */
 struct config config = {
-	.root = "data",
+	.root = ".teerank",
 	.cache_root = ".",
 	.tmp_root = ".",
 };

@@ -225,22 +225,22 @@ static void generate(struct page *page)
 	/* Eventually, run the program */
 	if (page->type == INDEX) {
 		progname = "teerank-generate-index";
-		execl(progname, progname, page->deps[0], NULL);
+		execlp(progname, progname, page->deps[0], NULL);
 	} else if (page->type == ABOUT) {
 		progname = "teerank-generate-about";
-		execl(progname, progname, NULL);
+		execlp(progname, progname, NULL);
 	} else if (page->type == PAGES) {
 		progname = "teerank-generate-rank-page";
-		execl(progname, progname, "full-page", page->deps[0], NULL);
+		execlp(progname, progname, "full-page", page->deps[0], NULL);
 	} else if (page->type == CLANS) {
 		progname = "teerank-generate-clan-page";
-		execl(progname, progname, page->deps[1], page->deps[0], NULL);
+		execlp(progname, progname, page->deps[1], page->deps[0], NULL);
 	} else {
 		fprintf(stderr, "Invalid page type\n");
 		exit(EXIT_FAILURE);
 	}
 
-	fprintf(stderr, "execl(%s): %s\n", progname, strerror(errno));
+	fprintf(stderr, "execlp(%s): %s\n", progname, strerror(errno));
 	exit(EXIT_FAILURE);
 }
 

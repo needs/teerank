@@ -52,48 +52,38 @@ http {
 How to install
 ==============
 
-Well, for now it is very complicated, a simpler way must be found.
-
-You can control where the database and cache are generated.  For that,
-change the value of `$TEERANK_ROOT` and `$TEERANK_CACHE_ROOT` before
-launching any teerank binaries.
+You can use the traditional way:
 
 ```bash
-while true; do
-	TEERANK_ROOT=/var/lib/teerank/ teerank-update
-	sleep 300
-done
+sudo make install
 ```
 
-Copy binaries (except the CGI) into a system-wide accessible path,
-like `/usr/bin`:
+Or install it as a package, so you can easily remove it:
 
 ```bash
-cp teerank-* /usr/bin
+# Archlinux
+makepkg -i BUILDDIR=/tmp/makepkg
 ```
 
-Copy assets and the CGI into the root of your website (here
-`/srv/http/teerank/`):
+Generate the database using:
 
 ```bash
-cp -r teerank.cgi images style.css /srv/http/teerank
+TEERANK_ROOT=/var/lib/teerank teerank-update
 ```
-
-Finally configure your HTTP server and set path accordingly:
 
 ```
 http {
 	server {
-		listen       8000;
+		listen       80;
 		server_name  teerank.com;
-		root         <path_to_cloned_repo>;
+		root         /usr/share/webapps/teerank;
 
 		rewrite ^/$ /pages/1.html redirect;
 		try_files $uri @teerank;
 		location @teerank {
 			include       fastcgi_params;
 
-			fastcgi_param TEERANK_ROOT /var/lib/teerank;
+			fastcgi_param TEERANK_ROOT       /var/lib/teerank;
 			fastcgi_param TEERANK_CACHE_ROOT /var/cache/teerank;
 
 			fastcgi_param SCRIPT_FILENAME $document_root/teerank.cgi;
@@ -106,8 +96,8 @@ http {
 Contributing
 ============
 
-Teerank is a free software under the GPL v3.
+Teerank is a free software under the GNU GPL v3.
 
-All the developpment take place on github.  Feel free to open issue on
+All the development take place on github.  Feel free to open issue on
 github or send pull-request.  If you don't want to use github you can
-also send me an e-mail at (needs@mailoo.org)[mailto:needs@mailoo.org].
+also send me an e-mail at needs@mailoo.org.

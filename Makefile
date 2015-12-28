@@ -43,8 +43,8 @@ teerank-init-database: src/init-database.o
 teerank-generate-about: src/generate-about.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-update: update.sh
-	cp update.sh teerank-update
+teerank-update: src/update.sh
+	cp $< $@
 
 $(CGI): src/cgi.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^

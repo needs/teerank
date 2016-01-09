@@ -10,8 +10,6 @@
 
 static char path[PATH_MAX];
 
-static char *players_directory;
-
 /*
  * Strictly speaking, INT_MIN is still a valid Elo.  But it just impossible
  * to get it.  And even if a player got it somehow, it will messup the whole
@@ -32,7 +30,7 @@ static int load_elo(const char *name)
 
 	assert(name != NULL);
 
-	sprintf(path, "%s/%s/%s", players_directory, name, "elo");
+	sprintf(path, "%s/players/%s/elo", config.root, name);
 
 	/* Failing at reading Elo is not fatal, we will just output '?' */
 	ret = read_file(path, "%d", &elo);
@@ -53,7 +51,7 @@ static unsigned load_rank(const char *name)
 
 	assert(name != NULL);
 
-	sprintf(path, "%s/%s/%s", players_directory, name, "rank");
+	sprintf(path, "%s/players/%s/rank", config.root, name);
 
 	/* Failing at reading rank is not fatal, we will just output '?' */
 	ret = read_file(path, "%u", &rank);
@@ -107,23 +105,6 @@ static void add_player(struct player_array *array, struct player *player)
 	array->players[array->length++] = *player;
 }
 
-static int extract_clan_string(char *clan_directory, char *clan)
-{
-	char *tmp;
-
-	assert(clan_directory != NULL);
-	assert(clan != NULL);
-
-	tmp = basename(clan_directory);
-	if (strlen(tmp) == MAX_NAME_LENGTH - 1) {
-		fprintf(stderr, "%s: Invalid clan directory\n", clan_directory);
-		return 0;
-	}
-
-	hex_to_string(tmp, clan);
-	return 1;
-}
-
 static void print_player(struct player *player, char *clan)
 {
 	assert(player != NULL);
@@ -168,19 +149,14 @@ int main(int argc, char **argv)
 	unsigned i;
 
 	load_config();
-	if (argc != 3) {
-		fprintf(stderr, "usage: %s <clan_directory> <players_directory>\n", argv[0]);
+	if (argc != 2) {
+		fprintf(stderr, "usage: %s <clan_name>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	players_directory = argv[2];
-
-	if (!extract_clan_string(argv[1], clan))
-		return EXIT_FAILURE;
-
 	/* Load players */
 
-	sprintf(path, "%s/%s", argv[1], "members");
+	sprintf(path, "%s/clans/%s/members", config.root, argv[1]);
 	if (!(file = fopen(path, "r")))
 		return perror(path), EXIT_FAILURE;
 

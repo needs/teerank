@@ -40,17 +40,17 @@ static void add_player(struct player_array *array, struct player *player)
 static const int UNKNOWN_ELO = INT_MIN;
 static const unsigned UNKNOWN_RANK = UINT_MAX;
 
-static void load_players(char *root, struct player_array *array)
+static void load_players(struct player_array *array)
 {
 	DIR *dir;
 	struct dirent *dp;
 	static char path[PATH_MAX];
 
-	assert(root != NULL);
 	assert(array != NULL);
 
-	if (!(dir = opendir(root)))
-		perror(root), exit(EXIT_FAILURE);
+	sprintf(path, "%s/players", config.root);
+	if (!(dir = opendir(path)))
+		perror(path), exit(EXIT_FAILURE);
 
 	while ((dp = readdir(dir))) {
 		struct player player;
@@ -62,19 +62,22 @@ static void load_players(char *root, struct player_array *array)
 		hex_to_string(dp->d_name, player.name);
 
 		/* Clan */
-		sprintf(path, "%s/%s/%s", root, dp->d_name, "clan");
+		sprintf(path, "%s/players/%s/%s",
+		        config.root, dp->d_name, "clan");
 		if (read_file(path, "%s", player.clan_hex) == 1)
 			hex_to_string(player.clan_hex, player.clan);
 		else
 			player.clan[0] = '\0';
 
 		/* Elo */
-		sprintf(path, "%s/%s/%s", root, dp->d_name, "elo");
+		sprintf(path, "%s/players/%s/%s",
+		        config.root, dp->d_name, "elo");
 		if (read_file(path, "%d", &player.elo) != 1)
 			player.elo = UNKNOWN_ELO;
 
 		/* Rank */
-		sprintf(path, "%s/%s/%s", root, dp->d_name, "rank");
+		sprintf(path, "%s/players/%s/%s",
+		        config.root, dp->d_name, "rank");
 		if (read_file(path, "%u", &player.rank) != 1)
 			player.rank = UNKNOWN_RANK;
 
@@ -104,12 +107,12 @@ int main(int argc, char *argv[])
 	unsigned i;
 
 	load_config();
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s <players_directory>\n", argv[0]);
+	if (argc != 1) {
+		fprintf(stderr, "Usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	load_players(argv[1], &array);
+	load_players(&array);
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
 	print_header(CTF_TAB);

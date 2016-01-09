@@ -43,8 +43,6 @@ static void add_player(struct page *page, struct player *player)
 static const int UNKNOWN_ELO = INT_MIN;
 static const unsigned UNKNOWN_RANK = UINT_MAX;
 
-static char *root;
-
 static void load_player(struct player *player, char *name)
 {
 	static char path[PATH_MAX];
@@ -55,19 +53,19 @@ static void load_player(struct player *player, char *name)
 	hex_to_string(name, player->name);
 
 	/* Clan */
-	sprintf(path, "%s/%s/%s", root, name, "clan");
+	sprintf(path, "%s/players/%s/clan", config.root, name);
 	if (read_file(path, "%s", player->clan_hex) == 1)
 		hex_to_string(player->clan_hex, player->clan);
 	else
 		player->clan[0] = '\0';
 
 	/* Elo */
-	sprintf(path, "%s/%s/%s", root, name, "elo");
+	sprintf(path, "%s/players/%s/elo", config.root, name);
 	if (read_file(path, "%d", &player->elo) != 1)
 		player->elo = UNKNOWN_ELO;
 
 	/* Rank */
-	sprintf(path, "%s/%s/%s", root, name, "rank");
+	sprintf(path, "%s/players/%s/rank", config.root, name);
 	if (read_file(path, "%u", &player->rank) != 1)
 		player->rank = UNKNOWN_RANK;
 }
@@ -191,12 +189,11 @@ int main(int argc, char **argv)
 	enum mode mode;
 
 	load_config();
-	if (argc != 3) {
-		fprintf(stderr, "usage: %s [full-page|only-rows] <players_directory>\n", argv[0]);
+	if (argc != 2) {
+		fprintf(stderr, "usage: %s [full-page|only-rows]\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	root = argv[2];
 	if (!strcmp(argv[1], "full-page"))
 		mode = FULL_PAGE;
 	else if (!strcmp(argv[1], "only-rows"))

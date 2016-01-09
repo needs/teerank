@@ -10,9 +10,16 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #include "io.h"
 #include "config.h"
+
+/*
+ * This program can be used as a CGI or as a native program.  What change
+ * between both mode is in how errors are reported and how it gets its input.
+ */
+static enum mode { CGI, NATIVE } mode;
 
 static char *reason_phrase(int code)
 {
@@ -24,124 +31,110 @@ static char *reason_phrase(int code)
 	}
 }
 
+static FILE *start_error(int code)
+{
+	if (mode == CGI) {
+		printf("Content-type: text/html\n");
+		printf("Status: %d %s\n\n", code, reason_phrase(code));
+		printf("<h1>%d %s</h1>\n", code, reason_phrase(code));
+		printf("<pre>");
+		return stdout;
+	}
+	return stderr;
+}
+
+static void end_error(void)
+{
+	if (mode == CGI)
+		printf("</pre>");
+	exit(EXIT_FAILURE);
+}
+
 static void error(int code, char *fmt, ...)
 {
 	va_list ap;
+	FILE *file;
 
-	printf("Content-type: text/html\n");
-	printf("Status: %d %s\n\n", code, reason_phrase(code));
-	printf("<h1>%d %s</h1>\n", code, reason_phrase(code));
-
+	file = start_error(code);
 	if (fmt) {
-		printf("<pre>");
 		va_start(ap, fmt);
-		vprintf(fmt, ap);
+		vfprintf(file, fmt, ap);
 		va_end(ap);
-		printf("</pre>");
-		exit(EXIT_FAILURE);
 	}
+	end_error();
 }
 
-static char *extract_string_between(char *start, char *end, const char *str)
-{
-	static char ret[MAX_NAME_LENGTH];
-	size_t len, len_str, len_start, len_end;
-
-	assert(start != NULL);
-	assert(end != NULL);
-	assert(str != NULL);
-
-	len_start = strlen(start);
-	if (memcmp(str, start, len_start))
-		return NULL;
-	len_end = strlen(end);
-	len_str = strlen(str);
-	if (len_end > len_str)
-		return NULL;
-	if (memcmp(str + len_str - len_end, end, len_end))
-		return NULL;
-	if (len_start + len_end >= len_str)
-		return NULL;
-	len = len_str - len_start - len_end;
-	memcpy(ret, str + len_start, len);
-
-	return ret;
-}
-
-enum type { INDEX, ABOUT, PAGES, CLANS };
-
-struct page {
-	enum type type;
-	char dest[PATH_MAX];
-	unsigned ndeps;
-	char deps[16][PATH_MAX];
-	char *src;
+#define MAX_PARTS 8
+struct url {
+	char *path;
+	unsigned length;
+	char *parts[MAX_PARTS];
 };
 
-static void get_page(const char *path, struct page *page)
+/*
+ * Path is splited by using strtok(), that means '\0' is added where
+ * the separator is.  We provide unsplit() that does remove those '\0'
+ * so the path can be used in full, again.
+ */
+static void split(char *path, struct url *url)
 {
-	char *str;
+	char *tmp;
 
-	assert(page != NULL);
-	assert(page != NULL);
+	assert(path != NULL);
+	assert(url != NULL);
 
-	if (!strcmp(path, "/") || !strcmp(path, "/index.html")) {
-		page->type = INDEX;
-		sprintf(page->dest, "%s/index.html", config.cache_root);
-		sprintf(page->deps[0], "%s/%s", config.root, "players/");
-		page->ndeps = 1;
-		page->src = NULL;
-	} else if (!strcmp(path, "/about.html")) {
-		page->type = ABOUT;
-		sprintf(page->dest, "%s/about.html", config.cache_root);
-		page->ndeps = 0;
-		page->src = NULL;
-	} else if ((str = extract_string_between("/pages/", ".html", path))) {
-		page->type = PAGES;
-		sprintf(page->dest, "%s/pages/%s.html", config.cache_root, str);
-		sprintf(page->deps[0], "%s/%s", config.root, "players/");
-		sprintf(page->deps[1], "%s/pages/%s", config.root, str);
-		page->ndeps = 2;
-		page->src = page->deps[1];
-	} else if ((str = extract_string_between("/clans/", ".html", path))) {
-		page->type = CLANS;
-		sprintf(page->dest, "%s/clans/%s.html", config.cache_root, str);
-		sprintf(page->deps[0], "%s/%s", config.root, "players/");
-		sprintf(page->deps[1], "%s/clans/%s", config.root, str);
-		page->ndeps = 2;
-		page->src = page->deps[1];
-	} else {
-		error(404, "");
-	}
+	if (*path++ != '/')
+		error(404, "Path should begin with '/'\n");
+
+	url->path = path;
+	url->length = 0;
+	tmp = strtok(path, "/");
+	do {
+		if (url->length == MAX_PARTS)
+			error(404, "Path contains too much components\n");
+		url->parts[url->length++] = tmp;
+	} while ((tmp = strtok(NULL, "/")));
 }
 
-static int is_cached(struct page *page)
+static char *unsplit(struct url *url)
 {
-	struct stat dest, deps;
 	unsigned i;
+	for (i = 1; i < url->length; i++)
+		url->parts[i][-1] = '/';
+	return url->path;
+}
 
-	if (stat(page->dest, &dest) == -1)
+static int is_cached(char *path, char *dep)
+{
+	struct stat statpath, statdep;
+
+	assert(path != NULL);
+
+	if (!dep)
 		return 0;
-	for (i = 0; i < page->ndeps; i++) {
-		if (stat(page->deps[i], &deps) == -1)
-			return 0;
-		if (deps.st_mtim.tv_sec > dest.st_mtim.tv_sec)
-			return 0;
-	}
+	if (stat(path, &statpath) == -1)
+		return 0;
+	if (stat(dep, &statdep) == -1)
+		return 0;
+	if (statdep.st_mtim.tv_sec > statpath.st_mtim.tv_sec)
+		return 0;
 
 	return 1;
 }
 
-static void generate(struct page *page)
+/*
+ * srcname and destname should be relative to respectively the database and
+ * the cache.
+ */
+static void generate_file(char **args, char *srcname, char *destname)
 {
 	int dest, src = -1, err[2];
-	char dest_path[PATH_MAX];
-	char *progname;
+	char tmpname[PATH_MAX], srcpath[PATH_MAX], destpath[PATH_MAX];
 
-	assert(page != NULL);
+	assert(destname != NULL);
 
 	/*
-	 * Pages are generated by calling a program that write on stdout the
+	 * Files are generated by calling a program that write on stdout the
 	 * content of the page.
 	 *
 	 * The program have to write on stdout, and therefor we need to
@@ -157,26 +150,32 @@ static void generate(struct page *page)
 	 * Eventually, the child may need stdin feeded with some data.
 	 */
 
-	if (pipe(err) == -1)
-		error(500, "pipe(): %s", strerror(errno));
-
 	/*
 	 * Open src before fork() because if the file doesn't exist, then we
 	 * raise a 404, and if it does but cannot be opened, we raise a 500.
 	 */
-	if (page->src) {
-		if ((src = open(page->src, O_RDONLY)) == -1) {
+	if (srcname) {
+		sprintf(srcpath, "%s/%s", config.root, srcname);
+		if ((src = open(srcpath, O_RDONLY)) == -1) {
 			if (errno == ENOENT)
-				error(404, "");
+				error(404, "%s: Doesn't exist\n", srcname);
 			else
-				error(500, "%s: %s", page->src, strerror(errno));
+				error(500, "%s: %s\n", srcpath, strerror(errno));
 		}
 	}
 
+	/* Do not generate if is already cached */
+	sprintf(destpath, "%s/%s", config.cache_root, destname);
+	if (is_cached(destpath, srcname ? srcpath : NULL))
+		return;
+
 	/* The destination file is a temporary file */
-	sprintf(dest_path, "%s/tmp-teerank-XXXXXX", config.tmp_root);
-	if ((dest = mkstemp(dest_path)) == -1)
-		error(500, "mkstemp(): %s", strerror(errno));
+	sprintf(tmpname, "%s/tmp-teerank-XXXXXX", config.tmp_root);
+	if ((dest = mkstemp(tmpname)) == -1)
+		error(500, "mkstemp(): %s\n", strerror(errno));
+
+	if (pipe(err) == -1)
+		error(500, "pipe(): %s\n", strerror(errno));
 
 	/*
 	 * Parent process wait for it's child to terminate and dump the
@@ -184,28 +183,29 @@ static void generate(struct page *page)
 	 */
 	if (fork() > 0) {
 		int c;
-		FILE *file;
+		FILE *file, *errfile;
 
 		close(err[1]);
+		close(dest);
+		if (srcname)
+			close(src);
+
 		wait(&c);
 		if (WIFEXITED(c) && WEXITSTATUS(c) == EXIT_SUCCESS) {
-			close(dest);
-			if (page->src)
-				close(src);
-			if (rename(dest_path, page->dest) == -1)
-				error(500, "rename(%s, %s): %s",
-				      dest_path, page->dest, strerror(errno));
+			if (rename(tmpname, destpath) == -1)
+				error(500, "rename(%s, %s): %s\n",
+				      tmpname, destpath, strerror(errno));
 			return;
 		}
 
-		error(500, NULL);
-		puts("<pre>");
+		/* Report error */
+		errfile = start_error(500);
+		fprintf(errfile, "%s: ", args[0]);
 		file = fdopen(err[0], "r");
 		while ((c = fgetc(file)) != EOF)
-			putchar(c);
+			fputc(c, errfile);
 		fclose(file);
-		puts("</pre>");
-		exit(EXIT_FAILURE);
+		end_error();
 	}
 
 	/* Redirect stderr to the write side of the pipe */
@@ -213,7 +213,7 @@ static void generate(struct page *page)
 	close(err[0]);
 
 	/* Redirect stdin */
-	if (page->src) {
+	if (srcname) {
 		dup2(src, STDIN_FILENO);
 		close(src);
 	}
@@ -223,36 +223,90 @@ static void generate(struct page *page)
 	close(dest);
 
 	/* Eventually, run the program */
-	if (page->type == INDEX) {
-		progname = "teerank-generate-index";
-		execlp(progname, progname, page->deps[0], NULL);
-	} else if (page->type == ABOUT) {
-		progname = "teerank-generate-about";
-		execlp(progname, progname, NULL);
-	} else if (page->type == PAGES) {
-		progname = "teerank-generate-rank-page";
-		execlp(progname, progname, "full-page", page->deps[0], NULL);
-	} else if (page->type == CLANS) {
-		progname = "teerank-generate-clan-page";
-		execlp(progname, progname, page->deps[1], page->deps[0], NULL);
-	} else {
-		fprintf(stderr, "Invalid page type\n");
-		exit(EXIT_FAILURE);
-	}
-
-	fprintf(stderr, "execlp(%s): %s\n", progname, strerror(errno));
+	execvp(args[0], args);
+	fprintf(stderr, "execvp(%s): %s\n", args[0], strerror(errno));
 	exit(EXIT_FAILURE);
 }
 
-static void print(struct page *page)
+/*
+ * Based on the implicit assertion that HTML pages tree have the same layout
+ * than the database.  So for example, /clans/1 in database correspond to
+ * /clans/1.html in pages tree.
+ *
+ * The filename parameter must point to an entry in args.  If it is not NULL,
+ * then it will contain the current filename.
+ */
+static void generate_foreach(char *pathname, char **args, char **filename)
+{
+	DIR *dir;
+	struct dirent *dp;
+	char src[PATH_MAX], dest[PATH_MAX], path[PATH_MAX];
+
+	assert(pathname != NULL);
+
+	sprintf(path, "%s/%s", config.root, pathname);
+	if (!(dir = opendir(path)))
+		error(500, "%s: %s\n", path, strerror(errno));
+	while ((dp = readdir(dir))) {
+		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
+			continue;
+
+		sprintf(src,  "%s/%s",      pathname, dp->d_name);
+		sprintf(dest, "%s/%s.html", pathname, dp->d_name);
+
+		if (filename)
+			*filename = dp->d_name;
+
+		generate_file(args, src, dest);
+	}
+	closedir(dir);
+}
+
+static void generate(char *path)
+{
+	char **p;
+	struct url url;
+
+	split(path, &url);
+	p = url.parts;
+
+	if (!strcmp(p[0], "index.html")) {
+		generate_file((char*[]){ "teerank-generate-index", NULL },
+		              NULL, unsplit(&url));
+
+	} else if (!strcmp(p[0], "about.html")) {
+		generate_file((char*[]){ "teerank-generate-about", NULL },
+		              NULL, unsplit(&url));
+
+	} else if (!strcmp(p[0], "pages")) {
+		char *args[] = { "teerank-generate-rank-page", "full-page", NULL };
+		if (url.length == 1)
+			generate_foreach(unsplit(&url), args, NULL);
+		else if (url.length == 2)
+			generate_file(args, NULL, unsplit(&url));
+
+	} else if (!strcmp(p[0], "clans")) {
+		char *args[] = { "teerank-generate-clan-page", p[2], NULL };
+		if (url.length == 1)
+			generate_foreach(unsplit(&url), args, &args[1]);
+		else if (url.length == 2)
+			generate_file(args, NULL, unsplit(&url));
+	} else {
+		error(404, "%s: Doesn't exist\n", unsplit(&url));
+	}
+}
+
+static void print(const char *name)
 {
 	FILE *file;
 	int c;
+	char path[PATH_MAX];
 
-	assert(page != NULL);
+	assert(name != NULL);
 
-	if (!(file = fopen(page->dest, "r")))
-		error(500, "%s: %s\n", page->dest, strerror(errno));
+	sprintf(path, "%s/%s", config.cache_root, name);
+	if (!(file = fopen(path, "r")))
+		error(500, "%s: %s\n", path, strerror(errno));
 	printf("Content-Type: text/html\n\n");
 	while ((c = fgetc(file)) != EOF)
 		putchar(c);
@@ -274,7 +328,7 @@ static void create_directory(char *fmt, ...)
 			error(500, "%s: %s\n", path, strerror(errno));
 }
 
-static void create_cache(void)
+static void init_cache(void)
 {
 	create_directory("%s", config.cache_root);
 	create_directory("%s/pages", config.cache_root);
@@ -283,20 +337,24 @@ static void create_cache(void)
 
 int main(int argc, char **argv)
 {
-	struct page page;
-	char *path;
-
 	load_config();
-	create_cache();
+	init_cache();
 
-	if (!(path = getenv("DOCUMENT_URI")))
-		error(500, "$DOCUMENT_URI not set\n");
+	/* No arguments on the command line means it is used as a CGI */
+	if (argc > 1) {
+		mode = NATIVE;
+		while (*++argv)
+			generate(*argv);
+	} else {
+		char *path = getenv("DOCUMENT_URI");
 
-	get_page(path, &page);
-	if (!is_cached(&page))
-		generate(&page);
+		mode = CGI;
+		if (!path)
+			error(500, "$DOCUMENT_URI not set\n");
 
-	print(&page);
+		generate(path);
+		print(path);
+	}
 
 	return EXIT_SUCCESS;
 }

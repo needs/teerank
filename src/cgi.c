@@ -64,44 +64,200 @@ static void error(int code, char *fmt, ...)
 	end_error();
 }
 
-#define MAX_PARTS 8
-struct url {
-	char *path;
-	unsigned length;
-	char *parts[MAX_PARTS];
+struct file {
+	char *name;
+	char **args;
+	char *source;
 };
 
-/*
- * Path is splited by using strtok(), that means '\0' is added where
- * the separator is.  We provide unsplit() that does remove those '\0'
- * so the path can be used in full, again.
- */
-static void split(char *path, struct url *url)
+struct pattern {
+	struct file *(*init_file)(char *name, char *source);
+	struct file *(*iterate)(void);
+};
+
+struct directory {
+	char *name;
+
+	struct file *files;
+	struct pattern *patterns;
+	struct directory *dirs;
+};
+
+/* Macros for convenience */
+#define foreach_file(dir, f)                                          \
+	if ((dir)->files) for ((f) = (dir)->files; (f)->name; (f)++)
+#define foreach_pattern(dir, p)                                       \
+	if ((dir)->patterns) for ((p) = (dir)->patterns; (p)->init_file; (p)++)
+#define foreach_directory(dir, d)                                     \
+	if ((dir)->dirs) for ((d) = (dir)->dirs; (d)->name; (d)++)
+
+static void remove_extension(char *str, char *ext)
 {
 	char *tmp;
 
-	assert(path != NULL);
-	assert(url != NULL);
-
-	if (*path++ != '/')
-		error(404, "Path should begin with '/'\n");
-
-	url->path = path;
-	url->length = 0;
-	tmp = strtok(path, "/");
-	do {
-		if (url->length == MAX_PARTS)
-			error(404, "Path contains too much components\n");
-		url->parts[url->length++] = tmp;
-	} while ((tmp = strtok(NULL, "/")));
+	tmp = strrchr(str, '.');
+	if (!tmp || strcmp(tmp+1, ext))
+		return;
+	tmp = '\0';
 }
 
-static char *unsplit(struct url *url)
+/*
+ * Helper function that set file.name and file.source in the following manner:
+ *   - set file.name to name if name is not NULL
+ *   - set file.source to source if source is not NULL
+ *   - set file.name to source with ".html" appended if name is NULL
+ *   - set file.source to name with ".html" removed (if any) if source is NULL
+ *
+ * In every cases config.cache_root and dirtree are prepended for name.
+ * In every cases config.root and dirtree are prepended for source.
+ */
+static struct file *init_file(char *name, char *source, char *dirtree)
 {
-	unsigned i;
-	for (i = 1; i < url->length; i++)
-		url->parts[i][-1] = '/';
-	return url->path;
+	static struct file file;
+	static char _name[PATH_MAX], _source[PATH_MAX];
+
+	assert(name || source);
+
+	if (name)
+		sprintf(_name, "%s/%s/%s", config.cache_root, dirtree, name);
+	else
+		sprintf(_name, "%s/%s/%s.html", config.cache_root, dirtree, source);
+
+	if (source) {
+		sprintf(_source, "%s/%s/%s", config.root, dirtree, source);
+	} else {
+		sprintf(_source, "%s/%s/%s", config.root, dirtree, name);
+		remove_extension(_source, "html");
+	}
+
+	file.name = _name;
+	file.source = _source;
+
+	return &file;
+}
+
+static struct file *init_file_pages(char *name, char *source)
+{
+	struct file *file;
+	static char *args[] = { "teerank-generate-rank-page", "full-page", NULL };
+
+	assert(name || source);
+
+	if (!(file = init_file(name, source, "pages")))
+		return NULL;
+	file->args = args;
+
+	return file;
+}
+
+static struct file *init_file_clans(char *name, char *source)
+{
+	struct file *file;
+	static char *args[] = { "teerank-generate-clan-page", NULL, NULL };
+
+	assert(name || source);
+
+	if (!(file = init_file(name, source, "clans")))
+		return NULL;
+	args[1] = source;
+	file->args = args;
+
+	return file;
+}
+
+static struct file *iterate_pages(void)
+{
+	static struct dirent *dp;
+	static DIR *dir = NULL;
+	static char path[PATH_MAX] = "";
+
+	if (!path[0])
+		sprintf(path, "%s/pages", config.root);
+
+	if (!dir)
+		if (!(dir = opendir(path)))
+			error(500, "%s: %s\n", path, strerror(errno));
+
+	while ((dp = readdir(dir)))
+		if (strcmp(dp->d_name, ".") && strcmp(dp->d_name, ".."))
+			return init_file_pages(NULL, dp->d_name);
+
+	closedir(dir);
+	return NULL;
+}
+
+static struct file *iterate_clans(void)
+{
+	static struct dirent *dp;
+	static DIR *dir = NULL;
+	static char path[PATH_MAX] = "";
+
+	if (!path[0])
+		sprintf(path, "%s/clans", config.root);
+
+	if (!dir)
+		if (!(dir = opendir(path)))
+			error(500, "%s: %s\n", path, strerror(errno));
+
+	while ((dp = readdir(dir)))
+		if (strcmp(dp->d_name, ".") && strcmp(dp->d_name, ".."))
+			return init_file_clans(NULL, dp->d_name);
+
+	closedir(dir);
+	return NULL;
+}
+
+static const struct directory root = {
+	"", (struct file[]) {
+		{ "index.html", (char*[]){ "teerank-generate-index", NULL } },
+		{ "about.html", (char*[]){ "teerank-generate-about", NULL } },
+		{ NULL }
+	}, NULL, (struct directory[]) {
+		{
+			"pages", NULL, (struct pattern[]) {
+				{ init_file_pages, iterate_pages },
+				{ NULL }
+			}, NULL
+		}, {
+			"clans", NULL, (struct pattern[]) {
+				{ init_file_clans, iterate_clans },
+				{ NULL }
+			}, NULL
+		}, { NULL }
+	}
+};
+
+static struct directory *find_directory(const struct directory *_dir, char *name)
+{
+	struct directory *dir;
+
+	assert(_dir != NULL);
+	assert(name != NULL);
+
+	foreach_directory(_dir, dir)
+		if (!strcmp(name, dir->name))
+			return dir;
+
+	return NULL;
+}
+
+static struct file *find_file(const struct directory *dir, char *name)
+{
+	struct file *file;
+	struct pattern *pattern;
+
+	assert(dir != NULL);
+	assert(name != NULL);
+
+	foreach_file(dir, file)
+		if (!strcmp(file->name, name))
+			return file;
+
+	foreach_pattern(dir, pattern)
+		if ((file = pattern->init_file(name, NULL)))
+			return file;
+
+	return NULL;
 }
 
 static int is_cached(char *path, char *dep)
@@ -122,16 +278,12 @@ static int is_cached(char *path, char *dep)
 	return 1;
 }
 
-/*
- * srcname and destname should be relative to respectively the database and
- * the cache.
- */
-static void generate_file(char **args, char *srcname, char *destname)
+static void generate_file(struct file *file)
 {
 	int dest, src = -1, err[2];
-	char tmpname[PATH_MAX], srcpath[PATH_MAX], destpath[PATH_MAX];
+	char tmpname[PATH_MAX];
 
-	assert(destname != NULL);
+	assert(file != NULL);
 
 	/*
 	 * Files are generated by calling a program that write on stdout the
@@ -154,19 +306,17 @@ static void generate_file(char **args, char *srcname, char *destname)
 	 * Open src before fork() because if the file doesn't exist, then we
 	 * raise a 404, and if it does but cannot be opened, we raise a 500.
 	 */
-	if (srcname) {
-		sprintf(srcpath, "%s/%s", config.root, srcname);
-		if ((src = open(srcpath, O_RDONLY)) == -1) {
+	if (file->source) {
+		if ((src = open(file->source, O_RDONLY)) == -1) {
 			if (errno == ENOENT)
-				error(404, "%s: Doesn't exist\n", srcname);
+				error(404, "%s: Doesn't exist\n", file->source);
 			else
-				error(500, "%s: %s\n", srcpath, strerror(errno));
+				error(500, "%s: %s\n", file->source, strerror(errno));
 		}
 	}
 
 	/* Do not generate if is already cached */
-	sprintf(destpath, "%s/%s", config.cache_root, destname);
-	if (is_cached(destpath, srcname ? srcpath : NULL))
+	if (is_cached(file->name, file->source))
 		return;
 
 	/* The destination file is a temporary file */
@@ -183,28 +333,29 @@ static void generate_file(char **args, char *srcname, char *destname)
 	 */
 	if (fork() > 0) {
 		int c;
-		FILE *file, *errfile;
+		FILE *pipefile, *errfile;
 
 		close(err[1]);
 		close(dest);
-		if (srcname)
+
+		if (file->source)
 			close(src);
 
 		wait(&c);
 		if (WIFEXITED(c) && WEXITSTATUS(c) == EXIT_SUCCESS) {
-			if (rename(tmpname, destpath) == -1)
+			if (rename(tmpname, file->name) == -1)
 				error(500, "rename(%s, %s): %s\n",
-				      tmpname, destpath, strerror(errno));
+				      tmpname, file->name, strerror(errno));
 			return;
 		}
 
 		/* Report error */
 		errfile = start_error(500);
-		fprintf(errfile, "%s: ", args[0]);
-		file = fdopen(err[0], "r");
-		while ((c = fgetc(file)) != EOF)
+		fprintf(errfile, "%s: ", file->args[0]);
+		pipefile = fdopen(err[0], "r");
+		while ((c = fgetc(pipefile)) != EOF)
 			fputc(c, errfile);
-		fclose(file);
+		fclose(pipefile);
 		end_error();
 	}
 
@@ -213,7 +364,7 @@ static void generate_file(char **args, char *srcname, char *destname)
 	close(err[0]);
 
 	/* Redirect stdin */
-	if (srcname) {
+	if (file->source) {
 		dup2(src, STDIN_FILENO);
 		close(src);
 	}
@@ -223,77 +374,63 @@ static void generate_file(char **args, char *srcname, char *destname)
 	close(dest);
 
 	/* Eventually, run the program */
-	execvp(args[0], args);
-	fprintf(stderr, "execvp(%s): %s\n", args[0], strerror(errno));
+	execvp(file->args[0], file->args);
+	fprintf(stderr, "execvp(%s): %s\n", file->args[0], strerror(errno));
 	exit(EXIT_FAILURE);
 }
 
-/*
- * Based on the implicit assertion that HTML pages tree have the same layout
- * than the database.  So for example, /clans/1 in database correspond to
- * /clans/1.html in pages tree.
- *
- * The filename parameter must point to an entry in args.  If it is not NULL,
- * then it will contain the current filename.
- */
-static void generate_foreach(char *pathname, char **args, char **filename)
+static void generate_pattern(const struct pattern *pattern)
 {
-	DIR *dir;
-	struct dirent *dp;
-	char src[PATH_MAX], dest[PATH_MAX], path[PATH_MAX];
+	struct file *file;
 
-	assert(pathname != NULL);
+	while ((file = pattern->iterate()))
+		generate_file(file);
+}
 
-	sprintf(path, "%s/%s", config.root, pathname);
-	if (!(dir = opendir(path)))
-		error(500, "%s: %s\n", path, strerror(errno));
-	while ((dp = readdir(dir))) {
-		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
-			continue;
+static void generate_directory(const struct directory *_dir)
+{
+	struct directory *dir;
+	struct file *file;
+	struct pattern *pattern;
 
-		sprintf(src,  "%s/%s",      pathname, dp->d_name);
-		sprintf(dest, "%s/%s.html", pathname, dp->d_name);
+	foreach_directory(_dir, dir)
+		generate_directory(dir);
 
-		if (filename)
-			*filename = dp->d_name;
+	foreach_file(_dir, file)
+		generate_file(file);
 
-		generate_file(args, src, dest);
-	}
-	closedir(dir);
+	foreach_pattern(_dir, pattern)
+		generate_pattern(pattern);
 }
 
 static void generate(char *path)
 {
-	char **p;
-	struct url url;
+	const struct directory *dir, *current = &root;
+	struct file *file = NULL;
+	char *name;
 
-	split(path, &url);
-	p = url.parts;
+	if (*path != '/')
+		error(500, "Path should begin with '/'\n");
 
-	if (!strcmp(p[0], "index.html")) {
-		generate_file((char*[]){ "teerank-generate-index", NULL },
-		              NULL, unsplit(&url));
-
-	} else if (!strcmp(p[0], "about.html")) {
-		generate_file((char*[]){ "teerank-generate-about", NULL },
-		              NULL, unsplit(&url));
-
-	} else if (!strcmp(p[0], "pages")) {
-		char *args[] = { "teerank-generate-rank-page", "full-page", NULL };
-		if (url.length == 1)
-			generate_foreach(unsplit(&url), args, NULL);
-		else if (url.length == 2)
-			generate_file(args, NULL, unsplit(&url));
-
-	} else if (!strcmp(p[0], "clans")) {
-		char *args[] = { "teerank-generate-clan-page", p[2], NULL };
-		if (url.length == 1)
-			generate_foreach(unsplit(&url), args, &args[1]);
-		else if (url.length == 2)
-			generate_file(args, NULL, unsplit(&url));
-	} else {
-		error(404, "%s: Doesn't exist\n", unsplit(&url));
+	name = strtok(path, "/");
+	while (name) {
+		if ((dir = find_directory(current, name)))
+			current = dir;
+		else if ((file = find_file(current, name)))
+			break;
+		else
+			error(404, NULL);
+		name = strtok(NULL, "/");
 	}
+
+	/* CGI cannot generate more than one file to avoid easy Ddos */
+	if (mode == CGI && !file)
+		error(404, NULL);
+
+	if (file)
+		generate_file(file);
+	else
+		generate_directory(current);
 }
 
 static void print(const char *name)
@@ -346,10 +483,10 @@ int main(int argc, char **argv)
 		while (*++argv)
 			generate(*argv);
 	} else {
-		char *path = getenv("DOCUMENT_URI");
+		char *path;
 
 		mode = CGI;
-		if (!path)
+		if (!(path = getenv("DOCUMENT_URI")))
 			error(500, "$DOCUMENT_URI not set\n");
 
 		generate(path);

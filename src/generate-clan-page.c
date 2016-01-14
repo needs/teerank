@@ -172,6 +172,7 @@ int main(int argc, char **argv)
 	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
 
 	/* Eventually, print them */
+	hex_to_string(argv[1], clan);
 	print_header(CTF_TAB);
 	printf("<h2>%s</h2>\n", clan);
 	printf("<p>%u member(s)</p>\n", array.length);

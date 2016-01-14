@@ -77,7 +77,9 @@ static char *get_source_from_name(char *name, char *dirtree)
 {
 	static char source[PATH_MAX];
 
-	sprintf(source, "%s/%s/%s", config.root, dirtree, name);
+	if (snprintf(source, PATH_MAX, "%s/%s/%s",
+	             config.root, dirtree, name) >= PATH_MAX)
+		error(404, NULL);
 	remove_extension(source, "html");
 	printf("\'%s\'", source);
 
@@ -88,7 +90,8 @@ static char *get_raw_source_from_name(char *name)
 {
 	static char source[PATH_MAX];
 
-	strcpy(source, name);
+	if (*strncpy(source, name, PATH_MAX) != '\0')
+		error(404, NULL);
 	remove_extension(source, "html");
 
 	return source;
@@ -184,7 +187,7 @@ static int is_cached(char *path, char *dep)
 static void generate_file(struct file *file, char *prefix)
 {
 	int dest, src = -1, err[2];
-	char tmpname[PATH_MAX];
+	char tmpname[PATH_MAX], path[PATH_MAX];
 
 	assert(file != NULL);
 	assert(prefix != NULL);
@@ -209,8 +212,16 @@ static void generate_file(struct file *file, char *prefix)
 	 * Eventually, the child may need stdin feeded with some data.
 	 */
 
+	/*
+	 * Store the full pathname first so we can abort if it's too long.
+	 * Plus we need it to check if it is already cached.
+	 */
+	if (snprintf(path, PATH_MAX, "%s/%s/%s", config.cache_root,
+	             prefix, file->name) >= PATH_MAX)
+		error(404, NULL);
+
 	/* Do not generate if is already cached */
-	if (is_cached(file->name, file->source))
+	if (is_cached(path, file->source))
 		return;
 
 	/*
@@ -227,7 +238,8 @@ static void generate_file(struct file *file, char *prefix)
 	}
 
 	/* The destination file is a temporary file */
-	sprintf(tmpname, "%s/tmp-teerank-XXXXXX", config.tmp_root);
+	if (snprintf(tmpname, PATH_MAX, "%s/tmp-teerank-XXXXXX", config.tmp_root) >= PATH_MAX)
+		error(500, "Pathname for temporary file is too long (>= %d)\n", PATH_MAX);
 	if ((dest = mkstemp(tmpname)) == -1)
 		error(500, "mkstemp(): %s\n", strerror(errno));
 
@@ -250,8 +262,6 @@ static void generate_file(struct file *file, char *prefix)
 
 		wait(&c);
 		if (WIFEXITED(c) && WEXITSTATUS(c) == EXIT_SUCCESS) {
-			char path[PATH_MAX];
-			sprintf(path, "%s/%s/%s", config.cache_root, prefix, file->name);
 			if (rename(tmpname, path) == -1)
 				error(500, "rename(%s, %s): %s\n",
 				      tmpname, path, strerror(errno));
@@ -335,7 +345,10 @@ static void print(const char *name)
 
 	assert(name != NULL);
 
-	sprintf(path, "%s/%s", config.cache_root, name);
+	/* It should not fail because generate() would have failed otherwise */
+	if (snprintf(path, PATH_MAX, "%s/%s", config.cache_root, name) >= PATH_MAX)
+		error(404, NULL);
+
 	if (!(file = fopen(path, "r")))
 		error(500, "%s: %s\n", path, strerror(errno));
 	printf("Content-Type: text/html\n\n");

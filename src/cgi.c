@@ -26,31 +26,27 @@ static char *reason_phrase(int code)
 	}
 }
 
-static void start_error(int code)
+static void print_error(int code)
 {
 	printf("Content-type: text/html\n");
 	printf("Status: %d %s\n\n", code, reason_phrase(code));
 	printf("<h1>%d %s</h1>\n", code, reason_phrase(code));
-	printf("<pre>");
-}
-
-static void end_error(void)
-{
-	printf("</pre>");
-	exit(EXIT_FAILURE);
 }
 
 static void error(int code, char *fmt, ...)
 {
 	va_list ap;
 
-	start_error(code);
+	print_error(code);
 	if (fmt) {
 		va_start(ap, fmt);
-		vprintf(fmt, ap);
+		vfprintf(stderr, fmt, ap);
 		va_end(ap);
+	} else {
+		fprintf(stderr, "%d %s\n", code, reason_phrase(code));
 	}
-	end_error();
+
+	exit(EXIT_FAILURE);
 }
 
 struct file {
@@ -224,7 +220,7 @@ static void generate_file(struct file *file, char *prefix)
 	if (file->source) {
 		if ((src = open(file->source, O_RDONLY)) == -1) {
 			if (errno == ENOENT)
-				error(404, "%s: Doesn't exist\n", file->source);
+				error(404, NULL);
 			else
 				error(500, "%s: %s\n", file->source, strerror(errno));
 		}
@@ -263,13 +259,12 @@ static void generate_file(struct file *file, char *prefix)
 		}
 
 		/* Report error */
-		start_error(500);
-		printf("%s: ", file->args[0]);
+		print_error(500);
+		fprintf(stderr, "%s: ", file->args[0]);
 		pipefile = fdopen(err[0], "r");
 		while ((c = fgetc(pipefile)) != EOF)
-			putchar(c);
+			fputc(c, stderr);
 		fclose(pipefile);
-		end_error();
 	}
 
 	/* Redirect stderr to the write side of the pipe */

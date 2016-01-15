@@ -164,7 +164,7 @@ int get_sockaddr(char *node, char *service, struct sockaddr_storage *addr)
 	return 1;
 }
 
-int skip_header(struct data *data, const unsigned char *header, size_t size)
+int skip_header(struct data *data, const uint8_t *header, size_t size)
 {
 	assert(data != NULL);
 	assert(header != NULL);

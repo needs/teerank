@@ -20,6 +20,7 @@
 
 #include <sys/socket.h>
 #include <poll.h>
+#include <stdint.h>
 
 /* From teeworlds source code */
 #define PACKET_SIZE 1400
@@ -27,7 +28,7 @@
 
 struct data {
 	int size;
-	unsigned char buffer[PACKET_SIZE - PACKET_HEADER_SIZE];
+	uint8_t buffer[PACKET_SIZE - PACKET_HEADER_SIZE];
 };
 
 #define IP_LENGTH INET6_ADDRSTRLEN
@@ -51,7 +52,7 @@ int init_sockets(struct sockets *sockets);
 void close_sockets(struct sockets *sockets);
 
 int get_sockaddr(char *node, char *service, struct sockaddr_storage *addr);
-int skip_header(struct data *data, const unsigned char *header, size_t size);
+int skip_header(struct data *data, const uint8_t *header, size_t size);
 
 int send_data(
 	struct sockets *sockets, const struct data *data,

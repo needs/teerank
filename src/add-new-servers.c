@@ -29,10 +29,10 @@ const struct master MASTERS[] = {
 };
 const unsigned MASTERS_LENGTH = sizeof(MASTERS) / sizeof(*MASTERS);
 
-static const unsigned char MSG_GETLIST[] = {
+static const uint8_t MSG_GETLIST[] = {
 	255, 255, 255, 255, 'r', 'e', 'q', '2'
 };
-static const unsigned char MSG_LIST[] = {
+static const uint8_t MSG_LIST[] = {
 	255, 255, 255, 255, 'l', 'i', 's', '2'
 };
 

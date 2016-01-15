@@ -20,10 +20,10 @@
 #include "io.h"
 #include "config.h"
 
-static const unsigned char MSG_GETINFO[] = {
+static const uint8_t MSG_GETINFO[] = {
 	255, 255, 255, 255, 'g', 'i', 'e', '3'
 };
-static const unsigned char MSG_INFO[] = {
+static const uint8_t MSG_INFO[] = {
 	255, 255, 255, 255, 'i', 'n', 'f', '3'
 };
 

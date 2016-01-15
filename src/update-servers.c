@@ -19,6 +19,7 @@
 #include "delta.h"
 #include "io.h"
 #include "config.h"
+#include "server.h"
 
 static const uint8_t MSG_GETINFO[] = {
 	255, 255, 255, 255, 'g', 'i', 'e', '3'
@@ -103,21 +104,6 @@ static long int unpack_int(struct unpacker *up)
 	return ret;
 }
 
-#define MAX_CLIENTS 16
-
-struct server_info {
-	char *gametype;
-
-	int num_clients;
-	struct client {
-		char name[MAX_NAME_LENGTH], clan[MAX_NAME_LENGTH];
-		long int score;
-		long int ingame;
-	} clients[MAX_CLIENTS];
-
-	time_t time;
-};
-
 static int validate_client_info(struct client *client)
 {
 	char tmp[MAX_NAME_LENGTH];
@@ -139,7 +125,7 @@ static int validate_client_info(struct client *client)
 	return 1;
 }
 
-static int validate_clients_info(struct server_info *info)
+static int validate_clients_info(struct server_state *info)
 {
 	unsigned i;
 
@@ -151,7 +137,7 @@ static int validate_clients_info(struct server_info *info)
 	return 1;
 }
 
-static int unpack_server_info(struct data *data, struct server_info *info)
+static int unpack_server_state(struct data *data, struct server_state *info)
 {
 	struct unpacker up;
 	unsigned i;
@@ -221,71 +207,6 @@ struct server_list {
 	struct server *servers;
 };
 
-static int read_server_info(FILE *file, char *path, struct server_info *info)
-{
-	unsigned i;
-	int ret;
-
-	assert(file != NULL);
-	assert(path != NULL);
-	assert(info != NULL);
-
-	ret = fscanf(file, "%d", &info->num_clients);
-
-	if (ferror(file)) {
-		perror(path);
-		return 0;
-	} else if (ret == EOF) {
-		info->gametype = NULL;
-		return 1;
-	} else if (ret == 0) {
-		fprintf(stderr, "%s: Cannot match clients number\n", path);
-		return 0;
-	}
-
-	info->gametype = "CTF";
-	for (i = 0; i < info->num_clients; i++) {
-		struct client *client = &info->clients[i];
-
-		ret = fscanf(file, " %s %s %ld",
-		             client->name, client->clan, &client->score);
-		if (ferror(file)) {
-			perror(path);
-			return 0;
-		} else if (ret == EOF) {
-			fprintf(stderr, "%s: Early end-of-file\n", path);
-			return 0;
-		} else if (ret < 3) {
-			fprintf(stderr, "%s: Only %d elements matched\n", path, ret);
-			return 0;
-		}
-	}
-
-	return 1;
-}
-
-static int write_server_info(FILE *file, char *path, struct server_info *info)
-{
-	unsigned i;
-
-	assert(file != NULL);
-	assert(info != NULL);
-
-	if (info->num_clients == 0)
-		return 1;
-	if (fprintf(file, "%d\n", info->num_clients) <= 0)
-		return perror(path), 0;
-
-	for (i = 0; i < info->num_clients; i++) {
-		struct client *client = &info->clients[i];
-
-		if (fprintf(file, "%s %s %ld\n", client->name, client->clan, client->score) <= 0)
-			return perror(path), 0;
-	}
-
-	return 1;
-}
-
 static char *get_path(const char *dirname, const char *filename)
 {
 	static char path[PATH_MAX];
@@ -296,9 +217,9 @@ static char *get_path(const char *dirname, const char *filename)
 	return path;
 }
 
-static int dump_server_info(
+static int dump_server_state(
 	struct server *server,
-	struct server_info *old, struct server_info *new)
+	struct server_state *old, struct server_state *new)
 {
 	static const char filename[] = "infos";
 	struct stat stats;
@@ -318,7 +239,7 @@ static int dump_server_info(
 	if (ret == 0) {
 		if (!(file = fopen(path, "r")))
 			return perror(path), 0;
-		if (!read_server_info(file, path, old))
+		if (!read_server_state(old, file, path))
 			return fclose(file), 0;
 		fclose(file);
 		old->time = stats.st_mtim.tv_sec;
@@ -331,7 +252,7 @@ static int dump_server_info(
 	/* Write new state */
 	if (!(file = fopen(path, "w")))
 		return perror(path), 0;
-	if (!write_server_info(file, path, new))
+	if (!write_server_state(new, file, path))
 		return fclose(file), 0;
 	fclose(file);
 
@@ -343,7 +264,7 @@ static int dump_server_info(
 }
 
 static struct client *get_player(
-	struct server_info *info, struct client *client)
+	struct server_state *info, struct client *client)
 {
 	unsigned i;
 
@@ -357,8 +278,8 @@ static struct client *get_player(
 	return NULL;
 }
 
-static void print_server_info_delta(
-	struct server_info *old, struct server_info *new)
+static void print_server_state_delta(
+	struct server_state *old, struct server_state *new)
 {
 	struct delta delta;
 	unsigned i;
@@ -394,7 +315,7 @@ static void print_server_info_delta(
 	print_delta(&delta);
 }
 
-static void remove_spectators(struct server_info *info)
+static void remove_spectators(struct server_state *info)
 {
 	unsigned i;
 
@@ -410,21 +331,21 @@ static void remove_spectators(struct server_info *info)
 
 static int handle_data(struct data *data, struct server *server)
 {
-	struct server_info old, new;
+	struct server_state old, new;
 
 	assert(data != NULL);
 	assert(server != NULL);
 
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
 		return 0;
-	if (!unpack_server_info(data, &new))
+	if (!unpack_server_state(data, &new))
 		return 0;
 
 	remove_spectators(&new);
-	if (!dump_server_info(server, &old, &new))
+	if (!dump_server_state(server, &old, &new))
 		return 0;
 
-	print_server_info_delta(&old, &new);
+	print_server_state_delta(&old, &new);
 
 	return 1;
 }

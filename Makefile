@@ -13,7 +13,7 @@ $(CGI): src/config.o
 teerank-add-new-servers: src/add-new-servers.o src/network.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-update-servers: src/update-servers.o src/network.o src/pool.o src/delta.o src/io.o
+teerank-update-servers: src/update-servers.o src/network.o src/pool.o src/delta.o src/io.o src/server.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-generate-index: src/generate-index.o src/io.o

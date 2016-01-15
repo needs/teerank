@@ -89,7 +89,7 @@ static char *get_raw_source_from_name(char *name)
 {
 	static char source[PATH_MAX];
 
-	if (*strncpy(source, name, PATH_MAX) != '\0')
+	if (*stpncpy(source, name, PATH_MAX) != '\0')
 		error(404, NULL);
 	remove_extension(source, "html");
 

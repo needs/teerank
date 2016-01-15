@@ -1,7 +1,8 @@
 Teerank
 =======
 
-Teerank is a simple ranking system for teeworlds.  You can test the lastest stable version at [teerank.com](http://teerank.com/).
+Teerank is a simple and fast ranking system for teeworlds.  You can
+test the lastest stable version at [teerank.com](http://teerank.com/).
 
 How to build
 ============
@@ -13,63 +14,49 @@ make
 How to use
 ==========
 
-Teerank use a database to generate HTML files.  In order to get the
-HTML files, you must create and fill the database.  This is done by
+Teerank generate HTML files from a database.  So in order to get the
+HTML files, you must create and fill a database.  This is done by
 running:
 
 ```bash
 ./teerank-update
 ```
 
-If you want to update continuously the ranking system, use something like the following:
+It put the database in `./.teerank` by default, check it out!
+The, use teerank.cgi to generate some HTML pages:
+
+```bash
+PATH=. DOCUMENT_URI=/pages/1.html ./teerank.cgi
+```
+
+In order to have the CSS, you have to start a webserver at the root of your
+git repository.  Here is a simple way of doing it:
+
+```bash
+python -m http.server &
+```
+
+You can then see the previously generated page in your browser:
+
+```bash
+firefox pages/1.html
+```
+
+Advanced use
+============
+
+To update continuesly the database, use something like:
 
 ```bash
 while true; do ./teerank-update; sleep 300; done
 ```
 
-Now you have to generate HTML file.  For that configure your web
-server to use teerank.cgi as a CGI.  Here is an example with nginx
-that use the cloned repository as a root:
+You may want to use teerank.cgi as a CGI.  That way, pages will be
+generated on demand, and then cached for further reuse if the database
+hasn't changed.
 
-```
-http {
-	server {
-		listen       8000;
-		server_name  teerank.com;
-		root         <path_to_cloned_repo>;
-
-		rewrite ^/$ /pages/1.html redirect;
-		try_files $uri @teerank;
-		location @teerank {
-			include       fastcgi_params;
-			fastcgi_param SCRIPT_FILENAME $document_root/teerank.cgi;
-			fastcgi_pass  unix:/run/fcgiwrap.sock;
-		}
-	}
-}
-```
-
-How to install
-==============
-
-You can use the traditional way:
-
-```bash
-sudo make install
-```
-
-Or install it as a package, so you can easily remove it:
-
-```bash
-# Archlinux
-makepkg -i BUILDDIR=/tmp/makepkg
-```
-
-Generate the database using:
-
-```bash
-TEERANK_ROOT=/var/lib/teerank teerank-update
-```
+First, install teerank on your system using `make install`.  Then
+configure you webserver.  Here is an example for nginx, with FastCGI.
 
 ```
 http {
@@ -91,6 +78,26 @@ http {
 		}
 	}
 }
+```
+
+The environement variables `$TEERANK_ROOT` must point to the database,
+and `$TEERANK_CACHE_ROOT` the were cached files will be stored.  Be
+sure to run `teerank-update` with the appropriate values:
+
+```bash
+TEERANK_ROOT=/var/lib/teerank teerank-update
+```
+
+You may have to change permission to get it working.
+
+Tips
+====
+
+On archlinux, you can use pacman to actually install teerank
+system-wide:
+
+```bash
+makepkg -i BUILDDIR=/tmp/makepkg
 ```
 
 Contributing

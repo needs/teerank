@@ -22,8 +22,8 @@ running:
 ./teerank-update
 ```
 
-It put the database in `./.teerank` by default, check it out!
-The, use teerank.cgi to generate some HTML pages:
+It puts the database in `./.teerank` by default, check it out!
+Then, use teerank.cgi to generate some HTML pages:
 
 ```bash
 PATH=. DOCUMENT_URI=/pages/1.html ./teerank.cgi
@@ -39,7 +39,7 @@ python -m http.server &
 You can then see the previously generated page in your browser:
 
 ```bash
-firefox pages/1.html
+firefox http://localhost:8000/pages/1.html
 ```
 
 Advanced use

@@ -81,7 +81,6 @@ static char *get_source_from_name(char *name, char *dirtree)
 	             config.root, dirtree, name) >= PATH_MAX)
 		error(404, NULL);
 	remove_extension(source, "html");
-	printf("\'%s\'", source);
 
 	return source;
 }

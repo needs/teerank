@@ -111,7 +111,7 @@ void string_to_hex(const char *str, char *hex)
 	assert(str != hex);
 
 	for (; *str; str++, hex += 2)
-		sprintf(hex, "%2x", *str);
+		sprintf(hex, "%2x", *(unsigned char*)str);
 	strcpy(hex, "00");
 }
 

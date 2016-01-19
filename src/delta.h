@@ -5,7 +5,7 @@
 
 #define MAX_PLAYERS 16
 struct delta {
-	time_t elapsed;
+	int elapsed;
 	unsigned length;
 	struct player_delta {
 		char *name, *clan;

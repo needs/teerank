@@ -125,27 +125,27 @@ static int validate_client_info(struct client *client)
 	return 1;
 }
 
-static int validate_clients_info(struct server_state *info)
+static int validate_clients_info(struct server_state *state)
 {
 	unsigned i;
 
-	assert(info != NULL);
+	assert(state != NULL);
 
-	for (i = 0; i < info->num_clients; i++)
-		if (!validate_client_info(&info->clients[i]))
+	for (i = 0; i < state->num_clients; i++)
+		if (!validate_client_info(&state->clients[i]))
 			return 0;
 	return 1;
 }
 
-static int unpack_server_state(struct data *data, struct server_state *info)
+static int unpack_server_state(struct data *data, struct server_state *state)
 {
 	struct unpacker up;
 	unsigned i;
 
 	assert(data != NULL);
-	assert(info != NULL);
+	assert(state != NULL);
 
-	/* Unpack server info (ignore useless infos) */
+	/* Unpack server state (ignore useless infos) */
 	if (!init_unpacker(&up, data))
 		return 0;
 	if (!can_unpack(&up, 10))
@@ -155,42 +155,39 @@ static int unpack_server_state(struct data *data, struct server_state *info)
 	unpack_string(&up);     /* Version */
 	unpack_string(&up);     /* Name */
 	unpack_string(&up);     /* Map */
-	info->gametype = unpack_string(&up);     /* Gametype */
-
-	if (strcmp(info->gametype, "CTF"))
-		return 0;
+	state->gametype = unpack_string(&up);     /* Gametype */
 
 	unpack_string(&up);     /* Flags */
 	unpack_string(&up);     /* Player number */
 	unpack_string(&up);     /* Player max number */
-	info->num_clients = unpack_int(&up);     /* Client number */
+	state->num_clients = unpack_int(&up);     /* Client number */
 	unpack_string(&up);     /* Client max number */
 
-	if (info->num_clients > MAX_CLIENTS) {
+	if (state->num_clients > MAX_CLIENTS) {
 		fprintf(stderr, "max_clients shouldn't be higher than %d\n",
 		        MAX_CLIENTS);
 		return 0;
 	}
 
 	/* Players */
-	for (i = 0; i < info->num_clients; i++) {
+	for (i = 0; i < state->num_clients; i++) {
 		if (!can_unpack(&up, 5))
 			return 0;
 
-		strcpy(info->clients[i].name, unpack_string(&up)); /* Name */
-		strcpy(info->clients[i].clan, unpack_string(&up)); /* Clan */
+		strcpy(state->clients[i].name, unpack_string(&up)); /* Name */
+		strcpy(state->clients[i].clan, unpack_string(&up)); /* Clan */
 		unpack_string(&up); /* Country */
-		info->clients[i].score  = unpack_int(&up); /* Score */
-		info->clients[i].ingame = unpack_int(&up); /* Ingame? */
+		state->clients[i].score  = unpack_int(&up); /* Score */
+		state->clients[i].ingame = unpack_int(&up); /* Ingame? */
 	}
 
 	if (up.offset != up.data->size) {
 		fprintf(stderr,
-		        "%lu bytes remaining after unpacking server info\n",
+		        "%lu bytes remaining after unpacking server state\n",
 		        up.data->size - up.offset);
 	}
 
-	if (!validate_clients_info(info))
+	if (!validate_clients_info(state))
 		return 0;
 
 	return 1;
@@ -199,6 +196,9 @@ static int unpack_server_state(struct data *data, struct server_state *info)
 struct server {
 	char dirname[PATH_MAX];
 	struct sockaddr_storage addr;
+
+	struct server_meta meta;
+
 	struct pool_entry entry;
 };
 
@@ -207,79 +207,40 @@ struct server_list {
 	struct server *servers;
 };
 
-static char *get_path(const char *dirname, const char *filename)
-{
-	static char path[PATH_MAX];
-
-	assert(strlen(dirname) + 1 + strlen(filename) < PATH_MAX);
-	sprintf(path, "%s/%s", dirname, filename);
-
-	return path;
-}
-
-static int dump_server_state(
+static int swap_server_state(
 	struct server *server,
 	struct server_state *old, struct server_state *new)
 {
-	static const char filename[] = "infos";
-	struct stat stats;
-	char *path;
-	FILE *file;
-	int ret;
-
 	assert(server != NULL);
 	assert(old != NULL);
 	assert(new != NULL);
 	assert(!strcmp(new->gametype, "CTF"));
 
-	path = get_path(server->dirname, filename);
-
-	/* Read old state (if any) */
-	ret = stat(path, &stats);
-	if (ret == 0) {
-		if (!(file = fopen(path, "r")))
-			return perror(path), 0;
-		if (!read_server_state(old, file, path))
-			return fclose(file), 0;
-		fclose(file);
-		old->time = stats.st_mtim.tv_sec;
-	} else if (errno == ENOENT) {
-		old->gametype = NULL;
-	} else {
-		return perror(path), 0;
-	}
-
-	/* Write new state */
-	if (!(file = fopen(path, "w")))
-		return perror(path), 0;
-	if (!write_server_state(new, file, path))
-		return fclose(file), 0;
-	fclose(file);
-
-	if (stat(path, &stats) == -1)
-		return perror(path), 0;
-	new->time = stats.st_mtim.tv_sec;
+	if (!read_server_state(old, server->dirname))
+		return 0;
+	if (!write_server_state(new, server->dirname))
+		return 0;
 
 	return 1;
 }
 
 static struct client *get_player(
-	struct server_state *info, struct client *client)
+	struct server_state *state, struct client *client)
 {
 	unsigned i;
 
-	assert(info != NULL);
+	assert(state != NULL);
 	assert(client != NULL);
 
-	for (i = 0; i < info->num_clients; i++)
-		if (!strcmp(info->clients[i].name, client->name))
-			return &info->clients[i];
+	for (i = 0; i < state->num_clients; i++)
+		if (!strcmp(state->clients[i].name, client->name))
+			return &state->clients[i];
 
 	return NULL;
 }
 
 static void print_server_state_delta(
-	struct server_state *old, struct server_state *new)
+	struct server_state *old, struct server_state *new, int elapsed)
 {
 	struct delta delta;
 	unsigned i;
@@ -288,12 +249,12 @@ static void print_server_state_delta(
 	assert(new != NULL);
 	assert(!strcmp(new->gametype, "CTF"));
 
-	/* A NULL gametype means empty old server infos */
+	/* A NULL gametype means empty old server states */
 	if (!old->gametype)
 		return;
 	assert(!strcmp(old->gametype, "CTF"));
 
-	delta.elapsed = new->time - old->time;
+	delta.elapsed = elapsed;
 	delta.length = 0;
 	for (i = 0; i < new->num_clients; i++) {
 		struct client *old_player, *new_player;
@@ -315,15 +276,15 @@ static void print_server_state_delta(
 	print_delta(&delta);
 }
 
-static void remove_spectators(struct server_state *info)
+static void remove_spectators(struct server_state *state)
 {
 	unsigned i;
 
-	assert(info != NULL);
+	assert(state != NULL);
 
-	for (i = 0; i < info->num_clients; i++) {
-		if (!info->clients[i].ingame) {
-			info->clients[i] = info->clients[--info->num_clients];
+	for (i = 0; i < state->num_clients; i++) {
+		if (!state->clients[i].ingame) {
+			state->clients[i] = state->clients[--state->num_clients];
 			i--;
 		}
 	}
@@ -341,90 +302,68 @@ static int handle_data(struct data *data, struct server *server)
 	if (!unpack_server_state(data, &new))
 		return 0;
 
-	remove_spectators(&new);
-	if (!dump_server_state(server, &old, &new))
-		return 0;
+	if (strcmp(new.gametype, "CTF")) {
+		/*
+		 * We don't rank this server but we still want to check
+		 * it time to time to see if its gametype change.
+		 */
+		refresh_meta(&server->meta, SERVER_ONLINE | RANDOM_EXPIRE);
+		write_server_meta(&server->meta, server->dirname);
+	} else {
+		int elapsed = time(NULL) - server->meta.last_seen;
 
-	print_server_state_delta(&old, &new);
+		refresh_meta(&server->meta, SERVER_ONLINE);
+		write_server_meta(&server->meta, server->dirname);
+
+		remove_spectators(&new);
+		if (!swap_server_state(server, &old, &new))
+			return 0;
+
+		print_server_state_delta(&old, &new, elapsed);
+	}
 
 	return 1;
 }
 
-static void restore_pathname(char *pathname, unsigned tokens)
-{
-	unsigned i;
+#define _str(s) #s
+#define str(s) _str(s)
 
-	/* Restore dirname content altered by strtok() */
-	for (i = 1; i < tokens; i++)
-		*strchr(pathname, '\0') = ' ';
-}
-
-static int is_valid_tokens(char *version, char *ip, char *port, char *pathname)
-{
-	unsigned tokens;
-
-	assert(pathname != NULL);
-
-	tokens = !!version + !!ip + !!port;
-
-	if (!version) {
-		restore_pathname(pathname, tokens);
-		fprintf(stderr, "%s: Cannot find IP version (v4 or v6)\n", pathname);
-		return 0;
-	} else if (!ip) {
-		restore_pathname(pathname, tokens);
-		fprintf(stderr, "%s: Cannot find IP\n", pathname);
-		return 0;
-	} else if (!port) {
-		restore_pathname(pathname, tokens);
-		fprintf(stderr, "%s: Cannot find port\n", pathname);
-		return 0;
-	}
-
-	/* Check version */
-	if (strcmp(version, "v4") && strcmp(version, "v6")) {
-		restore_pathname(pathname, tokens);
-		fprintf(stderr, "%s: IP version should be either v4 or v6\n", pathname);
-		return 0;
-	}
-
-	/* IP and port are implicitely checked later in get_sockaddr() */
-	return 1;
-}
-
-static int extract_ip_and_port(char *pathname, char *_ip, char *_port)
+static int extract_ip_and_port(char *name, char *ip, char *port)
 {
 	char c;
-	unsigned i;
-	char *version, *ip, *port;
+	unsigned i, version;
+	int ret;
 
-	assert(pathname != NULL);
-	assert(_ip != NULL);
-	assert(_port != NULL);
+	assert(ip != NULL);
+	assert(port != NULL);
 
-	version = strtok(basename(pathname), " ");
-	ip = strtok(NULL, " ");
-	port = strtok(NULL, " ");
-
-	if (!is_valid_tokens(version, ip, port, pathname))
-		return 0;
-
-	/* Copy tokens so we can modify them without altering pathname */
-	strcpy(_ip, ip);
-	strcpy(_port, port);
+	errno = 0;
+	ret = sscanf(name, "v%u %" str(IP_LENGTH) "s %" str(PORT_LENGTH) "s",
+	             &version, ip, port);
+	if (ret == EOF && errno != 0)
+		return perror(name), 0;
+	else if (ret == EOF && errno == 0)
+		return fprintf(stderr, "%s: Cannot find IP version\n", name), 0;
+	else if (ret == 1)
+		return fprintf(stderr, "%s: Cannot find IP\n", name), 0;
+	else if (ret == 2)
+		return fprintf(stderr, "%s: Cannot find port\n", name), 0;
 
 	/* Replace '_' by '.' or ':' depending on IP version */
-	if (version[1] == '4')
+	if (version == 4)
 		c = '.';
-	else
+	else if (version == 6)
 		c = ':';
-	for (i = 0; i < strlen(_ip); i++)
-		if (_ip[i] == '_')
-			_ip[i] = c;
+	else {
+		fprintf(stderr, "%s: IP version should be either 4 or 6\n", name);
+		return 0;
+	}
 
-	/* Revert the effect of strtok() */
-	restore_pathname(pathname, 3);
+	for (i = 0; i < strlen(ip); i++)
+		if (ip[i] == '_')
+			ip[i] = c;
 
+	/* IP and port are implicitely checked later in get_sockaddr() */
 	return 1;
 }
 
@@ -464,7 +403,16 @@ static int fill_server_list(struct server_list *list)
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 
-		sprintf(server.dirname, "%s/%s", path, dp->d_name);
+		/*
+		 * By reading server metadata we are able to filter-out
+		 * servers that has not the wanted gamemode or servers
+		 * that do not need to be refreshed often.
+		 */
+		read_server_meta(&server.meta, dp->d_name);
+		if (!server_need_refresh(&server.meta))
+			continue;
+
+		strcpy(server.dirname, dp->d_name);
 		if (!extract_ip_and_port(dp->d_name, ip, port))
 			continue;
 		if (!get_sockaddr(ip, port, &server.addr))

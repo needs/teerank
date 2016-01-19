@@ -11,7 +11,7 @@ int scan_delta(struct delta *delta)
 
 	assert(delta != NULL);
 
-	ret = scanf(" %u %ld", &delta->length, &delta->elapsed);
+	ret = scanf(" %u %d", &delta->length, &delta->elapsed);
 	if (ret == EOF)
 		return 0;
 	assert(ret == 2);
@@ -33,7 +33,7 @@ void print_delta(struct delta *delta)
 	if (delta->length) {
 		unsigned i;
 
-		printf("%u %ld\n", delta->length, delta->elapsed);
+		printf("%u %d\n", delta->length, delta->elapsed);
 
 		for (i = 0; i < delta->length; i++) {
 			printf("%s %s %ld %ld\n",

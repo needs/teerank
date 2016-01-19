@@ -25,7 +25,8 @@ struct master {
 const struct master MASTERS[] = {
 	{ "master1.teeworlds.com", "8300" },
 	{ "master2.teeworlds.com", "8300" },
-	{ "master3.teeworlds.com", "8300" }
+	{ "master3.teeworlds.com", "8300" },
+	{ "master4.teeworlds.com", "8300" }
 };
 const unsigned MASTERS_LENGTH = sizeof(MASTERS) / sizeof(*MASTERS);
 

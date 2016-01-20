@@ -32,11 +32,9 @@ struct server_meta {
 void read_server_meta(struct server_meta *meta, char *server_name);
 void write_server_meta(struct server_meta *meta, char *server_name);
 
-enum {
-	RANDOM_EXPIRE = (1 << 0),
-	SERVER_ONLINE = (1 << 1),
-};
-void refresh_meta(struct server_meta *meta, unsigned flags);
+void mark_server_offline(struct server_meta *meta);
+void mark_server_online(struct server_meta *meta, int expire_now);
+
 int server_need_refresh(struct server_meta *meta);
 
 #endif /* SERVER_H */

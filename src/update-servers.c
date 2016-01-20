@@ -33,19 +33,13 @@ struct unpacker {
 	size_t offset;
 };
 
-static int init_unpacker(struct unpacker *up, struct data *data)
+static void init_unpacker(struct unpacker *up, struct data *data)
 {
 	assert(up != NULL);
 	assert(data != NULL);
 
 	up->data = data;
 	up->offset = 0;
-
-	/*
-	 * If the last byte is not 0, then it will overflow when unpacking
-	 * a string.
-	 */
-	return data->buffer[data->size - 1] == 0;
 }
 
 static int can_unpack(struct unpacker *up, unsigned length)
@@ -146,8 +140,7 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 	assert(state != NULL);
 
 	/* Unpack server state (ignore useless infos) */
-	if (!init_unpacker(&up, data))
-		return 0;
+	init_unpacker(&up, data);
 	if (!can_unpack(&up, 10))
 		return 0;
 
@@ -164,7 +157,7 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 	unpack_string(&up);     /* Client max number */
 
 	if (state->num_clients > MAX_CLIENTS) {
-		fprintf(stderr, "max_clients shouldn't be higher than %d\n",
+		fprintf(stderr, "num_clients shouldn't be higher than %d\n",
 		        MAX_CLIENTS);
 		return 0;
 	}
@@ -307,12 +300,11 @@ static int handle_data(struct data *data, struct server *server)
 		 * We don't rank this server but we still want to check
 		 * it time to time to see if its gametype change.
 		 */
-		refresh_meta(&server->meta, SERVER_ONLINE | RANDOM_EXPIRE);
+		mark_server_online(&server->meta, 0);
 		write_server_meta(&server->meta, server->dirname);
 	} else {
 		int elapsed = time(NULL) - server->meta.last_seen;
-
-		refresh_meta(&server->meta, SERVER_ONLINE);
+		mark_server_online(&server->meta, 1);
 		write_server_meta(&server->meta, server->dirname);
 
 		remove_spectators(&new);
@@ -454,8 +446,15 @@ static void poll_servers(struct server_list *list, struct sockets *sockets)
 		add_pool_entry(&pool, &list->servers[i].entry,
 		               &list->servers[i].addr);
 
+	fprintf(stderr, "Refreshing %d servers\n", list->length);
 	while ((entry = poll_pool(&pool, &answer)))
 		handle_data(&answer, get_server(entry));
+
+	while ((entry = foreach_failed_poll(&pool))) {
+		struct server *server = get_server(entry);
+		mark_server_offline(&server->meta);
+		write_server_meta(&server->meta, server->dirname);
+	}
 }
 
 static const struct server_list SERVER_LIST_ZERO;

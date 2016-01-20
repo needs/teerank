@@ -203,7 +203,38 @@ int server_need_refresh(struct server_meta *meta)
 	return 0;
 }
 
-void refresh_meta(struct server_meta *meta, unsigned flags)
+static unsigned min(unsigned a, unsigned b)
+{
+	return a < b ? a : b;
+}
+
+void mark_server_offline(struct server_meta *meta)
+{
+	time_t now;
+
+	assert(meta != NULL);
+
+	/*
+	 * We won't want to check an offline server too often, because it will
+	 * add a (probably) unnecessary 3 seconds delay when polling.  However
+	 * sometime the server is online but our UDP packets get lost 3 times
+	 * in a row, in this case we don't want to delay too much the next poll.
+	 *
+	 * To meet the requirements above, we schedule the next poll to:
+	 *
+	 * 	now + min(now - meta->last_seen, 2 hours)
+	 *
+	 * So for example if the server was seen 5 minutes ago, the next poll
+	 * will be schedule in 5 minutes.  If the server is still offline 5
+	 * minutes later, then we schedule the next poll in 10 minutes...  Up
+	 * to a maximum of 2 hours.
+	 */
+
+	now = time(NULL);
+	meta->expire = now + min(now - meta->last_seen, 2 * 3600);
+}
+
+void mark_server_online(struct server_meta *meta, int expire_now)
 {
 	time_t now;
 	static int initialized = 0;
@@ -211,12 +242,9 @@ void refresh_meta(struct server_meta *meta, unsigned flags)
 	assert(meta != NULL);
 
 	now = time(NULL);
-	assert(now != (time_t)-1);
+	meta->last_seen = now;
 
-	if (flags & SERVER_ONLINE)
-		meta->last_seen = now;
-
-	if ((flags & RANDOM_EXPIRE) == 0) {
+	if (expire_now) {
 		meta->expire = 0;
 	} else {
 		/*

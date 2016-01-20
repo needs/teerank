@@ -13,7 +13,7 @@
 #define MAX_PING 999
 
 enum poll_status {
-	IDLE, PENDING, POLLED
+	IDLE, PENDING, POLLED, FAILED
 };
 
 void init_pool(
@@ -27,6 +27,7 @@ void init_pool(
 	pool->pending = NULL;
 	pool->pending_count = 0;
 	pool->iter = NULL;
+	pool->iter_failed = NULL;
 	pool->sockets = sockets;
 	pool->request = request;
 }
@@ -63,15 +64,6 @@ static void add_pending_entry(struct pool *pool, struct pool_entry *entry)
 	pool->pending_count++;
 }
 
-static int can_be_polled(struct pool_entry *entry)
-{
-	assert(entry != NULL);
-
-	/* A pollable entry is not in the pending list and should
-	 * not have a high failure count */
-	return entry->status == IDLE && entry->failure_count <= MAX_FAILURE;
-}
-
 /*
  * Iterate over every pollable entries, starting
  * from the last iterated entry.
@@ -83,7 +75,7 @@ static struct pool_entry *foreach_entries(struct pool *pool)
 	assert(pool != NULL);
 
 	for (iter = pool->iter; iter; iter = iter->next_entry) {
-		if (can_be_polled(iter)) {
+		if (iter->status == IDLE) {
 			pool->iter = iter->next_entry;
 			return iter;
 		}
@@ -91,7 +83,7 @@ static struct pool_entry *foreach_entries(struct pool *pool)
 
 	/* Start over */
 	for (iter = pool->entries; iter != pool->iter; iter = iter->next_entry) {
-		if (can_be_polled(iter)) {
+		if (iter->status == IDLE) {
 			pool->iter = iter->next_entry;
 			return iter;
 		}
@@ -117,6 +109,7 @@ static void remove_pending_entry(
 {
 	assert(pool != NULL);
 	assert(entry != NULL);
+	assert(prev != NULL || entry == pool->pending);
 
 	if (prev)
 		prev->next_pending = entry->next_pending;
@@ -136,6 +129,7 @@ static void clean_old_pending_entries(struct pool *pool)
 	/* Set ticks_per_seconds once for all */
 	if (ticks_per_second == -1)
 		ticks_per_second = sysconf(_SC_CLK_TCK);
+	assert(ticks_per_second != -1);
 
 	now = times(NULL);
 
@@ -146,6 +140,10 @@ static void clean_old_pending_entries(struct pool *pool)
 		if (elapsed >= MAX_PING / 1000.0f) {
 			entry->failure_count++;
 			remove_pending_entry(pool, entry, prev);
+			if (entry->failure_count > MAX_FAILURE)
+				entry->status = FAILED;
+			else
+				entry->status = IDLE;
 		} else {
 			prev = entry;
 		}
@@ -229,5 +227,25 @@ struct pool_entry *poll_pool(struct pool *pool, struct data *answer)
 			return entry;
 	}
 
+	return NULL;
+}
+
+struct pool_entry *foreach_failed_poll(struct pool *pool)
+{
+	struct pool_entry *iter;
+
+	assert(pool != NULL);
+
+	if (!pool->iter_failed)
+		pool->iter_failed = pool->entries;
+
+	for (iter = pool->iter_failed->next_entry; iter; iter = iter->next_entry) {
+		if (iter->status == FAILED) {
+			pool->iter_failed = iter;
+			return iter;
+		}
+	}
+
+	pool->iter_failed = NULL;
 	return NULL;
 }

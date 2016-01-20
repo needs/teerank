@@ -30,7 +30,7 @@ struct pool_entry {
 
 struct pool {
 	struct pool_entry *entries;
-	struct pool_entry *pending, *iter;
+	struct pool_entry *pending, *iter, *iter_failed;
 	unsigned pending_count;
 
 	struct sockets *sockets;
@@ -55,5 +55,10 @@ void add_pool_entry(
  * Poll the network and return the polled entry or NULL if any.
  */
 struct pool_entry *poll_pool(struct pool *pool, struct data *answer);
+
+/*
+ * Return each entry that hasn't been polled.
+ */
+struct pool_entry *foreach_failed_poll(struct pool *pool);
 
 #endif /* POOL_H */

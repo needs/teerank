@@ -15,6 +15,7 @@
 /teerank-generate-rank-page
 /teerank-generate-about
 /teerank-paginate-ranks
-/teerank-init-database
+/teerank-create-database
+/teerank-upgrade*
 /teerank-update
 /teerank.cgi

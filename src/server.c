@@ -89,8 +89,6 @@ int write_server_state(struct server_state *state, char *server_name)
 	FILE *file;
 
 	assert(state != NULL);
-	assert(file != NULL);
-	assert(path != NULL);
 
 	if (!(path = get_path(server_name, "state")))
 		return 0;

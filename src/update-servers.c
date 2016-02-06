@@ -258,8 +258,8 @@ static void print_server_state_delta(
 		if (old_player) {
 			struct player_delta *player;
 			player = &delta.players[delta.length];
-			player->name = new_player->name;
-			player->clan = new_player->clan;
+			strcpy(player->name, new_player->name);
+			strcpy(player->clan, new_player->clan);
 			player->score = new_player->score;
 			player->delta = new_player->score - old_player->score;
 			delta.length++;

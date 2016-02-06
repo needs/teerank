@@ -1,14 +1,14 @@
 #ifndef DELTA_H
 #define DELTA_H
 
-#include <time.h>
+#include "io.h"
 
 #define MAX_PLAYERS 16
 struct delta {
 	int elapsed;
 	unsigned length;
 	struct player_delta {
-		char *name, *clan;
+		char name[MAX_NAME_LENGTH], clan[MAX_NAME_LENGTH];
 		long delta;
 		long score;
 		int elo;

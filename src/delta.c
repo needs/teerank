@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "delta.h"
 
@@ -11,18 +12,36 @@ int scan_delta(struct delta *delta)
 
 	assert(delta != NULL);
 
+	errno = 0;
 	ret = scanf(" %u %d", &delta->length, &delta->elapsed);
-	if (ret == EOF)
+	if (ret == EOF && errno == 0)
 		return 0;
-	assert(ret == 2);
+	else if (ret == EOF && errno != 0)
+		return perror("<stdin>"), 0;
+	else if (ret == 0)
+		return fprintf(stderr, "<stdin>: Cannot match delta length\n"), 0;
+	else if (ret == 1)
+		return fprintf(stderr, "<stdin>: Cannot match delta elapsed time\n"), 0;
 
 	for (i = 0; i < delta->length; i++) {
-		ret = scanf(" %ms %ms %ld %ld",
-		            &delta->players[i].name,
-		            &delta->players[i].clan,
+		errno = 0;
+		ret = scanf(" %s %s %ld %ld",
+		            delta->players[i].name,
+		            delta->players[i].clan,
 		            &delta->players[i].score,
 		            &delta->players[i].delta);
-		assert(ret == 4);
+		if (ret == EOF && errno == 0)
+			return fprintf(stderr, "<stdin>: Expected %u players, found %u\n", delta->length, i), 0;
+		else if (ret == EOF && errno != 0)
+			return perror("<stdin>"), 0;
+		else if (ret == 0)
+			return fprintf(stderr, "<stdin>: Cannot match player name\n"), 0;
+		else if (ret == 1)
+			return fprintf(stderr, "<stdin>: Cannot match player clan\n"), 0;
+		else if (ret == 2)
+			return fprintf(stderr, "<stdin>: Cannot match player score\n"), 0;
+		else if (ret == 3)
+			return fprintf(stderr, "<stdin>: Cannot match player delta\n"), 0;
 	}
 
 	return 1;

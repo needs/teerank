@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
+CFLAGS = -Wall -Werror -O -std=c99 -D_POSIX_C_SOURCE=200809L -g
 BINS = $(addprefix teerank-,add-new-servers update-servers generate-index update-players update-clans generate-clan-page compute-ranks generate-rank-page generate-about paginate-ranks init-database update)
 CGI = teerank.cgi
 

@@ -7,6 +7,7 @@
 *.swp
 
 /teerank-add-new-servers
+/teerank-remove-offline-servers
 /teerank-generate-index
 /teerank-update-players
 /teerank-update-servers

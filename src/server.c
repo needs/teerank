@@ -4,6 +4,7 @@
 #include <time.h>
 #include <limits.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "server.h"
 #include "config.h"
@@ -258,4 +259,18 @@ void mark_server_online(struct server_meta *meta, int expire_now)
 		}
 		meta->expire = now + 1800 + 3600 * ((double)rand() / (double)RAND_MAX);
 	}
+}
+
+void remove_server(char *name)
+{
+	char *path;
+
+	assert(name != NULL);
+
+	if (unlink((path = get_path(name, "state"))) == -1)
+		perror(path);
+	if (unlink((path = get_path(name, "meta"))) == -1)
+		perror(path);
+	if (rmdir((path = get_path(name, ""))) == -1)
+		perror(path);
 }

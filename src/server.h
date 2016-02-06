@@ -37,4 +37,9 @@ void mark_server_online(struct server_meta *meta, int expire_now);
 
 int server_need_refresh(struct server_meta *meta);
 
+/*
+ * Delete the meta and state file, and then try to remove the directory.
+ */
+void remove_server(char *name);
+
 #endif /* SERVER_H */

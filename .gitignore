@@ -4,6 +4,7 @@
 /index.html
 
 *.o
+*.swp
 
 /teerank-add-new-servers
 /teerank-generate-index

@@ -1,5 +1,6 @@
 #include <math.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include "elo.h"
 #include "delta.h"

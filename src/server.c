@@ -38,8 +38,10 @@ int read_server_state(struct server_state *state, char *server_name)
 	if (!(path = get_path(server_name, "state")))
 		return 0;
 	if (!(file = fopen(path, "r"))) {
-		if (errno != ENOENT)
-			perror(path);
+		if (errno == ENOENT)
+			/* State file has not been created yet */
+			return 1;
+		perror(path);
 		return 0;
 	}
 

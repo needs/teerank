@@ -100,6 +100,15 @@ system-wide:
 makepkg -i BUILDDIR=/tmp/makepkg
 ```
 
+You can enable verbose output by setting `TEERANK_VERBOSE`.
+
+```sh
+TEERANK_VERBOSE=1 ./teerank-update
+```
+
+Verbose output give some insight on what's going on when you run a
+binary.  It aim to help newcomer to dig in the code.
+
 Contributing
 ============
 

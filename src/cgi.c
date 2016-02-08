@@ -53,6 +53,7 @@ struct file {
 	char *name;
 	char **args;
 	char *source;
+	char **deps;
 };
 
 struct directory {
@@ -100,10 +101,12 @@ static struct file *pages_generator(char *name)
 {
 	static struct file file;
 	static char *args[] = { "teerank-generate-rank-page", "full-page", NULL };
+	static char *deps[] = { "players", NULL };
 
 	file.name = name;
 	file.source = get_source_from_name(name, "pages");
 	file.args = args;
+	file.deps = deps;
 
 	return &file;
 }
@@ -112,19 +115,23 @@ static struct file *clans_generator(char *name)
 {
 	static struct file file;
 	static char *args[] = { "teerank-generate-clan-page", NULL, NULL };
+	static char *deps[] = { "players", NULL };
 
 	file.name = name;
 	file.source = get_source_from_name(name, "clans");
 	file.args = args;
 	file.args[1] = get_raw_source_from_name(name);
+	file.deps = deps;
 
 	return &file;
 }
 
 static const struct directory root = {
 	"", (struct file[]) {
-		{ "index.html", (char*[]){ "teerank-generate-index", NULL }, NULL },
-		{ "about.html", (char*[]){ "teerank-generate-about", NULL }, NULL },
+		{ "index.html", (char*[]){ "teerank-generate-index", NULL },
+		  NULL, (char*[]){ "players", NULL } },
+		{ "about.html", (char*[]){ "teerank-generate-about", NULL },
+		  NULL, NULL },
 		{ NULL }
 	}, NULL, (struct directory[]) {
 		{ "pages", NULL, pages_generator, NULL },
@@ -165,20 +172,44 @@ static struct file *find_file(const struct directory *dir, char *name)
 	return NULL;
 }
 
-static int is_cached(char *path, char *dep)
+/* Return true if a is more recent than b */
+static int is_more_recent(struct stat *a, struct stat *b)
 {
-	struct stat statpath, statdep;
+	return a->st_mtim.tv_sec > b->st_mtim.tv_sec;
+}
 
-	assert(path != NULL);
+static int is_up_to_date(struct file *file, char *filename)
+{
+	char **dep;
+	struct stat s, tmp;
 
-	if (!dep)
+	assert(file != NULL);
+	assert(filename != NULL);
+
+	/* First, if the file is not in cache, it need to be generated */
+	if (stat(filename, &s) == -1)
 		return 0;
-	if (stat(path, &statpath) == -1)
-		return 0;
-	if (stat(dep, &statdep) == -1)
-		return 0;
-	if (statdep.st_mtim.tv_sec > statpath.st_mtim.tv_sec)
-		return 0;
+
+	/* Regenerate if the source file is more recent */
+	if (file->source) {
+		if (stat(file->source, &tmp) == -1)
+			return 0;
+		if (is_more_recent(&tmp, &s))
+			return 0;
+	}
+
+	/* Regenerate if at least one dependancy is more recent */
+	if (file->deps) {
+		for (dep = file->deps; *dep; dep++) {
+			static char path[PATH_MAX];
+
+			snprintf(path, PATH_MAX, "%s/%s", config.root, *dep);
+			if (stat(*dep, &tmp) == -1)
+				continue;
+			if (is_more_recent(&tmp, &s))
+				return 0;
+		}
+	}
 
 	return 1;
 }
@@ -219,8 +250,7 @@ static void generate_file(struct file *file, char *prefix)
 	             prefix, file->name) >= PATH_MAX)
 		error(404, NULL);
 
-	/* Do not generate if is already cached */
-	if (is_cached(path, file->source))
+	if (is_up_to_date(file, path))
 		return;
 
 	/*

@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 #include "config.h"
 
@@ -12,6 +14,7 @@ struct config config = {
 	.root = ".teerank",
 	.cache_root = ".",
 	.tmp_root = ".",
+	.verbose = 0
 };
 
 void load_config(void)
@@ -26,4 +29,16 @@ void load_config(void)
 		config.tmp_root = tmp;
 	else
 		config.tmp_root = config.cache_root;
+	if ((tmp = getenv("TEERANK_VERBOSE")))
+		config.verbose = 1;
+}
+
+void verbose(const char *fmt, ...)
+{
+	if (config.verbose) {
+		va_list ap;
+		va_start(ap, fmt);
+		vfprintf(stderr, fmt, ap);
+		va_end(ap);
+	}
 }

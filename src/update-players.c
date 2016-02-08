@@ -56,22 +56,33 @@ static void remove_unrankable_players(struct delta *delta)
 
 static unsigned is_rankable(struct delta *delta)
 {
+	unsigned old_length;
+
 	assert(delta != NULL);
 
 	/*
 	 * 30 minutes between each update is just too much and it increase
 	 * the chance of rating two different games.
 	 */
-	if (delta->elapsed > 30 * 60)
+	if (delta->elapsed > 30 * 60) {
+		verbose("A game with %u players is unrankable because too"
+		        " much time have passed between two updates\n",
+		        delta->length);
 		return 0;
+	}
 
 	/*
 	 * We need at least 4 players really playing the game (ie. rankable)
 	 * to get meaningful Elo deltas.
 	 */
+	old_length = delta->length;
 	remove_unrankable_players(delta);
-	if (delta->length < 4)
+	if (delta->length < 4) {
+		verbose("A game with %u players is unrankable because only"
+		        " %u players can be ranked, 4 needed\n",
+		        old_length, old_length - delta->length);
 		return 0;
+	}
 
 	return 1;
 }
@@ -152,6 +163,7 @@ next:
 		if (!is_rankable(&delta))
 			goto next;
 
+		verbose("%u players have been updated:\n", delta.length);
 		for (i = 0; i < delta.length; i++) {
 			struct player_delta *player = &delta.players[i];
 			int elo;
@@ -160,7 +172,7 @@ next:
 			elo = compute_new_elo(&delta, player);
 			hex_to_string(player->name, name);
 
-			printf("%s:\t %d -> %d\n", name, player->elo, elo);
+			verbose("\t%s \t%d -> %d\n", name, player->elo, elo);
 			if (elo == player->elo)
 				continue;
 			sprintf(path, "%s/players/%s/elo",

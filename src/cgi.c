@@ -251,7 +251,9 @@ static void generate_file(struct file *file, char *prefix)
 		error(404, NULL);
 
 	if (is_up_to_date(file, path))
-		return;
+		return verbose("'%s' already cached and up-to-date\n", path);
+	else
+		verbose("Generating '%s' with '%s'\n", path, file->args[0]);
 
 	/*
 	 * Open src before fork() because if the file doesn't exist, then we

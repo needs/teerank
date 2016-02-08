@@ -380,6 +380,7 @@ static int fill_server_list(struct server_list *list)
 	DIR *dir;
 	struct dirent *dp;
 	char path[PATH_MAX];
+	unsigned count = 0;
 
 	assert(list != NULL);
 
@@ -395,6 +396,7 @@ static int fill_server_list(struct server_list *list)
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 
+		count++;
 		/*
 		 * By reading server metadata we are able to filter-out
 		 * servers that has not the wanted gamemode or servers
@@ -414,6 +416,9 @@ static int fill_server_list(struct server_list *list)
 	}
 
 	closedir(dir);
+
+	verbose("%u servers found, %u will be refreshed\n",
+	        count, list->length);
 
 	return 1;
 }
@@ -436,7 +441,7 @@ static void poll_servers(struct server_list *list, struct sockets *sockets)
 	struct pool pool;
 	struct pool_entry *entry;
 	struct data answer;
-	unsigned i;
+	unsigned i, failed_count = 0;
 
 	assert(list != NULL);
 	assert(sockets != NULL);
@@ -446,7 +451,6 @@ static void poll_servers(struct server_list *list, struct sockets *sockets)
 		add_pool_entry(&pool, &list->servers[i].entry,
 		               &list->servers[i].addr);
 
-	fprintf(stderr, "Refreshing %d servers\n", list->length);
 	while ((entry = poll_pool(&pool, &answer)))
 		handle_data(&answer, get_server(entry));
 
@@ -454,7 +458,10 @@ static void poll_servers(struct server_list *list, struct sockets *sockets)
 		struct server *server = get_server(entry);
 		mark_server_offline(&server->meta);
 		write_server_meta(&server->meta, server->dirname);
+		failed_count++;
 	}
+
+	verbose("%u servers has not been successfully polled\n", failed_count);
 }
 
 static const struct server_list SERVER_LIST_ZERO;

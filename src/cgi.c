@@ -204,7 +204,7 @@ static int is_up_to_date(struct file *file, char *filename)
 			static char path[PATH_MAX];
 
 			snprintf(path, PATH_MAX, "%s/%s", config.root, *dep);
-			if (stat(*dep, &tmp) == -1)
+			if (stat(path, &tmp) == -1)
 				continue;
 			if (is_more_recent(&tmp, &s))
 				return 0;

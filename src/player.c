@@ -11,14 +11,14 @@
 #include "io.h"
 #include "elo.h"
 
-static char *get_path(char *name, char *filename)
+static char *get_path(char *name)
 {
 	static char path[PATH_MAX];
 
 	assert(name != NULL);
 
-	if (snprintf(path, PATH_MAX, "%s/players/%s/%s",
-	             config.root, name, filename) >= PATH_MAX)
+	if (snprintf(path, PATH_MAX, "%s/players/%s",
+	             config.root, name) >= PATH_MAX)
 		return NULL;
 	return path;
 }
@@ -33,17 +33,11 @@ static void init_player(struct player *player, char *name)
 
 int create_player(struct player *player, char *name)
 {
-	char *path;
-
 	assert(name != NULL);
 	assert(player != NULL);
 
-	if (!(path = get_path(name, "")))
-		return 0;
-	if (mkdir(path, 0777) == -1)
-		return perror(path), 0;
-
 	init_player(player, name);
+	player->elo = DEFAULT_ELO;
 	player->is_rankable = 0;
 	player->is_modified = 1;
 
@@ -59,7 +53,7 @@ int read_player(struct player *player, char *name)
 	assert(name != NULL);
 	assert(player != NULL);
 
-	if (!(path = get_path(name, "infos")))
+	if (!(path = get_path(name)))
 		return 0;
 	if (!(file = fopen(path, "r")))
 		return perror(path), 0;
@@ -100,7 +94,7 @@ int write_player(struct player *player)
 	assert(player != NULL);
 	assert(player->name[0] != '\0');
 
-	if (!(path = get_path(player->name, "infos")))
+	if (!(path = get_path(player->name)))
 		return 0;
 	if (!(file = fopen(path, "r")))
 		return perror(path), 0;

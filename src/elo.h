@@ -3,6 +3,7 @@
 
 #include "player.h"
 
+/* Number of elo points new players start with */
 #define DEFAULT_ELO 1500
 
 /*

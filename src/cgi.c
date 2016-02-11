@@ -129,7 +129,7 @@ static struct file *clans_generator(char *name)
 static const struct directory root = {
 	"", (struct file[]) {
 		{ "index.html", (char*[]){ "teerank-generate-index", NULL },
-		  NULL, (char*[]){ "players", NULL } },
+		  "ranks", (char*[]){ "players", NULL } },
 		{ "about.html", (char*[]){ "teerank-generate-about", NULL },
 		  NULL, NULL },
 		{ NULL }

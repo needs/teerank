@@ -7,31 +7,35 @@
 
 #include "io.h"
 #include "config.h"
-
-struct player {
-	char name[MAX_NAME_LENGTH];
-	int elo;
-};
+#include "player.h"
 
 struct player_array {
-	struct player* players;
-	unsigned length;
+	struct player *players;
+	unsigned length, buffer_length;
 };
 
-static void add_player(struct player_array *array, struct player *player)
+static struct player *new_player(struct player_array *array)
 {
 	static const unsigned OFFSET = 1024;
 
 	assert(array != NULL);
-	assert(player != NULL);
 
-	if (array->length % 1024 == 0) {
-		array->players = realloc(array->players, (array->length + OFFSET) * sizeof(*player));
+	if (array->length == array->buffer_length) {
+		array->players = realloc(array->players, (array->buffer_length + OFFSET) * sizeof(*array->players));
 		if (!array->players)
 			perror("Allocating player array"), exit(EXIT_FAILURE);
+		array->buffer_length += OFFSET;
 	}
 
-	array->players[array->length++] = *player;
+	return &array->players[array->length++];
+}
+
+static void delete_last_player(struct player_array *array)
+{
+	assert(array != NULL);
+	assert(array->length > 0);
+
+	array->length--;
 }
 
 static void load_players(struct player_array *array)
@@ -47,20 +51,14 @@ static void load_players(struct player_array *array)
 		perror(path), exit(EXIT_FAILURE);
 
 	while ((dp = readdir(dir))) {
-		struct player player;
+		struct player *player;
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 
-		/* Name */
-		strcpy(player.name, dp->d_name);
-
-		/* Elo */
-		sprintf(path, "%s/players/%s/elo", config.root, dp->d_name);
-		if (read_file(path, "%d", &player.elo) != 1)
-			continue;
-
-		add_player(array, &player);
+		player = new_player(array);
+		if (!read_player(player, dp->d_name))
+			delete_last_player(array);
 	}
 
 	closedir(dir);
@@ -99,16 +97,12 @@ int main(int argc, char *argv[])
 	/* Print the number of players first... */
 	fprintf(file, "%u players\n", array.length);
 
-	/* ...and then dump player's name, one per line. */
+	/* ...and print player's name, and then save player infos themself. */
 	for (i = 0; i < array.length; i++) {
 		struct player *player = &array.players[i];
-		static char path[PATH_MAX];
-
-		sprintf(path, "%s/players/%s/rank", config.root, player->name);
-		if (write_file(path, "%u", i + 1) == -1)
-			perror(path);
 
 		fprintf(file, "%s\n", player->name);
+		write_player(player);
 	}
 
 	fclose(file);

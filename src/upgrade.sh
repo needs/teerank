@@ -1,6 +1,7 @@
 #!/bin/bash
 
 : ${TEERANK_ROOT:=.teerank}
+export TEERANK_ROOT
 file="$TEERANK_ROOT/version"
 
 if [ $# -ne 1 ]; then

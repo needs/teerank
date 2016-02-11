@@ -9,40 +9,6 @@
 
 #include "io.h"
 
-int read_file(const char *path, const char *format, ...)
-{
-	FILE *file;
-	va_list ap;
-	int ret;
-
-	if (!(file = fopen(path, "r")))
-		return -1;
-
-	va_start(ap, format);
-	ret = vfscanf(file, format, ap);
-	va_end(ap);
-
-	fclose(file);
-	return ret;
-}
-
-int write_file(const char *path, const char *format, ...)
-{
-	FILE *file;
-	va_list ap;
-	int ret;
-
-	if (!(file = fopen(path, "w")))
-		return -1;
-
-	va_start(ap, format);
-	ret = vfprintf(file, format, ap);
-	va_end(ap);
-
-	fclose(file);
-	return ret;
-}
-
 void print_header(enum tab active)
 {
 	unsigned i;

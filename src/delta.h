@@ -2,6 +2,7 @@
 #define DELTA_H
 
 #include "io.h"
+#include "player.h"
 
 #define MAX_PLAYERS 16
 struct delta {

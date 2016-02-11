@@ -1,12 +1,13 @@
 #ifndef ELO_H
 #define ELO_H
 
-#include "delta.h"
+#include "player.h"
+
+#define DEFAULT_ELO 1500
 
 /*
- * Compute new player's Elo and return it.  It assume every players in delta
- * have their Elo points set.
+ * Update elo's point of each rankable player.
  */
-int compute_new_elo(struct delta *delta, struct player_delta *player);
+void update_elos(struct player *players, unsigned length);
 
 #endif /* ELO_H */

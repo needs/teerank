@@ -1,6 +1,6 @@
 #!/bin/sh
 
-version=1
+version=2
 export PATH=.:"$PATH"
 
 #

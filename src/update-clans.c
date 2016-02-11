@@ -7,6 +7,7 @@
 #include <libgen.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <utime.h>
 
 #include "io.h"
 #include "config.h"
@@ -125,9 +126,18 @@ static void write_clan_array(struct clan_array *clans)
 
 		/* Create directory */
 		sprintf(path, "%s/clans/%s", config.root, clan->name);
-		if (mkdir(path, 0777) == -1 && errno != EEXIST) {
-			perror(path);
-			continue;
+		if (mkdir(path, 0777) == -1) {
+			if (errno != EEXIST) {
+				perror(path);
+				continue;
+			}
+
+			/*
+			 * Update directory modification time because the CGI
+			 * use it to known if a clan page need to be
+			 * regenerated.
+			 */
+			utime(path, NULL);
 		}
 
 		/* Write member list */

@@ -1,14 +1,19 @@
 CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
-BINS = $(addprefix teerank-,add-new-servers update-servers generate-index update-players update-clans generate-clan-page compute-ranks generate-rank-page generate-about paginate-ranks remove-offline-servers create-database upgrade-0-to-1 upgrade-1-to-2 upgrade update)
+BINS = $(addprefix teerank-,add-new-servers update-servers generate-index update-players update-clans generate-clan-page compute-ranks generate-rank-page generate-about paginate-ranks remove-offline-servers)
+SCRIPTS = $(addprefix teerank-,create-database upgrade-0-to-1 upgrade-1-to-2 upgrade update)
 CGI = teerank.cgi
 
 .PHONY: all clean install
 
-all: $(BINS) $(CGI)
+all: $(BINS) $(SCRIPTS) $(CGI)
 
 # All binaries share the same configuration
 $(BINS): src/config.o
 $(CGI): src/config.o
+
+#
+# Binaries
+#
 
 teerank-add-new-servers: src/add-new-servers.o src/network.o
 	$(CC) -o $@ $(CFLAGS) $^
@@ -43,22 +48,34 @@ teerank-generate-about: src/generate-about.o src/io.o
 teerank-remove-offline-servers: src/remove-offline-servers.o src/server.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-create-database: src/create-database.sh
-	cp $< $@
+#
+# Scripts
+#
 
-teerank-upgrade-0-to-1: src/upgrade/0-to-1.sh
-	cp $< $@
-teerank-upgrade-1-to-2: src/upgrade/1-to-2.sh
-	cp $< $@
+teerank-create-database: src/script-header.inc.sh src/create-database.sh
+	cat $^ >$@
 
-teerank-upgrade: src/upgrade.sh
-	cp $< $@
+teerank-upgrade: src/script-header.inc.sh src/upgrade.sh
+	cat $^ >$@
+
+teerank-upgrade-0-to-1: src/script-header.inc.sh src/upgrade/0-to-1.sh
+	cat $^ >$@
+teerank-upgrade-1-to-2: src/script-header.inc.sh src/upgrade/1-to-2.sh
+	cat $^ >$@
 
 teerank-update: src/update.sh
 	cp $< $@
 
+#
+# CGI
+#
+
 $(CGI): src/cgi.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
+
+#
+# Phony targets
+#
 
 clean:
 	rm -f src/*.o $(BINS) $(CGI)

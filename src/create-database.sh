@@ -1,7 +1,5 @@
 #!/bin/sh
 
-: ${TEERANK_ROOT:=.teerank}
-
 mkdir -p "$TEERANK_ROOT"
 mkdir -p "$TEERANK_ROOT/servers"
 mkdir -p "$TEERANK_ROOT/players"

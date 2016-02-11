@@ -1,11 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
-: ${TEERANK_ROOT:=.teerank}
-export TEERANK_ROOT
 file="$TEERANK_ROOT/version"
 
 if [ $# -ne 1 ]; then
-	echo "usage: $0 version" 2>&1
+	echo "usage: $0 version" 1>&2
 	exit
 fi
 

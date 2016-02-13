@@ -82,6 +82,10 @@ $(CGI): src/cgi.o src/io.o
 clean:
 	rm -f src/*.o $(BINS) $(CGI)
 
+#
+# Install
+#
+
 install: TEERANK_ROOT       = $(prefix)/var/lib/teerank
 install: TEERANK_CACHE_ROOT = $(prefix)/var/cache/teerank
 install: TEERANK_DATA_ROOT  = $(prefix)/usr/share/webapps/teerank

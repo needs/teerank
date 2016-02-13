@@ -11,8 +11,8 @@
 
 #include "io.h"
 #include "config.h"
+#include "player.h"
 
-struct player;
 struct clan {
 	char name[MAX_NAME_LENGTH];
 
@@ -23,11 +23,6 @@ struct clan {
 struct clan_array {
 	unsigned length;
 	struct clan *clans;
-};
-
-struct player {
-	char name[MAX_NAME_LENGTH];
-	char clan[MAX_NAME_LENGTH];
 };
 
 static struct clan *add_clan(struct clan_array *array, struct clan *clan)
@@ -89,30 +84,6 @@ static struct clan *get_clan(struct clan_array *array, struct player *player)
 	return add_clan(array, &clan);
 }
 
-static int init_player(struct player *player, char *name)
-{
-	FILE *file;
-	char path[PATH_MAX];
-
-	assert(player != NULL);
-
-	strcpy(player->name, name);
-
-	/* No clan file means empty clan name */
-	sprintf(path, "%s/players/%s/clan", config.root, name);
-	if ((file = fopen(path, "r"))) {
-		if (!fgets(player->clan, MAX_NAME_LENGTH, file))
-			return perror(path), fclose(file), 0;
-		fclose(file);
-	} else if (errno != ENOENT) {
-		return perror(path), 0;
-	} else {
-		strcpy(player->clan, "00");
-	}
-
-	return 1;
-}
-
 static void write_clan_array(struct clan_array *clans)
 {
 	unsigned i, j;
@@ -124,24 +95,7 @@ static void write_clan_array(struct clan_array *clans)
 		char path[PATH_MAX];
 		FILE *file;
 
-		/* Create directory */
 		sprintf(path, "%s/clans/%s", config.root, clan->name);
-		if (mkdir(path, 0777) == -1) {
-			if (errno != EEXIST) {
-				perror(path);
-				continue;
-			}
-
-			/*
-			 * Update directory modification time because the CGI
-			 * use it to known if a clan page need to be
-			 * regenerated.
-			 */
-			utime(path, NULL);
-		}
-
-		/* Write member list */
-		sprintf(path, "%s/clans/%s/members", config.root, clan->name);
 		if (!(file = fopen(path, "w"))) {
 			perror(path);
 			continue;
@@ -177,7 +131,7 @@ int main(int argc, char **argv)
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
-		if (!init_player(&player, dp->d_name))
+		if (!read_player(&player, dp->d_name))
 			continue;
 		if (!(clan = get_clan(&clans, &player)))
 			continue;

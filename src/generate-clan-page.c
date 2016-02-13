@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 
 	/* Load players */
 
-	sprintf(path, "%s/clans/%s/members", config.root, argv[1]);
+	sprintf(path, "%s/clans/%s", config.root, argv[1]);
 	if (!(file = fopen(path, "r")))
 		return perror(path), EXIT_FAILURE;
 

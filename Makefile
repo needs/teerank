@@ -1,6 +1,6 @@
 CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
 BINS = $(addprefix teerank-,add-new-servers update-servers generate-index update-players update-clans generate-clan-page compute-ranks generate-rank-page generate-about paginate-ranks remove-offline-servers)
-SCRIPTS = $(addprefix teerank-,create-database upgrade-0-to-1 upgrade-1-to-2 upgrade-2-to-3 upgrade update)
+SCRIPTS = $(addprefix teerank-,create-database upgrade-0-to-1 upgrade-1-to-2 upgrade-2-to-3 upgrade-3-to-4 upgrade update)
 CGI = teerank.cgi
 
 .PHONY: all clean install
@@ -27,7 +27,7 @@ teerank-generate-index: src/generate-index.o src/io.o src/player.o
 teerank-update-players: src/update-players.o src/delta.o src/elo.o src/io.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^ -lm
 
-teerank-update-clans: src/update-clans.o src/io.o
+teerank-update-clans: src/update-clans.o src/io.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-generate-clan-page: src/generate-clan-page.o src/io.o src/player.o
@@ -63,6 +63,8 @@ teerank-upgrade-0-to-1: src/script-header.inc.sh src/upgrade/0-to-1.sh
 teerank-upgrade-1-to-2: src/script-header.inc.sh src/upgrade/1-to-2.sh
 	cat $^ >$@ && chmod +x $@
 teerank-upgrade-2-to-3: src/script-header.inc.sh src/upgrade/2-to-3.sh
+	cat $^ >$@ && chmod +x $@
+teerank-upgrade-3-to-4: src/script-header.inc.sh src/upgrade/3-to-4.sh
 	cat $^ >$@ && chmod +x $@
 
 teerank-update: src/update.sh

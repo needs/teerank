@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
 		struct player *player = &array.players[i];
 
 		fprintf(file, "%s\n", player->name);
+		player->rank = i + 1;
 		write_player(player);
 	}
 

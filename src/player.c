@@ -31,7 +31,7 @@ static void init_player(struct player *player, char *name)
 	player->elo  = INVALID_ELO;
 }
 
-int create_player(struct player *player, char *name)
+static int create_player(struct player *player, char *name)
 {
 	assert(name != NULL);
 	assert(player != NULL);
@@ -55,8 +55,12 @@ int read_player(struct player *player, char *name)
 
 	if (!(path = get_path(name)))
 		return 0;
-	if (!(file = fopen(path, "r")))
-		return perror(path), 0;
+	if (!(file = fopen(path, "r"))) {
+		if (errno == ENOENT)
+			return create_player(player, name);
+		else
+			return perror(path), 0;
+	}
 
 	init_player(player, name);
 
@@ -96,7 +100,7 @@ int write_player(struct player *player)
 
 	if (!(path = get_path(player->name)))
 		return 0;
-	if (!(file = fopen(path, "r")))
+	if (!(file = fopen(path, "w")))
 		return perror(path), 0;
 
 	ret = fprintf(file, "%s %d %u\n", player->clan,

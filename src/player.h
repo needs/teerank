@@ -25,8 +25,6 @@ struct player {
 	short is_rankable;
 };
 
-int create_player(struct player *player, char *name);
-
 /*
  * Even if read fail, the player struct should be suitable for
  * html_print_player().

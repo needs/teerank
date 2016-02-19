@@ -139,7 +139,7 @@ int main(int argc, char **argv)
 	load_page(&page);
 
 	if (mode == FULL_PAGE) {
-		print_header(CTF_TAB);
+		print_header(CTF_TAB, NULL);
 		print_nav(&page);
 
 		printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");

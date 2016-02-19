@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 
 	/* Eventually, print them */
 	hex_to_string(argv[1], clan);
-	print_header(CTF_TAB);
+	print_header(CTF_TAB, NULL);
 	printf("<h2>%s</h2>\n", clan);
 	printf("<p>%u member(s)</p>\n", array.length);
 	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead>\n<tbody>\n");

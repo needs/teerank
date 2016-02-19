@@ -9,7 +9,7 @@
 
 #include "io.h"
 
-void print_header(enum tab active)
+void print_header(enum tab active, char *name)
 {
 	unsigned i;
 	static const char before[] =
@@ -23,6 +23,10 @@ void print_header(enum tab active)
 		"	<body>"
 		"		<header>"
 		"			<a href=\"/\"><img src=\"/images/logo.png\" alt=\"Logo\" /></a>"
+		"			<form action=\"/search\">"
+		"				<input name=\"q\" type=\"text\" placeholder=\"Search\"/>"
+		"				<input type=\"submit\" value=\"\">"
+		"			</form>"
 		"		</header>"
 		"		<main>"
 		"			<nav>"
@@ -35,13 +39,27 @@ void print_header(enum tab active)
 		char *name, *href;
 	} tabs[] = {
 		{ "CTF", "/" },
+		{ name, "" },
 		{ "About", "/about.html" },
 	};
 
 	puts(before);
-	for (i = 0; i < TAB_COUNT; i++)
-		printf("<a href=\"%s\"%s>%s</a>", tabs[i].href,
-		       i == active ? " class=\"active\"" : "", tabs[i].name);
+	for (i = 0; i < TAB_COUNT; i++) {
+		if (i != CUSTOM_TAB || active == CUSTOM_TAB) {
+			char *class = "";
+
+			if (i == active && active == CUSTOM_TAB)
+				class = " class=\"active custom\"";
+			else if (i == active && active != CUSTOM_TAB)
+				class = " class=\"active\"";
+
+			if (i == active)
+				printf("<a%s>%s</a>", class, tabs[i].name);
+			else
+				printf("<a href=\"%s\"%s>%s</a>",
+				       tabs[i].href, class, tabs[i].name);
+		}
+	}
 	puts(after);
 }
 

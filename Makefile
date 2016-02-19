@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
-BINS = $(addprefix teerank-,add-new-servers update-servers generate-index update-players update-clans generate-clan-page compute-ranks generate-rank-page generate-about paginate-ranks remove-offline-servers)
+BINS = $(addprefix teerank-,add-new-servers update-servers generate-index update-players update-clans generate-clan-page compute-ranks generate-rank-page generate-about paginate-ranks remove-offline-servers search)
 SCRIPTS = $(addprefix teerank-,create-database upgrade-0-to-1 upgrade-1-to-2 upgrade-2-to-3 upgrade-3-to-4 upgrade update)
 CGI = teerank.cgi
 
@@ -46,6 +46,9 @@ teerank-generate-about: src/generate-about.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-remove-offline-servers: src/remove-offline-servers.o src/server.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+teerank-search: src/search.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 #

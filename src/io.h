@@ -10,8 +10,8 @@
  */
 #define MAX_NAME_LENGTH 33
 
-enum tab { CTF_TAB, ABOUT_TAB, TAB_COUNT };
-void print_header(enum tab active);
+enum tab { CTF_TAB, CUSTOM_TAB, ABOUT_TAB, TAB_COUNT };
+void print_header(enum tab active, char *name);
 void print_footer(void);
 
 void hex_to_string(const char *hex, char *str);

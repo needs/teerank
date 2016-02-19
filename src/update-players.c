@@ -14,7 +14,7 @@
 static unsigned make_sens_to_rank(
 	int elapsed, struct player *players, unsigned length)
 {
-	unsigned i, count = 0;
+	unsigned i, rankable = 0;
 
 	assert(players != NULL);
 
@@ -35,14 +35,16 @@ static unsigned make_sens_to_rank(
 	 */
 	for (i = 0; i < length; i++)
 		if (players[i].is_rankable)
-			count++;
-	if (count < 4) {
+			rankable++;
+	if (rankable < 4) {
 		verbose("A game with %u players is unrankable because only"
 		        " %u players can be ranked, 4 needed\n",
-		        length, length - count);
+		        length, rankable);
 		return 0;
 	}
 
+	verbose("A game with %u rankable players over %u will be ranked\n",
+	        rankable, length);
 	return 1;
 }
 

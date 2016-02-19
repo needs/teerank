@@ -1,6 +1,7 @@
 /.teerank/
 /clans/
 /pages/
+/search/
 /index.html
 
 *.o
@@ -18,6 +19,7 @@
 /teerank-generate-about
 /teerank-paginate-ranks
 /teerank-create-database
+/teerank-search
 /teerank-upgrade*
 /teerank-update
 /teerank.cgi

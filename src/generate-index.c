@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 
 	load_config();
 
-	print_header(CTF_TAB);
+	print_header(CTF_TAB, NULL);
 	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
 
 	scanf("%*u players");

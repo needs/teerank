@@ -5,6 +5,7 @@
 #include "elo.h"
 #include "player.h"
 #include "delta.h"
+#include "config.h"
 
 /* p() func as defined by Elo. */
 static double p(double delta)
@@ -64,6 +65,15 @@ int compute_new_elo(struct player *player, struct player *players, unsigned leng
 	return player->elo + total;
 }
 
+static void print_elo_change(struct player *player, int elo)
+{
+	static char name[MAX_NAME_LENGTH];
+
+	hex_to_string(player->name, name);
+	verbose("\t%-32s | %-16s | %d -> %d (%+d)\n", player->name, name,
+	        player->elo, elo, elo - player->elo);
+}
+
 void update_elos(struct player *players, unsigned length)
 {
 	int elos[MAX_PLAYERS];
@@ -77,12 +87,15 @@ void update_elos(struct player *players, unsigned length)
 	 * interfer with the computing of the next ones.
 	 */
 
-	for (i = 0; i < length; i++)
-		if (players[i].is_rankable)
+	for (i = 0; i < length; i++) {
+		if (players[i].is_rankable) {
 			elos[i] = compute_new_elo(&players[i], players, length);
+			print_elo_change(&players[i], elos[i]);
+		}
+	}
 
 	for (i = 0; i < length; i++) {
-		if (players[i].elo != elos[i]) {
+		if (players[i].is_rankable && players[i].elo != elos[i]) {
 			players[i].elo = elos[i];
 			players[i].is_modified = 1;
 		}

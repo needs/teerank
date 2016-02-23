@@ -83,8 +83,7 @@ static char *get_source_from_name(char *name, char *dirtree)
 {
 	static char source[PATH_MAX];
 
-	if (snprintf(source, PATH_MAX, "%s/%s/%s",
-	             config.root, dirtree, name) >= PATH_MAX)
+	if (snprintf(source, PATH_MAX, "%s/%s", dirtree, name) >= PATH_MAX)
 		error(404, NULL);
 	remove_extension(source, "html");
 
@@ -300,6 +299,8 @@ static void generate(struct file *file)
 
 		if (snprintf(source, PATH_MAX, "%s/%s", config.root, file->source) >= PATH_MAX)
 			error(404, NULL);
+		verbose("source = %s\n", source);
+
 		if ((src = open(source, O_RDONLY)) == -1) {
 			if (errno == ENOENT)
 				error(404, NULL);
@@ -462,6 +463,8 @@ static struct file *parse_uri(char *uri)
 	} else {
 		file->path = NULL;
 	}
+
+	verbose("name = %s\npath = %s\nsource = %s\n", file->name, file->path, file->source);
 
 	return file;
 }

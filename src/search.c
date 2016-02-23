@@ -12,7 +12,10 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	print_header(CUSTOM_TAB, "Search results");
+	CUSTOM_TAB.name = "Search results";
+	CUSTOM_TAB.href = "";
+
+	print_header(&CUSTOM_TAB, "Search results", argv[1]);
 	print_footer();
 
 	return EXIT_SUCCESS;

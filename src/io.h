@@ -10,8 +10,13 @@
  */
 #define MAX_NAME_LENGTH 33
 
-enum tab { CTF_TAB, CUSTOM_TAB, ABOUT_TAB, TAB_COUNT };
-void print_header(enum tab active, char *name);
+struct tab {
+	char *name, *href;
+};
+extern const struct tab CTF_TAB, ABOUT_TAB;
+extern struct tab CUSTOM_TAB;
+
+void print_header(const struct tab *active, char *title, char *search);
 void print_footer(void);
 
 void hex_to_string(const char *hex, char *str);

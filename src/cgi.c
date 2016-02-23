@@ -140,13 +140,17 @@ static void url_decode(char *str)
 
 	while (*str) {
 		if (*str == '%') {
-			sscanf(str + 1, "%2x", (unsigned int*)tmp);
+			unsigned byte;
+			sscanf(str + 1, "%2x", &byte);
+			*tmp = *(char*)&byte;
 			str += 3;
 		} else {
+			*tmp = *str;
 			str++;
 		}
 		tmp++;
 	}
+	*tmp = '\0';
 }
 
 static struct arg *parse_next_arg(char *query)

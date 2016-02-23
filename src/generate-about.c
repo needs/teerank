@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 {
 	load_config();
 
-	print_header(ABOUT_TAB, NULL);
+	print_header(&ABOUT_TAB, "About", NULL);
 
 	puts(
 		"<h1>About</h1>"

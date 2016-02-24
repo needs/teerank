@@ -435,23 +435,17 @@ static void undo_strtok(char *str, char *last)
 			*str = '/';
 }
 
-static struct file *parse_uri(char *uri)
+static struct file *parse(char *path, char *query)
 {
 	const struct directory *tmp, *dir = &root;
 	struct file *file = NULL;
-	char *name, *query = NULL;
-	static char path[PATH_MAX];
+	char *name;
+	static char _path[PATH_MAX];
 
-	if (*uri != '/')
-		error(500, "URI should begin with '/'\n");
+	if (*path != '/')
+		error(500, "Path should begin with '/'\n");
 
-	for (name = strtok(uri + 1, "/"); name; name = strtok(NULL, "/")) {
-		/* An URI contain only one query, at the end */
-		if (query)
-			error(404, NULL);
-		else if ((query = strchr(name, '?')))
-			*query++ = '\0';
-
+	for (name = strtok(path + 1, "/"); name; name = strtok(NULL, "/")) {
 		if ((tmp = find_directory(dir, name)))
 			dir = tmp;
 		else
@@ -463,7 +457,7 @@ static struct file *parse_uri(char *uri)
 	else if  (!(file = find_file(dir, name)))
 		error(404, NULL);
 
-	if (file->apply_query && query)
+	if (file->apply_query)
 		file->apply_query(file, query);
 
 	if (file->name) {
@@ -472,10 +466,10 @@ static struct file *parse_uri(char *uri)
 		 * in apply_query(), we must use the updated name instead of the name
 		 * provided in the query.
 		 */
-		undo_strtok(uri, name);
+		undo_strtok(path, name);
 		*(name - 1) = '\0';
-		snprintf(path, PATH_MAX, "%s/%s/%s", config.cache_root, uri, file->name);
-		file->path = path;
+		snprintf(_path, PATH_MAX, "%s/%s/%s", config.cache_root, path, file->name);
+		file->path = _path;
 	} else {
 		file->path = NULL;
 	}
@@ -520,18 +514,32 @@ static void init_cache(void)
 	create_directory("%s/clans", config.cache_root);
 }
 
-static char *get_uri(void)
+static char *get_path(void)
 {
-	static char *tmp, uri[PATH_MAX];
+	static char *tmp, path[PATH_MAX];
 
-	if (!(tmp = getenv("REQUEST_URI")))
-		error(500, "REQUEST_URI not set\n");
+	if (!(tmp = getenv("PATH_INFO")) && !(tmp = getenv("DOCUMENT_URI")))
+		error(500, "PATH_INFO or DOCUMENT_URI not set\n");
 
 	/* Env vars cannot be modified so we have to copy it */
-	if (*stpncpy(uri, tmp, PATH_MAX) != '\0')
+	if (*stpncpy(path, tmp, PATH_MAX) != '\0')
 		error(404, NULL);
 
-	return uri;
+	return path;
+}
+
+static char *get_query(void)
+{
+	static char *tmp, query[PATH_MAX] = "";
+
+	if (!(tmp = getenv("QUERY_STRING")))
+		return query;
+
+	/* Env vars cannot be modified so we have to copy it */
+	if (*stpncpy(query, tmp, PATH_MAX) != '\0')
+		error(404, NULL);
+
+	return query;
 }
 
 int main(int argc, char **argv)
@@ -545,7 +553,7 @@ int main(int argc, char **argv)
 		error(500, NULL);
 	}
 
-	print(generate(parse_uri(get_uri())));
+	print(generate(parse(get_path(), get_query())));
 
 	return EXIT_SUCCESS;
 }

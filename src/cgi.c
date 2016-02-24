@@ -122,7 +122,7 @@ static int generate(struct route *route)
 		static char source[PATH_MAX];
 
 		if (snprintf(source, PATH_MAX, "%s/%s", config.root, route->source) >= PATH_MAX)
-			error(404, NULL);
+			error(414, NULL);
 
 		if ((src = open(source, O_RDONLY)) == -1) {
 			if (errno == ENOENT)
@@ -261,7 +261,7 @@ static char *get_path(void)
 
 	/* Env vars cannot be modified so we have to copy it */
 	if (*stpncpy(path, tmp, PATH_MAX) != '\0')
-		error(404, NULL);
+		error(414, NULL);
 
 	return path;
 }
@@ -275,15 +275,13 @@ static char *get_query(void)
 
 	/* Env vars cannot be modified so we have to copy it */
 	if (*stpncpy(query, tmp, PATH_MAX) != '\0')
-		error(404, NULL);
+		error(414, NULL);
 
 	return query;
 }
 
 int main(int argc, char **argv)
 {
-	struct route *route;
-
 	load_config();
 	init_cache();
 
@@ -293,9 +291,7 @@ int main(int argc, char **argv)
 		error(500, NULL);
 	}
 
-	if (!(route = do_route(get_path(), get_query())))
-		error(404, NULL);
-	print(generate(route));
+	print(generate(do_route(get_path(), get_query())));
 
 	return EXIT_SUCCESS;
 }

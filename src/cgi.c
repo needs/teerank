@@ -154,16 +154,12 @@ static void url_decode(char *str)
 
 static struct arg *parse_next_arg(char *query)
 {
-	static char *next = NULL;
 	static struct arg arg;
 
-	if (!next) {
-		arg.name = query;
-		next = strtok(query, "&");
-	} else {
-		arg.name = next;
-		next = strtok(NULL, "&");
-	}
+	if (!arg.name)
+		arg.name = strtok(query, "&");
+	else
+		arg.name = strtok(NULL, "&");
 
 	if (!arg.name)
 		return NULL;

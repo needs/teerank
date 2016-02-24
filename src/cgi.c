@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
-		fprintf(stderr, "This program expect $DOCUMENT_URI to be set to a valid to-be-generated file.\n");
+		fprintf(stderr, "This program expect $PATH_INFO or $DOCUMENT_URI to be set, and optionally $QUERY_STRING.\n");
 		error(500, NULL);
 	}
 

@@ -184,9 +184,9 @@ static void search_file_apply_query(struct file *file, char *query)
 	}
 
 	if (!arg)
-		error(500, "Missing 'q' parameter");
+		error(500, "Missing 'q' parameter\n");
 	else if (!arg->val)
-		error(500, "'q' parameter must have a value");
+		error(500, "'q' parameter must have a value\n");
 
 	/* Don't cache search result */
 	file->name = NULL;

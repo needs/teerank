@@ -77,7 +77,7 @@ teerank-update: src/update.sh
 # CGI
 #
 
-$(CGI): src/cgi.o src/io.o
+$(CGI): src/cgi.o src/route.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 #

@@ -15,12 +15,15 @@
 
 #include "io.h"
 #include "config.h"
+#include "route.h"
 
 static char *reason_phrase(int code)
 {
 	switch (code) {
 	case 200: return "OK";
+	case 400: return "Bad Request";
 	case 404: return "Not Found";
+	case 414: return "Request-URI Too Long";
 	case 500: return "Internal Server Error";
 	default:  return "";
 	}
@@ -33,7 +36,7 @@ static void print_error(int code)
 	printf("<h1>%d %s</h1>\n", code, reason_phrase(code));
 }
 
-static void error(int code, char *fmt, ...)
+void error(int code, char *fmt, ...)
 {
 	va_list ap;
 
@@ -49,218 +52,41 @@ static void error(int code, char *fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-struct file {
-	char *name;
-	char **args;
-	char *source;
-	char **deps;
-
-	void (*apply_query)(struct file *file, char *query);
-
-	/* Automatically filled */
-	char *path;
-};
-
-struct directory {
-	char *name;
-
-	struct file *files;
-	struct file *(*default_file)(char *name);
-	struct directory *dirs;
-};
-
-static void remove_extension(char *str, char *ext)
-{
-	char *tmp;
-
-	tmp = strrchr(str, '.');
-	if (!tmp || strcmp(tmp+1, ext))
-		return;
-	*tmp = '\0';
-}
-
-static char *get_source_from_name(char *name, char *dirtree)
-{
-	static char source[PATH_MAX];
-
-	if (snprintf(source, PATH_MAX, "%s/%s", dirtree, name) >= PATH_MAX)
-		error(404, NULL);
-	remove_extension(source, "html");
-
-	return source;
-}
-
-static char *get_raw_source_from_name(char *name)
-{
-	static char source[PATH_MAX];
-
-	if (*stpncpy(source, name, PATH_MAX) != '\0')
-		error(404, NULL);
-	remove_extension(source, "html");
-
-	return source;
-}
-
-static struct file *page_default_file(char *name)
-{
-	static struct file file;
-	static char *args[] = { "teerank-generate-rank-page", "full-page", NULL };
-	static char *deps[] = { "players", NULL };
-
-	file.name = name;
-	file.source = get_source_from_name(name, "pages");
-	file.args = args;
-	file.deps = deps;
-
-	return &file;
-}
-
-static struct file *clan_default_file(char *name)
-{
-	static struct file file;
-	static char *args[] = { "teerank-generate-clan-page", NULL, NULL };
-	static char *deps[] = { "players", NULL };
-
-	file.name = name;
-	file.source = get_source_from_name(name, "clans");
-	file.args = args;
-	file.args[1] = get_raw_source_from_name(name);
-	file.deps = deps;
-	return &file;
-}
-
-struct arg {
-	char *name, *val;
-};
-
-static void url_decode(char *str)
-{
-	char *tmp = str;
-
-	while (*str) {
-		if (*str == '%') {
-			unsigned byte;
-			sscanf(str + 1, "%2x", &byte);
-			*tmp = *(char*)&byte;
-			str += 3;
-		} else {
-			*tmp = *str;
-			str++;
-		}
-		tmp++;
-	}
-	*tmp = '\0';
-}
-
-static struct arg *parse_next_arg(char *query)
-{
-	static struct arg arg;
-
-	if (!arg.name)
-		arg.name = strtok(query, "&");
-	else
-		arg.name = strtok(NULL, "&");
-
-	if (!arg.name)
-		return NULL;
-
-	if ((arg.val = strchr(arg.name, '='))) {
-		*arg.val++ = '\0';
-		url_decode(arg.val);
-	}
-
-	return &arg;
-}
-
-static void search_file_apply_query(struct file *file, char *query)
-{
-	static char *args[] = { "teerank-search", NULL, NULL };
-	static char *deps[] = { "players", NULL };
-	struct arg *arg;
-
-	while ((arg = parse_next_arg(query))) {
-		if (arg->name[0] == 'q' && arg->name[1] == '\0')
-			break;
-	}
-
-	if (!arg)
-		error(500, "Missing 'q' parameter\n");
-	else if (!arg->val)
-		error(500, "'q' parameter must have a value\n");
-
-	/* Don't cache search result */
-	file->name = NULL;
-	file->source = NULL;
-	file->args = args;
-	file->args[1] = arg->val;
-	file->deps = deps;
-}
-
-static const struct directory root = {
-	"", (struct file[]) {
-		{ "index.html", (char*[]){ "teerank-generate-index", NULL },
-		  "ranks", (char*[]){ "players", NULL }, NULL },
-		{ "about.html", (char*[]){ "teerank-generate-about", NULL },
-		  NULL, NULL, NULL },
-		{ "search", (char*[]){ "teerank-search", NULL, NULL },
-		  NULL, NULL, search_file_apply_query },
-		{ NULL }
-	}, NULL, (struct directory[]) {
-		{ "pages", NULL, page_default_file, NULL, NULL },
-		{ "clans", NULL, clan_default_file, NULL, NULL },
-		{ NULL }
-	}
-};
-
 /* Return true if a is more recent than b */
 static int is_more_recent(struct stat *a, struct stat *b)
 {
 	return a->st_mtim.tv_sec > b->st_mtim.tv_sec;
 }
 
-static int is_up_to_date(struct file *file)
+static int is_up_to_date(struct route *route)
 {
-	char **dep;
 	struct stat s, tmp;
 
-	assert(file != NULL);
+	assert(route != NULL);
 
-	/* First, if the file is not in cache, it need to be generated */
-	if (stat(file->path, &s) == -1)
+	/* First, if the route is not in cache, it need to be generated */
+	if (!route->cache || stat(route->cache, &s) == -1)
 		return 0;
 
-	/* Regenerate if the source file is more recent */
-	if (file->source) {
-		if (stat(file->source, &tmp) == -1)
+	/* Regenerate if the source route is more recent */
+	if (route->source) {
+		if (stat(route->source, &tmp) == -1)
 			return 0;
 		if (is_more_recent(&tmp, &s))
 			return 0;
 	}
 
-	/* Regenerate if at least one dependancy is more recent */
-	if (file->deps) {
-		for (dep = file->deps; *dep; dep++) {
-			static char path[PATH_MAX];
-
-			snprintf(path, PATH_MAX, "%s/%s", config.root, *dep);
-			if (stat(path, &tmp) == -1)
-				continue;
-			if (is_more_recent(&tmp, &s))
-				return 0;
-		}
-	}
-
 	return 1;
 }
 
-static int generate(struct file *file)
+static int generate(struct route *route)
 {
 	int dest[2], src = -1, err[2];
 	char tmpname[PATH_MAX];
 
-	assert(file != NULL);
-	assert(file->args != NULL);
-	assert(file->args[0] != NULL);
+	assert(route != NULL);
+	assert(route->args != NULL);
+	assert(route->args[0] != NULL);
 
 	/*
 	 * Files are generated by calling a program that write on stdout the
@@ -279,24 +105,23 @@ static int generate(struct file *file)
 	 * Eventually, the child may need stdin feeded with some data.
 	 */
 
-	if (file->path && is_up_to_date(file)) {
-		verbose("'%s' already cached and up-to-date\n", file->path);
-		if ((dest[0] = open(file->path, O_RDONLY)) == -1)
-			error(500, "open(%s): %s\n", file->path, strerror(errno));
+	if (is_up_to_date(route)) {
+		verbose("'%s' already cached and up-to-date\n", route->cache);
+		if ((dest[0] = open(route->cache, O_RDONLY)) == -1)
+			error(500, "open(%s): %s\n", route->cache, strerror(errno));
 		return dest[0];
-	} else if (file->path)
-		verbose("Generating '%s' with '%s'\n", file->path, file->args[0]);
-	else
-		verbose("Live generating with '%s'\n", file->args[0]);
+	}
+
+	verbose("Generating '%s' with '%s'\n", route->cache, route->args[0]);
 
 	/*
 	 * Open src before fork() because if the file doesn't exist, then we
 	 * raise a 404, and if it does but cannot be opened, we raise a 500.
 	 */
-	if (file->source) {
+	if (route->source) {
 		static char source[PATH_MAX];
 
-		if (snprintf(source, PATH_MAX, "%s/%s", config.root, file->source) >= PATH_MAX)
+		if (snprintf(source, PATH_MAX, "%s/%s", config.root, route->source) >= PATH_MAX)
 			error(404, NULL);
 
 		if ((src = open(source, O_RDONLY)) == -1) {
@@ -307,7 +132,7 @@ static int generate(struct file *file)
 		}
 	}
 
-	if (file->path) {
+	if (route->cache) {
 		/*
 		 * If the file needs to be cached, redirect stdout to a
 		 * temporary file and then rename() it later on to the
@@ -339,17 +164,17 @@ static int generate(struct file *file)
 
 		close(err[1]);
 
-		if (file->source)
+		if (route->source)
 			close(src);
-		if (!file->path)
+		if (!route->cache)
 			close(dest[1]);
 
 		wait(&c);
 		if (WIFEXITED(c) && WEXITSTATUS(c) == EXIT_SUCCESS) {
-			if (file->path) {
-				if (rename(tmpname, file->path) == -1)
+			if (route->cache) {
+				if (rename(tmpname, route->cache) == -1)
 					error(500, "rename(%s, %s): %s\n",
-					      tmpname, file->path, strerror(errno));
+					      tmpname, route->cache, strerror(errno));
 				if (lseek(dest[0], 0, SEEK_SET) == -1)
 					error(500, "lseek(%s): %s\n", tmpname, strerror(errno));
 			}
@@ -358,7 +183,7 @@ static int generate(struct file *file)
 
 		/* Report error */
 		print_error(500);
-		fprintf(stderr, "%s: ", file->args[0]);
+		fprintf(stderr, "%s: ", route->args[0]);
 		pipefile = fdopen(err[0], "r");
 		while ((c = fgetc(pipefile)) != EOF)
 			fputc(c, stderr);
@@ -372,7 +197,7 @@ static int generate(struct file *file)
 	close(err[0]);
 
 	/* Redirect stdin */
-	if (file->source) {
+	if (route->source) {
 		dup2(src, STDIN_FILENO);
 		close(src);
 	}
@@ -381,96 +206,13 @@ static int generate(struct file *file)
 	dup2(dest[1], STDOUT_FILENO);
 	close(dest[1]);
 
-	if (!file->path)
+	if (!route->cache)
 		close(dest[0]);
 
 	/* Eventually, run the program */
-	execvp(file->args[0], file->args);
-	fprintf(stderr, "execvp(%s): %s\n", file->args[0], strerror(errno));
+	execvp(route->args[0], route->args);
+	fprintf(stderr, "execvp(%s): %s\n", route->args[0], strerror(errno));
 	exit(EXIT_FAILURE);
-}
-
-static struct directory *find_directory(const struct directory *parent, char *name)
-{
-	struct directory *dir;
-
-	assert(parent != NULL);
-	assert(name != NULL);
-
-	if (parent->dirs)
-		for (dir = parent->dirs; dir->name; dir++)
-			if (!strcmp(name, dir->name))
-				return dir;
-
-	return NULL;
-}
-
-static struct file *find_file(const struct directory *dir, char *name)
-{
-	struct file *file;
-
-	assert(dir != NULL);
-	assert(name != NULL);
-
-	if (dir->files)
-		for (file = dir->files; file->name; file++)
-			if (!strcmp(file->name, name))
-				return file;
-
-	if (dir->default_file)
-		return dir->default_file(name);
-
-	return NULL;
-}
-
-static void undo_strtok(char *str, char *last)
-{
-	/* For our purpose, we don't remove the last '\0' */
-	for (; str != last - 1; str++)
-		if (*str == '\0')
-			*str = '/';
-}
-
-static struct file *parse(char *path, char *query)
-{
-	const struct directory *tmp, *dir = &root;
-	struct file *file = NULL;
-	char *name;
-	static char _path[PATH_MAX];
-
-	if (*path != '/')
-		error(500, "Path should begin with '/'\n");
-
-	for (name = strtok(path + 1, "/"); name; name = strtok(NULL, "/")) {
-		if ((tmp = find_directory(dir, name)))
-			dir = tmp;
-		else
-			break;
-	}
-
-	if (!name)
-		error(404, NULL);
-	else if  (!(file = find_file(dir, name)))
-		error(404, NULL);
-
-	if (file->apply_query)
-		file->apply_query(file, query);
-
-	if (file->name) {
-		/*
-		 * Construct the file path, since the file name may have been changed
-		 * in apply_query(), we must use the updated name instead of the name
-		 * provided in the query.
-		 */
-		undo_strtok(path, name);
-		*(name - 1) = '\0';
-		snprintf(_path, PATH_MAX, "%s/%s/%s", config.cache_root, path, file->name);
-		file->path = _path;
-	} else {
-		file->path = NULL;
-	}
-
-	return file;
 }
 
 static void print(int fd)
@@ -540,6 +282,8 @@ static char *get_query(void)
 
 int main(int argc, char **argv)
 {
+	struct route *route;
+
 	load_config();
 	init_cache();
 
@@ -549,7 +293,9 @@ int main(int argc, char **argv)
 		error(500, NULL);
 	}
 
-	print(generate(parse(get_path(), get_query())));
+	if (!(route = do_route(get_path(), get_query())))
+		error(404, NULL);
+	print(generate(route));
 
 	return EXIT_SUCCESS;
 }

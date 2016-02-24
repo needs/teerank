@@ -257,9 +257,9 @@ static int is_up_to_date(struct file *file)
 	return 1;
 }
 
-static void generate(struct file *file)
+static int generate(struct file *file)
 {
-	int dest = 0, src = -1, err[2];
+	int dest[2], src = -1, err[2];
 	char tmpname[PATH_MAX];
 
 	assert(file != NULL);
@@ -283,9 +283,12 @@ static void generate(struct file *file)
 	 * Eventually, the child may need stdin feeded with some data.
 	 */
 
-	if (file->path && is_up_to_date(file))
-		return verbose("'%s' already cached and up-to-date\n", file->path);
-	else if (file->path)
+	if (file->path && is_up_to_date(file)) {
+		verbose("'%s' already cached and up-to-date\n", file->path);
+		if ((dest[0] = open(file->path, O_RDONLY)) == -1)
+			error(500, "open(%s): %s\n", file->path, strerror(errno));
+		return dest[0];
+	} else if (file->path)
 		verbose("Generating '%s' with '%s'\n", file->path, file->args[0]);
 	else
 		verbose("Live generating with '%s'\n", file->args[0]);
@@ -299,7 +302,6 @@ static void generate(struct file *file)
 
 		if (snprintf(source, PATH_MAX, "%s/%s", config.root, file->source) >= PATH_MAX)
 			error(404, NULL);
-		verbose("source = %s\n", source);
 
 		if ((src = open(source, O_RDONLY)) == -1) {
 			if (errno == ENOENT)
@@ -310,15 +312,26 @@ static void generate(struct file *file)
 	}
 
 	if (file->path) {
-		/* The destination file is a temporary file */
+		/*
+		 * If the file needs to be cached, redirect stdout to a
+		 * temporary file and then rename() it later on to the
+		 * real destination in cache.
+		 */
 		if (snprintf(tmpname, PATH_MAX, "%s/tmp-teerank-XXXXXX", config.tmp_root) >= PATH_MAX)
 			error(500, "Pathname for temporary file is too long (>= %d)\n", PATH_MAX);
-		if ((dest = mkstemp(tmpname)) == -1)
+		if ((dest[0] = dest[1] = mkstemp(tmpname)) == -1)
 			error(500, "mkstemp(): %s\n", strerror(errno));
+	} else {
+		/*
+		 * If the file do not need to be cached, just create a pipe
+		 * to redirect stdout in.
+		 */
+		if (pipe(dest) == -1)
+			error(500, "pipe(dest): %s\n", strerror(errno));
 	}
 
 	if (pipe(err) == -1)
-		error(500, "pipe(): %s\n", strerror(errno));
+		error(500, "pipe(err): %s\n", strerror(errno));
 
 	/*
 	 * Parent process wait for it's child to terminate and dump the
@@ -329,11 +342,11 @@ static void generate(struct file *file)
 		FILE *pipefile;
 
 		close(err[1]);
-		if (file->path)
-			close(dest);
 
 		if (file->source)
 			close(src);
+		if (!file->path)
+			close(dest[1]);
 
 		wait(&c);
 		if (WIFEXITED(c) && WEXITSTATUS(c) == EXIT_SUCCESS) {
@@ -341,8 +354,10 @@ static void generate(struct file *file)
 				if (rename(tmpname, file->path) == -1)
 					error(500, "rename(%s, %s): %s\n",
 					      tmpname, file->path, strerror(errno));
+				if (lseek(dest[0], 0, SEEK_SET) == -1)
+					error(500, "lseek(%s): %s\n", tmpname, strerror(errno));
 			}
-			return;
+			return dest[0];
 		}
 
 		/* Report error */
@@ -366,11 +381,9 @@ static void generate(struct file *file)
 		close(src);
 	}
 
-	/* Redirect stdout to the temporary file */
-	if (file->path) {
-		dup2(dest, STDOUT_FILENO);
-		close(dest);
-	}
+	/* Redirect stdout */
+	dup2(dest[1], STDOUT_FILENO);
+	close(dest[1]);
 
 	/* Eventually, run the program */
 	execvp(file->args[0], file->args);
@@ -464,27 +477,22 @@ static struct file *parse_uri(char *uri)
 		file->path = NULL;
 	}
 
-	verbose("name = %s\npath = %s\nsource = %s\n", file->name, file->path, file->source);
-
 	return file;
 }
 
-static void print(struct file *file)
+static void print(int fd)
 {
-	FILE *f;
+	FILE *file;
 	int c;
 
-	assert(file != NULL);
+	assert(fd != -1);
 
-	if (!file->path)
-		return;
-
-	if (!(f = fopen(file->path, "r")))
-		error(500, "%s: %s\n", file->path, strerror(errno));
+	if (!(file = fdopen(fd, "r")))
+		error(500, "fdopen(): %s\n", strerror(errno));
 	printf("Content-Type: text/html\n\n");
-	while ((c = fgetc(f)) != EOF)
+	while ((c = fgetc(file)) != EOF)
 		putchar(c);
-	fclose(f);
+	fclose(file);
 }
 
 static void create_directory(char *fmt, ...)
@@ -525,9 +533,6 @@ static char *get_uri(void)
 
 int main(int argc, char **argv)
 {
-	char *uri;
-	struct file *file;
-
 	load_config();
 	init_cache();
 
@@ -537,10 +542,7 @@ int main(int argc, char **argv)
 		error(500, NULL);
 	}
 
-	uri = get_uri();
-	file = parse_uri(uri);
-	generate(file);
-	print(file);
+	print(generate(parse_uri(get_uri())));
 
 	return EXIT_SUCCESS;
 }

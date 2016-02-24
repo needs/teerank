@@ -26,7 +26,7 @@ It puts the database in `./.teerank` by default, check it out!
 Then, use teerank.cgi to generate some HTML pages:
 
 ```bash
-PATH=. DOCUMENT_URI=/pages/1.html ./teerank.cgi
+PATH=. REQUEST_URI=/pages/1.html ./teerank.cgi
 ```
 
 In order to have the CSS, you have to start a webserver at the root of your

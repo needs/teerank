@@ -385,6 +385,9 @@ static int generate(struct file *file)
 	dup2(dest[1], STDOUT_FILENO);
 	close(dest[1]);
 
+	if (!file->path)
+		close(dest[0]);
+
 	/* Eventually, run the program */
 	execvp(file->args[0], file->args);
 	fprintf(stderr, "execvp(%s): %s\n", file->args[0], strerror(errno));
@@ -521,8 +524,8 @@ static char *get_uri(void)
 {
 	static char *tmp, uri[PATH_MAX];
 
-	if (!(tmp = getenv("DOCUMENT_URI")))
-		error(500, "$DOCUMENT_URI not set\n");
+	if (!(tmp = getenv("REQUEST_URI")))
+		error(500, "REQUEST_URI not set\n");
 
 	/* Env vars cannot be modified so we have to copy it */
 	if (*stpncpy(uri, tmp, PATH_MAX) != '\0')

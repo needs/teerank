@@ -45,6 +45,12 @@ void error(int code, char *fmt, ...)
 		va_start(ap, fmt);
 		vfprintf(stderr, fmt, ap);
 		va_end(ap);
+
+		if (config.debug) {
+			va_start(ap, fmt);
+			vprintf(fmt, ap);
+			va_end(ap);
+		}
 	} else {
 		fprintf(stderr, "%d %s\n", code, reason_phrase(code));
 	}

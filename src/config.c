@@ -14,7 +14,8 @@ struct config config = {
 	.root = ".teerank",
 	.cache_root = ".",
 	.tmp_root = ".",
-	.verbose = 0
+	.verbose = 0,
+	.debug = 0
 };
 
 void load_config(void)
@@ -31,6 +32,8 @@ void load_config(void)
 		config.tmp_root = config.cache_root;
 	if ((tmp = getenv("TEERANK_VERBOSE")))
 		config.verbose = 1;
+	if ((tmp = getenv("TEERANK_DEBUG")))
+		config.debug = 1;
 }
 
 void verbose(const char *fmt, ...)

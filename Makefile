@@ -48,7 +48,7 @@ teerank-generate-about: src/generate-about.o src/io.o
 teerank-remove-offline-servers: src/remove-offline-servers.o src/server.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-search: src/search.o src/io.o
+teerank-search: src/search.o src/io.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 #

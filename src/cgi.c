@@ -175,9 +175,13 @@ static int generate(struct route *route)
 		wait(&c);
 		if (WIFEXITED(c) && WEXITSTATUS(c) == EXIT_SUCCESS) {
 			if (route->cache) {
-				if (rename(tmpname, route->cache) == -1)
+				static char cachepath[PATH_MAX];
+
+				if (snprintf(cachepath, PATH_MAX, "%s/%s", config.cache_root, route->cache) >= PATH_MAX)
+					error(500, "Path for file in cache is too long\n");
+				if (rename(tmpname, cachepath) == -1)
 					error(500, "rename(%s, %s): %s\n",
-					      tmpname, route->cache, strerror(errno));
+					      tmpname, cachepath, strerror(errno));
 				if (lseek(dest[0], 0, SEEK_SET) == -1)
 					error(500, "lseek(%s): %s\n", tmpname, strerror(errno));
 			}

@@ -112,7 +112,10 @@ static int generate(struct route *route)
 		return dest[0];
 	}
 
-	verbose("Generating '%s' with '%s'\n", route->cache, route->args[0]);
+	if (route->cache)
+		verbose("Generating '%s' with '%s'\n", route->cache, route->args[0]);
+	else
+		verbose("Generating uncached file with '%s'\n", route->args[0]);
 
 	/*
 	 * Open src before fork() because if the file doesn't exist, then we

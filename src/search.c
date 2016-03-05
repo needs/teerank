@@ -15,6 +15,7 @@ int main(int argc, char **argv)
 	struct dirent *dp;
 	static char path[PATH_MAX];
 	static char hex[MAX_NAME_LENGTH];
+	unsigned count = 0;
 
 	load_config();
 
@@ -46,19 +47,25 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
-
 	while ((dp = readdir(dir))) {
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 		if (strstr(dp->d_name, hex)) {
 			struct player player;
+
+			if (count == 0)
+				printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
+
 			read_player(&player, dp->d_name);
 			html_print_player(&player, 1);
+			count++;
 		}
 	}
 
-	printf("</tbody></table>");
+	if (count > 0)
+		printf("</tbody></table>");
+	else
+		printf("No players found");
 
 	closedir(dir);
 

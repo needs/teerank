@@ -9,85 +9,87 @@
 
 #include "io.h"
 
-int read_file(const char *path, const char *format, ...)
+const struct tab CTF_TAB = { "CTF", "/" };
+const struct tab ABOUT_TAB = { "About", "/about.html" };
+struct tab CUSTOM_TAB = { NULL, NULL };
+
+void print_header(const struct tab *active, char *title, char *search)
 {
-	FILE *file;
-	va_list ap;
-	int ret;
+	assert(active != NULL);
+	assert(title != NULL);
 
-	if (!(file = fopen(path, "r")))
-		return -1;
+	if (active == &CUSTOM_TAB) {
+		assert(active->name != NULL);
+		assert(active->href != NULL);
+	}
 
-	va_start(ap, format);
-	ret = vfscanf(file, format, ap);
-	va_end(ap);
-
-	fclose(file);
-	return ret;
-}
-
-int write_file(const char *path, const char *format, ...)
-{
-	FILE *file;
-	va_list ap;
-	int ret;
-
-	if (!(file = fopen(path, "w")))
-		return -1;
-
-	va_start(ap, format);
-	ret = vfprintf(file, format, ap);
-	va_end(ap);
-
-	fclose(file);
-	return ret;
-}
-
-void print_header(enum tab active)
-{
-	unsigned i;
-	static const char before[] =
+	fputs(
 		"<!doctype html>"
 		"<html>"
 		"	<head>"
 		"		<meta charset=\"utf-8\" />"
-		"		<title>Teerank</title>"
+		"		<title>Teerank - ",
+		stdout);
+	html(title);
+	fputs(
+		"</title>"
 		"		<link rel=\"stylesheet\" href=\"/style.css\"/>"
 		"	</head>"
 		"	<body>"
 		"		<header>"
 		"			<a href=\"/\"><img src=\"/images/logo.png\" alt=\"Logo\" /></a>"
+		"			<form action=\"/search\">"
+		"				<input name=\"q\" type=\"text\" placeholder=\"Search\"",
+		stdout);
+	if (search) {
+		fputs(" value=\"", stdout); html(search); fputs("\"", stdout);
+	}
+	fputs(
+		"/>"
+		"				<input type=\"submit\" value=\"\">"
+		"			</form>"
 		"		</header>"
 		"		<main>"
-		"			<nav>"
-		;
-	static const char after[] =
-		"			</nav>"
-		"			<section>"
-		;
-	struct tab {
-		char *name, *href;
-	} tabs[] = {
-		{ "CTF", "/" },
-		{ "About", "/about.html" },
+		"			<nav>",
+		stdout);
+
+	const struct tab **tabs = (const struct tab*[]){
+		&CTF_TAB, &CUSTOM_TAB, &ABOUT_TAB, NULL
 	};
 
-	puts(before);
-	for (i = 0; i < TAB_COUNT; i++)
-		printf("<a href=\"%s\"%s>%s</a>", tabs[i].href,
-		       i == active ? " class=\"active\"" : "", tabs[i].name);
-	puts(after);
+	for (; *tabs; tabs++) {
+		const struct tab *tab = *tabs;
+		char *class = "";
+
+		if (tab == &CUSTOM_TAB && tab != active)
+			continue;
+
+		if (tab == active && active == &CUSTOM_TAB)
+			class = " class=\"active custom\"";
+		else if (tab == active && active != &CUSTOM_TAB)
+			class = " class=\"active\"";
+
+		if (tab == active)
+			printf("<a%s>%s</a>", class, tab->name);
+		else
+			printf("<a href=\"%s\"%s>%s</a>",
+			       tab->href, class, tab->name);
+	}
+
+	fputs(
+		"			</nav>"
+		"			<section>",
+		stdout);
 }
 
 void print_footer(void)
 {
-	static const char str[] =
+	fputs(
 		"			</section>"
 		"		</main>"
 		"	</body>"
-		"</html>"
-		;
-	puts(str);
+		"</html>",
+		stdout);
 }
 
 void hex_to_string(const char *hex, char *str)
@@ -119,7 +121,7 @@ void html(char *str)
 {
 	assert(str != NULL);
 
-	do {
+	for (; *str; str++) {
 		switch (*str) {
 		case '<':
 			fputs("&lt;", stdout); break;
@@ -132,5 +134,5 @@ void html(char *str)
 		default:
 			putchar(*str);
 		}
-	} while (*str++);
+	}
 }

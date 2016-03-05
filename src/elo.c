@@ -3,11 +3,11 @@
 #include <stdlib.h>
 
 #include "elo.h"
+#include "player.h"
 #include "delta.h"
+#include "config.h"
 
-/*
- * p() func as defined by Elo.
- */
+/* p() func as defined by Elo. */
 static double p(double delta)
 {
 	if (delta > 400.0)
@@ -19,7 +19,7 @@ static double p(double delta)
 }
 
 /* Classic Elo formula for two players */
-static int compute_elo_delta(struct player_delta *player, struct player_delta *opponent)
+static int compute_elo_delta(struct player *player, struct player *opponent)
 {
 	static const unsigned K = 25;
 	double W;
@@ -28,9 +28,9 @@ static int compute_elo_delta(struct player_delta *player, struct player_delta *o
 	assert(opponent != NULL);
 	assert(player != opponent);
 
-	if (player->delta < opponent->delta)
+	if (player->delta->delta < opponent->delta->delta)
 		W = 0.0;
-	else if (player->delta == opponent->delta)
+	else if (player->delta->delta == opponent->delta->delta)
 		W = 0.5;
 	else
 		W = 1.0;
@@ -47,23 +47,57 @@ static int compute_elo_delta(struct player_delta *player, struct player_delta *o
  * other players and we make the average of every Elo deltas.  The Elo
  * delta is then added to the player's Elo points.
  */
-int compute_new_elo(struct delta *delta, struct player_delta *player)
+int compute_new_elo(struct player *player, struct player *players, unsigned length)
 {
 	unsigned i;
 	int total = 0;
 
-	assert(delta != NULL);
 	assert(player != NULL);
-	assert(delta->length > 0);
+	assert(players != NULL);
+	assert(length <= MAX_PLAYERS);
 
-	for (i = 0; i < delta->length; i++) {
-		struct player_delta *opponent = &delta->players[i];
+	for (i = 0; i < length; i++)
+		if (&players[i] != player && players[i].is_rankable)
+			total += compute_elo_delta(player, &players[i]);
 
-		if (opponent != player)
-			total += compute_elo_delta(player, opponent);
-	}
-
-	total = total / (int)delta->length;
+	total = total / (int)length;
 
 	return player->elo + total;
+}
+
+static void print_elo_change(struct player *player, int elo)
+{
+	static char name[MAX_NAME_LENGTH];
+
+	hex_to_string(player->name, name);
+	verbose("\t%-32s | %-16s | %d -> %d (%+d)\n", player->name, name,
+	        player->elo, elo, elo - player->elo);
+}
+
+void update_elos(struct player *players, unsigned length)
+{
+	int elos[MAX_PLAYERS];
+	unsigned i;
+
+	assert(players != NULL);
+	assert(length <= MAX_PLAYERS);
+
+	/*
+	 * Do it in two steps so that newly computed elos values do not
+	 * interfer with the computing of the next ones.
+	 */
+
+	for (i = 0; i < length; i++) {
+		if (players[i].is_rankable) {
+			elos[i] = compute_new_elo(&players[i], players, length);
+			print_elo_change(&players[i], elos[i]);
+		}
+	}
+
+	for (i = 0; i < length; i++) {
+		if (players[i].is_rankable && players[i].elo != elos[i]) {
+			players[i].elo = elos[i];
+			players[i].is_modified = 1;
+		}
+	}
 }

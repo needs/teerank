@@ -7,13 +7,7 @@
 
 #include "io.h"
 #include "config.h"
-
-struct player {
-	char name[MAX_NAME_LENGTH];
-	char clan[MAX_NAME_LENGTH], clan_hex[MAX_NAME_LENGTH];
-	int elo;
-	unsigned rank;
-};
+#include "player.h"
 
 struct page {
 	unsigned number, total;
@@ -40,36 +34,6 @@ static void add_player(struct page *page, struct player *player)
 	page->players[page->length++] = *player;
 }
 
-static const int UNKNOWN_ELO = INT_MIN;
-static const unsigned UNKNOWN_RANK = UINT_MAX;
-
-static void load_player(struct player *player, char *name)
-{
-	static char path[PATH_MAX];
-
-	assert(player != NULL);
-
-	/* Name */
-	hex_to_string(name, player->name);
-
-	/* Clan */
-	sprintf(path, "%s/players/%s/clan", config.root, name);
-	if (read_file(path, "%s", player->clan_hex) == 1)
-		hex_to_string(player->clan_hex, player->clan);
-	else
-		player->clan[0] = '\0';
-
-	/* Elo */
-	sprintf(path, "%s/players/%s/elo", config.root, name);
-	if (read_file(path, "%d", &player->elo) != 1)
-		player->elo = UNKNOWN_ELO;
-
-	/* Rank */
-	sprintf(path, "%s/players/%s/rank", config.root, name);
-	if (read_file(path, "%u", &player->rank) != 1)
-		player->rank = UNKNOWN_RANK;
-}
-
 static void load_page(struct page *page)
 {
 	char name[MAX_NAME_LENGTH];
@@ -81,9 +45,9 @@ static void load_page(struct page *page)
 		exit(EXIT_FAILURE);
 	}
 
-	while (scanf("%s", name) == 1) {
+	while (scanf(" %s", name) == 1) {
 		struct player player;
-		load_player(&player, name);
+		read_player(&player, name);
 		add_player(page, &player);
 	}
 }
@@ -94,39 +58,8 @@ static void print_page(struct page *page)
 
 	assert(page != NULL);
 
-	for (i = 0; i < page->length; i++) {
-		struct player *player = &page->players[i];
-
-		printf("<tr>");
-
-		/* Rank */
-		if (player->rank == UNKNOWN_RANK)
-			printf("<td>?</td>");
-		else
-			printf("<td>%u</td>", player->rank);
-
-		/* Name */
-		printf("<td>");
-		html(player->name);
-		printf("</td>");
-
-		/* Clan */
-		printf("<td>");
-		if (player->clan[0] != '\0') {
-			printf("<a href=\"/clans/%s.html\">", player->clan_hex);
-			html(player->clan);
-			printf("</a>");
-		}
-		printf("</td>");
-
-		/* Elo */
-		if (player->elo == UNKNOWN_ELO)
-			printf("<td>?</td>");
-		else
-			printf("<td>%d</td>", player->elo);
-
-		printf("</tr>\n");
-	}
+	for (i = 0; i < page->length; i++)
+		html_print_player(&page->players[i], 1);
 }
 
 static unsigned min(unsigned a, unsigned b)
@@ -206,7 +139,7 @@ int main(int argc, char **argv)
 	load_page(&page);
 
 	if (mode == FULL_PAGE) {
-		print_header(CTF_TAB);
+		print_header(&CTF_TAB, "CTF", NULL);
 		print_nav(&page);
 
 		printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");

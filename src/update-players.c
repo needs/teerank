@@ -4,128 +4,69 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <string.h>
 
 #include "delta.h"
 #include "elo.h"
 #include "io.h"
 #include "config.h"
 
-enum status {
-	ERROR = 0,
-	NEW, EXIST
-};
-
-static enum status create_directory(struct player_delta *player)
+static unsigned make_sens_to_rank(
+	int elapsed, struct player *players, unsigned length)
 {
-	static char path[PATH_MAX];
+	unsigned i, rankable = 0;
 
-	assert(player != NULL);
-
-	sprintf(path, "%s/players/%s", config.root, player->name);
-	if (mkdir(path, 0777) == -1) {
-		if (errno == EEXIST)
-			return EXIST;
-		perror(path);
-		return ERROR;
-	}
-
-	return NEW;
-}
-
-static void remove_unrankable_players(struct delta *delta)
-{
-	unsigned i;
-
-	assert(delta != NULL);
-
-	for (i = 0; i < delta->length; i++) {
-		struct player_delta *player = &delta->players[i];
-
-		/*
-		 * A positive delta is necessary to not punish player's AFK
-		 * and also to avoid the case were someone play on a server
-		 * full of AFK or newbies to farm his rank.
-		 */
-		if (player->score <= 0 || player->delta <= 0) {
-			delta->players[i] = delta->players[delta->length - 1];
-			delta->length--;
-			i--;
-		}
-	}
-}
-
-static unsigned is_rankable(struct delta *delta)
-{
-	unsigned old_length;
-
-	assert(delta != NULL);
+	assert(players != NULL);
 
 	/*
 	 * 30 minutes between each update is just too much and it increase
 	 * the chance of rating two different games.
 	 */
-	if (delta->elapsed > 30 * 60) {
+	if (elapsed > 30 * 60) {
 		verbose("A game with %u players is unrankable because too"
 		        " much time have passed between two updates\n",
-		        delta->length);
+		        length);
 		return 0;
 	}
 
 	/*
-	 * We need at least 4 players really playing the game (ie. rankable)
-	 * to get meaningful Elo deltas.
+	 * We don't rank games with less than 4 rankable players.  We believe
+	 * it is too much volatile to rank those kind of games.
 	 */
-	old_length = delta->length;
-	remove_unrankable_players(delta);
-	if (delta->length < 4) {
+	for (i = 0; i < length; i++)
+		if (players[i].is_rankable)
+			rankable++;
+	if (rankable < 4) {
 		verbose("A game with %u players is unrankable because only"
 		        " %u players can be ranked, 4 needed\n",
-		        old_length, old_length - delta->length);
+		        length, rankable);
 		return 0;
 	}
 
+	verbose("A game with %u rankable players over %u will be ranked\n",
+	        rankable, length);
 	return 1;
 }
 
-static int load_elo(struct player_delta *player, int force_init)
+static void merge_delta(struct player *player, struct player_delta *delta)
 {
-	static char path[PATH_MAX];
-	int ret;
-
 	assert(player != NULL);
+	assert(delta != NULL);
 
-	sprintf(path, "%s/players/%s/elo", config.root, player->name);
-	if (force_init)
-		goto init;
+	player->delta = delta;
 
-	ret = read_file(path, "%d", &player->elo);
-	if (ret == 1)
-		return 1;
-	if (ret == 0)
-		return fprintf(stderr, "%s: Cannot scan for Elo points\n", path), 0;
-	if (ret == -1 && errno != ENOENT)
-		return perror(path), 0;
+	if (strcmp(player->clan, delta->clan)) {
+		strcpy(player->clan, delta->clan);
+		player->is_modified = 1;
+	}
 
-init:
-	/*
-	 * Create "elo" file so the player will still appear
-	 * in database even if he is unrankable.
-	 *
-	 * If the write fail it's no big deal because if the player is:
-	 *   - rankable: another write_file() will be attempted to
-	 *     save his new Elo.
-	 *   - unrankable: We will try again next time.
-	 */
-	write_file(path, "%d", 1500);
-	player->elo = 1500;
-
-	return 1;
+	player->is_rankable = 1;
 }
 
 int main(int argc, char **argv)
 {
 	struct delta delta;
-	static char path[PATH_MAX];
+	struct player players[MAX_PLAYERS];
 	unsigned i;
 
 	load_config();
@@ -134,52 +75,26 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-next:
 	while (scan_delta(&delta)) {
-		/*
-		 * Create player if needed, Load player's Elo and update
-		 * their clan.
-		 */
+		unsigned length = 0;
+
+		/* Load player (ignore fail) */
 		for (i = 0; i < delta.length; i++) {
-			struct player_delta *player = &delta.players[i];
-			enum status status = create_directory(player);
-
-			if (status == ERROR)
-				goto next;
-			if (!load_elo(player, status == NEW))
-				goto next;
-
-			sprintf(path, "%s/players/%s/clan",
-			        config.root, player->name);
-			write_file(path, "%s", player->clan);
-		}
-
-		/*
-		 * Now that every players in delta have their Elo score loaded,
-		 * we can compute for each players his new Elo and write it if
-		 * it has changed.
-		 */
-
-		if (!is_rankable(&delta))
-			goto next;
-
-		verbose("%u players have been updated:\n", delta.length);
-		for (i = 0; i < delta.length; i++) {
-			struct player_delta *player = &delta.players[i];
-			int elo;
-			char name[MAX_NAME_LENGTH];
-
-			elo = compute_new_elo(&delta, player);
-			hex_to_string(player->name, name);
-
-			verbose("\t%s \t%d -> %d\n", name, player->elo, elo);
-			if (elo == player->elo)
+			if (!read_player(&players[length], delta.players[i].name))
 				continue;
-			sprintf(path, "%s/players/%s/elo",
-			        config.root, player->name);
-			if (write_file(path, "%d", elo) == -1)
-				perror(path);
+
+			merge_delta(&players[length], &delta.players[i]);
+			length++;
 		}
+
+		/* Compute their new elos */
+		if (make_sens_to_rank(delta.elapsed, players, length))
+			update_elos(players, length);
+
+		/* Write the result only if something changed */
+		for (i = 0; i < length; i++)
+			if (players[i].is_modified)
+				write_player(&players[i]);
 	}
 
 	return EXIT_SUCCESS;

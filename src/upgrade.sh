@@ -1,12 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-: ${TEERANK_ROOT:=.teerank}
 file="$TEERANK_ROOT/version"
-
-if [ $# -ne 1 ]; then
-	echo "usage: $0 version" 2>&1
-	exit
-fi
 
 if [ -f "$file" ]; then
 	version=$(< "$file")
@@ -14,8 +8,12 @@ else
 	version=0
 fi
 
-for (( version ; version < "$1" ; version++ )); do
-	teerank-upgrade-$version-to-$(($version + 1))
-done
+while command -v teerank-upgrade-$version-to-$(($version + 1)) >/dev/null; do
+	if [ $TEERANK_VERBOSE -eq 1 ]; then
+	    echo "Upgrading from $version to $((version + 1))" 1>&2
+	fi
 
-echo "$version" > "$file"
+	teerank-upgrade-$version-to-$(($version + 1))
+	((version++))
+	echo "$version" > "$file"
+done

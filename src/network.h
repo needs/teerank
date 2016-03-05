@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <poll.h>
 #include <stdint.h>
+#include <netinet/in.h>
 
 /* From teeworlds source code */
 #define PACKET_SIZE 1400

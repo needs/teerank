@@ -28,9 +28,52 @@ body > * {
 }
 
 body > header {
+	display: flex;
 	margin-bottom: 1em;
 }
 
+/* Search */
+body > header > form {
+	display: flex;
+	margin-top: auto;
+	margin-bottom: auto;
+	margin-left: auto;
+	margin-right: 10px;
+}
+
+body > header > form > * {
+	background-color: white;
+	border: 1px solid #bbb;
+	font-size: 1.1em;
+}
+
+body > header > form > label {
+	width: 2em;
+	border-left: 0px;
+	border-radius: 0.3em 0 0 0.3em;
+}
+
+body > header > form > input[type="text"] {
+	padding: 0.5em 1em 0.5em 1em;
+	border-right: 0px;
+	border-radius: 0.3em 0 0 0.3em;
+	width: 12em;
+}
+
+body > header > form > input[type="submit"] {
+	width: 2.5em;
+
+	padding: 0 0.5em 0 0.5em;
+	border-radius: 0 0.3em 0.3em 0;
+	cursor: pointer;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center center;
+	background-image: url("/images/search.svg"), linear-gradient(#fbea63, #ffa525);
+	color: #555555;
+}
+
+/* Tabs */
 body > main {
 	background-color: #e7e5be;
 	border-radius: 10px;
@@ -60,9 +103,9 @@ body > main > nav > a:hover {
 	text-decoration: none;
 }
 
-body > main > nav > a:last-child {
-	margin-right: 0px;
-	margin-left: auto;
+body > main > nav > a:first-child {
+	margin-left: 0px;
+	margin-right: auto;
 }
 
 body > main > nav > a.active {

@@ -11,7 +11,7 @@
 
 int main(int argc, char **argv)
 {
-	DIR *dir;
+	DIR *dir = NULL;
 	struct dirent *dp;
 	static char path[PATH_MAX];
 	static char hex[MAX_NAME_LENGTH];
@@ -34,6 +34,8 @@ int main(int argc, char **argv)
 		printf("No player found\n");
 		print_footer();
 		return EXIT_SUCCESS;
+	} else if (strlen(argv[1]) < 3) {
+		goto no_result;
 	} else {
 		string_to_hex(argv[1], hex);
 	}
@@ -62,12 +64,14 @@ int main(int argc, char **argv)
 		}
 	}
 
+no_result:
 	if (count > 0)
 		printf("</tbody></table>");
 	else
 		printf("No players found");
 
-	closedir(dir);
+	if (dir)
+		closedir(dir);
 
 	print_footer();
 

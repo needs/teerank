@@ -11,29 +11,6 @@
 
 static char path[PATH_MAX];
 
-struct player_array {
-	unsigned length;
-	struct player *players;
-};
-
-static void add_player(struct player_array *array, struct player *player)
-{
-	static const unsigned OFFSET = 1024;
-
-	assert(array != NULL);
-	assert(player != NULL);
-
-	if (array->length % OFFSET == 0) {
-		void *tmp = realloc(array->players,
-		                    (array->length + OFFSET) * sizeof(*player));
-		if (!tmp)
-			return perror("Reallocating players array");
-		array->players = tmp;
-	}
-
-	array->players[array->length++] = *player;
-}
-
 static const struct player_array PLAYER_ARRAY_ZERO;
 
 static int cmp_player(const void *p1, const void *p2)

@@ -41,7 +41,7 @@ static struct clan *add_clan(struct clan_array *array, struct clan *clan)
 	return &array->clans[array->length++];
 }
 
-static struct player *add_player(struct clan *clan, struct player *player)
+static struct player *add_member(struct clan *clan, struct player *player)
 {
 	static const unsigned OFFSET = 1024;
 
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 			continue;
 		if (!(clan = get_clan(&clans, &player)))
 			continue;
-		if (!(add_player(clan, &player)))
+		if (!(add_member(clan, &player)))
 			continue;
 	}
 	closedir(dir);

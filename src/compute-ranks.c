@@ -9,35 +9,6 @@
 #include "config.h"
 #include "player.h"
 
-struct player_array {
-	struct player *players;
-	unsigned length, buffer_length;
-};
-
-static struct player *new_player(struct player_array *array)
-{
-	static const unsigned OFFSET = 1024;
-
-	assert(array != NULL);
-
-	if (array->length == array->buffer_length) {
-		array->players = realloc(array->players, (array->buffer_length + OFFSET) * sizeof(*array->players));
-		if (!array->players)
-			perror("Allocating player array"), exit(EXIT_FAILURE);
-		array->buffer_length += OFFSET;
-	}
-
-	return &array->players[array->length++];
-}
-
-static void delete_last_player(struct player_array *array)
-{
-	assert(array != NULL);
-	assert(array->length > 0);
-
-	array->length--;
-}
-
 static void load_players(struct player_array *array)
 {
 	DIR *dir;
@@ -51,14 +22,13 @@ static void load_players(struct player_array *array)
 		perror(path), exit(EXIT_FAILURE);
 
 	while ((dp = readdir(dir))) {
-		struct player *player;
+		struct player player;
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 
-		player = new_player(array);
-		if (!read_player(player, dp->d_name))
-			delete_last_player(array);
+		if (read_player(&player, dp->d_name))
+			add_player(array, &player);
 	}
 
 	closedir(dir);

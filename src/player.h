@@ -34,4 +34,13 @@ int write_player(struct player *player);
 
 void html_print_player(struct player *player, int show_clan_link);
 
+/* A player array provide an easy way to store players */
+struct player_array {
+	struct player *players;
+	unsigned length, buffer_length;
+};
+
+/* Add (by copy) the given player to the array, and return it */
+struct player *add_player(struct player_array *array, struct player *player);
+
 #endif /* PLAYER_H */

@@ -12,27 +12,8 @@
 struct page {
 	unsigned number, total;
 
-	unsigned length;
-	struct player *players;
+	struct player_array players;
 };
-
-static void add_player(struct page *page, struct player *player)
-{
-	static const unsigned OFFSET = 1024;
-
-	assert(page != NULL);
-	assert(player != NULL);
-
-	if (page->length % OFFSET == 0) {
-		struct player *players;
-		players = realloc(page->players, (page->length + OFFSET) * sizeof(*player));
-		if (!players)
-			return perror("Re-allocating page players array");
-		page->players = players;
-	}
-
-	page->players[page->length++] = *player;
-}
 
 static void load_page(struct page *page)
 {
@@ -48,7 +29,7 @@ static void load_page(struct page *page)
 	while (scanf(" %s", name) == 1) {
 		struct player player;
 		read_player(&player, name);
-		add_player(page, &player);
+		add_player(&page->players, &player);
 	}
 }
 
@@ -58,8 +39,8 @@ static void print_page(struct page *page)
 
 	assert(page != NULL);
 
-	for (i = 0; i < page->length; i++)
-		html_print_player(&page->players[i], 1);
+	for (i = 0; i < page->players.length; i++)
+		html_print_player(&page->players.players[i], 1);
 }
 
 static unsigned min(unsigned a, unsigned b)

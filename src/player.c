@@ -153,3 +153,25 @@ void html_print_player(struct player *player, int show_clan_link)
 
 	printf("</tr>\n");
 }
+
+struct player *add_player(struct player_array *array, struct player *player)
+{
+	const unsigned OFFSET = 1024;
+	struct player *cell;
+
+	assert(array  != NULL);
+	assert(player != NULL);
+
+	if (array->length % OFFSET == 0) {
+		struct player *tmp;
+
+		tmp = realloc(array->players, (array->length + OFFSET) * sizeof(*array->players));
+		if (!tmp)
+			return perror("Allocating player array"), NULL;
+		array->players = tmp;
+	}
+
+	cell = &array->players[array->length++];
+	*cell = *player;
+	return cell;
+}

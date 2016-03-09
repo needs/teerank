@@ -101,5 +101,5 @@ install:
 	mkdir -p $(TEERANK_DATA_ROOT)
 	mkdir -p $(TEERANK_BIN_ROOT)
 
-	cp $(BINS) $(TEERANK_BIN_ROOT)
+	cp $(BINS) $(SCRIPTS) $(TEERANK_BIN_ROOT)
 	cp -r $(CGI) style.css images $(TEERANK_DATA_ROOT)

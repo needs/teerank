@@ -5,6 +5,7 @@
 #include <string.h>
 #include <limits.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include "config.h"
 #include "io.h"
@@ -43,23 +44,32 @@ struct list {
 	struct result *last;
 };
 
+static void to_lowercase(char *src, char *dst)
+{
+	unsigned i;
+
+	assert(src != NULL);
+	assert(dst != NULL);
+
+	for (i = 0; src[i] != '\0'; i++)
+		dst[i] = tolower(src[i]);
+}
+
 /*
  * The higher the score is, the better the name match the query. A score of
  * zero means the result will be ignored.
  */
-static unsigned get_score(char *name, char *query)
+static unsigned get_score(char *hex, char *query)
 {
 	unsigned score;
 	char *tmp;
+	char name[MAX_NAME_LENGTH];
+
+	/* Lowercase the name to have case insensitive search */
+	hex_to_string(hex, name);
+	to_lowercase(name, name);
 
 	if (!(tmp = strstr(name, query)))
-		return 0;
-
-	/*
-	 * Since name and query are in hexadecimal, each charcaters is two
-	 * bytes wide, so make sure we haven't matched two overlapping chars.
-	 */
-	if ((tmp - name) % 2 == 1)
 		return 0;
 
 	score = 10;
@@ -69,7 +79,7 @@ static unsigned get_score(char *name, char *query)
 		score += 20;
 
 	/* A query matching the end of a name is relevant as well */
-	if (tmp == name + strlen(name) - strlen(query) - 2)
+	if (tmp == name + strlen(name) - strlen(query))
 		score += 15;
 
 	/*
@@ -175,11 +185,12 @@ static void try_add_result(struct list *list, unsigned score, char *name)
 			return insert_before(list, result, new_result(list, score, name));
 }
 
-static void search(char *hex, struct list *list)
+static void search(char *query, struct list *list)
 {
 	DIR *dir;
 	struct dirent *dp;
 	static char path[PATH_MAX];
+	char lowercase_query[MAX_NAME_LENGTH];
 
 	if (snprintf(path, PATH_MAX, "%s/players", config.root) >= PATH_MAX) {
 		fprintf(stderr, "Path to teerank database too long\n");
@@ -191,13 +202,15 @@ static void search(char *hex, struct list *list)
 		exit(EXIT_FAILURE);
 	}
 
+	to_lowercase(query, lowercase_query);
+
 	while ((dp = readdir(dir))) {
 		unsigned score;
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 
-		score = get_score(dp->d_name, hex);
+		score = get_score(dp->d_name, lowercase_query);
 		try_add_result(list, score, dp->d_name);
 	}
 
@@ -208,7 +221,6 @@ static struct list LIST_ZERO;
 
 int main(int argc, char **argv)
 {
-	static char hex[MAX_NAME_LENGTH];
 	struct list list = LIST_ZERO;
 	size_t length;
 
@@ -221,11 +233,8 @@ int main(int argc, char **argv)
 
 	/* No need to search when the query is too long or empty */
 	length = strlen(argv[1]);
-	if (length > 0 && length < MAX_NAME_LENGTH) {
-		string_to_hex(argv[1], hex);
-		hex[strlen(hex) - 2] = '\0';
-		search(hex, &list);
-	}
+	if (length > 0 && length < MAX_NAME_LENGTH)
+		search(argv[1], &list);
 
 	CUSTOM_TAB.name = "Search results";
 	CUSTOM_TAB.href = "";

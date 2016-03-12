@@ -9,7 +9,7 @@ struct delta {
 	int elapsed;
 	unsigned length;
 	struct player_delta {
-		char name[MAX_NAME_LENGTH], clan[MAX_NAME_LENGTH];
+		char name[MAX_NAME_HEX_LENGTH], clan[MAX_CLAN_HEX_LENGTH];
 		long delta;
 		long score;
 		int elo;

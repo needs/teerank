@@ -17,7 +17,7 @@ struct page {
 
 static void load_page(struct page *page)
 {
-	char name[MAX_NAME_LENGTH];
+	char name[MAX_NAME_HEX_LENGTH];
 
 	assert(page != NULL);
 

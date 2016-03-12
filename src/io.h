@@ -3,13 +3,6 @@
 
 #include <stdio.h>
 
-/*
- * Teeworlds names cannot be bigger than 16, including terminating nul byte
- * When converting names to hexadecimal, each letter now take two bytes
- * hence the maximum name length is 16 * 2 + 1.
- */
-#define MAX_NAME_LENGTH 33
-
 struct tab {
 	char *name, *href;
 };

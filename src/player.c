@@ -117,7 +117,7 @@ int write_player(struct player *player)
 
 void html_print_player(struct player *player, int show_clan_link)
 {
-	char tmp[MAX_NAME_LENGTH];
+	char name[MAX_NAME_STR_LENGTH], clan[MAX_CLAN_STR_LENGTH];
 
 	assert(player != NULL);
 
@@ -130,16 +130,16 @@ void html_print_player(struct player *player, int show_clan_link)
 		printf("<td>%u</td>", player->rank);
 
 	/* Name */
-	hex_to_string(player->name, tmp);
-	printf("<td>"); html(tmp); printf("</td>");
+	hex_to_string(player->name, name);
+	printf("<td>"); html(name); printf("</td>");
 
 	/* Clan */
-	hex_to_string(player->clan, tmp);
+	hex_to_string(player->clan, clan);
 	printf("<td>");
-	if (*tmp != '\0') {
+	if (*clan != '\0') {
 		if (show_clan_link)
 			printf("<a href=\"/clans/%s.html\">", player->clan);
-		html(tmp);
+		html(clan);
 		if (show_clan_link)
 			printf("</a>");
 	}

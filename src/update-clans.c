@@ -14,7 +14,7 @@
 #include "player.h"
 
 struct clan {
-	char name[MAX_NAME_LENGTH];
+	char name[MAX_CLAN_HEX_LENGTH];
 
 	unsigned length;
 	struct player *players;

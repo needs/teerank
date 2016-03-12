@@ -100,21 +100,22 @@ static long int unpack_int(struct unpacker *up)
 
 static int validate_client_info(struct client *client)
 {
-	char tmp[MAX_NAME_LENGTH];
+	char name[MAX_NAME_HEX_LENGTH];
+	char clan[MAX_CLAN_HEX_LENGTH];
 
 	assert(client != NULL);
 	assert(client->name != NULL);
 	assert(client->clan != NULL);
 
-	if (strlen(client->name) > 16)
+	if (strlen(client->name) >= MAX_NAME_STR_LENGTH)
 		return 0;
-	if (strlen(client->clan) > 16)
+	if (strlen(client->clan) >= MAX_CLAN_STR_LENGTH)
 		return 0;
 
-	string_to_hex(client->name, tmp);
-	strcpy(client->name, tmp);
-	string_to_hex(client->clan, tmp);
-	strcpy(client->clan, tmp);
+	string_to_hex(client->name, name);
+	strcpy(client->name, name);
+	string_to_hex(client->clan, clan);
+	strcpy(client->clan, clan);
 
 	return 1;
 }

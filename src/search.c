@@ -25,7 +25,7 @@
  * almost a O(1).
  */
 struct result {
-	char name[MAX_NAME_LENGTH];
+	char name[MAX_NAME_HEX_LENGTH];
 	int relevance;
 
 	int is_loaded;
@@ -78,7 +78,7 @@ static unsigned get_relevance(char *hex, char *query)
 {
 	unsigned relevance;
 	char *tmp;
-	char name[MAX_NAME_LENGTH];
+	char name[MAX_NAME_STR_LENGTH];
 
 	/* Lowercase the name to have case insensitive search */
 	hex_to_string(hex, name);
@@ -243,7 +243,9 @@ static void search(char *query, struct list *list)
 	DIR *dir;
 	struct dirent *dp;
 	static char path[PATH_MAX];
-	char lowercase_query[MAX_NAME_LENGTH];
+	char lowercase_query[MAX_NAME_STR_LENGTH];
+
+	assert(strlen(query) < MAX_NAME_STR_LENGTH);
 
 	if (snprintf(path, PATH_MAX, "%s/players", config.root) >= PATH_MAX) {
 		fprintf(stderr, "Path to teerank database too long\n");
@@ -287,7 +289,7 @@ int main(int argc, char **argv)
 
 	/* No need to search when the query is too long or empty */
 	length = strlen(argv[1]);
-	if (length > 0 && length < MAX_NAME_LENGTH)
+	if (length > 0 && length < MAX_NAME_STR_LENGTH)
 		search(argv[1], &list);
 
 	CUSTOM_TAB.name = "Search results";

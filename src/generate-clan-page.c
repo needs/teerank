@@ -28,7 +28,7 @@ static int cmp_player(const void *p1, const void *p2)
 int main(int argc, char **argv)
 {
 	FILE *file;
-	char name[MAX_NAME_LENGTH], clan[MAX_NAME_LENGTH];
+	char name[MAX_NAME_HEX_LENGTH], clan[MAX_CLAN_HEX_LENGTH];
 	struct player_array array = PLAYER_ARRAY_ZERO;
 	unsigned i;
 

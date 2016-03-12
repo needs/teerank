@@ -4,15 +4,24 @@
 #include <limits.h>
 
 #include "network.h"
-#include "player.h"
 #include "io.h"
+
+/*
+ * Teeworlds names cannot be bigger than 16, including terminating nul byte
+ * When converting names to hexadecimal, each letter now take two bytes
+ * hence the maximum name length is 16 * 2 + 1.
+ */
+#define MAX_NAME_HEX_LENGTH 33
+#define MAX_NAME_STR_LENGTH 17
+#define MAX_CLAN_HEX_LENGTH 33
+#define MAX_CLAN_STR_LENGTH 17
 
 static const int      INVALID_ELO  = INT_MIN;
 static const unsigned INVALID_RANK = 0;
 
 struct player {
-	char name[MAX_NAME_LENGTH];
-	char clan[MAX_NAME_LENGTH];
+	char name[MAX_NAME_HEX_LENGTH];
+	char clan[MAX_CLAN_HEX_LENGTH];
 
 	struct player_delta *delta;
 	int elo;

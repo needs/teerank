@@ -11,7 +11,7 @@
 
 int main(int argc, char **argv)
 {
-	char name[MAX_NAME_LENGTH];
+	char name[MAX_NAME_HEX_LENGTH];
 
 	load_config();
 

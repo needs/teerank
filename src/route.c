@@ -161,8 +161,8 @@ static const struct directory root = {
 		  NULL, search_file_apply_query, NULL },
 		{ NULL }
 	}, NULL, (struct directory[]) {
-		{ "pages", NULL, page_default_file, NULL, NULL },
-		{ "clans", NULL, clan_default_file, NULL, NULL },
+		{ "pages", NULL, page_default_file, NULL },
+		{ "clans", NULL, clan_default_file, NULL },
 		{ NULL }
 	}
 };

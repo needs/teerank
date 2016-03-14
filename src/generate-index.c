@@ -18,7 +18,13 @@ int main(int argc, char **argv)
 	print_header(&CTF_TAB, "CTF", NULL);
 	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
 
-	scanf("%*u players");
+	if (scanf("%*u players") == EOF) {
+		if (ferror(stdin))
+			perror("<stdin>");
+		else
+			fprintf(stderr, "<stdin>: Early EOF\n");
+		return EXIT_FAILURE;
+	}
 
 	while (scanf(" %s", name) == 1) {
 		struct player player;

@@ -131,7 +131,7 @@ void html_print_player(struct player *player, int show_clan_link)
 
 	/* Name */
 	hex_to_string(player->name, name);
-	printf("<td>"); html(name); printf("</td>");
+	printf("<td><a href=\"/players/%s.html\">", player->name); html(name); printf("</a></td>");
 
 	/* Clan */
 	hex_to_string(player->clan, clan);

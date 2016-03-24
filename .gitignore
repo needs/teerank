@@ -1,5 +1,6 @@
 /.teerank/
 /clans/
+/players/
 /pages/
 /search/
 /index.html
@@ -16,6 +17,7 @@
 /teerank-generate-clan-page
 /teerank-compute-ranks
 /teerank-generate-rank-page
+/teerank-generate-player-page
 /teerank-generate-about
 /teerank-paginate-ranks
 /teerank-create-database

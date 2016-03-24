@@ -86,6 +86,19 @@ static struct file *clan_default_file(char *name)
 	return &file;
 }
 
+static struct file *player_default_file(char *name)
+{
+	static struct file file;
+	static char *args[] = { "teerank-generate-player-page", NULL, NULL };
+
+	file.name = name;
+	file.source = NULL;
+	file.args = args;
+	file.args[1] = get_raw_source_from_name(name);
+
+	return &file;
+}
+
 struct arg {
 	char *name, *val;
 };
@@ -163,6 +176,7 @@ static const struct directory root = {
 	}, NULL, (struct directory[]) {
 		{ "pages", NULL, page_default_file, NULL, NULL },
 		{ "clans", NULL, clan_default_file, NULL, NULL },
+		{ "players", NULL, player_default_file, NULL, NULL },
 		{ NULL }
 	}
 };

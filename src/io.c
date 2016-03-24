@@ -24,33 +24,33 @@ void print_header(const struct tab *active, char *title, char *search)
 	}
 
 	fputs(
-		"<!doctype html>"
-		"<html>"
-		"	<head>"
-		"		<meta charset=\"utf-8\" />"
+		"<!doctype html>\n"
+		"<html>\n"
+		"	<head>\n"
+		"		<meta charset=\"utf-8\" />\n"
 		"		<title>Teerank - ",
 		stdout);
 	html(title);
 	fputs(
-		"</title>"
-		"		<link rel=\"stylesheet\" href=\"/style.css\"/>"
-		"	</head>"
-		"	<body>"
-		"		<header>"
-		"			<a href=\"/\"><img src=\"/images/logo.png\" alt=\"Logo\" /></a>"
-		"			<form action=\"/search\">"
+		"</title>\n"
+		"		<link rel=\"stylesheet\" href=\"/style.css\"/>\n"
+		"	</head>\n"
+		"	<body>\n"
+		"		<header>\n"
+		"			<a href=\"/\"><img src=\"/images/logo.png\" alt=\"Logo\" /></a>\n"
+		"			<form action=\"/search\">\n"
 		"				<input name=\"q\" type=\"text\" placeholder=\"Search\"",
 		stdout);
 	if (search) {
 		fputs(" value=\"", stdout); html(search); fputs("\"", stdout);
 	}
 	fputs(
-		"/>"
-		"				<input type=\"submit\" value=\"\">"
-		"			</form>"
-		"		</header>"
-		"		<main>"
-		"			<nav>",
+		"/>\n"
+		"				<input type=\"submit\" value=\"\">\n"
+		"			</form>\n"
+		"		</header>\n"
+		"		<main>\n"
+		"			<nav>\n",
 		stdout);
 
 	const struct tab **tabs = (const struct tab*[]){
@@ -70,25 +70,25 @@ void print_header(const struct tab *active, char *title, char *search)
 			class = " class=\"active\"";
 
 		if (tab == active)
-			printf("<a%s>%s</a>", class, tab->name);
+			printf("\t\t\t\t<a%s>%s</a>\n", class, tab->name);
 		else
-			printf("<a href=\"%s\"%s>%s</a>",
+			printf("\t\t\t\t<a href=\"%s\"%s>%s</a>\n",
 			       tab->href, class, tab->name);
 	}
 
 	fputs(
-		"			</nav>"
-		"			<section>",
+		"			</nav>\n"
+		"			<section>\n",
 		stdout);
 }
 
 void print_footer(void)
 {
 	fputs(
-		"			</section>"
-		"		</main>"
-		"	</body>"
-		"</html>",
+		"			</section>\n"
+		"		</main>\n"
+		"	</body>\n"
+		"</html>\n",
 		stdout);
 }
 

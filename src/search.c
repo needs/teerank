@@ -307,7 +307,7 @@ int main(int argc, char **argv)
 				read_player(&result->player, result->name);
 			html_print_player(&result->player, 1);
 		}
-		printf("</tbody></table>");
+		printf("</tbody></table>\n");
 	}
 
 	print_footer();

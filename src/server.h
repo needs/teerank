@@ -3,6 +3,7 @@
 
 #include <time.h>
 #include "io.h"
+#include "player.h"
 
 #define MAX_CLIENTS 16
 

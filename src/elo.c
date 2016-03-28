@@ -97,7 +97,7 @@ void update_elos(struct player *players, unsigned length)
 	for (i = 0; i < length; i++) {
 		if (players[i].is_rankable && players[i].elo != elos[i]) {
 			players[i].elo = elos[i];
-			players[i].is_modified = 1;
+			players[i].is_modified |= IS_MODIFIED_ELO;
 		}
 	}
 }

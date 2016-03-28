@@ -29,6 +29,7 @@ static void init_player(struct player *player, char *name)
 	strcpy(player->clan, "00");
 	player->rank = INVALID_RANK;
 	player->elo  = INVALID_ELO;
+	player->is_modified = 0;
 }
 
 static int create_player(struct player *player, char *name)
@@ -39,7 +40,7 @@ static int create_player(struct player *player, char *name)
 	init_player(player, name);
 	player->elo = DEFAULT_ELO;
 	player->is_rankable = 0;
-	player->is_modified = 1;
+	player->is_modified = IS_MODIFIED_CREATED;
 
 	return 1;
 }

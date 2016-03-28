@@ -16,9 +16,6 @@
 #define MAX_CLAN_HEX_LENGTH 33
 #define MAX_CLAN_STR_LENGTH 17
 
-static const int      INVALID_ELO  = INT_MIN;
-static const unsigned INVALID_RANK = 0;
-
 struct player {
 	char name[MAX_NAME_HEX_LENGTH];
 	char clan[MAX_CLAN_HEX_LENGTH];
@@ -27,11 +24,20 @@ struct player {
 	int elo;
 	unsigned rank;
 
-	/* Avoid useless write_player() if player hasn't change during execution */
-	short is_modified;
+	/* Keep tracks of changed fields to avoid unecessary write_player() */
+	unsigned short is_modified;
 
 	/* A marker used by elo rating system */
 	short is_rankable;
+};
+
+static const int      INVALID_ELO  = INT_MIN;
+static const unsigned INVALID_RANK = 0;
+
+enum {
+	IS_MODIFIED_CREATED = (1 << 0),
+	IS_MODIFIED_CLAN    = (1 << 1),
+	IS_MODIFIED_ELO     = (1 << 2)
 };
 
 /*

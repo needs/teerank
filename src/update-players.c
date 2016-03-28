@@ -56,8 +56,14 @@ static void merge_delta(struct player *player, struct player_delta *delta)
 	player->delta = delta;
 
 	if (strcmp(player->clan, delta->clan)) {
+		char tmp[MAX_CLAN_HEX_LENGTH];
+
+		/* Put the old clan in the delta so we can use it later */
+		strcpy(tmp, player->clan);
 		strcpy(player->clan, delta->clan);
-		player->is_modified = 1;
+		strcpy(delta->clan, tmp);
+
+		player->is_modified |= IS_MODIFIED_CLAN;
 	}
 
 	player->is_rankable = 1;
@@ -92,9 +98,18 @@ int main(int argc, char **argv)
 			update_elos(players, length);
 
 		/* Write the result only if something changed */
-		for (i = 0; i < length; i++)
-			if (players[i].is_modified)
-				write_player(&players[i]);
+		for (i = 0; i < length; i++) {
+			if (players[i].is_modified) {
+				if (!write_player(&players[i]))
+					continue;
+
+				if (players[i].is_modified & IS_MODIFIED_CLAN)
+					printf("%s %s %s\n",
+					       players[i].name,
+					       players[i].delta->clan,
+					       players[i].clan);
+			}
+		}
 	}
 
 	return EXIT_SUCCESS;

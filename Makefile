@@ -27,7 +27,7 @@ teerank-generate-index: src/generate-index.o src/io.o src/player.o
 teerank-update-players: src/update-players.o src/delta.o src/elo.o src/io.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^ -lm
 
-teerank-update-clans: src/update-clans.o src/io.o src/player.o
+teerank-update-clans: src/update-clans.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-generate-clan-page: src/generate-clan-page.o src/io.o src/player.o

@@ -103,11 +103,12 @@ int main(int argc, char **argv)
 				if (!write_player(&players[i]))
 					continue;
 
-				if (players[i].is_modified & IS_MODIFIED_CLAN)
+				if (players[i].is_modified & IS_MODIFIED_CLAN) {
 					printf("%s %s %s\n",
 					       players[i].name,
 					       players[i].delta->clan,
 					       players[i].clan);
+				}
 			}
 		}
 	}

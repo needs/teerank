@@ -27,7 +27,7 @@ teerank-generate-index: src/generate-index.o src/io.o src/player.o
 teerank-update-players: src/update-players.o src/delta.o src/elo.o src/io.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^ -lm
 
-teerank-update-clans: src/update-clans.o src/io.o
+teerank-update-clans: src/update-clans.o src/io.o src/player.o src/clan.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-generate-clan-page: src/generate-clan-page.o src/io.o src/player.o
@@ -54,7 +54,7 @@ teerank-remove-offline-servers: src/remove-offline-servers.o src/server.o
 teerank-search: src/search.o src/io.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-repair: src/repair.o src/io.o src/player.o
+teerank-repair: src/repair.o src/io.o src/player.o src/clan.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 #

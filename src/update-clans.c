@@ -32,17 +32,9 @@ static int clan_move_player(char *src_clan, char *dest_clan, char *player)
 	 * Add the player first to make sure the player is referenced by
 	 * at least one clan at any time.
 	 */
-	if (strcmp(dest_clan, "00")) {
-		struct clan clan = CLAN_ZERO;
-
-		read_clan(&clan, dest_clan);
-		add_member(&clan, player);
-		ret = write_clan(&clan);
-		free_clan(&clan);
-
-		if (!ret)
+	if (strcmp(dest_clan, "00"))
+		if (!add_member_inline(dest_clan, player))
 			return 0;
-	}
 
 	if (strcmp(src_clan, "00")) {
 		struct clan clan = CLAN_ZERO;

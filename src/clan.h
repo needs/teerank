@@ -65,4 +65,9 @@ unsigned load_members(struct clan *clan);
  */
 int clan_equal(const struct clan *c1, const struct clan *c2);
 
+/*
+ * Add a member to the given clan without loading the full memberlist.
+ */
+int add_member_inline(char *clan, char *player);
+
 #endif /* CLAN_H */

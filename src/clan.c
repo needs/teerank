@@ -8,6 +8,20 @@
 #include "config.h"
 #include "clan.h"
 
+static char *clan_path(const char *clan)
+{
+	static char path[PATH_MAX];
+	int ret;
+
+	ret = snprintf(path, PATH_MAX, "%s/clans/%s", config.root, clan);
+	if (ret >= PATH_MAX) {
+		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);
+		return NULL;
+	}
+
+	return path;
+}
+
 struct player *add_member(struct clan *clan, char *name)
 {
 	struct player *member;
@@ -32,19 +46,16 @@ struct player *add_member(struct clan *clan, char *name)
 
 int read_clan(struct clan *clan, char *cname)
 {
-	static char path[PATH_MAX];
+	char *path;
 	char pname[MAX_NAME_HEX_LENGTH];
-	int ret;
 	FILE *file;
+	int ret;
 
 	assert(clan != NULL);
 	assert(strcmp(cname, "00"));
 
-	ret = snprintf(path, PATH_MAX, "%s/clans/%s", config.root, cname);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);
+	if (!(path = clan_path(cname)))
 		return 0;
-	}
 
 	if (!(file = fopen(path, "r"))) {
 		if (errno == ENOENT) {
@@ -59,7 +70,7 @@ int read_clan(struct clan *clan, char *cname)
 	}
 
 	/* Ignore failure for now... */
-	while (fscanf(file, " %s", pname) == 1)
+	while ((ret = fscanf(file, " %s", pname)) == 1)
 		add_member(clan, pname);
 
 	if (ferror(file)) {
@@ -82,18 +93,14 @@ fail:
 int write_clan(const struct clan *clan)
 {
 	unsigned i;
-	static char path[PATH_MAX];
-	int ret;
+	char *path;
 	FILE *file;
 
 	assert(clan != NULL);
 	assert(strcmp(clan->name, "00"));
 
-	ret = snprintf(path, PATH_MAX, "%s/clans/%s", config.root, clan->name);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "snprintf(dest, %d): Too long\n", PATH_MAX);
+	if (!(path = clan_path(clan->name)))
 		return 0;
-	}
 
 	if (!(file = fopen(path, "w"))) {
 		perror(path);
@@ -177,6 +184,26 @@ int clan_equal(const struct clan *c1, const struct clan *c2)
 		if (j == c2->length)
 			return 0;
 	}
+
+	return 1;
+}
+
+int add_member_inline(char *clan, char *player)
+{
+	char *path;
+	FILE *file;
+
+	assert(clan != NULL);
+	assert(player != NULL);
+	assert(strcmp(clan, "00") != 0);
+
+	if (!(path = clan_path(clan)))
+		return 0;
+
+	if (!(file = fopen(path, "a")))
+		return perror(path), 0;
+	fprintf(file, "%s\n", player);
+	fclose(file);
 
 	return 1;
 }

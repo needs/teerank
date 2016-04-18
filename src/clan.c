@@ -44,6 +44,8 @@ struct player *add_member(struct clan *clan, char *name)
 	return member;
 }
 
+static const struct clan CLAN_ZERO;
+
 int read_clan(struct clan *clan, char *cname)
 {
 	char *path;
@@ -56,6 +58,8 @@ int read_clan(struct clan *clan, char *cname)
 
 	if (!(path = clan_path(cname)))
 		return 0;
+
+	*clan = CLAN_ZERO;
 
 	if (!(file = fopen(path, "r"))) {
 		if (errno == ENOENT) {

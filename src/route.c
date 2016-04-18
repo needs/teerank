@@ -166,8 +166,6 @@ static void search_file_apply_query(struct file *file, char *query)
 
 static const struct directory root = {
 	"", (struct file[]) {
-		{ "index.html", (char*[]){ "teerank-html-index", NULL },
-		  "ranks", NULL },
 		{ "about.html", (char*[]){ "teerank-html-about", NULL },
 		  NULL, NULL, NULL },
 		{ "search", (char*[]){ "teerank-html-search", NULL },

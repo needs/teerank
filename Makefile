@@ -30,7 +30,7 @@ teerank-update-players: src/update-players.o src/delta.o src/elo.o src/io.o src/
 teerank-update-clans: src/update-clans.o src/io.o src/player.o src/clan.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-generate-clan-page: src/generate-clan-page.o src/io.o src/player.o
+teerank-generate-clan-page: src/generate-clan-page.o src/io.o src/player.o src/clan.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-compute-ranks: src/compute-ranks.o src/io.o src/player.o

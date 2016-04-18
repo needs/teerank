@@ -8,8 +8,7 @@
 #include "io.h"
 #include "config.h"
 #include "player.h"
-
-static char path[PATH_MAX];
+#include "clan.h"
 
 static const struct player_array PLAYER_ARRAY_ZERO;
 
@@ -27,45 +26,40 @@ static int cmp_player(const void *p1, const void *p2)
 
 int main(int argc, char **argv)
 {
-	FILE *file;
-	char name[MAX_NAME_HEX_LENGTH], clan[MAX_CLAN_HEX_LENGTH];
-	struct player_array array = PLAYER_ARRAY_ZERO;
-	unsigned i;
+	struct clan clan;
+	unsigned missing_members, i;
+	char clan_name[MAX_CLAN_STR_LENGTH];
 
 	load_config();
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <clan_name>\n", argv[0]);
-		return EXIT_FAILURE;
+		return 500;
 	}
 
 	/* Load players */
 
-	sprintf(path, "%s/clans/%s", config.root, argv[1]);
-	if (!(file = fopen(path, "r")))
-		return perror(path), EXIT_FAILURE;
+	if (!read_clan(&clan, argv[1]))
+		return 404;
+	missing_members = load_members(&clan);
 
-	while (fscanf(file, " %s", name) == 1) {
-		struct player player;
-
-		if (!read_player(&player, name))
-			strcpy(player.clan, argv[1]);
-		add_player(&array, &player);
-	}
-
-	fclose(file);
-
-	/* Sort players */
-	qsort(array.players, array.length, sizeof(*array.players), cmp_player);
+	/* Sort members */
+	qsort(clan.members, clan.length, sizeof(*clan.members), cmp_player);
 
 	/* Eventually, print them */
-	hex_to_string(argv[1], clan);
-	print_header(&CTF_TAB, clan, NULL);
-	printf("<h2>%s</h2>\n", clan);
-	printf("<p>%u member(s)</p>\n", array.length);
+	hex_to_string(clan.name, clan_name);
+	print_header(&CTF_TAB, clan_name, NULL);
+	printf("<h2>%s</h2>\n", clan_name);
+
+	if (!missing_members)
+		printf("<p>%u member(s)</p>\n", clan.length);
+	else
+		printf("<p>%u member(s), %u could not be loaded</p>\n",
+		       clan.length + missing_members, missing_members);
+
 	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead>\n<tbody>\n");
 
-	for (i = 0; i < array.length; i++)
-		html_print_player(&array.players[i], 0);
+	for (i = 0; i < clan.length; i++)
+		html_print_player(&clan.members[i], 0);
 
 	printf("</tbody></table>\n");
 	print_footer();

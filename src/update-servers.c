@@ -17,9 +17,9 @@
 #include "network.h"
 #include "pool.h"
 #include "delta.h"
-#include "io.h"
 #include "config.h"
 #include "server.h"
+#include "player.h"
 
 static const uint8_t MSG_GETINFO[] = {
 	255, 255, 255, 255, 'g', 'i', 'e', '3'
@@ -100,21 +100,21 @@ static long int unpack_int(struct unpacker *up)
 
 static int validate_client_info(struct client *client)
 {
-	char name[MAX_NAME_HEX_LENGTH];
-	char clan[MAX_CLAN_HEX_LENGTH];
+	char name[HEXNAME_LENGTH];
+	char clan[HEXNAME_LENGTH];
 
 	assert(client != NULL);
 	assert(client->name != NULL);
 	assert(client->clan != NULL);
 
-	if (strlen(client->name) >= MAX_NAME_STR_LENGTH)
+	if (strlen(client->name) >= NAME_LENGTH)
 		return 0;
-	if (strlen(client->clan) >= MAX_CLAN_STR_LENGTH)
+	if (strlen(client->clan) >= NAME_LENGTH)
 		return 0;
 
-	string_to_hex(client->name, name);
+	name_to_hexname(client->name, name);
 	strcpy(client->name, name);
-	string_to_hex(client->clan, clan);
+	name_to_hexname(client->clan, clan);
 	strcpy(client->clan, clan);
 
 	return 1;

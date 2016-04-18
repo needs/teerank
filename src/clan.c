@@ -49,7 +49,7 @@ static const struct clan CLAN_ZERO;
 int read_clan(struct clan *clan, char *cname)
 {
 	char *path;
-	char pname[MAX_NAME_HEX_LENGTH];
+	char pname[HEXNAME_LENGTH];
 	FILE *file;
 	int ret;
 

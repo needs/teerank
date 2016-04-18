@@ -6,7 +6,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "io.h"
 #include "config.h"
 #include "player.h"
 #include "clan.h"
@@ -54,9 +53,9 @@ static int clan_move_player(char *src_clan, char *dest_clan, char *player)
 int main(int argc, char *argv[])
 {
 	int ret;
-	char player[MAX_NAME_HEX_LENGTH];
-	char    old[MAX_CLAN_HEX_LENGTH];
-	char    new[MAX_CLAN_HEX_LENGTH];
+	char player[HEXNAME_LENGTH];
+	char    old[HEXNAME_LENGTH];
+	char    new[HEXNAME_LENGTH];
 
 	load_config();
 

@@ -2,13 +2,13 @@
 #include <stdlib.h>
 
 #include "config.h"
-#include "io.h"
+#include "html.h"
 
 int main(int argc, char **argv)
 {
 	load_config();
 
-	print_header(&ABOUT_TAB, "About", NULL);
+	html_header(&ABOUT_TAB, "About", NULL);
 
 	puts(
 		"<h1>About</h1>"
@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 		"<p>The system as it is cannot know the team you are playing on, it also do not handle any sort of player authentification, thus faking is easy.  That's why Teerank should not be taken too seriously, because it is built on a very naïve aproach.</p>"
 	);
 
-	print_footer();
+	html_footer();
 
 	return EXIT_SUCCESS;
 }

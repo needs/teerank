@@ -1,19 +1,34 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <limits.h>
-#include <errno.h>
-#include <stdarg.h>
 #include <assert.h>
 #include <string.h>
-#include <unistd.h>
+#include <stdio.h>
 
-#include "io.h"
+#include "html.h"
 
 const struct tab CTF_TAB = { "CTF", "/" };
 const struct tab ABOUT_TAB = { "About", "/about.html" };
 struct tab CUSTOM_TAB = { NULL, NULL };
 
-void print_header(const struct tab *active, char *title, char *search)
+static void html(char *str)
+{
+	assert(str != NULL);
+
+	for (; *str; str++) {
+		switch (*str) {
+		case '<':
+			fputs("&lt;", stdout); break;
+		case '>':
+			fputs("&gt;", stdout); break;
+		case '&':
+			fputs("&amp;", stdout); break;
+		case '"':
+			fputs("&quot;", stdout); break;
+		default:
+			putchar(*str);
+		}
+	}
+}
+
+void html_header(const struct tab *active, char *title, char *search)
 {
 	assert(active != NULL);
 	assert(title != NULL);
@@ -82,7 +97,7 @@ void print_header(const struct tab *active, char *title, char *search)
 		stdout);
 }
 
-void print_footer(void)
+void html_footer(void)
 {
 	fputs(
 		"			</section>\n"
@@ -92,47 +107,70 @@ void print_footer(void)
 		stdout);
 }
 
-void hex_to_string(const char *hex, char *str)
+/*
+ chars can size at most 6 bytes, so out string can size at most:
+ * NAME_LENGTH * 6 + 1 bytes.
+ */
+const char *name_to_html(const char *name)
 {
-	assert(hex != NULL);
-	assert(str != NULL);
-	assert(hex != str);
+	static char str[NAME_LENGTH * 6 + 1];
+	char *it = str;
 
-	for (; hex[0] != '0' || hex[1] != '0'; hex += 2, str++) {
-		char tmp[3] = { hex[0], hex[1], '\0' };
-		*str = strtol(tmp, NULL, 16);
-	}
+	assert(name != NULL);
 
-	*str = '\0';
-}
-
-void string_to_hex(const char *str, char *hex)
-{
-	assert(str != NULL);
-	assert(hex != NULL);
-	assert(str != hex);
-
-	for (; *str; str++, hex += 2)
-		sprintf(hex, "%2x", *(unsigned char*)str);
-	strcpy(hex, "00");
-}
-
-void html(char *str)
-{
-	assert(str != NULL);
-
-	for (; *str; str++) {
-		switch (*str) {
+	for (; *name; name++) {
+		switch (*name) {
 		case '<':
-			fputs("&lt;", stdout); break;
+			it = stpcpy(it, "&lt;"); break;
 		case '>':
-			fputs("&gt;", stdout); break;
+			it = stpcpy(it, "&gt;"); break;
 		case '&':
-			fputs("&amp;", stdout); break;
+			it = stpcpy(it, "&amp;"); break;
 		case '"':
-			fputs("&quot;", stdout); break;
+			it = stpcpy(it, "&quot;"); break;
 		default:
-			putchar(*str);
+			*it++ = *name;
 		}
 	}
+
+	return str;
+}
+
+void html_print_player(struct player *player, int show_clan_link)
+{
+	char name[NAME_LENGTH], clan[NAME_LENGTH];
+
+	assert(player != NULL);
+
+	printf("<tr>");
+
+	/* Rank */
+	if (player->rank == INVALID_RANK)
+		printf("<td>?</td>");
+	else
+		printf("<td>%u</td>", player->rank);
+
+	/* Name */
+	hexname_to_name(player->name, name);
+	printf("<td><a href=\"/players/%s.html\">", player->name); html(name); printf("</a></td>");
+
+	/* Clan */
+	hexname_to_name(player->clan, clan);
+	printf("<td>");
+	if (*clan != '\0') {
+		if (show_clan_link)
+			printf("<a href=\"/clans/%s.html\">", player->clan);
+		html(clan);
+		if (show_clan_link)
+			printf("</a>");
+	}
+	printf("</td>");
+
+	/* Elo */
+	if (player->elo == INVALID_ELO)
+		printf("<td>?</td>");
+	else
+		printf("<td>%d</td>", player->elo);
+
+	printf("</tr>\n");
 }

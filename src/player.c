@@ -5,11 +5,47 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "player.h"
 #include "config.h"
-#include "io.h"
 #include "elo.h"
+
+int is_valid_hexname(const char *hex)
+{
+	assert(hex != NULL);
+
+	if (strlen(hex) >= HEXNAME_LENGTH)
+		return 0;
+	while (isxdigit(*hex))
+		hex++;
+	return *hex == '\0';
+}
+
+void hexname_to_name(const char *hex, char *str)
+{
+	assert(hex != NULL);
+	assert(str != NULL);
+	assert(hex != str);
+
+	for (; hex[0] != '0' || hex[1] != '0'; hex += 2, str++) {
+		char tmp[3] = { hex[0], hex[1], '\0' };
+		*str = strtol(tmp, NULL, 16);
+	}
+
+	*str = '\0';
+}
+
+void name_to_hexname(const char *str, char *hex)
+{
+	assert(str != NULL);
+	assert(hex != NULL);
+	assert(str != hex);
+
+	for (; *str; str++, hex += 2)
+		sprintf(hex, "%2x", *(unsigned char*)str);
+	strcpy(hex, "00");
+}
 
 static char *get_path(char *name)
 {
@@ -114,45 +150,6 @@ int write_player(struct player *player)
 
 	fclose(file);
 	return 1;
-}
-
-void html_print_player(struct player *player, int show_clan_link)
-{
-	char name[MAX_NAME_STR_LENGTH], clan[MAX_CLAN_STR_LENGTH];
-
-	assert(player != NULL);
-
-	printf("<tr>");
-
-	/* Rank */
-	if (player->rank == INVALID_RANK)
-		printf("<td>?</td>");
-	else
-		printf("<td>%u</td>", player->rank);
-
-	/* Name */
-	hex_to_string(player->name, name);
-	printf("<td><a href=\"/players/%s.html\">", player->name); html(name); printf("</a></td>");
-
-	/* Clan */
-	hex_to_string(player->clan, clan);
-	printf("<td>");
-	if (*clan != '\0') {
-		if (show_clan_link)
-			printf("<a href=\"/clans/%s.html\">", player->clan);
-		html(clan);
-		if (show_clan_link)
-			printf("</a>");
-	}
-	printf("</td>");
-
-	/* Elo */
-	if (player->elo == INVALID_ELO)
-		printf("<td>?</td>");
-	else
-		printf("<td>%d</td>", player->elo);
-
-	printf("</tr>\n");
 }
 
 struct player *add_player(struct player_array *array, struct player *player)

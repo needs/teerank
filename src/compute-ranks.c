@@ -5,7 +5,6 @@
 #include <dirent.h>
 #include <limits.h>
 
-#include "io.h"
 #include "config.h"
 #include "player.h"
 

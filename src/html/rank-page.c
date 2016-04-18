@@ -5,8 +5,8 @@
 #include <limits.h>
 #include <dirent.h>
 
-#include "io.h"
 #include "config.h"
+#include "html.h"
 #include "player.h"
 
 struct page {
@@ -17,7 +17,7 @@ struct page {
 
 static void load_page(struct page *page)
 {
-	char name[MAX_NAME_HEX_LENGTH];
+	char name[HEXNAME_LENGTH];
 
 	assert(page != NULL);
 
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 	load_page(&page);
 
 	if (mode == FULL_PAGE) {
-		print_header(&CTF_TAB, "CTF", NULL);
+		html_header(&CTF_TAB, "CTF", NULL);
 		print_nav(&page);
 
 		printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 	if (mode == FULL_PAGE) {
 		printf("</tbody></table>");
 		print_nav(&page);
-		print_footer();
+		html_footer();
 	}
 
 	return EXIT_SUCCESS;

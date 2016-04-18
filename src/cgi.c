@@ -13,7 +13,6 @@
 #include <dirent.h>
 #include <libgen.h>
 
-#include "io.h"
 #include "config.h"
 #include "route.h"
 

@@ -8,7 +8,7 @@
 #include <ctype.h>
 
 #include "config.h"
-#include "io.h"
+#include "html.h"
 #include "player.h"
 
 /*
@@ -25,7 +25,7 @@
  * almost a O(1).
  */
 struct result {
-	char name[MAX_NAME_HEX_LENGTH];
+	char name[HEXNAME_LENGTH];
 	int relevance;
 
 	int is_loaded;
@@ -78,10 +78,10 @@ static unsigned get_relevance(char *hex, char *query)
 {
 	unsigned relevance;
 	char *tmp;
-	char name[MAX_NAME_STR_LENGTH];
+	char name[NAME_LENGTH];
 
 	/* Lowercase the name to have case insensitive search */
-	hex_to_string(hex, name);
+	hexname_to_name(hex, name);
 	to_lowercase(name, name);
 
 	if (!(tmp = strstr(name, query)))
@@ -243,9 +243,9 @@ static void search(char *query, struct list *list)
 	DIR *dir;
 	struct dirent *dp;
 	static char path[PATH_MAX];
-	char lowercase_query[MAX_NAME_STR_LENGTH];
+	char lowercase_query[NAME_LENGTH];
 
-	assert(strlen(query) < MAX_NAME_STR_LENGTH);
+	assert(strlen(query) < NAME_LENGTH);
 
 	if (snprintf(path, PATH_MAX, "%s/players", config.root) >= PATH_MAX) {
 		fprintf(stderr, "Path to teerank database too long\n");
@@ -289,12 +289,12 @@ int main(int argc, char **argv)
 
 	/* No need to search when the query is too long or empty */
 	length = strlen(argv[1]);
-	if (length > 0 && length < MAX_NAME_STR_LENGTH)
+	if (length > 0 && length < NAME_LENGTH)
 		search(argv[1], &list);
 
 	CUSTOM_TAB.name = "Search results";
 	CUSTOM_TAB.href = "";
-	print_header(&CUSTOM_TAB, "Search results", argv[1]);
+	html_header(&CUSTOM_TAB, "Search results", argv[1]);
 
 	if (list.length == 0) {
 		printf("No players found");
@@ -310,7 +310,7 @@ int main(int argc, char **argv)
 		printf("</tbody></table>\n");
 	}
 
-	print_footer();
+	html_footer();
 
 	return EXIT_SUCCESS;
 }

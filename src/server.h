@@ -2,7 +2,6 @@
 #define SERVER_H
 
 #include <time.h>
-#include "io.h"
 #include "player.h"
 
 #define MAX_CLIENTS 16
@@ -12,7 +11,7 @@ struct server_state {
 
 	int num_clients;
 	struct client {
-		char name[MAX_NAME_HEX_LENGTH], clan[MAX_CLAN_HEX_LENGTH];
+		char name[HEXNAME_LENGTH], clan[HEXNAME_LENGTH];
 		long score;
 		long ingame;
 	} clients[MAX_CLIENTS];

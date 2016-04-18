@@ -3,13 +3,13 @@
 #include <assert.h>
 #include <string.h>
 
-#include "io.h"
 #include "config.h"
+#include "html.h"
 #include "player.h"
 
 int main(int argc, char **argv)
 {
-	char name[MAX_NAME_HEX_LENGTH], clan[MAX_CLAN_STR_LENGTH];
+	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
 	struct player player;
 	int player_found;
 
@@ -21,14 +21,14 @@ int main(int argc, char **argv)
 
 	player_found = read_player(&player, argv[1]);
 
-	hex_to_string(argv[1], name);
+	hexname_to_name(argv[1], name);
 	CUSTOM_TAB.name = name;
 	CUSTOM_TAB.href = "";
-	print_header(&CUSTOM_TAB, name, NULL);
+	html_header(&CUSTOM_TAB, name, NULL);
 
 	/* Print player logo, name, clan, rank and elo */
 	if (player_found) {
-		hex_to_string(player.clan, clan);
+		hexname_to_name(player.clan, clan);
 		printf("<header id=\"player_header\">\n");
 		printf("\t<img src=\"/images/player.png\"/>\n");
 		printf("\t<section>\n");
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 		printf("<p>Player not found</p>\n");
 	}
 
-	print_footer();
+	html_footer();
 
 	return EXIT_SUCCESS;
 }

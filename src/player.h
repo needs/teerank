@@ -4,21 +4,23 @@
 #include <limits.h>
 
 #include "network.h"
-#include "io.h"
 
 /*
  * Teeworlds names cannot be bigger than 16, including terminating nul byte
  * When converting names to hexadecimal, each letter now take two bytes
  * hence the maximum name length is 16 * 2 + 1.
  */
-#define MAX_NAME_HEX_LENGTH 33
-#define MAX_NAME_STR_LENGTH 17
-#define MAX_CLAN_HEX_LENGTH 33
-#define MAX_CLAN_STR_LENGTH 17
+#define NAME_LENGTH 17
+#define HEXNAME_LENGTH 33
+
+int is_valid_hexname(const char *hex);
+
+void hexname_to_name(const char *hex, char *str);
+void name_to_hexname(const char *str, char *hex);
 
 struct player {
-	char name[MAX_NAME_HEX_LENGTH];
-	char clan[MAX_CLAN_HEX_LENGTH];
+	char name[HEXNAME_LENGTH];
+	char clan[HEXNAME_LENGTH];
 
 	struct player_delta *delta;
 	int elo;
@@ -46,8 +48,6 @@ enum {
  */
 int read_player(struct player *player, char *name);
 int write_player(struct player *player);
-
-void html_print_player(struct player *player, int show_clan_link);
 
 /* A player array provide an easy way to store players */
 struct player_array {

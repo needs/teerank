@@ -6,10 +6,9 @@
 #include <errno.h>
 #include <string.h>
 
+#include "config.h"
 #include "delta.h"
 #include "elo.h"
-#include "io.h"
-#include "config.h"
 
 static unsigned make_sens_to_rank(
 	int elapsed, struct player *players, unsigned length)
@@ -56,7 +55,7 @@ static void merge_delta(struct player *player, struct player_delta *delta)
 	player->delta = delta;
 
 	if (strcmp(player->clan, delta->clan)) {
-		char tmp[MAX_CLAN_HEX_LENGTH];
+		char tmp[HEXNAME_LENGTH];
 
 		/* Put the old clan in the delta so we can use it later */
 		strcpy(tmp, player->clan);

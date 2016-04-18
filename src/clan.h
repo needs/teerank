@@ -4,7 +4,7 @@
 #include "player.h"
 
 struct clan {
-	char name[MAX_CLAN_HEX_LENGTH];
+	char name[HEXNAME_LENGTH];
 
 	unsigned length;
 	struct player *members;

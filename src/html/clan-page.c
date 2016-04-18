@@ -5,8 +5,8 @@
 #include <libgen.h>
 #include <string.h>
 
-#include "io.h"
 #include "config.h"
+#include "html.h"
 #include "player.h"
 #include "clan.h"
 
@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 {
 	struct clan clan;
 	unsigned missing_members, i;
-	char clan_name[MAX_CLAN_STR_LENGTH];
+	char clan_name[NAME_LENGTH];
 
 	load_config();
 	if (argc != 2) {
@@ -46,8 +46,8 @@ int main(int argc, char **argv)
 	qsort(clan.members, clan.length, sizeof(*clan.members), cmp_player);
 
 	/* Eventually, print them */
-	hex_to_string(clan.name, clan_name);
-	print_header(&CTF_TAB, clan_name, NULL);
+	hexname_to_name(clan.name, clan_name);
+	html_header(&CTF_TAB, clan_name, NULL);
 	printf("<h2>%s</h2>\n", clan_name);
 
 	if (!missing_members)
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 		html_print_player(&clan.members[i], 0);
 
 	printf("</tbody></table>\n");
-	print_footer();
+	html_footer();
 
 	return EXIT_SUCCESS;
 }

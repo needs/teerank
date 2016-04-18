@@ -170,7 +170,7 @@ static const struct directory root = {
 		  "ranks", NULL },
 		{ "about.html", (char*[]){ "teerank-html-about", NULL },
 		  NULL, NULL, NULL },
-		{ "search", (char*[]){ "teerank-search", NULL },
+		{ "search", (char*[]){ "teerank-html-search", NULL },
 		  NULL, search_file_apply_query, NULL },
 		{ NULL }
 	}, NULL, (struct directory[]) {

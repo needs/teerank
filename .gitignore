@@ -8,21 +8,5 @@
 *.o
 *.swp
 
-/teerank-add-new-servers
-/teerank-remove-offline-servers
-/teerank-generate-index
-/teerank-update-players
-/teerank-update-servers
-/teerank-update-clans
-/teerank-generate-clan-page
-/teerank-compute-ranks
-/teerank-generate-rank-page
-/teerank-generate-player-page
-/teerank-generate-about
-/teerank-paginate-ranks
-/teerank-create-database
-/teerank-search
-/teerank-upgrade*
-/teerank-update
-/teerank-repair
+/teerank-*
 /teerank.cgi

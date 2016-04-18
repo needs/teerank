@@ -1,5 +1,5 @@
-CFLAGS = -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
-BINS = $(addprefix teerank-,add-new-servers update-servers generate-index update-players update-clans generate-clan-page compute-ranks generate-rank-page generate-about generate-player-page paginate-ranks remove-offline-servers search repair)
+CFLAGS = -Isrc -Wall -Werror -O -ansi -D_POSIX_C_SOURCE=200809L -g
+BINS = $(addprefix teerank-,add-new-servers update-servers update-players update-clans compute-ranks paginate-ranks remove-offline-servers search repair $(addprefix html-,index about player-page rank-page clan-page))
 SCRIPTS = $(addprefix teerank-,create-database upgrade-0-to-1 upgrade-1-to-2 upgrade-2-to-3 upgrade-3-to-4 upgrade update)
 CGI = teerank.cgi
 
@@ -21,31 +21,16 @@ teerank-add-new-servers: src/add-new-servers.o src/network.o
 teerank-update-servers: src/update-servers.o src/network.o src/pool.o src/delta.o src/io.o src/server.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-generate-index: src/generate-index.o src/io.o src/player.o
-	$(CC) -o $@ $(CFLAGS) $^
-
 teerank-update-players: src/update-players.o src/delta.o src/elo.o src/io.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^ -lm
 
 teerank-update-clans: src/update-clans.o src/io.o src/player.o src/clan.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-generate-clan-page: src/generate-clan-page.o src/io.o src/player.o src/clan.o
-	$(CC) -o $@ $(CFLAGS) $^
-
 teerank-compute-ranks: src/compute-ranks.o src/io.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-generate-rank-page: src/generate-rank-page.o src/io.o src/player.o
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-generate-player-page: src/generate-player-page.o src/io.o src/player.o
-	$(CC) -o $@ $(CFLAGS) $^
-
 teerank-paginate-ranks: src/paginate-ranks.o
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-generate-about: src/generate-about.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-remove-offline-servers: src/remove-offline-servers.o src/server.o
@@ -55,6 +40,21 @@ teerank-search: src/search.o src/io.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-repair: src/repair.o src/io.o src/player.o src/clan.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+teerank-html-index: src/html/index.o src/io.o src/player.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+teerank-html-clan-page: src/html/clan-page.o src/io.o src/player.o src/clan.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+teerank-html-rank-page: src/html/rank-page.o src/io.o src/player.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+teerank-html-player-page: src/html/player-page.o src/io.o src/player.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+teerank-html-about: src/html/about.o src/io.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 #
@@ -91,7 +91,7 @@ $(CGI): src/cgi.o src/route.o
 #
 
 clean:
-	rm -f src/*.o $(BINS) $(CGI)
+	rm -f src/*.o $(BINS) $(SCRIPTS) $(CGI)
 
 #
 # Install

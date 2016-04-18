@@ -64,7 +64,7 @@ static char *get_raw_source_from_name(char *name)
 static struct file *page_default_file(char *name)
 {
 	static struct file file;
-	static char *args[] = { "teerank-generate-rank-page", "full-page", NULL };
+	static char *args[] = { "teerank-html-rank-page", "full-page", NULL };
 
 	file.name = name;
 	file.source = get_source_from_name(name, "pages");
@@ -76,7 +76,7 @@ static struct file *page_default_file(char *name)
 static struct file *clan_default_file(char *name)
 {
 	static struct file file;
-	static char *args[] = { "teerank-generate-clan-page", NULL, NULL };
+	static char *args[] = { "teerank-html-clan-page", NULL, NULL };
 
 	file.name = name;
 	file.source = get_source_from_name(name, "clans");
@@ -89,7 +89,7 @@ static struct file *clan_default_file(char *name)
 static struct file *player_default_file(char *name)
 {
 	static struct file file;
-	static char *args[] = { "teerank-generate-player-page", NULL, NULL };
+	static char *args[] = { "teerank-html-player-page", NULL, NULL };
 
 	file.name = name;
 	file.source = NULL;
@@ -166,9 +166,9 @@ static void search_file_apply_query(struct file *file, char *query)
 
 static const struct directory root = {
 	"", (struct file[]) {
-		{ "index.html", (char*[]){ "teerank-generate-index", NULL },
+		{ "index.html", (char*[]){ "teerank-html-index", NULL },
 		  "ranks", NULL },
-		{ "about.html", (char*[]){ "teerank-generate-about", NULL },
+		{ "about.html", (char*[]){ "teerank-html-about", NULL },
 		  NULL, NULL, NULL },
 		{ "search", (char*[]){ "teerank-search", NULL },
 		  NULL, search_file_apply_query, NULL },

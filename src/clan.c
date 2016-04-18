@@ -82,33 +82,21 @@ fail:
 int write_clan(const struct clan *clan)
 {
 	unsigned i;
-	static char path[PATH_MAX], dest[PATH_MAX];
-	int fd, ret;
+	static char path[PATH_MAX];
+	int ret;
 	FILE *file;
 
 	assert(clan != NULL);
 	assert(strcmp(clan->name, "00"));
 
-	ret = snprintf(path, PATH_MAX, "%s/clans/%s-tmp-XXXXXX",
-	               config.root, clan->name);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);
-		return 0;
-	}
-
-	ret = snprintf(dest, PATH_MAX, "%s/clans/%s", config.root, clan->name);
+	ret = snprintf(path, PATH_MAX, "%s/clans/%s", config.root, clan->name);
 	if (ret >= PATH_MAX) {
 		fprintf(stderr, "snprintf(dest, %d): Too long\n", PATH_MAX);
 		return 0;
 	}
 
-	if ((fd = mkstemp(path)) == -1) {
-		fprintf(stderr, "mkstemp(\"%s\"): %s\n", path, strerror(errno));
-		return 0;
-	}
-	if (!(file = fdopen(fd, "w"))) {
-		perror("fdopen()");
-		close(fd); unlink(path);
+	if (!(file = fopen(path, "w"))) {
+		perror(path);
 		return 0;
 	}
 
@@ -116,13 +104,6 @@ int write_clan(const struct clan *clan)
 		fprintf(file, "%s\n", clan->members[i].name);
 
 	fclose(file);
-
-	if (rename(path, dest) == -1) {
-		fprintf(stderr, "rename(\"%s\", \"%s\"): %s\n",
-		        path, dest, strerror(errno));
-		unlink(path);
-		return 0;
-	}
 
 	return 1;
 }

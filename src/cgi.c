@@ -195,7 +195,7 @@ static int generate(struct route *route)
 		}
 
 		/* Report error */
-		print_error(500);
+		print_error(WEXITSTATUS(c));
 		fprintf(stderr, "%s: ", route->args[0]);
 		pipefile = fdopen(err[0], "r");
 		while ((c = fgetc(pipefile)) != EOF)

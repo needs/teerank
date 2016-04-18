@@ -23,7 +23,7 @@ static void load_page(struct page *page)
 
 	if (scanf("page %u/%u ", &page->number, &page->total) != 2) {
 		fprintf(stderr, "Cannot match page header\n");
-		exit(EXIT_FAILURE);
+		exit(500);
 	}
 
 	while (scanf(" %s", name) == 1) {
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 	load_config();
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s [full-page|only-rows]\n", argv[0]);
-		return EXIT_FAILURE;
+		return 500;
 	}
 
 	if (!strcmp(argv[1], "full-page"))
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 		mode = ONLY_ROWS;
 	else {
 		fprintf(stderr, "First argument must be either \"full-page\" or \"only-rows\"\n");
-		return EXIT_FAILURE;
+		return 500;
 	}
 
 	load_page(&page);

@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 	load_config();
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <player_name>\n", argv[0]);
-		return EXIT_FAILURE;
+		return 500;
 	}
 
 	player_found = read_player(&player, argv[1]);

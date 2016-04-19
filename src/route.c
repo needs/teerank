@@ -79,7 +79,7 @@ static struct file *clan_default_file(char *name)
 	static char *args[] = { "teerank-html-clan-page", NULL, NULL };
 
 	file.name = name;
-	file.source = get_source_from_name(name, "clans");
+	file.source = NULL;
 	file.args = args;
 	file.args[1] = get_raw_source_from_name(name);
 

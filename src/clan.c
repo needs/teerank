@@ -156,16 +156,16 @@ void remove_member(struct clan *clan, struct player *member)
 unsigned load_members(struct clan *clan)
 {
 	unsigned i;
-	unsigned count = 0;
+	unsigned removed = 0;
 
 	for (i = 0; i < clan->length; i++) {
 		if (!read_player(&clan->members[i], clan->members[i].name)) {
 			remove_member(clan, &clan->members[i]);
-			count++;
+			removed++;
 		}
 	}
 
-	return count;
+	return removed;
 }
 
 int clan_equal(const struct clan *c1, const struct clan *c2)

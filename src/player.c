@@ -13,10 +13,16 @@
 
 int is_valid_hexname(const char *hex)
 {
+	size_t length;
+
 	assert(hex != NULL);
 
-	if (strlen(hex) >= HEXNAME_LENGTH)
+	length = strlen(hex);
+	if (length >= HEXNAME_LENGTH)
 		return 0;
+	if (length % 2 == 1)
+		return 0;
+
 	while (isxdigit(*hex))
 		hex++;
 	return *hex == '\0';

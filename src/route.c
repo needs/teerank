@@ -39,17 +39,6 @@ static void remove_extension(char *str, char *ext)
 	*tmp = '\0';
 }
 
-static char *get_source_from_name(char *name, char *dirtree)
-{
-	static char source[PATH_MAX];
-
-	if (snprintf(source, PATH_MAX, "%s/%s", dirtree, name) >= PATH_MAX)
-		error(414, NULL);
-	remove_extension(source, "html");
-
-	return source;
-}
-
 static char *get_raw_source_from_name(char *name)
 {
 	static char source[PATH_MAX];
@@ -64,11 +53,12 @@ static char *get_raw_source_from_name(char *name)
 static struct file *page_default_file(char *name)
 {
 	static struct file file;
-	static char *args[] = { "teerank-html-rank-page", "full-page", NULL };
+	static char *args[] = { "teerank-html-rank-page", "full-page", NULL, NULL };
 
 	file.name = name;
-	file.source = get_source_from_name(name, "pages");
+	file.source = NULL;
 	file.args = args;
+	file.args[2] = get_raw_source_from_name(name);
 
 	return &file;
 }

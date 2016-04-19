@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <dirent.h>
+#include <errno.h>
 
 #include "config.h"
 #include "html.h"
@@ -15,24 +16,41 @@ struct page {
 	struct player_array players;
 };
 
-static void load_page(struct page *page)
+static void load_page(struct page *page, unsigned number)
 {
 	char name[HEXNAME_LENGTH];
+	static char path[PATH_MAX];
+	int ret;
+	FILE *file;
 
 	assert(page != NULL);
 
-	if (scanf("page %u/%u ", &page->number, &page->total) != 2) {
-		fprintf(stderr, "Cannot match page header\n");
+	ret = snprintf(path, PATH_MAX, "%s/pages/%u", config.root, number);
+	if (ret >= PATH_MAX) {
+		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);
 		exit(500);
 	}
 
-	while (scanf(" %s", name) == 1) {
+	if (!(file = fopen(path, "r"))) {
+		perror(path);
+		exit(500);
+	}
+
+	if (fscanf(file, "page %u/%u ", &page->number, &page->total) != 2) {
+		fprintf(stderr, "%s: Cannot match page header\n", path);
+		fclose(file);
+		exit(500);
+	}
+
+	while (fscanf(file, " %s", name) == 1) {
 		struct player player;
 		if (!is_valid_hexname(name))
 			continue;
 		if (read_player(&player, name))
 			add_player(&page->players, &player);
 	}
+
+	fclose(file);
 }
 
 static void print_page(struct page *page)
@@ -94,32 +112,62 @@ static void print_nav(struct page *page)
 	printf("</nav>");
 }
 
-static const struct page PAGE_ZERO;
 enum mode {
 	FULL_PAGE, ONLY_ROWS
 };
+
+static enum mode parse_mode(const char *str)
+{
+	assert(str != NULL);
+
+	if (!strcmp(str, "full-page"))
+		return FULL_PAGE;
+	else if (!strcmp(str, "only-rows"))
+		return ONLY_ROWS;
+	else {
+		fprintf(stderr, "First argument must be either \"full-page\" or \"only-rows\"\n");
+		exit(500);
+	}
+}
+
+static unsigned parse_page_number(const char *str)
+{
+	long ret;
+	char *endptr;
+
+	assert(str != NULL);
+
+	errno = 0;
+	ret = strtol(str, &endptr, 10);
+	if (ret == 0 && errno == EINVAL) {
+		fprintf(stderr, "%s: is not a number\n", str);
+		exit(404);
+	} else if (ret < 0 || ret > UINT_MAX) {
+		fprintf(stderr, "%s: invalid page number\n", str);
+		exit(404);
+	}
+
+	return (unsigned)ret;
+}
+
+static const struct page PAGE_ZERO;
 
 int main(int argc, char **argv)
 {
 	struct page page = PAGE_ZERO;
 	enum mode mode;
+	unsigned page_number;
 
 	load_config();
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s [full-page|only-rows]\n", argv[0]);
+	if (argc != 3) {
+		fprintf(stderr, "usage: %s [full-page|only-rows] <page_number>\n", argv[0]);
 		return 500;
 	}
 
-	if (!strcmp(argv[1], "full-page"))
-		mode = FULL_PAGE;
-	else if (!strcmp(argv[1], "only-rows"))
-		mode = ONLY_ROWS;
-	else {
-		fprintf(stderr, "First argument must be either \"full-page\" or \"only-rows\"\n");
-		return 500;
-	}
+	mode = parse_mode(argv[1]);
+	page_number = parse_page_number(argv[2]);
 
-	load_page(&page);
+	load_page(&page, page_number);
 
 	if (mode == FULL_PAGE) {
 		html_header(&CTF_TAB, "CTF", NULL);

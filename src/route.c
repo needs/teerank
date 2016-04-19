@@ -13,7 +13,6 @@
 struct file {
 	char *name;
 	char **args;
-	char *source;
 
 	void (*apply_query)(struct file *file, char *query);
 
@@ -56,7 +55,6 @@ static struct file *page_default_file(char *name)
 	static char *args[] = { "teerank-html-rank-page", "full-page", NULL, NULL };
 
 	file.name = name;
-	file.source = NULL;
 	file.args = args;
 	file.args[2] = get_raw_source_from_name(name);
 
@@ -69,7 +67,6 @@ static struct file *clan_default_file(char *name)
 	static char *args[] = { "teerank-html-clan-page", NULL, NULL };
 
 	file.name = name;
-	file.source = NULL;
 	file.args = args;
 	file.args[1] = get_raw_source_from_name(name);
 
@@ -82,7 +79,6 @@ static struct file *player_default_file(char *name)
 	static char *args[] = { "teerank-html-player-page", NULL, NULL };
 
 	file.name = name;
-	file.source = NULL;
 	file.args = args;
 	file.args[1] = get_raw_source_from_name(name);
 
@@ -149,7 +145,6 @@ static void search_file_apply_query(struct file *file, char *query)
 
 	/* Don't cache search result */
 	file->name = NULL;
-	file->source = NULL;
 	file->args = args;
 	file->args[1] = arg->val;
 }
@@ -157,9 +152,9 @@ static void search_file_apply_query(struct file *file, char *query)
 static const struct directory root = {
 	"", (struct file[]) {
 		{ "about.html", (char*[]){ "teerank-html-about", NULL },
-		  NULL, NULL, NULL },
+		  NULL, NULL },
 		{ "search", (char*[]){ "teerank-html-search", NULL },
-		  NULL, search_file_apply_query, NULL },
+		  search_file_apply_query, NULL },
 		{ NULL }
 	}, NULL, (struct directory[]) {
 		{ "pages", NULL, page_default_file, NULL, NULL },
@@ -206,7 +201,6 @@ static struct route *get_route(char *path, struct file *file)
 {
 	static struct route route;
 
-	route.source = file->source;
 	route.args = file->args;
 
 	if (file->name)

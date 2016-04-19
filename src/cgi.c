@@ -57,15 +57,9 @@ void error(int code, char *fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-/* Return true if a is more recent than b */
-static int is_more_recent(struct stat *a, struct stat *b)
-{
-	return a->st_mtim.tv_sec > b->st_mtim.tv_sec;
-}
-
 static int is_up_to_date(struct route *route)
 {
-	struct stat s, tmp;
+	struct stat s;
 
 	assert(route != NULL);
 
@@ -73,20 +67,12 @@ static int is_up_to_date(struct route *route)
 	if (!route->cache || stat(route->cache, &s) == -1)
 		return 0;
 
-	/* Regenerate if the source route is more recent */
-	if (route->source) {
-		if (stat(route->source, &tmp) == -1)
-			return 0;
-		if (is_more_recent(&tmp, &s))
-			return 0;
-	}
-
 	return 1;
 }
 
 static int generate(struct route *route)
 {
-	int dest[2], src = -1, err[2];
+	int dest[2], err[2];
 	char tmpname[PATH_MAX];
 
 	assert(route != NULL);
@@ -122,24 +108,6 @@ static int generate(struct route *route)
 	else
 		verbose("Generating uncached file with '%s'\n", route->args[0]);
 
-	/*
-	 * Open src before fork() because if the file doesn't exist, then we
-	 * raise a 404, and if it does but cannot be opened, we raise a 500.
-	 */
-	if (route->source) {
-		static char source[PATH_MAX];
-
-		if (snprintf(source, PATH_MAX, "%s/%s", config.root, route->source) >= PATH_MAX)
-			error(414, NULL);
-
-		if ((src = open(source, O_RDONLY)) == -1) {
-			if (errno == ENOENT)
-				error(404, NULL);
-			else
-				error(500, "%s: %s\n", source, strerror(errno));
-		}
-	}
-
 	if (route->cache) {
 		/*
 		 * If the file needs to be cached, redirect stdout to a
@@ -172,8 +140,6 @@ static int generate(struct route *route)
 
 		close(err[1]);
 
-		if (route->source)
-			close(src);
 		if (!route->cache)
 			close(dest[1]);
 
@@ -207,12 +173,6 @@ static int generate(struct route *route)
 	/* Redirect stderr to the write side of the pipe */
 	dup2(err[1], STDERR_FILENO);
 	close(err[0]);
-
-	/* Redirect stdin */
-	if (route->source) {
-		dup2(src, STDIN_FILENO);
-		close(src);
-	}
 
 	/* Redirect stdout */
 	dup2(dest[1], STDOUT_FILENO);

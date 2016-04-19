@@ -3,7 +3,6 @@
 
 struct route {
 	char *cache;
-	char *source;
 	char **args;
 };
 

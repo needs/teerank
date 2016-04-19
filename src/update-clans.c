@@ -63,6 +63,12 @@ int main(int argc, char *argv[])
 		if (!strcmp(old, new)) {
 			fprintf(stderr, "scanf(delta): Old and new clan must be different (%s)\n", old);
 			continue;
+		} else if (!is_valid_hexname(old)) {
+			fprintf(stderr, "scanf(delta): Expected old clan in hexadecimal form (%s)\n", old);
+			continue;
+		} else if (!is_valid_hexname(new)) {
+			fprintf(stderr, "scanf(delta): Expected new clan in hexadecimal form (%s)\n", new);
+			continue;
 		}
 		clan_move_player(old, new, player);
 	}

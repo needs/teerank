@@ -54,6 +54,7 @@ int read_clan(struct clan *clan, char *cname)
 	int ret;
 
 	assert(clan != NULL);
+	assert(is_valid_hexname(cname));
 	assert(strcmp(cname, "00"));
 
 	if (!(path = clan_path(cname)))

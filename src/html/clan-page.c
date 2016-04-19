@@ -38,6 +38,8 @@ int main(int argc, char **argv)
 
 	/* Load players */
 
+	if (!is_valid_hexname(argv[1]))
+		return 404;
 	if (!read_clan(&clan, argv[1]))
 		return 404;
 	missing_members = load_members(&clan);

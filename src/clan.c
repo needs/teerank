@@ -30,6 +30,11 @@ struct player *add_member(struct clan *clan, char *name)
 	assert(clan != NULL);
 	assert(name != NULL);
 
+	if (!is_valid_hexname(name)) {
+		fprintf(stderr, "%s: Not a valid hexname\n", name);
+		return NULL;
+	}
+
 	if (clan->length % OFFSET == 0) {
 		struct player *members;
 		members = realloc(clan->members,

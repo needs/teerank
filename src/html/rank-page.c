@@ -28,8 +28,10 @@ static void load_page(struct page *page)
 
 	while (scanf(" %s", name) == 1) {
 		struct player player;
-		read_player(&player, name);
-		add_player(&page->players, &player);
+		if (!is_valid_hexname(name))
+			continue;
+		if (read_player(&player, name))
+			add_player(&page->players, &player);
 	}
 }
 

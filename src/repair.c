@@ -100,6 +100,9 @@ int main(int argc, char **argv)
 
 		if (!strcmp(dp->d_name, "..") || !strcmp(dp->d_name, "."))
 			continue;
+		if (!is_valid_hexname(dp->d_name))
+			continue;
+
 		if (!read_player(&player, dp->d_name))
 			continue;
 

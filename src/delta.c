@@ -42,6 +42,11 @@ int scan_delta(struct delta *delta)
 			return fprintf(stderr, "<stdin>: Cannot match player score\n"), 0;
 		else if (ret == 3)
 			return fprintf(stderr, "<stdin>: Cannot match player delta\n"), 0;
+
+		if (!is_valid_hexname(delta->players[i].name))
+			return fprintf(stderr, "<stdin>: %s: Not a valid player name\n", delta->players[i].name), 0;
+		if (!is_valid_hexname(delta->players[i].clan))
+			return fprintf(stderr, "<stdin>: %s: Not a valid player clan\n", delta->players[i].clan), 0;
 	}
 
 	return 1;

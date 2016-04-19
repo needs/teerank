@@ -19,6 +19,8 @@ int main(int argc, char **argv)
 		return 500;
 	}
 
+	if (!is_valid_hexname(argv[1]))
+		return 404;
 	player_found = read_player(&player, argv[1]);
 
 	hexname_to_name(argv[1], name);

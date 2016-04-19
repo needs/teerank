@@ -95,6 +95,7 @@ int read_player(struct player *player, char *name)
 
 	assert(name != NULL);
 	assert(player != NULL);
+	assert(is_valid_hexname(name));
 
 	if (!(path = get_path(name)))
 		return 0;

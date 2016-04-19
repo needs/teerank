@@ -25,6 +25,8 @@ static void load_players(struct player_array *array)
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
+		if (!is_valid_hexname(dp->d_name))
+			continue;
 
 		if (read_player(&player, dp->d_name))
 			add_player(array, &player);

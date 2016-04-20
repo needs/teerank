@@ -211,6 +211,13 @@ static struct route *get_route(char *path, struct file *file)
 	return &route;
 }
 
+static void undo_strtok(char *c)
+{
+	while (*c)
+		c--;
+	*c = '/';
+}
+
 struct route *do_route(char *path, char *query)
 {
 	const struct directory *tmp, *dir = &root;
@@ -222,7 +229,7 @@ struct route *do_route(char *path, char *query)
 
 	for (name = strtok(path, "/"); name; name = strtok(NULL, "/")) {
 		if (name != path)
-			*(name - 1) = '/';
+			undo_strtok(name);
 
 		if ((tmp = find_directory(dir, name)))
 			dir = tmp;

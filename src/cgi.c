@@ -218,6 +218,7 @@ static void init_cache(void)
 	create_directory("%s", config.cache_root);
 	create_directory("%s/pages", config.cache_root);
 	create_directory("%s/clans", config.cache_root);
+	create_directory("%s/players", config.cache_root);
 }
 
 static char *get_path(void)

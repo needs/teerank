@@ -12,7 +12,7 @@
  */
 struct config config = {
 	.root = ".teerank",
-	.cache_root = ".",
+	.cache_root = ".teerank_cache",
 	.tmp_root = ".",
 	.verbose = 0,
 	.debug = 0

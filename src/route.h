@@ -2,7 +2,8 @@
 #define ROUTE_H
 
 struct route {
-	char *cache;
+	char *cache_path;
+	char *cache_location;
 	char **args;
 };
 

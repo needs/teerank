@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <dirent.h>
 
+#include "config.h"
 #include "route.h"
 #include "cgi.h"
 
@@ -197,16 +198,29 @@ static struct file *find_file(const struct directory *dir, char *name)
 	return NULL;
 }
 
-static struct route *get_route(char *path, struct file *file)
+static struct route *get_route(char *cache_location, struct file *file)
 {
 	static struct route route;
 
 	route.args = file->args;
 
-	if (file->name)
-		route.cache = path;
-	else
-		route.cache = NULL;
+	if (!file->name) {
+		route.cache_path = NULL;
+		route.cache_location = NULL;
+	} else {
+		static char path[PATH_MAX];
+		int ret;
+
+		ret = snprintf(path, PATH_MAX, "%s/%s",
+		               config.cache_root, cache_location);
+		if (ret >= PATH_MAX) {
+			fprintf(stderr, "%s: Too long\n", cache_location);
+			exit(404);
+		}
+
+		route.cache_path = path;
+		route.cache_location = cache_location;
+	}
 
 	return &route;
 }

@@ -64,7 +64,7 @@ static int is_up_to_date(struct route *route)
 	assert(route != NULL);
 
 	/* First, if the route is not in cache, it need to be generated */
-	if (!route->cache || stat(route->cache, &s) == -1)
+	if (!route->cache_path || stat(route->cache_path, &s) == -1)
 		return 0;
 
 	return 1;
@@ -97,18 +97,18 @@ static int generate(struct route *route)
 	 */
 
 	if (is_up_to_date(route)) {
-		verbose("'%s' already cached and up-to-date\n", route->cache);
-		if ((dest[0] = open(route->cache, O_RDONLY)) == -1)
-			error(500, "open(%s): %s\n", route->cache, strerror(errno));
+		verbose("'%s' already cached and up-to-date\n", route->cache_location);
+		if ((dest[0] = open(route->cache_path, O_RDONLY)) == -1)
+			error(500, "open(%s): %s\n", route->cache_path, strerror(errno));
 		return dest[0];
 	}
 
-	if (route->cache)
-		verbose("Generating '%s' with '%s'\n", route->cache, route->args[0]);
+	if (route->cache_path)
+		verbose("Generating '%s' with '%s'\n", route->cache_location, route->args[0]);
 	else
 		verbose("Generating uncached file with '%s'\n", route->args[0]);
 
-	if (route->cache) {
+	if (route->cache_path) {
 		/*
 		 * If the file needs to be cached, redirect stdout to a
 		 * temporary file and then rename() it later on to the
@@ -140,19 +140,15 @@ static int generate(struct route *route)
 
 		close(err[1]);
 
-		if (!route->cache)
+		if (!route->cache_path)
 			close(dest[1]);
 
 		wait(&c);
 		if (WIFEXITED(c) && WEXITSTATUS(c) == EXIT_SUCCESS) {
-			if (route->cache) {
-				static char cachepath[PATH_MAX];
-
-				if (snprintf(cachepath, PATH_MAX, "%s/%s", config.cache_root, route->cache) >= PATH_MAX)
-					error(500, "Path for file in cache is too long\n");
-				if (rename(tmpname, cachepath) == -1)
+			if (route->cache_path) {
+				if (rename(tmpname, route->cache_path) == -1)
 					error(500, "rename(%s, %s): %s\n",
-					      tmpname, cachepath, strerror(errno));
+					      tmpname, route->cache_path, strerror(errno));
 				if (lseek(dest[0], 0, SEEK_SET) == -1)
 					error(500, "lseek(%s): %s\n", tmpname, strerror(errno));
 			}
@@ -178,7 +174,7 @@ static int generate(struct route *route)
 	dup2(dest[1], STDOUT_FILENO);
 	close(dest[1]);
 
-	if (!route->cache)
+	if (!route->cache_path)
 		close(dest[0]);
 
 	/* Eventually, run the program */

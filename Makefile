@@ -8,6 +8,18 @@ CGI = teerank.cgi
 
 all: $(BINS) $(SCRIPTS) $(CGI)
 
+# Header file dependancies
+src/config.o: src/config.h
+src/player.o: src/player.h
+src/cgi.o: src/cgi.h
+src/delta.o: src/delta.h
+src/elo.o: src/elo.h
+src/network.o: src/network.h
+src/pool.o: src/pool.h
+src/route.o: src/route.h
+src/server.o: src/server.h
+src/clan.o: src/clan.h
+
 # All binaries share the same configuration
 $(BINS): src/config.o
 $(CGI): src/config.o

@@ -16,8 +16,8 @@
 
 int is_valid_hexname(const char *hex);
 
-void hexname_to_name(const char *hex, char *str);
-void name_to_hexname(const char *str, char *hex);
+void hexname_to_name(const char *hex, char *name);
+void name_to_hexname(const char *name, char *hex);
 
 struct history_entry {
 	time_t timestamp;

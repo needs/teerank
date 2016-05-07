@@ -31,28 +31,28 @@ int is_valid_hexname(const char *hex)
 	return *hex == '\0';
 }
 
-void hexname_to_name(const char *hex, char *str)
+void hexname_to_name(const char *hex, char *name)
 {
 	assert(hex != NULL);
-	assert(str != NULL);
-	assert(hex != str);
+	assert(name != NULL);
+	assert(hex != name);
 
-	for (; hex[0] != '0' || hex[1] != '0'; hex += 2, str++) {
+	for (; hex[0] != '0' || hex[1] != '0'; hex += 2, name++) {
 		char tmp[3] = { hex[0], hex[1], '\0' };
-		*str = strtol(tmp, NULL, 16);
+		*name = strtol(tmp, NULL, 16);
 	}
 
-	*str = '\0';
+	*name = '\0';
 }
 
-void name_to_hexname(const char *str, char *hex)
+void name_to_hexname(const char *name, char *hex)
 {
-	assert(str != NULL);
+	assert(name != NULL);
 	assert(hex != NULL);
-	assert(str != hex);
+	assert(name != hex);
 
-	for (; *str; str++, hex += 2)
-		sprintf(hex, "%2x", *(unsigned char*)str);
+	for (; *name; name++, hex += 2)
+		sprintf(hex, "%2x", *(unsigned char*)name);
 	strcpy(hex, "00");
 }
 

@@ -153,11 +153,11 @@ static int read_full_history(FILE *file, const char *path,
 		if (ret == EOF && errno != 0)
 			perror(path);
 		else if (ret == EOF || ret == 0)
-			fprintf(stderr, "%s: Cannot match history entry %u timestamp\n", path, i);
+			fprintf(stderr, "%s: entry %u: Cannot match timestamp\n", path, i);
 		else if (ret == 1)
-			fprintf(stderr, "%s: Cannot match history entry %u elo\n", path, i);
+			fprintf(stderr, "%s: entry %u: Cannot match elo\n", path, i);
 		else if (ret == 2)
-			fprintf(stderr, "%s: Cannot match history entry %u rank\n", path, i);
+			fprintf(stderr, "%s: entry %u: Cannot match rank\n", path, i);
 		else
 			continue;
 		break;
@@ -187,9 +187,11 @@ static int read_history(FILE *file, const char *path,
 	if (ret == EOF && errno != 0)
 		return perror(path), 0;
 	else if (ret == EOF || ret == 0)
-		return fprintf(stderr, "%s: Cannot match current history entry timestamp\n", path), 0;
+		return fprintf(stderr, "%s: current entry: Cannot match timestamp\n", path), 0;
 	else if (ret == 1)
-		return fprintf(stderr, "%s: Cannot match current history entry elo\n", path), 0;
+		return fprintf(stderr, "%s: current entry: Cannot match elo\n", path), 0;
+	else if (ret == 2)
+		return fprintf(stderr, "%s: current entry: Cannot match rank\n", path), 0;
 
 	player->elo = history->current.elo;
 	player->rank = history->current.rank;

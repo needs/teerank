@@ -43,10 +43,10 @@ static void load_page(struct page *page, unsigned number)
 	}
 
 	while (fscanf(file, " %s", name) == 1) {
-		struct player player;
+		struct player player = PLAYER_ZERO;
 		if (!is_valid_hexname(name))
 			continue;
-		if (read_player(&player, name))
+		if (read_player(&player, name, 0))
 			add_player(&page->players, &player);
 	}
 

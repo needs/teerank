@@ -10,7 +10,7 @@
 int main(int argc, char **argv)
 {
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
-	struct player player;
+	struct player player = PLAYER_ZERO;
 	int player_found;
 
 	load_config();
@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 
 	if (!is_valid_hexname(argv[1]))
 		return 404;
-	player_found = read_player(&player, argv[1]);
+	player_found = read_player(&player, argv[1], 0);
 
 	hexname_to_name(argv[1], name);
 	CUSTOM_TAB.name = name;

@@ -74,6 +74,8 @@ static void print_elo_change(struct player *player, int elo)
 	        player->elo, elo, elo - player->elo);
 }
 
+#include <stdio.h>
+
 void update_elos(struct player *players, unsigned length)
 {
 	int elos[MAX_PLAYERS];
@@ -94,10 +96,7 @@ void update_elos(struct player *players, unsigned length)
 		}
 	}
 
-	for (i = 0; i < length; i++) {
-		if (players[i].is_rankable && players[i].elo != elos[i]) {
-			players[i].elo = elos[i];
-			players[i].is_modified |= IS_MODIFIED_ELO;
-		}
-	}
+	for (i = 0; i < length; i++)
+		if (players[i].is_rankable)
+			update_elo(&players[i], elos[i]);
 }

@@ -10,6 +10,10 @@
 #include "delta.h"
 #include "elo.h"
 
+/*
+ * Given a game it does return wether or not this game fills the requirements
+ * to be ranked.
+ */
 static unsigned make_sens_to_rank(
 	int elapsed, struct player *players, unsigned length)
 {
@@ -71,7 +75,7 @@ static void merge_delta(struct player *player, struct player_delta *delta)
 int main(int argc, char **argv)
 {
 	struct delta delta;
-	struct player players[MAX_PLAYERS];
+	struct player players[MAX_PLAYERS] = {0};
 	unsigned i;
 
 	load_config();
@@ -85,7 +89,7 @@ int main(int argc, char **argv)
 
 		/* Load player (ignore fail) */
 		for (i = 0; i < delta.length; i++) {
-			if (!read_player(&players[length], delta.players[i].name))
+			if (!read_player(&players[length], delta.players[i].name, 1))
 				continue;
 
 			merge_delta(&players[length], &delta.players[i]);

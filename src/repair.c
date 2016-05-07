@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 
 	/* Build clan list */
 	while ((dp = readdir(dir))) {
-		struct player player;
+		struct player player = PLAYER_ZERO;
 		struct clan *clan;
 
 		if (!strcmp(dp->d_name, "..") || !strcmp(dp->d_name, "."))
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 		if (!is_valid_hexname(dp->d_name))
 			continue;
 
-		if (!read_player(&player, dp->d_name))
+		if (!read_player(&player, dp->d_name, 0))
 			continue;
 
 		clan = get_clan(&clans, player.clan);

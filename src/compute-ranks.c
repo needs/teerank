@@ -21,14 +21,14 @@ static void load_players(struct player_array *array)
 		perror(path), exit(EXIT_FAILURE);
 
 	while ((dp = readdir(dir))) {
-		struct player player;
+		struct player player = PLAYER_ZERO;
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 		if (!is_valid_hexname(dp->d_name))
 			continue;
 
-		if (read_player(&player, dp->d_name))
+		if (read_player(&player, dp->d_name, 0))
 			add_player(array, &player);
 	}
 

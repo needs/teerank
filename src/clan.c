@@ -164,7 +164,8 @@ unsigned load_members(struct clan *clan)
 	unsigned removed = 0;
 
 	for (i = 0; i < clan->length; i++) {
-		if (!read_player(&clan->members[i], clan->members[i].name)) {
+		clan->members[i] = PLAYER_ZERO;
+		if (!read_player(&clan->members[i], clan->members[i].name, 0)) {
 			remove_member(clan, &clan->members[i]);
 			removed++;
 		}

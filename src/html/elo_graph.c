@@ -4,6 +4,7 @@
 
 #include "player.h"
 
+/* Return the entry with the minimum ELO score amongs all entries */
 static struct history_entry *lowest_entry(struct history *history)
 {
 	struct history_entry *lowest = NULL;
@@ -18,6 +19,7 @@ static struct history_entry *lowest_entry(struct history *history)
 	return lowest;
 }
 
+/* Return the entry with the maximum ELO score amongs all entries */
 static struct history_entry *highest_entry(struct history *history)
 {
 	struct history_entry *highest = NULL;
@@ -32,18 +34,23 @@ static struct history_entry *highest_entry(struct history *history)
 	return highest;
 }
 
-#define BEST_NUMBER_OF_AXES 3
+/* We want at least 3 axes on the graph */
+#define MINIMUM_NUMBER_OF_AXES 3
 
+/*
+ * Given a gap (plus a multiplier) and a range of values, return true if
+ * at least MINIMUM_NUMBER_OF_AXES axes can be displayed.
+ */
 static int does_fit(unsigned range, unsigned gap, unsigned factor)
 {
-	return BEST_NUMBER_OF_AXES * gap * factor < range;
+	return MINIMUM_NUMBER_OF_AXES * gap * factor < range;
 }
 
 #define DEFAULT_GAP 100
 
 static unsigned best_axes_gap(unsigned range)
 {
-	static unsigned gaps[] = { 1, 2, 5 };
+	static const unsigned gaps[] = { 1, 2, 5 };
 	unsigned i = 0, factor = 1;
 
 	while (does_fit(range, gaps[i], factor)) {
@@ -51,7 +58,7 @@ static unsigned best_axes_gap(unsigned range)
 		i = (i + 1) % 3;
 	}
 
-	/* Return previous gap */
+	/* Return previous gap, or the default gap if any */
 	if (i == 0 && factor == 1)
 		return DEFAULT_GAP;
 	else if (i == 0)
@@ -60,9 +67,15 @@ static unsigned best_axes_gap(unsigned range)
 		return gaps[i - 1] * factor;
 }
 
+/*
+ * When called we now that *at least* MINIMUM_NUMBER_OF_AXES fits in the
+ * given range (max - min).  However even more axes can be displayed.  This
+ * function get the maximum number of axes that can be displayed in the
+ * given range.
+ */
 static unsigned number_of_axes(int min, int max, unsigned gap)
 {
-	unsigned n = BEST_NUMBER_OF_AXES;
+	unsigned n = MINIMUM_NUMBER_OF_AXES;
 	int count = min - (min % gap) + 3 * gap;
 
 	while (count < max) {
@@ -70,11 +83,23 @@ static unsigned number_of_axes(int min, int max, unsigned gap)
 		count += gap;
 	}
 
-	return n - 1 < BEST_NUMBER_OF_AXES ? BEST_NUMBER_OF_AXES : n - 1;
+	return n - 1 < MINIMUM_NUMBER_OF_AXES ? MINIMUM_NUMBER_OF_AXES : n - 1;
 }
 
+/*
+ * Carry the context necessary to draw the graph.
+ */
 struct graph {
+	/*
+	 * The minimum (and maximum) value  that can be plotted in the graph.
+	 *
+	 * These values are not the same than the minimum (and maximum) values
+	 * the will be plotted in the graph.  They are used to compute the
+	 * offset of point to be plotted.
+	 */
 	int min, max;
+
+	/* Number of axes and gap between each axes. */
 	unsigned naxes, gap;
 
 	struct history *history;
@@ -91,6 +116,10 @@ static struct graph init_graph(struct history *history)
 	graph.gap = best_axes_gap(max->elo - min->elo);
 	graph.naxes = number_of_axes(min->elo, max->elo, graph.gap);
 
+	/*
+	 * We round down the minimum and maximum values so that axes are
+	 * evenly spaced between themself and borders.
+	 */
 	graph.min = min->elo - (min->elo % graph.gap);
 	graph.max = max->elo - (max->elo % graph.gap) + graph.gap;
 
@@ -126,6 +155,9 @@ struct point {
 	float x, y;
 };
 
+/*
+ * Given an entry compute the coordinates of the point on the graph.
+ */
 struct point init_point(struct graph *graph, struct history_entry *entry)
 {
 	struct point p;
@@ -215,7 +247,7 @@ static void print_graph(struct player *player)
 	graph = init_graph(&player->history);
 
 	printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
-	printf("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\" >\n");
+	printf("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\">\n");
 
 	print_axes(&graph);
 	print_lines(&graph);

@@ -12,8 +12,6 @@
  */
 struct config config = {
 	.root = ".teerank",
-	.cache_root = ".teerank_cache",
-	.tmp_root = ".",
 	.verbose = 0,
 	.debug = 0
 };
@@ -24,12 +22,6 @@ void load_config(void)
 
 	if ((tmp = getenv("TEERANK_ROOT")))
 		config.root = tmp;
-	if ((tmp = getenv("TEERANK_CACHE_ROOT")))
-		config.cache_root = tmp;
-	if ((tmp = getenv("TEERANK_TMP_ROOT")))
-		config.tmp_root = tmp;
-	else
-		config.tmp_root = config.cache_root;
 	if ((tmp = getenv("TEERANK_VERBOSE")))
 		config.verbose = 1;
 	if ((tmp = getenv("TEERANK_DEBUG")))

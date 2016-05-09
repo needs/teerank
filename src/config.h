@@ -3,8 +3,6 @@
 
 struct config {
 	char *root;
-	char *cache_root;
-	char *tmp_root;
 	short verbose;
 	short debug;
 };

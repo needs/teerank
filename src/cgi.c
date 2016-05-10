@@ -67,24 +67,31 @@ void error(int code, char *fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-static void dump(int fd, FILE *dst)
+static void dump_child_stderr(int fd, int status, char *progname)
 {
-	FILE *file;
-	int c;
+	FILE *in;
+	int c, have_newline = 1;
 
 	assert(fd != -1);
+	assert(progname != NULL);
 
-	if (!(file = fdopen(fd, "r")))
-		error(500, "fdopen(): %s\n", strerror(errno));
+	print_error(status);
 
-	/* Just dump fd content */
-	if (dst == stdout)
-		printf("Content-Type: text/html\n\n");
-	while ((c = fgetc(file)) != EOF)
-		fputc(c, dst);
-	fclose(file);
+	if (!(in = fdopen(fd, "r"))) {
+		fprintf(stderr, "Can't dump child stderr: fdopen(): %s\n", strerror(errno));
+		return;
+	}
 
-	close(fd);
+	while ((c = fgetc(in)) != EOF) {
+		if (have_newline)
+			fprintf(stderr, "%s: ", progname);
+
+		have_newline = (c == '\n');
+
+		fputc(c, stderr);
+	}
+
+	fclose(in);
 }
 
 static int generate(char **args)
@@ -135,12 +142,8 @@ static int generate(char **args)
 			error(500, "wait(): %s\n", strerror(errno));
 
 		if (!WIFEXITED(c) || WEXITSTATUS(c) != EXIT_SUCCESS) {
-			/* Report error by dumping err[0] */
-			print_error(exit_status_to_http_error(WEXITSTATUS(c)));
-
-			fprintf(stderr, "%s: ", args[0]);
-			dump(err[0], stderr);
-
+			dump_child_stderr(err[0], exit_status_to_http_error(WEXITSTATUS(c)), args[0]);
+			close(err[0]);
 			exit(EXIT_FAILURE);
 		}
 
@@ -150,6 +153,24 @@ static int generate(char **args)
 
 	/* Should never be reached */
 	return -1;
+}
+
+static void dump(int fd)
+{
+	FILE *in;
+	int c;
+
+	assert(fd != -1);
+
+	if (!(in = fdopen(fd, "r")))
+		error(500, "fdopen(): %s\n", strerror(errno));
+
+	printf("Content-Type: text/html\n\n");
+	while ((c = fgetc(in)) != EOF)
+		putchar(c);
+
+	fclose(in);
+	close(fd);
 }
 
 static char *get_path(void)
@@ -190,7 +211,7 @@ int main(int argc, char **argv)
 		error(500, NULL);
 	}
 
-	dump(generate(do_route(get_path(), get_query())), stdout);
+	dump(generate(do_route(get_path(), get_query())));
 
 	return EXIT_SUCCESS;
 }

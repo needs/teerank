@@ -11,83 +11,20 @@
 #include "route.h"
 #include "cgi.h"
 
-struct file {
-	char *name;
-	char **args;
-
-	void (*apply_query)(struct file *file, char *query);
-
-	/* Automatically filled */
-	char *path;
-};
-
-struct directory {
-	char *name;
-
-	struct file *files;
-	struct file *(*default_file)(char *name);
-	struct directory *dirs;
-};
-
-static void remove_extension(char *str, char *ext)
-{
-	char *tmp;
-
-	tmp = strrchr(str, '.');
-	if (!tmp || strcmp(tmp+1, ext))
-		return;
-	*tmp = '\0';
-}
-
-static char *get_raw_source_from_name(char *name)
-{
-	static char source[PATH_MAX];
-
-	if (*stpncpy(source, name, PATH_MAX) != '\0')
-		error(414, NULL);
-	remove_extension(source, "html");
-
-	return source;
-}
-
-static struct file *page_default_file(char *name)
-{
-	static struct file file;
-	static char *args[] = { "teerank-html-rank-page", "full-page", NULL, NULL };
-
-	file.name = name;
-	file.args = args;
-	file.args[2] = get_raw_source_from_name(name);
-
-	return &file;
-}
-
-static struct file *clan_default_file(char *name)
-{
-	static struct file file;
-	static char *args[] = { "teerank-html-clan-page", NULL, NULL };
-
-	file.name = name;
-	file.args = args;
-	file.args[1] = get_raw_source_from_name(name);
-
-	return &file;
-}
-
-static struct file *player_default_file(char *name)
-{
-	static struct file file;
-	static char *args[] = { "teerank-html-player-page", NULL, NULL };
-
-	file.name = name;
-	file.args = args;
-	file.args[1] = get_raw_source_from_name(name);
-
-	return &file;
-}
-
 struct arg {
-	char *name, *val;
+	char *name;
+	char *val;
+};
+
+#define MAX_DIRS 8
+#define MAX_ARGS 8
+
+struct url {
+	unsigned ndirs;
+	char *dirs[MAX_DIRS];
+
+	unsigned nargs;
+	struct arg args[MAX_ARGS];
 };
 
 static void url_decode(char *str)
@@ -109,58 +46,103 @@ static void url_decode(char *str)
 	*tmp = '\0';
 }
 
-static struct arg *parse_next_arg(char *query)
+struct url parse_url(char *uri, char *query)
 {
-	static struct arg arg;
+	struct url url = {0};
+	char *dir, *name;
+	unsigned i;
 
-	if (!arg.name)
-		arg.name = strtok(query, "&");
-	else
-		arg.name = strtok(NULL, "&");
+	dir = strtok(uri, "/");
+	do {
+		if (url.ndirs == MAX_DIRS)
+			error(414, NULL);
 
-	if (!arg.name)
-		return NULL;
+		url.dirs[url.ndirs] = dir;
+		url.ndirs++;
+	} while ((dir = strtok(NULL, "/")));
 
-	if ((arg.val = strchr(arg.name, '='))) {
-		*arg.val++ = '\0';
-		url_decode(arg.val);
+	/*
+	 * Load arg 'name' and 'val' in two steps to not mix up strtok()
+	 * instances.
+	 */
+
+	name = strtok(query, "&");
+	do {
+		if (url.nargs == MAX_ARGS)
+			error(414, NULL);
+
+		url.args[url.nargs].name = name;
+		url.nargs++;
+	} while ((name = strtok(NULL, "&")));
+
+	for (i = 0; i < url.nargs; i++) {
+		strtok(url.args[i].name, "=");
+		url.args[i].val = strtok(NULL, "=");
+
+		if (url.args[i].val)
+			url_decode(url.args[i].val);
 	}
 
-	return &arg;
+	return url;
 }
 
-static void search_file_apply_query(struct file *file, char *query)
+struct file {
+	char *name;
+	char *args[MAX_ARGS];
+
+	void (*init)(struct file *file, struct url *url);
+};
+
+struct directory {
+	char *name;
+
+	struct file *files;
+	struct directory *dirs;
+};
+
+static void init_default_page_file(struct file *file, struct url *url)
 {
-	static char *args[] = { "teerank-search", NULL, NULL };
-	struct arg *arg;
+	file->args[1] = "full-page";
+	file->args[2] = url->dirs[url->ndirs - 1];
+}
 
-	while ((arg = parse_next_arg(query))) {
-		if (arg->name[0] == 'q' && arg->name[1] == '\0')
-			break;
-	}
+static void init_default_clan_file(struct file *file, struct url *url)
+{
+	file->args[1] = strtok(url->dirs[url->ndirs - 1], ".");
+}
 
-	if (!arg)
+static void init_default_player_file(struct file *file, struct url *url)
+{
+	file->args[1] = strtok(url->dirs[url->ndirs - 1], ".");
+}
+
+static void init_search_file(struct file *file, struct url *url)
+{
+	if (url->nargs != 1)
 		error(400, "Missing 'q' parameter\n");
-	else if (!arg->val)
+	if (strcmp(url->args[0].name, "q") != 0)
+		error(400, "First and only parameter should be named 'q'\n");
+	if (!url->args[0].val)
 		error(400, "'q' parameter must have a value\n");
 
-	/* Don't cache search result */
-	file->name = NULL;
-	file->args = args;
-	file->args[1] = arg->val;
+	file->args[1] = url->args[0].val;
 }
 
 static const struct directory root = {
 	"", (struct file[]) {
-		{ "about.html", (char*[]){ "teerank-html-about", NULL },
-		  NULL, NULL },
-		{ "search", (char*[]){ "teerank-html-search", NULL },
-		  search_file_apply_query, NULL },
+		{ "about.html", { "teerank-html-about" }, NULL },
+		{ "search",     { "teerank-html-search" }, init_search_file },
 		{ NULL }
-	}, NULL, (struct directory[]) {
-		{ "pages", NULL, page_default_file, NULL, NULL },
-		{ "clans", NULL, clan_default_file, NULL, NULL },
-		{ "players", NULL, player_default_file, NULL, NULL },
+	}, (struct directory[]) {
+		{ "pages", (struct file[]) {
+				{ NULL, { "teerank-html-rank-page" }, init_default_page_file }
+			}, NULL },
+		{ "clans", (struct file[]) {
+				{ NULL, { "teerank-html-clan-page" }, init_default_clan_file }
+			}, NULL },
+		{ "players", (struct file[]) {
+				{ NULL, { "teerank-html-player-page" }, init_default_player_file }
+			}, NULL },
 		{ NULL }
 	}
 };
@@ -187,50 +169,38 @@ static struct file *find_file(const struct directory *dir, char *name)
 	assert(dir != NULL);
 	assert(name != NULL);
 
-	if (dir->files)
-		for (file = dir->files; file->name; file++)
-			if (!strcmp(file->name, name))
-				return file;
+	if (!dir->files)
+		return NULL;
 
-	if (dir->default_file)
-		return dir->default_file(name);
+	for (file = dir->files; file->name; file++)
+		if (!strcmp(file->name, name))
+			return file;
+
+	if (!file->name && file->args)
+		return file;
 
 	return NULL;
 }
 
-static void undo_strtok(char *c)
+char **do_route(char *uri, char *query)
 {
-	while (*c)
-		c--;
-	*c = '/';
-}
-
-char **do_route(char *path, char *query)
-{
-	const struct directory *tmp, *dir = &root;
+	const struct directory *dir = &root;
 	struct file *file = NULL;
-	char *name;
+	struct url url;
+	unsigned i;
 
-	while (*path == '/')
-		path++;
+	url = parse_url(uri, query);
 
-	for (name = strtok(path, "/"); name; name = strtok(NULL, "/")) {
-		if (name != path)
-			undo_strtok(name);
-
-		if ((tmp = find_directory(dir, name)))
-			dir = tmp;
-		else
-			break;
+	for (i = 0; i < url.ndirs - 1; i++) {
+		if (!(dir = find_directory(dir, url.dirs[i])))
+			error(404, NULL);
 	}
 
-	if (!name)
-		error(404, NULL);
-	if  (!(file = find_file(dir, name)))
+	if (!(file = find_file(dir, url.dirs[i])))
 		error(404, NULL);
 
-	if (file->apply_query)
-		file->apply_query(file, query);
+	if (file->init)
+		file->init(file, &url);
 
 	return file->args;
 }

@@ -68,7 +68,8 @@ static void dump(int fd, FILE *dst)
 		error(500, "fdopen(): %s\n", strerror(errno));
 
 	/* Just dump fd content */
-	printf("Content-Type: text/html\n\n");
+	if (dst == stdout)
+		printf("Content-Type: text/html\n\n");
 	while ((c = fgetc(file)) != EOF)
 		fputc(c, dst);
 	fclose(file);

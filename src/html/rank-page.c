@@ -28,18 +28,18 @@ static void load_page(struct page *page, unsigned number)
 	ret = snprintf(path, PATH_MAX, "%s/pages/%u", config.root, number);
 	if (ret >= PATH_MAX) {
 		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);
-		exit(500);
+		exit(EXIT_FAILURE);
 	}
 
 	if (!(file = fopen(path, "r"))) {
 		perror(path);
-		exit(500);
+		exit(EXIT_FAILURE);
 	}
 
 	if (fscanf(file, "page %u/%u ", &page->number, &page->total) != 2) {
 		fprintf(stderr, "%s: Cannot match page header\n", path);
 		fclose(file);
-		exit(500);
+		exit(EXIT_FAILURE);
 	}
 
 	while (fscanf(file, " %s", name) == 1) {
@@ -126,7 +126,7 @@ static enum mode parse_mode(const char *str)
 		return ONLY_ROWS;
 	else {
 		fprintf(stderr, "First argument must be either \"full-page\" or \"only-rows\"\n");
-		exit(500);
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -141,10 +141,10 @@ static unsigned parse_page_number(const char *str)
 	ret = strtol(str, &endptr, 10);
 	if (ret == 0 && errno == EINVAL) {
 		fprintf(stderr, "%s: is not a number\n", str);
-		exit(404);
+		exit(EXIT_NOT_FOUND);
 	} else if (ret < 0 || ret > UINT_MAX) {
 		fprintf(stderr, "%s: invalid page number\n", str);
-		exit(404);
+		exit(EXIT_NOT_FOUND);
 	}
 
 	return (unsigned)ret;
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 	load_config();
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s [full-page|only-rows] <page_number>\n", argv[0]);
-		return 500;
+		return EXIT_FAILURE;
 	}
 
 	mode = parse_mode(argv[1]);

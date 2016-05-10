@@ -16,11 +16,11 @@ int main(int argc, char **argv)
 	load_config();
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <player_name>\n", argv[0]);
-		return 500;
+		return EXIT_FAILURE;
 	}
 
 	if (!is_valid_hexname(argv[1]))
-		return 404;
+		return EXIT_NOT_FOUND;
 	player_found = read_player(&player, argv[1], 0);
 
 	hexname_to_name(argv[1], name);

@@ -33,15 +33,15 @@ int main(int argc, char **argv)
 	load_config();
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <clan_name>\n", argv[0]);
-		return 500;
+		return EXIT_FAILURE;
 	}
 
 	/* Load players */
 
 	if (!is_valid_hexname(argv[1]))
-		return 404;
+		return EXIT_NOT_FOUND;
 	if (!read_clan(&clan, argv[1]))
-		return 404;
+		return EXIT_NOT_FOUND;
 	missing_members = load_members(&clan);
 
 	/* Sort members */

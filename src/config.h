@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define EXIT_NOT_FOUND 2
+
 struct config {
 	char *root;
 	short verbose;

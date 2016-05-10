@@ -16,6 +16,16 @@
 #include "config.h"
 #include "route.h"
 
+static int exit_status_to_http_error(int status)
+{
+	switch (status) {
+	case EXIT_SUCCESS: return 200;
+	case EXIT_FAILURE: return 500;
+	case 2:            return 404;
+	default:           return 500;
+	}
+}
+
 static char *reason_phrase(int code)
 {
 	switch (code) {
@@ -121,10 +131,12 @@ static int generate(char **args)
 		close(err[1]);
 		close(out[1]);
 
-		wait(&c);
+		if (wait(&c) == -1)
+			error(500, "wait(): %s\n", strerror(errno));
+
 		if (!WIFEXITED(c) || WEXITSTATUS(c) != EXIT_SUCCESS) {
 			/* Report error by dumping err[0] */
-			print_error(WEXITSTATUS(c));
+			print_error(exit_status_to_http_error(WEXITSTATUS(c)));
 
 			fprintf(stderr, "%s: ", args[0]);
 			dump(err[0], stderr);

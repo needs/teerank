@@ -90,6 +90,8 @@ static unsigned number_of_axes(int min, int max, unsigned gap)
  * Carry the context necessary to draw the graph.
  */
 struct graph {
+	int is_empty;
+
 	/*
 	 * The minimum (and maximum) value  that can be plotted in the graph.
 	 *
@@ -112,6 +114,10 @@ static struct graph init_graph(struct history *history)
 
 	min = lowest_entry(history);
 	max = highest_entry(history);
+
+	graph.is_empty = (min == NULL || max == NULL);
+	if (graph.is_empty)
+		return graph;
 
 	graph.gap = best_axes_gap(max->elo - min->elo);
 	graph.naxes = number_of_axes(min->elo, max->elo, graph.gap);
@@ -238,6 +244,13 @@ static void print_points(struct graph *graph)
 	printf("\t</g>\n");
 }
 
+static void print_notice_empty(struct graph *graph)
+{
+	assert(graph != NULL);
+
+	printf("\t<text x=\"50%%\" y=\"50%%\" style=\"font-size: 0.9em; text-anchor: middle;\">No data available</text>\n");
+}
+
 static void print_graph(struct player *player)
 {
 	struct graph graph;
@@ -249,9 +262,13 @@ static void print_graph(struct player *player)
 	printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
 	printf("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\">\n");
 
-	print_axes(&graph);
-	print_lines(&graph);
-	print_points(&graph);
+	if (graph.is_empty) {
+		print_notice_empty(&graph);
+	} else {
+		print_axes(&graph);
+		print_lines(&graph);
+		print_points(&graph);
+	}
 
 	printf("</svg>\n");
 }

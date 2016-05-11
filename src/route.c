@@ -23,6 +23,8 @@ struct url {
 	unsigned ndirs;
 	char *dirs[MAX_DIRS];
 
+	char *filename;
+
 	unsigned nargs;
 	struct arg args[MAX_ARGS];
 };
@@ -60,6 +62,13 @@ struct url parse_url(char *uri, char *query)
 		url.dirs[url.ndirs] = dir;
 		url.ndirs++;
 	} while ((dir = strtok(NULL, "/")));
+
+	/*
+	 * The last directory parsed is considered as a file
+	 */
+
+	url.filename = url.dirs[url.ndirs - 1];
+	url.ndirs--;
 
 	/*
 	 * Load arg 'name' and 'val' in two steps to not mix up strtok()
@@ -103,17 +112,22 @@ struct directory {
 static void init_default_page_file(struct file *file, struct url *url)
 {
 	file->args[1] = "full-page";
-	file->args[2] = url->dirs[url->ndirs - 1];
+	file->args[2] = strtok(url->filename, ".");
 }
 
 static void init_default_clan_file(struct file *file, struct url *url)
 {
-	file->args[1] = strtok(url->dirs[url->ndirs - 1], ".");
+	file->args[1] = strtok(url->filename, ".");
 }
 
 static void init_default_player_file(struct file *file, struct url *url)
 {
-	file->args[1] = strtok(url->dirs[url->ndirs - 1], ".");
+	file->args[1] = strtok(url->filename, ".");
+}
+
+static void init_player_elo_graph(struct file *file, struct url *url)
+{
+	file->args[1] = url->dirs[url->ndirs - 1];
 }
 
 static void init_search_file(struct file *file, struct url *url)
@@ -135,14 +149,24 @@ static const struct directory root = {
 		{ NULL }
 	}, (struct directory[]) {
 		{ "pages", (struct file[]) {
-				{ NULL, { "teerank-html-rank-page" }, init_default_page_file }
+				{ NULL, { "teerank-html-rank-page" }, init_default_page_file },
+				{ NULL }
 			}, NULL },
 		{ "clans", (struct file[]) {
-				{ NULL, { "teerank-html-clan-page" }, init_default_clan_file }
+				{ NULL, { "teerank-html-clan-page" }, init_default_clan_file },
+				{ NULL }
 			}, NULL },
 		{ "players", (struct file[]) {
-				{ NULL, { "teerank-html-player-page" }, init_default_player_file }
-			}, NULL },
+				{ NULL, { "teerank-html-player-page" }, init_default_player_file },
+				{ NULL }
+			}, (struct directory[]) {
+				{ NULL, (struct file[]) {
+						{ "elo.svg", { "teerank-html-elo-graph" }, init_player_elo_graph },
+						{ NULL }
+					}, NULL },
+				{ NULL }
+			}
+		},
 		{ NULL }
 	}
 };
@@ -154,10 +178,15 @@ static struct directory *find_directory(const struct directory *parent, char *na
 	assert(parent != NULL);
 	assert(name != NULL);
 
-	if (parent->dirs)
+	if (parent->dirs) {
 		for (dir = parent->dirs; dir->name; dir++)
 			if (!strcmp(name, dir->name))
 				return dir;
+
+		/* Fallback on default directory, if any */
+		if (dir->files)
+			return dir;
+	}
 
 	return NULL;
 }
@@ -176,7 +205,8 @@ static struct file *find_file(const struct directory *dir, char *name)
 		if (!strcmp(file->name, name))
 			return file;
 
-	if (!file->name && file->args)
+	/* Fallback on default file, if any */
+	if (!file->name && file->args[0])
 		return file;
 
 	return NULL;
@@ -191,12 +221,12 @@ char **do_route(char *uri, char *query)
 
 	url = parse_url(uri, query);
 
-	for (i = 0; i < url.ndirs - 1; i++) {
+	for (i = 0; i < url.ndirs; i++) {
 		if (!(dir = find_directory(dir, url.dirs[i])))
 			error(404, NULL);
 	}
 
-	if (!(file = find_file(dir, url.dirs[i])))
+	if (!(file = find_file(dir, url.filename)))
 		error(404, NULL);
 
 	if (file->init)

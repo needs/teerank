@@ -28,7 +28,7 @@ static void load_players(struct player_array *array)
 		if (!is_valid_hexname(dp->d_name))
 			continue;
 
-		if (read_player(&player, dp->d_name, 0))
+		if (read_player(&player, dp->d_name, 1))
 			add_player(array, &player);
 	}
 
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 		struct player *player = &array.players[i];
 
 		fprintf(file, "%s\n", player->name);
-		player->rank = i + 1;
+		set_rank(player, i + 1);
 		write_player(player);
 	}
 

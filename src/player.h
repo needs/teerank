@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "network.h"
+#include "historic.h"
 
 /*
  * Teeworlds names cannot be bigger than 16, including terminating nul byte
@@ -19,49 +20,15 @@ int is_valid_hexname(const char *hex);
 void hexname_to_name(const char *hex, char *name);
 void name_to_hexname(const char *name, char *hex);
 
-struct history_entry {
-	time_t timestamp;
-	int elo;
-	unsigned rank;
-};
-
-struct history {
-	/*
-	 * For performance reasons we may not want to read all history entries.
-	 * If we don't then we must make sure we don't write it because we will
-	 * then loose all unread entries.  This boolean is here to make sure we
-	 * don't.
-	 */
-	int is_full;
-
-	/*
-	 * 'buffer_length' is the number of entries the buffer can hold, while
-	 * 'length' is the number of entries actually inside the buffer.
-	 */
-	unsigned buffer_length, length;
-
-	/*
-	 * The current entry is the entry that hold the most recent values,
-	 * it doesn't belongs to the history and should always be set.
-	 */
-	struct history_entry current;
-
-	/* History's entries */
-	struct history_entry *entries;
-};
-
 struct player {
 	char name[HEXNAME_LENGTH];
 	char clan[HEXNAME_LENGTH];
 
-	struct history history;
-
-	/*
-	 * For convenience, we copy the value of the current history entry
-	 * at the root of this structure.
-	 */
 	int elo;
 	unsigned rank;
+
+	struct historic elo_historic;
+	struct historic rank_historic;
 
 	struct player_delta *delta;
 
@@ -78,7 +45,8 @@ static const unsigned INVALID_RANK = 0;
 enum {
 	IS_MODIFIED_CREATED = (1 << 0),
 	IS_MODIFIED_CLAN    = (1 << 1),
-	IS_MODIFIED_ELO     = (1 << 2)
+	IS_MODIFIED_ELO     = (1 << 2),
+	IS_MODIFIED_RANK    = (1 << 3)
 };
 
 const struct player PLAYER_ZERO;
@@ -107,6 +75,12 @@ int write_player(struct player *player);
  * enough to add another entry.
  */
 int update_elo(struct player *player, int elo);
+
+/*
+ * Set player's rank, add a new record in historic.  Can fail because historic
+ * may have to be reallocated.
+ */
+int set_rank(struct player *player, unsigned rank);
 
 /*
  * Free buffers but do *not* reset the struct to PLAYER_ZERO.

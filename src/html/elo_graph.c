@@ -4,34 +4,38 @@
 
 #include "player.h"
 
-/* Return the entry with the minimum ELO score amongs all entries */
-static struct history_entry *lowest_entry(struct history *history)
+static struct record *min_record(struct historic *hist, int (*cmp)(const void *a, const void *b))
 {
-	struct history_entry *lowest = NULL;
-	unsigned i;
+	struct record *record, *min = NULL;
 
-	assert(history != NULL);
+	assert(hist != NULL);
+	assert(cmp != NULL);
 
-	for (i = 0; i < history->length; i++)
-		if (!lowest || history->entries[i].elo < lowest->elo)
-			lowest = &history->entries[i];
+	while ((record = next_record(hist))) {
+		const void *data = get_record_data(hist, record);
 
-	return lowest;
+		if (!min || cmp(min, data) == -1)
+			min = record;
+	}
+
+	return min;
 }
 
-/* Return the entry with the maximum ELO score amongs all entries */
-static struct history_entry *highest_entry(struct history *history)
+static struct record *max_record(struct historic *hist, int (*cmp)(const void *a, const void *b))
 {
-	struct history_entry *highest = NULL;
-	unsigned i;
+	struct record *record, *max = NULL;
 
-	assert(history != NULL);
+	assert(hist != NULL);
+	assert(cmp != NULL);
 
-	for (i = 0; i < history->length; i++)
-		if (!highest || history->entries[i].elo > highest->elo)
-			highest = &history->entries[i];
+	while ((record = next_record(hist))) {
+		const void *data = get_record_data(hist, record);
 
-	return highest;
+		if (!max || cmp(max, data) == 1)
+			max = record;
+	}
+
+	return max;
 }
 
 /* We want at least 3 axes on the graph */
@@ -104,32 +108,49 @@ struct graph {
 	/* Number of axes and gap between each axes. */
 	unsigned naxes, gap;
 
-	struct history *history;
+	struct historic *hist;
 };
 
-static struct graph init_graph(struct history *history)
+static int cmp_elo(const void *pa, const void *pb)
+{
+	const int a = *(int*)pa;
+	const int b = *(int*)pb;
+
+	return a - b;
+}
+
+static int get_elo(struct historic *hist, struct record *record)
+{
+	return *(int*)get_record_data(hist, record);
+}
+
+static struct graph init_graph(struct historic *hist)
 {
 	struct graph graph;
-	struct history_entry *min, *max;
+	struct record *min, *max;
+	int min_elo, max_elo;
 
-	min = lowest_entry(history);
-	max = highest_entry(history);
+	min = min_record(hist, cmp_elo);
+	max = max_record(hist, cmp_elo);
 
 	graph.is_empty = (min == NULL || max == NULL);
 	if (graph.is_empty)
 		return graph;
 
-	graph.gap = best_axes_gap(max->elo - min->elo);
-	graph.naxes = number_of_axes(min->elo, max->elo, graph.gap);
+	min_elo = get_elo(hist, min);
+	max_elo = get_elo(hist, max);
+
+	graph.gap = best_axes_gap(max_elo - min_elo);
+	graph.naxes = number_of_axes(min_elo, max_elo, graph.gap);
 
 	/*
 	 * We round down the minimum and maximum values so that axes are
 	 * evenly spaced between themself and borders.
 	 */
-	graph.min = min->elo - (min->elo % graph.gap);
-	graph.max = max->elo - (max->elo % graph.gap) + graph.gap;
+	graph.min = min_elo - (min_elo % graph.gap);
+	graph.max = max_elo - (max_elo % graph.gap) + graph.gap;
 
-	graph.history = history;
+	graph.hist = hist;
 
 	return graph;
 }
@@ -164,26 +185,27 @@ struct point {
 /*
  * Given an entry compute the coordinates of the point on the graph.
  */
-struct point init_point(struct graph *graph, struct history_entry *entry)
+struct point init_point(struct graph *graph, struct record *record)
 {
 	struct point p;
+	int elo;
 
 	assert(graph != NULL);
-	assert(entry != NULL);
+	assert(record != NULL);
 
-	p.x = (float)(entry - graph->history->entries) / (graph->history->length - 1) * 100.0;
-	p.y = 100.0 - ((float)(entry->elo - graph->min) / (graph->max - graph->min) * 100.0);
+	elo = get_elo(graph->hist, record);
+	p.x = (float)(record_index(graph->hist, record)) / (get_nrecords(graph->hist) - 1) * 100.0;
+	p.y = 100.0 - ((float)(elo - graph->min) / (graph->max - graph->min) * 100.0);
 
 	return p;
 }
 
-static void print_line(struct graph *graph, struct history_entry *a, struct history_entry *b)
+static void print_line(struct graph *graph, struct record *a, struct record *b)
 {
 	struct point pa, pb;
 
 	assert(a != NULL);
 	assert(b != NULL);
-	assert(a != &graph->history->current);
 
 	pa = init_point(graph, a);
 	pb = init_point(graph, b);
@@ -193,29 +215,37 @@ static void print_line(struct graph *graph, struct history_entry *a, struct hist
 
 static void print_lines(struct graph *graph)
 {
-	unsigned i;
+	struct record *prev, *current;
 
 	assert(graph != NULL);
 
 	printf("\n\t<!-- Path -->\n");
 	printf("\t<g>\n");
 
-	for (i = 1; i < graph->history->length; i++)
-		print_line(graph, &graph->history->entries[i - 1], &graph->history->entries[i]);
+	prev = next_record(graph->hist);
+	current = next_record(graph->hist);
+
+	while (current) {
+		print_line(graph, prev, current);
+		prev = current;
+		current = next_record(graph->hist);
+	}
 
 	printf("\t</g>\n");
 }
 
-static void print_point(struct graph *graph, struct history_entry *entry)
+static void print_point(struct graph *graph, struct record *record)
 {
 	struct point p;
 	unsigned i;
+	int elo;
 
 	assert(graph != NULL);
-	assert(entry != NULL);
+	assert(record != NULL);
 
-	p = init_point(graph, entry);
-	i = entry - graph->history->entries;
+	p = init_point(graph, record);
+	i = record_index(graph->hist, record);
+	elo = get_elo(graph->hist, record);
 
 	printf("\t\t<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>\n", p.x, p.y);
 
@@ -223,7 +253,7 @@ static void print_point(struct graph *graph, struct history_entry *entry)
 	printf("\t\t<g style=\"visibility: hidden\">\n");
 	printf("\t\t\t<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\" style=\"stroke: #bbb;\"/>\n", p.x, p.x);
 	printf("\t\t\t<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #725800;\"/>\n", p.x, p.y);
-	printf("\t\t\t<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; text-anchor: start;\" transform=\"translate(10, 18)\">%d</text>\n", p.x, p.y, entry->elo);
+	printf("\t\t\t<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; text-anchor: start;\" transform=\"translate(10, 18)\">%d</text>\n", p.x, p.y, elo);
 	printf("\t\t\t<set attributeName=\"visibility\" to=\"visible\" begin=\"zone%u.mouseover\" end=\"zone%u.mouseout\"/>\n", i, i);
 	printf("\t\t</g>\n");
 	printf("\t\t<rect id=\"zone%u\" x=\"%.1f%%\" y=\"0%%\" width=\"10%%\" height=\"100%%\" style=\"fill: black; fill-opacity: 0;\"/>\n", i, p.x - 5);
@@ -231,15 +261,15 @@ static void print_point(struct graph *graph, struct history_entry *entry)
 
 static void print_points(struct graph *graph)
 {
-	unsigned i;
+	struct record *record;
 
 	assert(graph != NULL);
 
 	printf("\n\t<!-- Points -->\n");
 	printf("\t<g>\n");
 
-	for (i = 0; i < graph->history->length; i++)
-		print_point(graph, &graph->history->entries[i]);
+	while ((record = next_record(graph->hist)))
+		print_point(graph, record);
 
 	printf("\t</g>\n");
 }
@@ -257,7 +287,7 @@ static void print_graph(struct player *player)
 
 	assert(player != NULL);
 
-	graph = init_graph(&player->history);
+	graph = init_graph(&player->elo_historic);
 
 	printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
 	printf("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\">\n");

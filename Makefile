@@ -1,6 +1,6 @@
 CFLAGS = -Isrc -Wall -Werror -O -std=c89 -D_POSIX_C_SOURCE=200809L -g
 BINS_HTML = $(addprefix teerank-html-,about player-page rank-page clan-page elo-graph search)
-BINS = $(addprefix teerank-,add-new-servers update-servers update-players update-clans compute-ranks paginate-ranks remove-offline-servers repair upgrade-4-to-5) $(BINS_HTML)
+BINS = $(addprefix teerank-,add-new-servers update-servers update-players update-clans compute-ranks paginate-ranks remove-offline-servers repair upgrade-4-to-5 upgrade-5-to-6) $(BINS_HTML)
 SCRIPTS = $(addprefix teerank-,create-database upgrade-0-to-1 upgrade-1-to-2 upgrade-2-to-3 upgrade-3-to-4 upgrade update)
 CGI = teerank.cgi
 
@@ -32,16 +32,16 @@ $(BINS_HTML): src/html/html.o
 teerank-add-new-servers: src/add-new-servers.o src/network.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-update-servers: src/update-servers.o src/network.o src/pool.o src/delta.o src/server.o src/player.o
+teerank-update-servers: src/update-servers.o src/network.o src/pool.o src/delta.o src/server.o src/player.o src/historic.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-update-players: src/update-players.o src/delta.o src/elo.o src/player.o
+teerank-update-players: src/update-players.o src/delta.o src/elo.o src/player.o src/historic.o
 	$(CC) -o $@ $(CFLAGS) $^ -lm
 
-teerank-update-clans: src/update-clans.o src/player.o src/clan.o
+teerank-update-clans: src/update-clans.o src/player.o src/historic.o src/clan.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-compute-ranks: src/compute-ranks.o src/player.o
+teerank-compute-ranks: src/compute-ranks.o src/player.o src/historic.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-paginate-ranks: src/paginate-ranks.o
@@ -50,28 +50,31 @@ teerank-paginate-ranks: src/paginate-ranks.o
 teerank-remove-offline-servers: src/remove-offline-servers.o src/server.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-repair: src/repair.o src/player.o src/clan.o
+teerank-repair: src/repair.o src/player.o src/historic.o src/clan.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-clan-page: src/html/clan-page.o src/player.o src/clan.o
+teerank-html-clan-page: src/html/clan-page.o src/player.o src/historic.o src/clan.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-rank-page: src/html/rank-page.o src/player.o
+teerank-html-rank-page: src/html/rank-page.o src/player.o src/historic.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-player-page: src/html/player-page.o src/player.o
+teerank-html-player-page: src/html/player-page.o src/player.o src/historic.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-about: src/html/about.o src/player.o
+teerank-html-about: src/html/about.o src/player.o src/historic.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-search: src/html/search.o src/player.o
+teerank-html-search: src/html/search.o src/player.o src/historic.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-elo-graph: src/html/elo_graph.o src/player.o
+teerank-html-elo-graph: src/html/elo_graph.o src/player.o src/historic.o
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-upgrade-4-to-5: src/upgrade/4-to-5.o src/player.o
+teerank-upgrade-4-to-5: src/upgrade/4-to-5.o
+	$(CC) -o $@ $(CFLAGS) $^
+
+teerank-upgrade-5-to-6: src/upgrade/5-to-6.o src/historic.o src/player.o
 	$(CC) -o $@ $(CFLAGS) $^
 
 

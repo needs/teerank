@@ -4,7 +4,7 @@
 #include "player.h"
 
 /* Number of elo points new players start with */
-#define DEFAULT_ELO 1500
+static const int DEFAULT_ELO = 1500;
 
 /*
  * Update elo's point of each rankable player.

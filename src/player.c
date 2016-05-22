@@ -71,142 +71,101 @@ static char *get_path(char *name)
 /*
  * Set all player's fields to meaningless values suitable for printing.
  */
-static void reset_player(struct player *player)
+static void reset_player(struct player *player, const char *name)
 {
+	strcpy(player->name, name);
 	strcpy(player->clan, "00");
-	player->history.current.rank = player->rank = INVALID_RANK;
-	player->history.current.elo = player->elo = INVALID_ELO;
+	player->elo = INVALID_ELO;
+	player->rank = INVALID_RANK;
 	player->is_modified = 0;
 
 	player->delta = NULL;
 
-	player->history.length = 0;
+	init_historic(&player->elo_historic, sizeof(player->elo), &player->elo);
+	init_historic(&player->rank_historic, sizeof(player->rank), &player->rank);
 }
 
 /* player must have been reseted */
-static void new_player(struct player *player, char *name)
+static int new_player(struct player *player)
 {
-	struct history *history;
-
-	assert(name != NULL);
 	assert(player != NULL);
 
-	player->history.current.elo = player->elo = DEFAULT_ELO;
-	player->history.current.rank = player->rank = INVALID_RANK;
-	player->history.current.timestamp = time(NULL);
-	history->length = 0;
+	if (!append_record(&player->elo_historic, &DEFAULT_ELO))
+		return 0;
 
 	player->is_rankable = 0;
 	player->is_modified = IS_MODIFIED_CREATED;
-}
-
-static int resize_history(struct history *history, unsigned length)
-{
-	struct history_entry *entries;
-	const unsigned OFFSET = 1024;
-	unsigned buffer_length;
-
-	assert(history != NULL);
-	assert(history->length <= history->buffer_length);
-	assert(history->buffer_length != 0 || history->entries == NULL);
-
-	if (length <= history->buffer_length)
-		return 1;
-
-	buffer_length = length - (length % OFFSET) + OFFSET;
-	entries = realloc(history->entries, buffer_length * sizeof(*entries));
-	if (!entries) {
-		perror("realloc(history)");
-		return 0;
-	}
-
-	history->entries = entries;
-	history->buffer_length = buffer_length;
 
 	return 1;
 }
 
-static int read_full_history(FILE *file, const char *path,
-                             struct history *history)
+static int skip_elo(FILE *file, const char *path)
 {
-	unsigned length, i;
-	int ret;
-
-	assert(history != NULL);
-
-	errno = 0;
-	ret = fscanf(file, " history: %u entries", &length);
-	if (ret == EOF && errno != 0)
-		return perror(path), 0;
-	else if (ret == EOF || ret == 0)
-		return fprintf(stderr, "%s: Cannot match history length\n", path), 0;
-
-	if (!resize_history(history, length))
-		return 0;
-
-	for (i = 0; i < length; i++) {
-		struct history_entry *entry = &history->entries[i];
-
-		errno = 0;
-		ret = fscanf(file, " , %lu %d %u",
-		             &entry->timestamp, &entry->elo, &entry->rank);
-		if (ret == EOF && errno != 0)
-			perror(path);
-		else if (ret == EOF || ret == 0)
-			fprintf(stderr, "%s: entry %u: Cannot match timestamp\n", path, i);
-		else if (ret == 1)
-			fprintf(stderr, "%s: entry %u: Cannot match elo\n", path, i);
-		else if (ret == 2)
-			fprintf(stderr, "%s: entry %u: Cannot match rank\n", path, i);
-		else
-			continue;
-		break;
-	}
-
-	/* 'i' contains the number of entries succesfully read */
-	history->length = i;
-	return i == length;
+	fscanf(file, " %*d");
+	return 1;
 }
 
-static int read_history(FILE *file, const char *path,
-                        struct player *player,
-                        int full_history)
+static int skip_rank(FILE *file, const char *path)
 {
-	struct history *history;
+	fscanf(file, " %*u");
+	return 1;
+}
+
+static int read_elo(FILE *file, const char *path, void *buf)
+{
 	int ret;
 
-	assert(file != NULL);
-	assert(player != NULL);
+	if (!buf)
+		return skip_elo(file, path);
 
-	history = &player->history;
-
-	/* First comes the current entry */
 	errno = 0;
-	ret = fscanf(file, " current: %lu %d %u",
-	             &history->current.timestamp, &history->current.elo, &history->current.rank);
+	ret = fscanf(file, " %d", (int*)buf);
 	if (ret == EOF && errno != 0)
 		return perror(path), 0;
 	else if (ret == EOF || ret == 0)
-		return fprintf(stderr, "%s: current entry: Cannot match timestamp\n", path), 0;
-	else if (ret == 1)
-		return fprintf(stderr, "%s: current entry: Cannot match elo\n", path), 0;
-	else if (ret == 2)
-		return fprintf(stderr, "%s: current entry: Cannot match rank\n", path), 0;
+		return fprintf(stderr, "%s: Cannot match elo\n", path), 0;
 
-	player->elo = history->current.elo;
-	player->rank = history->current.rank;
+	return 1;
+}
 
-	/* Then comes the history, to be read only if needed */
-	if (full_history)
-		return read_full_history(file, path, history);
-	else
-		return 1;
+static int read_rank(FILE *file, const char *path, void *buf)
+{
+	int ret;
+
+	if (!buf)
+		return skip_rank(file, path);
+
+	errno = 0;
+	ret = fscanf(file, " %u", (unsigned*)buf);
+	if (ret == EOF && errno != 0)
+		return perror(path), 0;
+	else if (ret == EOF || ret == 0)
+		return fprintf(stderr, "%s: Cannot match rank\n", path), 0;
+
+	return 1;
+}
+
+static int read_clan(char *clan, FILE *file, const char *path)
+{
+	int ret;
+
+	errno = 0;
+	ret = fscanf(file, " %s\n", clan);
+
+	if (ret == EOF && errno != 0) {
+		perror(path);
+		return 0;
+	} else if (ret == EOF || ret == 0) {
+		fprintf(stderr, "%s: Cannot match player clan\n", path);
+		return 0;
+	}
+
+	return 1;
 }
 
 int read_player(struct player *player, char *name, int full_history)
 {
 	char *path;
-	int ret;
 	FILE *file;
 
 	assert(name != NULL);
@@ -220,29 +179,25 @@ int read_player(struct player *player, char *name, int full_history)
 	 * That mean failing at every points of the function will leaves
 	 * us with a player suitable for printing, as expected.
 	 */
-	reset_player(player);
-	strcpy(player->name, name);
+	reset_player(player, name);
 
 	if (!(path = get_path(name)))
 		return 0;
+
 	if (!(file = fopen(path, "r"))) {
 		if (errno == ENOENT)
-			return new_player(player, name), 1;
+			return new_player(player);
 		else
 			return perror(path), 0;
 	}
 
-	errno = 0;
-	ret = fscanf(file, "%s\n", player->clan);
-	if (ret == EOF && errno != 0) {
-		perror(path);
+	if (!read_clan(player->clan, file, path))
 		goto fail;
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Cannot match player clan\n", path);
-		goto fail;
-	}
 
-	if (!read_history(file, path, player, full_history))
+	if (!read_historic(&player->elo_historic, file, path, read_elo, !full_history))
+		goto fail;
+
+	if (!read_historic(&player->rank_historic, file, path, read_rank, !full_history))
 		goto fail;
 
 	fclose(file);
@@ -253,39 +208,26 @@ fail:
 	return 0;
 }
 
-static int write_history(FILE *file, const char *path, struct history *history)
+static int write_elo(FILE *file, const char *path, void *buf)
 {
-	int ret;
-	unsigned i;
-
-	assert(file != NULL);
-	assert(history != NULL);
-
-	/* First write the current history entry */
-	ret = fprintf(file, "current: %lu %d %u\n",
-	              history->current.timestamp,
-	              history->current.elo, history->current.rank);
-	if (ret < 0)
-		goto fail;
-
-	/* Then comes the history */
-	ret = fprintf(file, "history: %u entries", history->length);
-	if (ret < 0)
-		goto fail;
-
-	for (i = 0; i < history->length; i++) {
-		struct history_entry *entry = &history->entries[i];
-		ret = fprintf(file, ", %lu %d %u",
-		              entry->timestamp, entry->elo, entry->rank);
-		if (ret < 0)
-			goto fail;
-	}
-	fputc('\n', file);
+	if (fprintf(file, "%d", *(int*)buf) < 0)
+		return perror(path), 0;
 	return 1;
+}
 
-fail:
-	perror(path);
-	return 0;
+static int write_rank(FILE *file, const char *path, void *buf)
+{
+	if (fprintf(file, "%d", *(unsigned*)buf) < 0)
+		return perror(path), 0;
+	return 1;
+}
+
+static int write_clan(const char *clan, FILE *file, const char *path)
+{
+	if (fprintf(file, "%s\n", clan) < 0)
+		return perror(path), 0;
+
+	return 1;
 }
 
 int write_player(struct player *player)
@@ -301,15 +243,13 @@ int write_player(struct player *player)
 	if (!(file = fopen(path, "w")))
 		return perror(path), 0;
 
-	if (fprintf(file, "%s\n", player->clan) < 0) {
-		perror(path);
+	if (!write_clan(player->clan, file, path))
 		goto fail;
-	}
 
-	if (!write_history(file, path, &player->history)) {
-		perror(path);
+	if (!write_historic(&player->elo_historic, file, path, write_elo))
 		goto fail;
-	}
+	if (!write_historic(&player->rank_historic, file, path, write_rank))
+		goto fail;
 
 	fclose(file);
 	return 1;
@@ -318,62 +258,25 @@ fail:
 	return 0;
 }
 
-static time_t timeframe(time_t t)
-{
-	return t - (t % HISTORY_TIMEFRAME_LENGTH);
-}
-
-static time_t next_timeframe(time_t t)
-{
-	return timeframe(t) + HISTORY_TIMEFRAME_LENGTH;
-}
-
-/*
- * Copy the current enrty at the end of the history
- */
-static int archive_current(struct history *history)
-{
-	struct history_entry *entry;
-
-	if (!resize_history(history, history->length + 1))
-		return 0;
-
-	entry = &history->entries[history->length];
-	history->length++;
-
-	*entry = history->current;
-	entry->timestamp = next_timeframe(entry->timestamp);
-	return 1;
-}
-
 /*
  * Update player ELO points, update history if necessary.
  */
 int update_elo(struct player *player, int elo)
 {
-	struct history *history;
-	time_t now;
-
 	assert(player != NULL);
 
-	history = &player->history;
-	now = time(NULL);
-
-	/*
-	 * The current history entry is archived when it's timeframe is
-	 * lower than the actual one.
-	 */
-	fprintf(stderr, "%32s: now tf = %lu, current tf = %lu (diff = %lu)\n",
-	        player->name, timeframe(now), timeframe(history->current.timestamp), timeframe(now) - timeframe(history->current.timestamp));
-
-	if (timeframe(history->current.timestamp) < timeframe(now))
-		if (!archive_current(history))
-			return 0;
-
-	history->current.elo = elo;
-	history->current.timestamp = now;
-	player->elo = elo;
+	append_record(&player->elo_historic, &elo);
 	player->is_modified |= IS_MODIFIED_ELO;
+
+	return 1;
+}
+
+int set_rank(struct player *player, unsigned rank)
+{
+	assert(player != NULL);
+
+	append_record(&player->rank_historic, &rank);
+	player->is_modified |= IS_MODIFIED_RANK;
 
 	return 1;
 }

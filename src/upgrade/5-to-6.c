@@ -96,8 +96,8 @@ static int read_remaining_records(FILE *file, const char *path,
 		rank_record->time = timestamp;
 
 		/* Set data values */
-		*(int*)get_record_data(&player->elo_historic, elo_record) = elo;
-		*(unsigned*)get_record_data(&player->rank_historic, rank_record) = rank;
+		*(int*)record_data(&player->elo_historic, elo_record) = elo;
+		*(unsigned*)record_data(&player->rank_historic, rank_record) = rank;
 	}
 
 	return 1;
@@ -144,11 +144,11 @@ static int read_full_historic(FILE *file, const char *path,
 
 	last = last_record(&player->elo_historic);
 	last->time = timestamp;
-	*(int*)get_record_data(&player->elo_historic, last) = elo;
+	*(int*)record_data(&player->elo_historic, last) = elo;
 
 	last = last_record(&player->rank_historic);
 	last->time = timestamp;
-	*(unsigned*)get_record_data(&player->rank_historic, last) = rank;
+	*(unsigned*)record_data(&player->rank_historic, last) = rank;
 
 	/* first_record() won't return NULL because there is at least one record */
 

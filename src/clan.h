@@ -7,7 +7,7 @@ struct clan {
 	char name[HEXNAME_LENGTH];
 
 	unsigned length;
-	struct player *members;
+	struct player_summary *members;
 };
 
 /*
@@ -35,19 +35,19 @@ void free_clan(struct clan *clan);
  *
  * Return NULL if not found.
  */
-struct player *get_member(struct clan *clan, char *name);
+struct player_summary *get_member(struct clan *clan, char *name);
 
 /*
  * Add the given member to the member list and return it.
  *
  * Return NULL on failure.
  */
-struct player *add_member(struct clan *clan, char *name);
+struct player_summary *add_member(struct clan *clan, char *name);
 
 /*
  * Remove the given member from the members list.
  */
-void remove_member(struct clan *clan, struct player *member);
+void remove_member(struct clan *clan, struct player_summary *member);
 
 /*
  * Load player's struct using read_player().  If a read fail, the player is

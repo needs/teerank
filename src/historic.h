@@ -12,14 +12,14 @@
  * Here is how to create an history:
  *
  *	hist = HISTORIC_ZERO;
- *	init_history(&hist, sizeof(player->elo), &player->elo);
+ *	init_history(&hist, sizeof(player->elo));
  *
  * Here is how to append a record to a file:
  *
  *	hist = HISTORIC_ZERO;
- * 	init_historic(&hist, sizeof(player->elo), &player->elo);
+ * 	init_historic(&hist, sizeof(player->elo));
  *
- * 	read_historic(&hist, file, path, read_elo, 0);
+ * 	read_historic(&hist, file, path, read_elo);
  * 	append_record(&hist, &new_elo);
  * 	write_historic(&hist, file, path, write_elo);
  *
@@ -34,9 +34,9 @@
  * @struct record
  *
  * To each record is associated data, wich can be retrieved using
- * get_record_data().  The record hold by itself the timestamp at wich
+ * record_data().  The record hold by itself the timestamp at wich
  * the associated data was recorded.  However data are stored in an
- * other buffer, hence get_record_data() to retrieve it.
+ * other buffer, hence record_data() to retrieve it.
  */
 struct record {
 	time_t time;
@@ -45,20 +45,16 @@ struct record {
 /**
  * @struct historic
  *
- * Hold historic records, any of it's field should not be modified by hand.
+ * Hold full historic records
  */
 struct historic {
 	time_t epoch;
-	int only_last;
-	unsigned iter;
 
 	unsigned nrecords;
 	unsigned length;
-	struct record last_record;
 	struct record *records;
 
 	size_t data_size;
-	void *last_data;
 	void *data;
 };
 
@@ -70,6 +66,7 @@ struct historic {
 const struct historic HISTORIC_ZERO;
 
 typedef int (*read_data_func_t)(FILE *, const char *, void *);
+typedef int (*skip_data_func_t)(FILE *, const char *);
 typedef int (*write_data_func_t)(FILE *, const char *, void *);
 
 /**
@@ -82,10 +79,8 @@ typedef int (*write_data_func_t)(FILE *, const char *, void *);
  * need to be set with HISTORIC_ZERO as allocated buffer can be reused.
  *
  * @param data_size Data size in historic, used for buffer allocation
- * @param last_data A special valid buffer allocated by the caller to hold
- *        last data in historic.  Hence its size must be >= than data_size
  */
-void init_historic(struct historic *hist, size_t data_size, void *last_data);
+void init_historic(struct historic *hist, size_t data_size);
 
 /**
  * Fill an historic from the content of a file.
@@ -95,23 +90,16 @@ void init_historic(struct historic *hist, size_t data_size, void *last_data);
  *
  * It can reuse allocated buffers from a previous call to read_historic().
  *
- * If only_last is true, then read_data must just skip input without storing
- * it.  The provided buffer will be NULL, hence any access will result in a
- * segfault.
- *
  * @param hist Historic to be filled
  * @param file Opened file to be read
  * @param path Used as a prefix for error message
  * @param read_data Function called each time a data should be read.  It must
  *        handle it's own errors and the result should be placed into data.
- * @param only_last Only read the last record.  History will not be suitable
- *        for a call to append_record() or write_record().  In this case,
- *        read_data must skip input without storing it.
  *
  * @return 1 on success, 0 on failure
  */
 int read_historic(struct historic *hist, FILE *file, const char *path,
-                  read_data_func_t read_data, int only_last);
+                  read_data_func_t read_data);
 
 /**
  * Write the given historic to the given file.
@@ -161,36 +149,6 @@ struct record *first_record(struct historic *hist);
 struct record *last_record(struct historic *hist);
 
 /**
- * Iterate over records, return NULL when no records are available.
- *
- * Once NULL is returned, another loop start and the first record is returned.
- * Hence nesting calls to next_record() for the same historic doesn't works.
- *
- * @param hist Historic to be iterated upon
- */
-struct record *next_record(struct historic *hist);
-
-/**
- * Compute record index as if records were in an array from the oldest
- * record the the newest one.
- *
- * @param hist Historic to search record index
- * @param record Record to get the index for
- *
- * @return Index of the given record
- */
-unsigned record_index(struct historic *hist, struct record *record);
-
-/**
- * Return the number of records
- *
- * @param hist History to query the number of records
- *
- * @return Number fo records
- */
-unsigned get_nrecords(struct historic *hist);
-
-/**
  * Given a record, return associated data.
  *
  * @param hist History the given record belongs to
@@ -198,6 +156,33 @@ unsigned get_nrecords(struct historic *hist);
  *
  * @return Pointer to data, it will always return a valid pointer
  */
-void *get_record_data(struct historic *hist, struct record *record);
+void *record_data(struct historic *hist, struct record *record);
+
+
+/**
+ * @struct historic_summary
+ *
+ * Summarize an historic by just storing the last record.
+ */
+struct historic_summary {
+	time_t epoch;
+	unsigned nrecords;
+	struct record last_record;
+};
+
+/**
+ * Fill the given historic summary with the content of the given file
+ *
+ * @param hs Historic summary to fill
+ * @param file File to read the historic summary from
+ * @param path Used as a prefix for error message
+ * @param read_data Function called to fill paramater last_data
+ * @param skip_data Function called to skip unused historic data
+ * @param last_data a pointer to a valid buaffer to hold the last data
+ *
+ * @return 1 on success, 0 on failure
+ */
+int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path,
+                          read_data_func_t read_data, skip_data_func_t skip_data, void *last_data);
 
 #endif /* HISTORIC_H */

@@ -22,9 +22,9 @@ static char *clan_path(const char *clan)
 	return path;
 }
 
-struct player *add_member(struct clan *clan, char *name)
+struct player_summary *add_member(struct clan *clan, char *name)
 {
-	struct player *member;
+	struct player_summary *member;
 	const unsigned OFFSET = 1024;
 
 	assert(clan != NULL);
@@ -36,7 +36,7 @@ struct player *add_member(struct clan *clan, char *name)
 	}
 
 	if (clan->length % OFFSET == 0) {
-		struct player *members;
+		struct player_summary *members;
 		members = realloc(clan->members,
 		                  (clan->length + OFFSET) * sizeof(*members));
 		if (!members)
@@ -134,7 +134,7 @@ void free_clan(struct clan *clan)
 	clan->members = NULL;
 }
 
-struct player *get_member(struct clan *clan, char *name)
+struct player_summary *get_member(struct clan *clan, char *name)
 {
 	unsigned i;
 
@@ -145,9 +145,9 @@ struct player *get_member(struct clan *clan, char *name)
 	return NULL;
 }
 
-void remove_member(struct clan *clan, struct player *member)
+void remove_member(struct clan *clan, struct player_summary *member)
 {
-	struct player *last;
+	struct player_summary *last;
 
 	assert(clan != NULL);
 	assert(member - clan->members < clan->length);
@@ -164,8 +164,7 @@ unsigned load_members(struct clan *clan)
 	unsigned removed = 0;
 
 	for (i = 0; i < clan->length; i++) {
-		clan->members[i] = PLAYER_ZERO;
-		if (!read_player(&clan->members[i], clan->members[i].name, 0)) {
+		if (!read_player_summary(&clan->members[i], clan->members[i].name)) {
 			remove_member(clan, &clan->members[i]);
 			removed++;
 		}

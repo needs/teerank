@@ -57,12 +57,8 @@ const struct player PLAYER_ZERO;
  * zero using PLAYER_ZERO on the first call.
  *
  * Even if read fail, the player is suitable for printing.
- *
- * If full_history is true, then the full history is read.  It allocates
- * a bit more space than necessary because we may add entries to the history
- * and we don't want to realloc() too often.
  */
-int read_player(struct player *player, char *name, int full_history);
+int read_player(struct player *player, char *name);
 
 /*
  * Player can only be writed if the full history has been successfully read.
@@ -95,5 +91,21 @@ struct player_array {
 
 /* Add (by copy) the given player to the array, and return it */
 struct player *add_player(struct player_array *array, struct player *player);
+
+struct player_summary {
+	char name[HEXNAME_LENGTH];
+	char clan[HEXNAME_LENGTH];
+
+	int elo;
+	unsigned rank;
+
+	struct historic_summary elo_hs;
+	struct historic_summary rank_hs;
+};
+
+/*
+ * Read and fill player summary.
+ */
+int read_player_summary(struct player_summary *ps, char *name);
 
 #endif /* PLAYER_H */

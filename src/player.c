@@ -81,8 +81,8 @@ static void reset_player(struct player *player, const char *name)
 
 	player->delta = NULL;
 
-	init_historic(&player->elo_historic, sizeof(player->elo), &player->elo);
-	init_historic(&player->rank_historic, sizeof(player->rank), &player->rank);
+	init_historic(&player->elo_historic, sizeof(player->elo));
+	init_historic(&player->rank_historic, sizeof(player->rank));
 }
 
 /* player must have been reseted */
@@ -115,9 +115,6 @@ static int read_elo(FILE *file, const char *path, void *buf)
 {
 	int ret;
 
-	if (!buf)
-		return skip_elo(file, path);
-
 	errno = 0;
 	ret = fscanf(file, " %d", (int*)buf);
 	if (ret == EOF && errno != 0)
@@ -131,9 +128,6 @@ static int read_elo(FILE *file, const char *path, void *buf)
 static int read_rank(FILE *file, const char *path, void *buf)
 {
 	int ret;
-
-	if (!buf)
-		return skip_rank(file, path);
 
 	errno = 0;
 	ret = fscanf(file, " %u", (unsigned*)buf);
@@ -163,7 +157,7 @@ static int read_clan(char *clan, FILE *file, const char *path)
 	return 1;
 }
 
-int read_player(struct player *player, char *name, int full_history)
+int read_player(struct player *player, char *name)
 {
 	char *path;
 	FILE *file;
@@ -194,11 +188,16 @@ int read_player(struct player *player, char *name, int full_history)
 	if (!read_clan(player->clan, file, path))
 		goto fail;
 
-	if (!read_historic(&player->elo_historic, file, path, read_elo, !full_history))
+	if (!read_historic(&player->elo_historic, file, path, read_elo))
 		goto fail;
 
-	if (!read_historic(&player->rank_historic, file, path, read_rank, !full_history))
+	if (!read_historic(&player->rank_historic, file, path, read_rank))
 		goto fail;
+
+	if (&player->elo_historic.nrecords > 0)
+		player->elo = *(int*)record_data(&player->elo_historic, last_record(&player->elo_historic));
+	if (&player->rank_historic.nrecords > 0)
+		player->rank = *(unsigned*)record_data(&player->rank_historic, last_record(&player->rank_historic));
 
 	fclose(file);
 	return 1;
@@ -266,6 +265,7 @@ int set_elo(struct player *player, int elo)
 	assert(player != NULL);
 
 	append_record(&player->elo_historic, &elo);
+	player->elo = elo;
 	player->is_modified |= IS_MODIFIED_ELO;
 
 	return 1;
@@ -276,6 +276,7 @@ int set_rank(struct player *player, unsigned rank)
 	assert(player != NULL);
 
 	append_record(&player->rank_historic, &rank);
+	player->rank = rank;
 	player->is_modified |= IS_MODIFIED_RANK;
 
 	return 1;
@@ -301,4 +302,42 @@ struct player *add_player(struct player_array *array, struct player *player)
 	cell = &array->players[array->length++];
 	*cell = *player;
 	return cell;
+}
+
+static void init_player_summary(struct player_summary *ps)
+{
+	strcpy(ps->clan, "00");
+	ps->elo = INVALID_ELO;
+	ps->rank = INVALID_RANK;
+}
+
+int read_player_summary(struct player_summary *ps, char *name)
+{
+	char *path;
+	FILE *file;
+
+	init_player_summary(ps);
+	strcpy(ps->name, name);
+
+	if (!(path = get_path(name)))
+		return 0;
+
+	if (!(file = fopen(path, "r")))
+		return perror(path), 0;
+
+	if (!read_clan(ps->clan, file, path))
+		goto fail;
+
+	if (!read_historic_summary(&ps->elo_hs, file, path, read_elo, skip_elo, &ps->elo))
+		goto fail;
+
+	if (!read_historic_summary(&ps->rank_hs, file, path, read_rank, skip_rank, &ps->rank))
+		goto fail;
+
+	fclose(file);
+	return 1;
+
+fail:
+	fclose(file);
+	return 0;
 }

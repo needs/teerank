@@ -6,24 +6,22 @@
 
 #include "historic.h"
 
-void init_historic(struct historic *hist, size_t data_size, void *last_data)
+void init_historic(struct historic *hist, size_t data_size)
 {
 	assert(hist != NULL);
 	assert(data_size > 0);
-	assert(last_data != NULL);
 
 	hist->data_size = data_size;
-	hist->last_data = last_data;
 
 	hist->nrecords = 0;
-	hist->only_last = 0;
-	hist->iter = 0;
 }
 
-static int read_record(FILE *file, const char *path, struct historic *hist, struct record *record,
+static int read_record(FILE *file, const char *path, time_t epoch, struct record *record, void *data,
                        read_data_func_t read_data)
 {
 	int ret;
+
+	assert(data != NULL);
 
 	errno = 0;
 	ret = fscanf(file, " %lu", &record->time);
@@ -32,15 +30,15 @@ static int read_record(FILE *file, const char *path, struct historic *hist, stru
 	else if (ret == EOF && ret == 0)
 		return fprintf(stderr, "%s: Cannot match record time\n", path), 0;
 
-	record->time += hist->epoch;
+	record->time += epoch;
 
-	if (!read_data(file, path, get_record_data(hist, record)))
+	if (!read_data(file, path, data))
 		return 0;
 
 	return 1;
 }
 
-static int skip_record(FILE *file, const char *path, read_data_func_t read_data)
+static int skip_record(FILE *file, const char *path, skip_data_func_t skip_data)
 {
 	int ret;
 
@@ -48,7 +46,7 @@ static int skip_record(FILE *file, const char *path, read_data_func_t read_data)
 	ret = fscanf(file, " %*u");
 	if (ret == EOF && errno != 0)
 		return perror(path), 0;
-	if (!read_data(file, path, NULL))
+	if (skip_data(file, path) == 0)
 		return 0;
 
 	return 1;
@@ -70,7 +68,7 @@ static int set_nrecords(struct historic *hist, unsigned nrecords)
 
 	assert(hist != NULL);
 
-	if (!hist->only_last && nrecords > hist->length) {
+	if (nrecords > hist->length) {
 		const unsigned length = get_length(nrecords);
 
 		/* Grow records buffer */
@@ -92,13 +90,16 @@ static int set_nrecords(struct historic *hist, unsigned nrecords)
 	return 1;
 }
 
-static int read_historic_header(struct historic *hist, FILE *file, const char *path)
+static int read_historic_header(FILE *file, const char *path,
+                                unsigned *nrecords, time_t *epoch)
 {
 	int ret;
-	unsigned nrecords;
+
+	assert(nrecords != NULL);
+	assert(epoch != NULL);
 
 	errno = 0;
-	ret = fscanf(file, " %u records starting at %lu\n", &nrecords, &hist->epoch);
+	ret = fscanf(file, " %u records starting at %lu\n", nrecords, epoch);
 	if (ret == EOF && errno != 0)
 		return fprintf(stderr, "%s: %s\n", path, strerror(errno)), 0;
 	else if (ret == EOF || ret == 0)
@@ -106,14 +107,11 @@ static int read_historic_header(struct historic *hist, FILE *file, const char *p
 	else if (ret == 1)
 		return fprintf(stderr, "%s: Cannot match epoch\n", path), 0;
 
-	if (!set_nrecords(hist, nrecords))
-		return 0;
-
 	return 1;
 }
 
 int read_historic(struct historic *hist, FILE *file, const char *path,
-                  read_data_func_t read_data, int only_last)
+                  read_data_func_t read_data)
 {
 	unsigned i;
 
@@ -122,31 +120,23 @@ int read_historic(struct historic *hist, FILE *file, const char *path,
 	assert(path != NULL);
 	assert(read_data != NULL);
 
-	/* Set it first so following calls have the desired effect */
-	hist->only_last = only_last;
-
-	if (!read_historic_header(hist, file, path))
+	if (!read_historic_header(file, path, &hist->nrecords, &hist->epoch))
 		return 0;
 
 	if (hist->nrecords == 0)
 		return 1;
 
-	if (only_last) {
-		if (read_record(file, path, hist, last_record(hist), read_data) == 0)
+	if (!set_nrecords(hist, hist->nrecords))
+		return 0;
+
+	for (i = 0; i < hist->nrecords; i++) {
+		struct record *record = &hist->records[hist->nrecords - i - 1];
+		void *data = record_data(hist, record);
+
+		if (i != 0)
+			fscanf(file, " ,");
+		if (read_record(file, path, hist->epoch, record, data, read_data) == 0)
 			return 0;
-
-		for (i = 1; i < hist->nrecords; i++)
-			if (!skip_record(file, path, read_data))
-				return 0;
-	} else {
-		for (i = 0; i < hist->nrecords; i++) {
-			struct record *record = &hist->records[hist->nrecords - i - 1];
-
-			if (i != 0)
-				fscanf(file, " ,");
-			if (read_record(file, path, hist, record, read_data) == 0)
-				return 0;
-		}
 	}
 
 	return 1;
@@ -156,7 +146,7 @@ static void write_record(FILE *file, const char *path, struct historic *hist, st
                          write_data_func_t write_data)
 {
 	fprintf(file, "%lu ", record->time - hist->epoch);
-	write_data(file, path, get_record_data(hist, record));
+	write_data(file, path, record_data(hist, record));
 }
 
 int write_historic(struct historic *hist, FILE *file, const char *path,
@@ -168,7 +158,6 @@ int write_historic(struct historic *hist, FILE *file, const char *path,
 	assert(file != NULL);
 	assert(path != NULL);
 	assert(write_data != NULL);
-	assert(!hist->only_last);
 
 	fprintf(file, "%u records starting at %lu\n", hist->nrecords, hist->epoch);
 
@@ -186,57 +175,33 @@ int write_historic(struct historic *hist, FILE *file, const char *path,
 	return 1;
 }
 
-unsigned record_index(struct historic *hist, struct record *record)
-{
-	assert(hist != NULL);
-	assert(record != NULL);
-	assert(!hist->only_last);
-
-	return record - hist->records;
-}
-
 struct record *last_record(struct historic *hist)
 {
 	if (hist->nrecords == 0)
 		return NULL;
-	else if (hist->only_last)
-		return &hist->last_record;
 	else
 		return &hist->records[hist->nrecords - 1];
 }
 
 struct record *first_record(struct historic *hist)
 {
-	assert(!hist->only_last);
-
 	if (hist->nrecords == 0)
 		return NULL;
 	else
 		return &hist->records[0];
 }
 
-void *get_record_data(struct historic *hist, struct record *record)
+void *record_data(struct historic *hist, struct record *record)
 {
-	if (record == last_record(hist))
-		return hist->last_data;
-	else
-		return &((char*)hist->data)[record_index(hist, record) * hist->data_size];
-}
-
-static struct record *previous_record(struct historic *hist, struct record *record)
-{
-	if (record == hist->records)
-		return NULL;
-	return record - 1;
+	return &((char*)hist->data)[(record - hist->records) * hist->data_size];
 }
 
 int append_record(struct historic *hist, const void *data)
 {
-	struct record *prev, *last;
+	struct record *last;
 	time_t now = time(NULL);
 
 	assert(hist != NULL);
-	assert(!hist->only_last);
 
 	/* Create history if empty */
 	if (hist->nrecords == 0)
@@ -250,32 +215,33 @@ int append_record(struct historic *hist, const void *data)
 	last = last_record(hist);
 	assert(last != NULL);
 
-	/* Archive previous last record */
-	prev = previous_record(hist, last);
-	if (prev) {
-		memcpy(get_record_data(hist, prev), hist->last_data, hist->data_size);
-	}
-
 	last->time = now;
-	memcpy(get_record_data(hist, last), data, hist->data_size);
+	memcpy(record_data(hist, last), data, hist->data_size);
 
 	return 1;
 }
 
-struct record *next_record(struct historic *hist)
+int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path,
+                          read_data_func_t read_data, skip_data_func_t skip_data, void *last_data)
 {
-	assert(hist != NULL);
-	assert(!hist->only_last);
+	unsigned i;
 
-	if (hist->iter == hist->nrecords) {
-		hist->iter = 0;
-		return NULL;
-	} else {
-		return &hist->records[hist->iter++];
-	}
-}
+	if (read_historic_header(file, path, &hs->nrecords, &hs->epoch) == 0)
+		return 0;
 
-unsigned get_nrecords(struct historic *hist)
-{
-	return hist->nrecords;
+        if (hs->nrecords == 0)
+	        return 1;
+
+        /* Last record */
+        if (read_record(file, path, hs->epoch, &hs->last_record, last_data, read_data) == 0)
+	        return 0;
+
+        /* Skip remaning records */
+        for (i = 1; i < hs->nrecords; i++) {
+	        fscanf(file, ", ");
+	        if (skip_record(file, path, skip_data) == 0)
+		        return 0;
+        }
+
+        return 1;
 }

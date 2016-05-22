@@ -14,7 +14,7 @@ void html_footer(void);
 
 const char *name_to_html(const char *name);
 
-void html_print_player(struct player *player, int show_clan_link);
+void html_print_player(struct player_summary *player, int show_clan_link);
 
 
 #endif /* HTML_H */

@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 		if (!is_valid_hexname(dp->d_name))
 			continue;
 
-		if (!read_player(&player, dp->d_name, 0))
+		if (!read_player(&player, dp->d_name))
 			continue;
 
 		clan = get_clan(&clans, player.clan);

@@ -29,7 +29,7 @@ struct result {
 	int relevance;
 
 	int is_loaded;
-	struct player player;
+	struct player_summary player;
 
 	struct result *next, *prev;
 };
@@ -184,7 +184,7 @@ static void insert_before(struct list *list, struct result *target, struct resul
 static int get_rank(struct result *result)
 {
 	if (!result->is_loaded) {
-		read_player(&result->player, result->name, 0);
+		read_player_summary(&result->player, result->name);
 		result->is_loaded = 1;
 	}
 
@@ -304,7 +304,7 @@ int main(int argc, char **argv)
 		printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
 		for (result = list.first; result; result = result->next) {
 			if (!result->is_loaded)
-				read_player(&result->player, result->name, 0);
+				read_player_summary(&result->player, result->name);
 			html_print_player(&result->player, 1);
 		}
 		printf("</tbody></table>\n");

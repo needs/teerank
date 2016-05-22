@@ -13,12 +13,11 @@
 struct page {
 	unsigned number, total;
 
-	struct player_array players;
+	FILE *file;
 };
 
 static void load_page(struct page *page, unsigned number)
 {
-	char name[HEXNAME_LENGTH];
 	static char path[PATH_MAX];
 	int ret;
 	FILE *file;
@@ -42,25 +41,40 @@ static void load_page(struct page *page, unsigned number)
 		exit(EXIT_FAILURE);
 	}
 
-	while (fscanf(file, " %s", name) == 1) {
-		struct player player = PLAYER_ZERO;
+	page->file = file;
+}
+
+static void free_page(struct page *page)
+{
+	fclose(page->file);
+}
+
+static struct player_summary *next_player(struct page *page)
+{
+	char name[HEXNAME_LENGTH];
+
+	while (fscanf(page->file, " %s", name) == 1) {
+		static struct player_summary player;
+
 		if (!is_valid_hexname(name))
 			continue;
-		if (read_player(&player, name, 0))
-			add_player(&page->players, &player);
+		if (read_player_summary(&player, name) == 0)
+			continue;
+
+		return &player;
 	}
 
-	fclose(file);
+	return NULL;
 }
 
 static void print_page(struct page *page)
 {
-	unsigned i;
+	struct player_summary *player;
 
 	assert(page != NULL);
 
-	for (i = 0; i < page->players.length; i++)
-		html_print_player(&page->players.players[i], 1);
+	while ((player = next_player(page)))
+		html_print_player(player, 1);
 }
 
 static unsigned min(unsigned a, unsigned b)
@@ -183,6 +197,8 @@ int main(int argc, char **argv)
 		print_nav(&page);
 		html_footer();
 	}
+
+	free_page(&page);
 
 	return EXIT_SUCCESS;
 }

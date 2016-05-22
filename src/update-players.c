@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 
 		/* Load player (ignore fail) */
 		for (i = 0; i < delta.length; i++) {
-			if (!read_player(&players[length], delta.players[i].name, 1))
+			if (!read_player(&players[length], delta.players[i].name))
 				continue;
 
 			merge_delta(&players[length], &delta.players[i]);

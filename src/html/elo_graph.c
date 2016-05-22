@@ -6,13 +6,15 @@
 
 static struct record *min_record(struct historic *hist, int (*cmp)(const void *a, const void *b))
 {
-	struct record *record, *min = NULL;
+	struct record *min = NULL;
+	unsigned i;
 
 	assert(hist != NULL);
 	assert(cmp != NULL);
 
-	while ((record = next_record(hist))) {
-		const void *data = get_record_data(hist, record);
+	for (i = 0; i < hist->nrecords; i++) {
+		struct record *record = &hist->records[i];
+		const void *data = record_data(hist, record);
 
 		if (!min || cmp(min, data) == -1)
 			min = record;
@@ -23,13 +25,15 @@ static struct record *min_record(struct historic *hist, int (*cmp)(const void *a
 
 static struct record *max_record(struct historic *hist, int (*cmp)(const void *a, const void *b))
 {
-	struct record *record, *max = NULL;
+	struct record *max = NULL;
+	unsigned i;
 
 	assert(hist != NULL);
 	assert(cmp != NULL);
 
-	while ((record = next_record(hist))) {
-		const void *data = get_record_data(hist, record);
+	for (i = 0; i < hist->nrecords; i++) {
+		struct record *record = &hist->records[i];
+		const void *data = record_data(hist, record);
 
 		if (!max || cmp(max, data) == 1)
 			max = record;
@@ -121,7 +125,7 @@ static int cmp_elo(const void *pa, const void *pb)
 
 static int get_elo(struct historic *hist, struct record *record)
 {
-	return *(int*)get_record_data(hist, record);
+	return *(int*)record_data(hist, record);
 }
 
 static struct graph init_graph(struct historic *hist)
@@ -194,7 +198,7 @@ struct point init_point(struct graph *graph, struct record *record)
 	assert(record != NULL);
 
 	elo = get_elo(graph->hist, record);
-	p.x = (float)(record_index(graph->hist, record)) / (get_nrecords(graph->hist) - 1) * 100.0;
+	p.x = (float)((record - graph->hist->records)) / (graph->hist->nrecords - 1) * 100.0;
 	p.y = 100.0 - ((float)(elo - graph->min) / (graph->max - graph->min) * 100.0);
 
 	return p;
@@ -215,20 +219,20 @@ static void print_line(struct graph *graph, struct record *a, struct record *b)
 
 static void print_lines(struct graph *graph)
 {
-	struct record *prev, *current;
+	unsigned i;
 
 	assert(graph != NULL);
 
 	printf("\n\t<!-- Path -->\n");
 	printf("\t<g>\n");
 
-	prev = next_record(graph->hist);
-	current = next_record(graph->hist);
+	for (i = 1; i < graph->hist->nrecords; i++) {
+		struct record *prev, *current;
 
-	while (current) {
+		prev = &graph->hist->records[i - 1];
+		current = &graph->hist->records[i];
+
 		print_line(graph, prev, current);
-		prev = current;
-		current = next_record(graph->hist);
 	}
 
 	printf("\t</g>\n");
@@ -244,7 +248,7 @@ static void print_point(struct graph *graph, struct record *record)
 	assert(record != NULL);
 
 	p = init_point(graph, record);
-	i = record_index(graph->hist, record);
+	i = record - graph->hist->records;
 	elo = get_elo(graph->hist, record);
 
 	printf("\t\t<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>\n", p.x, p.y);
@@ -261,15 +265,15 @@ static void print_point(struct graph *graph, struct record *record)
 
 static void print_points(struct graph *graph)
 {
-	struct record *record;
+	unsigned i;
 
 	assert(graph != NULL);
 
 	printf("\n\t<!-- Points -->\n");
 	printf("\t<g>\n");
 
-	while ((record = next_record(graph->hist)))
-		print_point(graph, record);
+	for (i = 0; i < graph->hist->nrecords; i++)
+		print_point(graph, &graph->hist->records[i]);
 
 	printf("\t</g>\n");
 }
@@ -320,7 +324,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (!read_player(&player, name, 1))
+	if (!read_player(&player, name))
 		return EXIT_FAILURE;
 
 	print_graph(&player);

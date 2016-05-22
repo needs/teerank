@@ -79,6 +79,11 @@ int set_elo(struct player *player, int elo);
 int set_rank(struct player *player, unsigned rank);
 
 /*
+ * Set player's clan.
+ */
+void set_clan(struct player *player, char *clan);
+
+/*
  * Free buffers but do *not* reset the struct to PLAYER_ZERO.
  */
 void free_player(struct player *player);

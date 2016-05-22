@@ -63,10 +63,8 @@ static void merge_delta(struct player *player, struct player_delta *delta)
 
 		/* Put the old clan in the delta so we can use it later */
 		strcpy(tmp, player->clan);
-		strcpy(player->clan, delta->clan);
+		set_clan(player, delta->clan);
 		strcpy(delta->clan, tmp);
-
-		player->is_modified |= IS_MODIFIED_CLAN;
 	}
 
 	player->is_rankable = 1;

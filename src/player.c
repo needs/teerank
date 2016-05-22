@@ -282,6 +282,16 @@ int set_rank(struct player *player, unsigned rank)
 	return 1;
 }
 
+void set_clan(struct player *player, char *clan)
+{
+	assert(player != NULL);
+	assert(clan != NULL);
+	assert(is_valid_hexname(clan));
+
+	strcpy(player->clan, clan);
+	player->is_modified |= IS_MODIFIED_CLAN;
+}
+
 struct player *add_player(struct player_array *array, struct player *player)
 {
 	const unsigned OFFSET = 1024;

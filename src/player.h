@@ -74,7 +74,7 @@ int write_player(struct player *player);
  * history if necessary.  It can fail because history may not be wide
  * enough to add another entry.
  */
-int update_elo(struct player *player, int elo);
+int set_elo(struct player *player, int elo);
 
 /*
  * Set player's rank, add a new record in historic.  Can fail because historic

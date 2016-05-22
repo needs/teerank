@@ -98,5 +98,5 @@ void update_elos(struct player *players, unsigned length)
 
 	for (i = 0; i < length; i++)
 		if (players[i].is_rankable)
-			update_elo(&players[i], elos[i]);
+			set_elo(&players[i], elos[i]);
 }

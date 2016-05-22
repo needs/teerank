@@ -261,7 +261,7 @@ fail:
 /*
  * Update player ELO points, update history if necessary.
  */
-int update_elo(struct player *player, int elo)
+int set_elo(struct player *player, int elo)
 {
 	assert(player != NULL);
 

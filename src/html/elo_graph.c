@@ -198,8 +198,16 @@ struct point init_point(struct graph *graph, struct record *record)
 	assert(record != NULL);
 
 	elo = get_elo(graph->hist, record);
-	p.x = (float)((record - graph->hist->records)) / (graph->hist->nrecords - 1) * 100.0;
-	p.y = 100.0 - ((float)(elo - graph->min) / (graph->max - graph->min) * 100.0);
+
+	if (graph->hist->nrecords - 1 == 0)
+		p.x = 0;
+	else
+		p.x = (float)((record - graph->hist->records)) / (graph->hist->nrecords - 1) * 100.0;
+
+	if (graph->max - graph->min == 0)
+		p.y = 0;
+	else
+		p.y = 100.0 - ((float)(elo - graph->min) / (graph->max - graph->min) * 100.0);
 
 	return p;
 }

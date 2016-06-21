@@ -90,40 +90,40 @@ static void print_nav(struct page *page)
 
 	assert(page != NULL);
 
-	printf("<nav class=\"pages\">");
+	html("<nav class=\"pages\">");
 	if (page->number == 1)
-		printf("<a class=\"previous\">Previous</a>");
+		html("<a class=\"previous\">Previous</a>");
 	else
-		printf("<a class=\"previous\" href=\"/pages/%u.html\">Previous</a>",
+		html("<a class=\"previous\" href=\"/pages/%u.html\">Previous</a>",
 		       page->number - 1);
 
 	if (page->number > PAGE_SHOWN + 1)
-		printf("<a href=\"/pages/1.html\">1</a>");
+		html("<a href=\"/pages/1.html\">1</a>");
 	if (page->number > PAGE_SHOWN + 2)
-		printf("<span>...</span>");
+		html("<span>...</span>");
 
 	for (i = min(PAGE_SHOWN, page->number - 1); i > 0; i--)
-		printf("<a href=\"/pages/%u.html\">%u</a>",
+		html("<a href=\"/pages/%u.html\">%u</a>",
 		       page->number - i, page->number - i);
 
-	printf("<a class=\"current\">%u</a>", page->number);
+	html("<a class=\"current\">%u</a>", page->number);
 
 	for (i = 1; i <= min(PAGE_SHOWN, page->total - page->number); i++)
-		printf("<a href=\"/pages/%u.html\">%u</a>",
+		html("<a href=\"/pages/%u.html\">%u</a>",
 		       page->number + i, page->number + i);
 
 	if (page->number + PAGE_SHOWN + 1 < page->total)
-		printf("<span>...</span>");
+		html("<span>...</span>");
 	if (page->number + PAGE_SHOWN < page->total)
-		printf("<a href=\"/pages/%u.html\">%u</a>",
+		html("<a href=\"/pages/%u.html\">%u</a>",
 		       page->total, page->total);
 
 	if (page->number == page->total)
-	printf("<a class=\"next\">Next</a>");
+		html("<a class=\"next\">Next</a>");
 	else
-		printf("<a class=\"next\" href=\"/pages/%u.html\">Next</a>",
+		html("<a class=\"next\" href=\"/pages/%u.html\">Next</a>",
 		       page->number + 1);
-	printf("</nav>");
+	html("</nav>");
 }
 
 enum mode {
@@ -186,14 +186,13 @@ int main(int argc, char **argv)
 	if (mode == FULL_PAGE) {
 		html_header(&CTF_TAB, "CTF", NULL);
 		print_nav(&page);
-
-		printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
+		html_start_player_list();
 	}
 
 	print_page(&page);
 
 	if (mode == FULL_PAGE) {
-		printf("</tbody></table>");
+		html_end_player_list();
 		print_nav(&page);
 		html_footer();
 	}

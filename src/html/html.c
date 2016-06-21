@@ -180,6 +180,26 @@ const char *name_to_html(const char *name)
 	return str;
 }
 
+void html_start_player_list(void)
+{
+	html("<table>");
+	html("<thead>");
+	html("<tr>");
+	html("<th></th>");
+	html("<th>Name</th>");
+	html("<th>Clan</th>");
+	html("<th>Score</th>");
+	html("</tr>");
+	html("</thead>");
+	html("<tbody>");
+}
+
+void html_end_player_list(void)
+{
+	html("</tbody>");
+	html("</table>");
+}
+
 void html_print_player(struct player_summary *player, int show_clan_link)
 {
 	char name[NAME_LENGTH], clan[NAME_LENGTH];

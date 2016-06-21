@@ -39,6 +39,7 @@ int main(int argc, char **argv)
 		printf("\t</section>\n");
 		printf("\t<p>#%u (%d ELO)</p>\n", player.rank, player.elo);
 		printf("</header>\n");
+		printf("<object data=\"/players/%s/elo.svg\" type=\"image/svg+xml\"></object>\n", player.name);
 	} else {
 		printf("<p>Player not found</p>\n");
 	}

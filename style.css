@@ -264,3 +264,9 @@ nav.pages a:nth-last-child(2) {
 	font-weight: bold;
 	font-size: 1.2em;
 }
+
+object {
+	display: block;
+	width: 100%;
+	height: 300px;
+}

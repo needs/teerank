@@ -3,6 +3,9 @@
 
 #include "player.h"
 
+void html(const char *fmt, ...);
+char *escape(const char *str);
+
 struct tab {
 	char *name, *href;
 };
@@ -15,6 +18,5 @@ void html_footer(void);
 const char *name_to_html(const char *name);
 
 void html_print_player(struct player_summary *player, int show_clan_link);
-
 
 #endif /* HTML_H */

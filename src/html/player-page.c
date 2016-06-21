@@ -31,17 +31,17 @@ int main(int argc, char **argv)
 	/* Print player logo, name, clan, rank and elo */
 	if (player_found) {
 		hexname_to_name(player.clan, clan);
-		printf("<header id=\"player_header\">\n");
-		printf("\t<img src=\"/images/player.png\"/>\n");
-		printf("\t<section>\n");
-		printf("\t\t<h1>%s</h1>\n", name);
-		printf("\t\t<p>%s</p>\n", clan);
-		printf("\t</section>\n");
-		printf("\t<p>#%u (%d ELO)</p>\n", player.rank, player.elo);
-		printf("</header>\n");
-		printf("<object data=\"/players/%s/elo.svg\" type=\"image/svg+xml\"></object>\n", player.name);
+		html("<header id=\"player_header\">");
+		html("<img src=\"/images/player.png\"/>");
+		html("<section>");
+		html("<h1>%s</h1>", name);
+		html("<p>%s</p>", clan);
+		html("</section>");
+		html("<p>#%u (%d ELO)</p>", player.rank, player.elo);
+		html("</header>");
+		html("<object data=\"/players/%s/elo.svg\" type=\"image/svg+xml\"></object>", player.name);
 	} else {
-		printf("<p>Player not found</p>\n");
+		html("<p>Player not found</p>");
 	}
 
 	html_footer();

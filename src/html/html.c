@@ -5,6 +5,16 @@
 
 #include "html.h"
 
+#ifdef NDEBUG
+void html(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+}
+#else
 void html(const char *fmt, ...)
 {
 	static int indent = 0;
@@ -50,7 +60,7 @@ print:
 	if (opening_tag && !closing_tag)
 		indent++;
 }
-
+#endif
 
 const struct tab CTF_TAB = { "CTF", "/" };
 const struct tab ABOUT_TAB = { "About", "/about.html" };

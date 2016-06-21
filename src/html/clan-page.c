@@ -50,20 +50,20 @@ int main(int argc, char **argv)
 	/* Eventually, print them */
 	hexname_to_name(clan.name, clan_name);
 	html_header(&CTF_TAB, clan_name, NULL);
-	printf("<h2>%s</h2>\n", clan_name);
+	html("<h2>%s</h2>", clan_name);
 
 	if (!missing_members)
-		printf("<p>%u member(s)</p>\n", clan.length);
+		html("<p>%u member(s)</p>", clan.length);
 	else
-		printf("<p>%u member(s), %u could not be loaded</p>\n",
+		html("<p>%u member(s), %u could not be loaded</p>",
 		       clan.length + missing_members, missing_members);
 
-	printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead>\n<tbody>\n");
+	html_start_player_list();
 
 	for (i = 0; i < clan.length; i++)
 		html_print_player(&clan.members[i], 0);
 
-	printf("</tbody></table>\n");
+	html_end_player_list();
 	html_footer();
 
 	return EXIT_SUCCESS;

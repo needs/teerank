@@ -297,17 +297,17 @@ int main(int argc, char **argv)
 	html_header(&CUSTOM_TAB, "Search results", argv[1]);
 
 	if (list.length == 0) {
-		printf("No players found");
+		html("No players found");
 	} else {
 		struct result *result;
 
-		printf("<table><thead><tr><th></th><th>Name</th><th>Clan</th><th>Score</th></tr></thead><tbody>\n");
+		html_start_player_list();
 		for (result = list.first; result; result = result->next) {
 			if (!result->is_loaded)
 				read_player_summary(&result->player, result->name);
 			html_print_player(&result->player, 1);
 		}
-		printf("</tbody></table>\n");
+		html_end_player_list();
 	}
 
 	html_footer();

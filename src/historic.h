@@ -12,12 +12,12 @@
  * Here is how to create an history:
  *
  *	hist = HISTORIC_ZERO;
- *	init_history(&hist, sizeof(player->elo));
+ *	init_history(&hist, sizeof(player->elo), 0);
  *
  * Here is how to append a record to a file:
  *
  *	hist = HISTORIC_ZERO;
- * 	init_historic(&hist, sizeof(player->elo));
+ * 	init_historic(&hist, sizeof(player->elo), 0);
  *
  * 	read_historic(&hist, file, path, read_elo);
  * 	append_record(&hist, &new_elo);
@@ -79,7 +79,13 @@ typedef int (*write_data_func_t)(FILE *, const char *, void *);
  * On the other hand an history that have already been initialized do not
  * need to be set with HISTORIC_ZERO as allocated buffer can be reused.
  *
+ * Timestep is the minimum time gap between two records.  Except for
+ * the very last record, which can have any timestamp without any
+ * constraints.
+ *
+ * @param hist Historic to initialize
  * @param data_size Data size in historic, used for buffer allocation
+ * @param timestep Minimum time gap between two records
  */
 void init_historic(struct historic *hist, size_t data_size, time_t timestep);
 

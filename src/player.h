@@ -70,7 +70,9 @@ struct player {
 	unsigned rank;
 
 	struct historic elo_historic;
-	struct historic rank_historic;
+	struct historic hourly_rank;
+	struct historic daily_rank;
+	struct historic monthly_rank;
 
 	struct player_delta *delta;
 
@@ -204,7 +206,9 @@ struct player_summary {
 	unsigned rank;
 
 	struct historic_summary elo_hs;
-	struct historic_summary rank_hs;
+	struct historic_summary hourly_rank;
+	struct historic_summary daily_rank;
+	struct historic_summary monthly_rank;
 };
 
 /**

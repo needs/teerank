@@ -6,12 +6,13 @@
 
 #include "historic.h"
 
-void init_historic(struct historic *hist, size_t data_size)
+void init_historic(struct historic *hist, size_t data_size, time_t timestep)
 {
 	assert(hist != NULL);
 	assert(data_size > 0);
 
 	hist->data_size = data_size;
+	hist->timestep = timestep;
 
 	hist->nrecords = 0;
 }
@@ -196,6 +197,28 @@ void *record_data(struct historic *hist, struct record *record)
 	return &((char*)hist->data)[(record - hist->records) * hist->data_size];
 }
 
+static int same_timeframe(time_t a, time_t b, time_t timestep)
+{
+	if (timestep)
+		return a / timestep == b / timestep;
+	else
+		return a == b;
+}
+
+static time_t next_timeframe(time_t t, time_t timestep)
+{
+	return (t - (t % timestep)) + timestep;
+}
+
+static struct record *new_record(struct historic *hist)
+{
+	assert(hist != NULL);
+
+	if (!set_nrecords(hist, hist->nrecords + 1))
+		return NULL;
+	return last_record(hist);
+}
+
 int append_record(struct historic *hist, const void *data)
 {
 	struct record *last;
@@ -203,17 +226,20 @@ int append_record(struct historic *hist, const void *data)
 
 	assert(hist != NULL);
 
-	/* Create history if empty */
+	/* Initialize history if empty */
 	if (hist->nrecords == 0)
 		hist->epoch = now;
 
-	if (!set_nrecords(hist, hist->nrecords + 1))
-		return 0;
-
-	/* Set last record with new values */
-
 	last = last_record(hist);
-	assert(last != NULL);
+	if (!last) {
+		last = new_record(hist);
+	} else if (!same_timeframe(last->time, now, hist->timestep)) {
+		last->time = next_timeframe(last->time, hist->timestep);
+		last = new_record(hist);
+	}
+
+	if (!last)
+		return 0;
 
 	last->time = now;
 	memcpy(record_data(hist, last), data, hist->data_size);

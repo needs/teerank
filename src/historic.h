@@ -49,6 +49,7 @@ struct record {
  */
 struct historic {
 	time_t epoch;
+	time_t timestep;
 
 	unsigned nrecords;
 	unsigned length;
@@ -80,7 +81,7 @@ typedef int (*write_data_func_t)(FILE *, const char *, void *);
  *
  * @param data_size Data size in historic, used for buffer allocation
  */
-void init_historic(struct historic *hist, size_t data_size);
+void init_historic(struct historic *hist, size_t data_size, time_t timestep);
 
 /**
  * Fill an historic from the content of a file.

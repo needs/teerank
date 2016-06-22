@@ -73,6 +73,8 @@ static char *get_path(char *name)
  */
 static void reset_player(struct player *player, const char *name)
 {
+	const time_t HOUR = 60 * 60;
+
 	strcpy(player->name, name);
 	strcpy(player->clan, "00");
 	player->elo = INVALID_ELO;
@@ -81,8 +83,10 @@ static void reset_player(struct player *player, const char *name)
 
 	player->delta = NULL;
 
-	init_historic(&player->elo_historic, sizeof(player->elo));
-	init_historic(&player->rank_historic, sizeof(player->rank));
+	init_historic(&player->elo_historic, sizeof(player->elo), 0);
+	init_historic(&player->hourly_rank,  sizeof(player->rank), HOUR);
+	init_historic(&player->daily_rank,   sizeof(player->rank), 24 * HOUR);
+	init_historic(&player->monthly_rank, sizeof(player->rank), 30 * 24 * HOUR);
 }
 
 /* player must have been reseted */
@@ -191,13 +195,17 @@ int read_player(struct player *player, char *name)
 	if (!read_historic(&player->elo_historic, file, path, read_elo))
 		goto fail;
 
-	if (!read_historic(&player->rank_historic, file, path, read_rank))
+	if (!read_historic(&player->hourly_rank, file, path, read_rank))
+		goto fail;
+	if (!read_historic(&player->daily_rank, file, path, read_rank))
+		goto fail;
+	if (!read_historic(&player->monthly_rank, file, path, read_rank))
 		goto fail;
 
 	if (&player->elo_historic.nrecords > 0)
 		player->elo = *(int*)record_data(&player->elo_historic, last_record(&player->elo_historic));
-	if (&player->rank_historic.nrecords > 0)
-		player->rank = *(unsigned*)record_data(&player->rank_historic, last_record(&player->rank_historic));
+	if (&player->hourly_rank.nrecords > 0)
+		player->rank = *(unsigned*)record_data(&player->hourly_rank, last_record(&player->hourly_rank));
 
 	fclose(file);
 	return 1;
@@ -247,7 +255,11 @@ int write_player(struct player *player)
 
 	if (!write_historic(&player->elo_historic, file, path, write_elo))
 		goto fail;
-	if (!write_historic(&player->rank_historic, file, path, write_rank))
+	if (!write_historic(&player->hourly_rank, file, path, write_rank))
+		goto fail;
+	if (!write_historic(&player->daily_rank, file, path, write_rank))
+		goto fail;
+	if (!write_historic(&player->monthly_rank, file, path, write_rank))
 		goto fail;
 
 	fclose(file);
@@ -275,7 +287,10 @@ int set_rank(struct player *player, unsigned rank)
 {
 	assert(player != NULL);
 
-	append_record(&player->rank_historic, &rank);
+	append_record(&player->hourly_rank, &rank);
+	append_record(&player->daily_rank, &rank);
+	append_record(&player->monthly_rank, &rank);
+
 	player->rank = rank;
 	player->is_modified |= IS_MODIFIED_RANK;
 
@@ -341,7 +356,11 @@ int read_player_summary(struct player_summary *ps, char *name)
 	if (!read_historic_summary(&ps->elo_hs, file, path, read_elo, skip_elo, &ps->elo))
 		goto fail;
 
-	if (!read_historic_summary(&ps->rank_hs, file, path, read_rank, skip_rank, &ps->rank))
+	if (!read_historic_summary(&ps->hourly_rank, file, path, read_rank, skip_rank, &ps->rank))
+		goto fail;
+	if (!read_historic_summary(&ps->daily_rank, file, path, read_rank, skip_rank, &ps->rank))
+		goto fail;
+	if (!read_historic_summary(&ps->monthly_rank, file, path, read_rank, skip_rank, &ps->rank))
 		goto fail;
 
 	fclose(file);

@@ -1,6 +1,7 @@
 #include <math.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "elo.h"
 #include "player.h"
@@ -73,8 +74,6 @@ static void print_elo_change(struct player *player, int elo)
 	verbose("\t%-32s | %-16s | %d -> %d (%+d)\n", player->name, name,
 	        player->elo, elo, elo - player->elo);
 }
-
-#include <stdio.h>
 
 void update_elos(struct player *players, unsigned length)
 {

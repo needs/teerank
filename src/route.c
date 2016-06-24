@@ -131,6 +131,12 @@ static void init_player_elo_graph(struct file *file, struct url *url)
 	file->args[2] = "elo";
 }
 
+static void init_player_rank_graph(struct file *file, struct url *url)
+{
+	file->args[1] = url->dirs[url->ndirs - 1];
+	file->args[2] = "rank";
+}
+
 static void init_search_file(struct file *file, struct url *url)
 {
 	if (url->nargs != 1)
@@ -163,6 +169,7 @@ static const struct directory root = {
 			}, (struct directory[]) {
 				{ NULL, (struct file[]) {
 						{ "elo.svg", { "teerank-html-graph" }, init_player_elo_graph },
+						{ "rank.svg", { "teerank-html-graph" }, init_player_rank_graph },
 						{ NULL }
 					}, NULL },
 				{ NULL }

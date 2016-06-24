@@ -41,7 +41,12 @@ int main(int argc, char **argv)
 		html("</section>");
 		html("<p>#%u (%d ELO)</p>", player.rank, player.elo);
 		html("</header>");
+		html("");
+		html("<h2>ELO points (%d)</h2>", player.elo);
 		html("<object data=\"/players/%s/elo.svg\" type=\"image/svg+xml\"></object>", player.name);
+		html("");
+		html("<h2>Rank (%u)</h2>", player.rank);
+		html("<object data=\"/players/%s/rank.svg\" type=\"image/svg+xml\"></object>", player.name);
 	} else {
 		html("<p>Player not found</p>");
 	}

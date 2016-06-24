@@ -5,44 +5,26 @@
 #include "player.h"
 #include "html.h"
 
-/* TODO: use svg() and make xml() handle <?> */
+typedef int (*record_cmp_t )(const void *a, const void *b);
 
-static struct record *min_record(struct historic *hist, int (*cmp)(const void *a, const void *b))
+static struct record *find_record(
+	struct historic *hist, record_cmp_t cmp)
 {
-	struct record *min = NULL;
+	struct record *ret = NULL;
 	unsigned i;
 
 	assert(hist != NULL);
 	assert(cmp != NULL);
 
 	for (i = 0; i < hist->nrecords; i++) {
-		struct record *record = &hist->records[i];
-		const void *data = record_data(hist, record);
+		struct record *rec = &hist->records[i];
+		const void *data = record_data(hist, rec);
 
-		if (!min || cmp(min, data) == -1)
-			min = record;
+		if (!ret || cmp(ret, data))
+			ret = rec;
 	}
 
-	return min;
-}
-
-static struct record *max_record(struct historic *hist, int (*cmp)(const void *a, const void *b))
-{
-	struct record *max = NULL;
-	unsigned i;
-
-	assert(hist != NULL);
-	assert(cmp != NULL);
-
-	for (i = 0; i < hist->nrecords; i++) {
-		struct record *record = &hist->records[i];
-		const void *data = record_data(hist, record);
-
-		if (!max || cmp(max, data) == 1)
-			max = record;
-	}
-
-	return max;
+	return ret;
 }
 
 /* We want at least 3 axes on the graph */
@@ -118,12 +100,14 @@ struct graph {
 	struct historic *hist;
 };
 
-static int cmp_elo(const void *pa, const void *pb)
+static int min_elo_cmp(const void *a, const void *b)
 {
-	const int a = *(int*)pa;
-	const int b = *(int*)pb;
+	return *(int*)a < *(int*)b;
+}
 
-	return a - b;
+static int max_elo_cmp(const void *a, const void *b)
+{
+	return *(int*)a > *(int*)b;
 }
 
 static int get_elo(struct historic *hist, struct record *record)
@@ -137,8 +121,8 @@ static struct graph init_graph(struct historic *hist)
 	struct record *min, *max;
 	int min_elo, max_elo;
 
-	min = min_record(hist, cmp_elo);
-	max = max_record(hist, cmp_elo);
+	min = find_record(hist, min_elo_cmp);
+	max = find_record(hist, max_elo_cmp);
 
 	graph.is_empty = (min == NULL || max == NULL);
 	if (graph.is_empty)

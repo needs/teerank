@@ -162,7 +162,7 @@ static const struct directory root = {
 				{ NULL }
 			}, (struct directory[]) {
 				{ NULL, (struct file[]) {
-						{ "elo.svg", { "teerank-html-elo-graph" }, init_player_elo_graph },
+						{ "elo.svg", { "teerank-html-graph" }, init_player_elo_graph },
 						{ NULL }
 					}, NULL },
 				{ NULL }

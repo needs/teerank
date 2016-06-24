@@ -167,28 +167,6 @@ void set_clan(struct player *player, char *clan);
 
 
 /**
- * @struct player_array
- *
- * Define an easy ways to load, store and change a lot of players.
- */
-struct player_array {
-	struct player *players;
-	unsigned length, buffer_length;
-};
-
-/**
- * Add a player to the given player array.  It copy the content of the given
- * player and then return a pointer to the copy.
- *
- * @param array Array to add the player in
- * @param player Player to be added
- *
- * @return Added player on success, NULL on failure
- */
-struct player *add_player(struct player_array *array, struct player *player);
-
-
-/**
  * @struct player_summary
  *
  * Hold a summary of player data.  It is lighter than player data structure

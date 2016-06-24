@@ -326,28 +326,6 @@ void set_clan(struct player *player, char *clan)
 	player->is_modified |= IS_MODIFIED_CLAN;
 }
 
-struct player *add_player(struct player_array *array, struct player *player)
-{
-	const unsigned OFFSET = 1024;
-	struct player *cell;
-
-	assert(array  != NULL);
-	assert(player != NULL);
-
-	if (array->length % OFFSET == 0) {
-		struct player *tmp;
-
-		tmp = realloc(array->players, (array->length + OFFSET) * sizeof(*array->players));
-		if (!tmp)
-			return perror("Allocating player array"), NULL;
-		array->players = tmp;
-	}
-
-	cell = &array->players[array->length++];
-	*cell = *player;
-	return cell;
-}
-
 static void init_player_summary(struct player_summary *ps)
 {
 	strcpy(ps->clan, "00");

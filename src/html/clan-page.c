@@ -10,8 +10,6 @@
 #include "player.h"
 #include "clan.h"
 
-static const struct player_array PLAYER_ARRAY_ZERO;
-
 static int cmp_player(const void *p1, const void *p2)
 {
 	const struct player *a = p1, *b = p2;

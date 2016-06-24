@@ -3,6 +3,9 @@
 #include <assert.h>
 
 #include "player.h"
+#include "html.h"
+
+/* TODO: use svg() and make xml() handle <?> */
 
 static struct record *min_record(struct historic *hist, int (*cmp)(const void *a, const void *b))
 {
@@ -168,18 +171,23 @@ static void print_axes(struct graph *graph)
 {
 	unsigned i;
 
-	printf("\t<!-- Axes -->\n");
+	svg("<!-- Axes -->");
+	svg("<g>");
 	for (i = 0; i < graph->naxes; i++) {
 		const float y = 100.0 - (i + 1) * (100.0 / ((graph->naxes + 1)));
 		const int label = axe_offset(graph, i);
 
+		if (i)
+			svg("");
+
 		/* Line */
-		printf("\n\t<line x1=\"0\" y1=\"%.1f%%\" x2=\"100%%\" y2=\"%.1f%%\" stroke=\"#bbb\" stroke-dasharray=\"3, 3\"/>\n", y , y);
+		svg("<line x1=\"0\" y1=\"%.1f%%\" x2=\"100%%\" y2=\"%.1f%%\" stroke=\"#bbb\" stroke-dasharray=\"3, 3\"/>", y , y);
 
 		/* Left and right labels */
-		printf("\t<text x=\"10\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle;\">%d</text>\n", y, label);
-		printf("\t<text x=\"100%%\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle; text-anchor: end;\" transform=\"translate(-10, 0)\">%d</text>\n", y, label);
+		svg("<text x=\"10\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle;\">%d</text>", y, label);
+		svg("<text x=\"100%%\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle; text-anchor: end;\" transform=\"translate(-10, 0)\">%d</text>", y, label);
 	}
+	svg("</g>");
 }
 
 struct point {
@@ -222,7 +230,7 @@ static void print_line(struct graph *graph, struct record *a, struct record *b)
 	pa = init_point(graph, a);
 	pb = init_point(graph, b);
 
-	printf("\t\t<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\" style=\"fill: none; stroke:#970; stroke-width: 3px;\"/>\n", pa.x, pa.y, pb.x, pb.y);
+	svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\" style=\"fill: none; stroke:#970; stroke-width: 3px;\"/>", pa.x, pa.y, pb.x, pb.y);
 }
 
 static void print_lines(struct graph *graph)
@@ -231,8 +239,8 @@ static void print_lines(struct graph *graph)
 
 	assert(graph != NULL);
 
-	printf("\n\t<!-- Path -->\n");
-	printf("\t<g>\n");
+	svg("<!-- Path -->");
+	svg("<g>");
 
 	for (i = 1; i < graph->hist->nrecords; i++) {
 		struct record *prev, *current;
@@ -243,7 +251,7 @@ static void print_lines(struct graph *graph)
 		print_line(graph, prev, current);
 	}
 
-	printf("\t</g>\n");
+	svg("</g>");
 }
 
 static void print_point(struct graph *graph, struct record *record)
@@ -259,16 +267,16 @@ static void print_point(struct graph *graph, struct record *record)
 	i = record - graph->hist->records;
 	elo = get_elo(graph->hist, record);
 
-	printf("\t\t<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>\n", p.x, p.y);
+	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>", p.x, p.y);
 
 	/* Hover */
-	printf("\t\t<g style=\"visibility: hidden\">\n");
-	printf("\t\t\t<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\" style=\"stroke: #bbb;\"/>\n", p.x, p.x);
-	printf("\t\t\t<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #725800;\"/>\n", p.x, p.y);
-	printf("\t\t\t<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; text-anchor: start;\" transform=\"translate(10, 18)\">%d</text>\n", p.x, p.y, elo);
-	printf("\t\t\t<set attributeName=\"visibility\" to=\"visible\" begin=\"zone%u.mouseover\" end=\"zone%u.mouseout\"/>\n", i, i);
-	printf("\t\t</g>\n");
-	printf("\t\t<rect id=\"zone%u\" x=\"%.1f%%\" y=\"0%%\" width=\"10%%\" height=\"100%%\" style=\"fill: black; fill-opacity: 0;\"/>\n", i, p.x - 5);
+	svg("<g style=\"visibility: hidden\">");
+	svg("<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\" style=\"stroke: #bbb;\"/>", p.x, p.x);
+	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #725800;\"/>", p.x, p.y);
+	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; text-anchor: start;\" transform=\"translate(10, 18)\">%d</text>", p.x, p.y, elo);
+	svg("<set attributeName=\"visibility\" to=\"visible\" begin=\"zone%u.mouseover\" end=\"zone%u.mouseout\"/>", i, i);
+	svg("</g>");
+	svg("<rect id=\"zone%u\" x=\"%.1f%%\" y=\"0%%\" width=\"10%%\" height=\"100%%\" style=\"fill: black; fill-opacity: 0;\"/>", i, p.x - 5);
 }
 
 static void print_points(struct graph *graph)
@@ -277,20 +285,23 @@ static void print_points(struct graph *graph)
 
 	assert(graph != NULL);
 
-	printf("\n\t<!-- Points -->\n");
-	printf("\t<g>\n");
+	svg("<!-- Points -->");
+	svg("<g>");
 
-	for (i = 0; i < graph->hist->nrecords; i++)
+	for (i = 0; i < graph->hist->nrecords; i++) {
+		if (i)
+			svg("");
 		print_point(graph, &graph->hist->records[i]);
+	}
 
-	printf("\t</g>\n");
+	svg("</g>");
 }
 
 static void print_notice_empty(struct graph *graph)
 {
 	assert(graph != NULL);
 
-	printf("\t<text x=\"50%%\" y=\"50%%\" style=\"font-size: 0.9em; text-anchor: middle;\">No data available</text>\n");
+	svg("<text x=\"50%%\" y=\"50%%\" style=\"font-size: 0.9em; text-anchor: middle;\">No data available</text>");
 }
 
 static void print_graph(struct historic *hist)
@@ -301,18 +312,20 @@ static void print_graph(struct historic *hist)
 
 	graph = init_graph(hist);
 
-	printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
-	printf("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\">\n");
+	svg("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
+	svg("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\">");
 
 	if (graph.is_empty) {
 		print_notice_empty(&graph);
 	} else {
 		print_axes(&graph);
+		svg("");
 		print_lines(&graph);
+		svg("");
 		print_points(&graph);
 	}
 
-	printf("</svg>\n");
+	svg("</svg>");
 }
 
 int main(int argc, char **argv)
@@ -328,7 +341,7 @@ int main(int argc, char **argv)
 	name = argv[1];
 
 	if (!is_valid_hexname(name)) {
-		fprintf(stderr, "\"%s\" is not a valid player name", name);
+		fprintf(stderr, "\"%s\" is not a valid player name\n", name);
 		return EXIT_FAILURE;
 	}
 

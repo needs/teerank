@@ -6,27 +6,22 @@
 #include "html.h"
 
 #ifdef NDEBUG
-void html(const char *fmt, ...)
+static void xml(const char *fmt, va_list ap)
 {
-	va_list ap;
-
-	va_start(ap, fmt);
 	vprintf(fmt, ap);
-	va_end(ap);
 }
 #else
-void html(const char *fmt, ...)
+static void xml(const char *fmt, va_list ap)
 {
 	static int indent = 0;
 	int i, opening_tag = 0, closing_tag = 0;
-	va_list ap;
 	size_t len = strlen(fmt);
 
 	if (*fmt == '\0')
 		goto print;
 
 	/* It it start with "<" then we have an opening_tag */
-	if (fmt[0] == '<' && fmt[1] != '/' && fmt[1] != '!')
+	if (fmt[0] == '<' && fmt[1] != '/' && fmt[1] != '!' && fmt[1] != '?')
 		opening_tag = 1;
 
 	/*
@@ -52,15 +47,31 @@ print:
 	for (i = 0; i < indent; i++)
 		putchar('\t');
 
-	va_start(ap, fmt);
 	vprintf(fmt, ap);
-	va_end(ap);
 	putchar('\n');
 
 	if (opening_tag && !closing_tag)
 		indent++;
 }
 #endif
+
+void svg(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	xml(fmt, ap);
+	va_end(ap);
+}
+
+void html(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	xml(fmt, ap);
+	va_end(ap);
+}
 
 const struct tab CTF_TAB = { "CTF", "/" };
 const struct tab ABOUT_TAB = { "About", "/about.html" };

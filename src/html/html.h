@@ -4,6 +4,8 @@
 #include "player.h"
 
 void html(const char *fmt, ...);
+void svg(const char *fmt, ...);
+
 char *escape(const char *str);
 
 struct tab {

@@ -128,6 +128,7 @@ static void init_default_player_file(struct file *file, struct url *url)
 static void init_player_elo_graph(struct file *file, struct url *url)
 {
 	file->args[1] = url->dirs[url->ndirs - 1];
+	file->args[2] = "elo";
 }
 
 static void init_search_file(struct file *file, struct url *url)

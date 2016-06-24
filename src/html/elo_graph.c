@@ -1,27 +1,64 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "player.h"
 #include "html.h"
 
-typedef int (*record_cmp_t )(const void *a, const void *b);
+/*
+ * Graph works with numbers, however numbers can be signed or
+ * unsigned.  For instance elo points are signed but rank are
+ * unsigned.  Having separate cases for both signed un unsigned
+ * numbers would make the code highly redundant.  Instead we just
+ * choose to use "long" as the only accepted number, and data need to
+ * be converted to fit in a long.
+ *
+ * This may have some issue because domain(int) <= domain(long), hence
+ * LONG_MAX < UINT_MAX, so some overflow checking must be done when
+ * dealing with unsigned numbers, sadly.
+ *
+ * I wich there was some nice way to handle signed and unsigned
+ * numbers.  One way could be to use pointers to functions but it
+ * would not be enough because printf() format string as to be adapted
+ * too.  So just forcing "long" for data seems to be the best compromise...
+ */
 
-static struct record *find_record(
-	struct historic *hist, record_cmp_t cmp)
+typedef long (*to_long_t)(const void *data);
+
+static long elo_to_long(const void *data)
 {
-	struct record *ret = NULL;
-	unsigned i;
+	return (long)*(int*)data;
+}
+
+static long rank_to_long(const void *data)
+{
+	unsigned rank = *(unsigned*)data;
+
+	if (rank > LONG_MAX)
+		return LONG_MAX;
+
+	return (long)rank;
+}
+
+static long find_data(
+	struct historic *hist, int (*cmp)(long, long), to_long_t to_long)
+{
+	struct record *rec;
+	long ret;
 
 	assert(hist != NULL);
 	assert(cmp != NULL);
+	assert(to_long != NULL);
+	assert(hist->nrecords > 0);
+	assert(hist->first != NULL);
 
-	for (i = 0; i < hist->nrecords; i++) {
-		struct record *rec = &hist->records[i];
-		const void *data = record_data(hist, rec);
+	ret = to_long(record_data(hist, hist->first));
+	for (rec = hist->first->next; rec; rec = rec->next) {
+		long data = to_long(record_data(hist, rec));
 
-		if (!ret || cmp(ret, data))
-			ret = rec;
+		if (cmp(data, ret))
+			ret = data;
 	}
 
 	return ret;
@@ -83,7 +120,10 @@ static unsigned number_of_axes(int min, int max, unsigned gap)
  * Carry the context necessary to draw the graph.
  */
 struct graph {
+	struct historic *hist;
 	int is_empty;
+
+	to_long_t to_long;
 
 	/*
 	 * The minimum (and maximum) value  that can be plotted in the graph.
@@ -92,61 +132,54 @@ struct graph {
 	 * the will be plotted in the graph.  They are used to compute the
 	 * offset of point to be plotted.
 	 */
-	int min, max;
+	long min, max;
 
 	/* Number of axes and gap between each axes. */
 	unsigned naxes, gap;
-
-	struct historic *hist;
 };
 
-static int min_elo_cmp(const void *a, const void *b)
+static int min_cmp(long a, long b)
 {
-	return *(int*)a < *(int*)b;
+	return a < b;
 }
 
-static int max_elo_cmp(const void *a, const void *b)
+static int max_cmp(long a, long b)
 {
-	return *(int*)a > *(int*)b;
+	return a > b;
 }
 
-static int get_elo(struct historic *hist, struct record *record)
+static struct graph init_graph(
+	struct historic *hist, to_long_t to_long)
 {
-	return *(int*)record_data(hist, record);
-}
+	static const struct graph GRAPH_ZERO;
+	struct graph graph = GRAPH_ZERO;
+	long min, max;
 
-static struct graph init_graph(struct historic *hist)
-{
-	struct graph graph;
-	struct record *min, *max;
-	int min_elo, max_elo;
+	graph.hist = hist;
+	graph.to_long = to_long;
 
-	min = find_record(hist, min_elo_cmp);
-	max = find_record(hist, max_elo_cmp);
-
-	graph.is_empty = (min == NULL || max == NULL);
-	if (graph.is_empty)
+	if (hist->nrecords == 0) {
+		graph.is_empty = 1;
 		return graph;
+	}
 
-	min_elo = get_elo(hist, min);
-	max_elo = get_elo(hist, max);
+	min = find_data(hist, min_cmp, to_long);
+	max = find_data(hist, max_cmp, to_long);
 
-	graph.gap = best_axes_gap(max_elo - min_elo);
-	graph.naxes = number_of_axes(min_elo, max_elo, graph.gap);
+	graph.gap = best_axes_gap(max - min);
+	graph.naxes = number_of_axes(min, max, graph.gap);
 
 	/*
 	 * We round down the minimum and maximum values so that axes are
 	 * evenly spaced between themself and borders.
 	 */
-	graph.min = min_elo - (min_elo % graph.gap);
-	graph.max = max_elo - (max_elo % graph.gap) + graph.gap;
-
-	graph.hist = hist;
+	graph.min = min - (min % graph.gap);
+	graph.max = graph.min + (graph.naxes + 1) * graph.gap;
 
 	return graph;
 }
 
-static int axe_offset(struct graph *graph, unsigned i)
+static long axe_offset(struct graph *graph, unsigned i)
 {
 	return graph->min + (i + 1) * graph->gap;
 }
@@ -159,7 +192,7 @@ static void print_axes(struct graph *graph)
 	svg("<g>");
 	for (i = 0; i < graph->naxes; i++) {
 		const float y = 100.0 - (i + 1) * (100.0 / ((graph->naxes + 1)));
-		const int label = axe_offset(graph, i);
+		const long label = axe_offset(graph, i);
 
 		if (i)
 			svg("");
@@ -168,8 +201,8 @@ static void print_axes(struct graph *graph)
 		svg("<line x1=\"0\" y1=\"%.1f%%\" x2=\"100%%\" y2=\"%.1f%%\" stroke=\"#bbb\" stroke-dasharray=\"3, 3\"/>", y , y);
 
 		/* Left and right labels */
-		svg("<text x=\"10\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle;\">%d</text>", y, label);
-		svg("<text x=\"100%%\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle; text-anchor: end;\" transform=\"translate(-10, 0)\">%d</text>", y, label);
+		svg("<text x=\"10\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle;\">%ld</text>", y, label);
+		svg("<text x=\"100%%\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle; text-anchor: end;\" transform=\"translate(-10, 0)\">%ld</text>", y, label);
 	}
 	svg("</g>");
 }
@@ -184,12 +217,12 @@ struct point {
 struct point init_point(struct graph *graph, struct record *record)
 {
 	struct point p;
-	int elo;
+	long data;
 
 	assert(graph != NULL);
 	assert(record != NULL);
 
-	elo = get_elo(graph->hist, record);
+	data = graph->to_long(record_data(graph->hist, record));
 
 	if (graph->hist->nrecords - 1 == 0)
 		p.x = 0;
@@ -199,7 +232,7 @@ struct point init_point(struct graph *graph, struct record *record)
 	if (graph->max - graph->min == 0)
 		p.y = 0;
 	else
-		p.y = 100.0 - ((float)(elo - graph->min) / (graph->max - graph->min) * 100.0);
+		p.y = 100.0 - ((float)(data - graph->min) / (graph->max - graph->min) * 100.0);
 
 	return p;
 }
@@ -219,21 +252,16 @@ static void print_line(struct graph *graph, struct record *a, struct record *b)
 
 static void print_lines(struct graph *graph)
 {
-	unsigned i;
+	struct record *rec;
 
 	assert(graph != NULL);
+	assert(!graph->is_empty);
 
 	svg("<!-- Path -->");
 	svg("<g>");
 
-	for (i = 1; i < graph->hist->nrecords; i++) {
-		struct record *prev, *current;
-
-		prev = &graph->hist->records[i - 1];
-		current = &graph->hist->records[i];
-
-		print_line(graph, prev, current);
-	}
+	for (rec = graph->hist->first->next; rec; rec = rec->next)
+		print_line(graph, rec->prev, rec);
 
 	svg("</g>");
 }
@@ -242,14 +270,14 @@ static void print_point(struct graph *graph, struct record *record)
 {
 	struct point p;
 	unsigned i;
-	int elo;
+	long data;
 
 	assert(graph != NULL);
 	assert(record != NULL);
 
 	p = init_point(graph, record);
 	i = record - graph->hist->records;
-	elo = get_elo(graph->hist, record);
+	data = graph->to_long(record_data(graph->hist, record));
 
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>", p.x, p.y);
 
@@ -257,7 +285,7 @@ static void print_point(struct graph *graph, struct record *record)
 	svg("<g style=\"visibility: hidden\">");
 	svg("<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\" style=\"stroke: #bbb;\"/>", p.x, p.x);
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #725800;\"/>", p.x, p.y);
-	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; text-anchor: start;\" transform=\"translate(10, 18)\">%d</text>", p.x, p.y, elo);
+	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; text-anchor: start;\" transform=\"translate(10, 18)\">%ld</text>", p.x, p.y, data);
 	svg("<set attributeName=\"visibility\" to=\"visible\" begin=\"zone%u.mouseover\" end=\"zone%u.mouseout\"/>", i, i);
 	svg("</g>");
 	svg("<rect id=\"zone%u\" x=\"%.1f%%\" y=\"0%%\" width=\"10%%\" height=\"100%%\" style=\"fill: black; fill-opacity: 0;\"/>", i, p.x - 5);
@@ -265,17 +293,17 @@ static void print_point(struct graph *graph, struct record *record)
 
 static void print_points(struct graph *graph)
 {
-	unsigned i;
+	struct record *rec;
 
 	assert(graph != NULL);
 
 	svg("<!-- Points -->");
 	svg("<g>");
 
-	for (i = 0; i < graph->hist->nrecords; i++) {
-		if (i)
+	for (rec = graph->hist->first; rec; rec = rec->next) {
+		if (rec->prev)
 			svg("");
-		print_point(graph, &graph->hist->records[i]);
+		print_point(graph, rec);
 	}
 
 	svg("</g>");
@@ -288,13 +316,14 @@ static void print_notice_empty(struct graph *graph)
 	svg("<text x=\"50%%\" y=\"50%%\" style=\"font-size: 0.9em; text-anchor: middle;\">No data available</text>");
 }
 
-static void print_graph(struct historic *hist)
+static void print_graph(
+	struct historic *hist, to_long_t to_long)
 {
 	struct graph graph;
 
 	assert(hist != NULL);
 
-	graph = init_graph(hist);
+	graph = init_graph(hist, to_long);
 
 	svg("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
 	svg("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\">");
@@ -315,10 +344,10 @@ static void print_graph(struct historic *hist)
 int main(int argc, char **argv)
 {
 	struct player player;
-	char *name;
+	char *name, *dataset;
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s <player_name>\n", argv[0]);
+	if (argc != 3) {
+		fprintf(stderr, "Usage: %s <player_name> [elo|rank]\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -333,7 +362,15 @@ int main(int argc, char **argv)
 	if (!read_player(&player, name))
 		return EXIT_FAILURE;
 
-	print_graph(&player.elo_historic);
+	dataset = argv[2];
+	if (strcmp(dataset, "elo") == 0) {
+		print_graph(&player.elo_historic, elo_to_long);
+	} else if (strcmp(dataset, "rank") == 0) {
+		print_graph(&player.daily_rank, rank_to_long);
+	} else {
+		fprintf(stderr, "\"%s\" is not a valid dataset, expected \"elo\" or \"rank\"\n", dataset);
+		return EXIT_FAILURE;
+	}
 
 	return EXIT_SUCCESS;
 }

@@ -12,12 +12,12 @@
  * Here is how to create an history:
  *
  *	hist = HISTORIC_ZERO;
- *	init_history(&hist, sizeof(player->elo), 0);
+ *	init_historic(&hist, sizeof(player->elo), UINT_MAX, 0);
  *
  * Here is how to append a record to a file:
  *
  *	hist = HISTORIC_ZERO;
- * 	init_historic(&hist, sizeof(player->elo), 0);
+ * 	init_historic(&hist, sizeof(player->elo), UINT_MAX, 0);
  *
  * 	read_historic(&hist, file, path, read_elo);
  * 	append_record(&hist, &new_elo);
@@ -40,6 +40,7 @@
  */
 struct record {
 	time_t time;
+	struct record *prev, *next;
 };
 
 /**
@@ -52,8 +53,11 @@ struct historic {
 	time_t timestep;
 
 	unsigned nrecords;
+	unsigned max_records;
 	unsigned length;
 	struct record *records;
+
+	struct record *first, *last;
 
 	size_t data_size;
 	void *data;
@@ -83,11 +87,21 @@ typedef int (*write_data_func_t)(FILE *, const char *, void *);
  * the very last record, which can have any timestamp without any
  * constraints.
  *
+ * Use UINT_MAX from limits.h if you want no limits on the maximum
+ * number of records.
+ *
  * @param hist Historic to initialize
  * @param data_size Data size in historic, used for buffer allocation
+ * @param max_records Maximum number of records
  * @param timestep Minimum time gap between two records
  */
-void init_historic(struct historic *hist, size_t data_size, time_t timestep);
+void init_historic(struct historic *hist, size_t data_size,
+                   unsigned max_records, time_t timestep);
+
+/**
+ * TODO
+ */
+void create_historic(struct historic *hist);
 
 /**
  * Fill an historic from the content of a file.
@@ -124,6 +138,16 @@ int write_historic(struct historic *hist, FILE *file, const char *path,
                    write_data_func_t write_data);
 
 /**
+ * Return a pointer to the associated data of the given record.
+ *
+ * @param hist Historic the given record belongs to
+ * @param record record to get the associated data
+ *
+ * @return Pointer to data
+ */
+void *record_data(struct historic *hist, struct record *record);
+
+/**
  * Add a record at the end of the given historic
  *
  * Supplied data are copied back to the buffer pointed by hist->last_data.
@@ -136,35 +160,6 @@ int write_historic(struct historic *hist, FILE *file, const char *path,
  * @return 1 on success, 0 on failure
  */
 int append_record(struct historic *hist, const void *data);
-
-/**
- * Return first record in historic
- *
- * @param hist Historic to get the first record from
- *
- * @return First record, NULL if any
- */
-struct record *first_record(struct historic *hist);
-
-/**
- * Return last record in historic
- *
- * @param hist Historic to get the last record from
- *
- * @return Last record, NULL if any
- */
-struct record *last_record(struct historic *hist);
-
-/**
- * Given a record, return associated data.
- *
- * @param hist History the given record belongs to
- * @param record The record to get the associated data
- *
- * @return Pointer to data, it will always return a valid pointer
- */
-void *record_data(struct historic *hist, struct record *record);
-
 
 /**
  * @struct historic_summary

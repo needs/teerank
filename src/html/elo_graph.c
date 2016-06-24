@@ -317,7 +317,7 @@ static void print_graph(struct player *player)
 
 int main(int argc, char **argv)
 {
-	struct player player = PLAYER_ZERO;
+	struct player player;
 	char *name;
 
 	if (argc != 2) {
@@ -332,6 +332,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
+	init_player(&player);
 	if (!read_player(&player, name))
 		return EXIT_FAILURE;
 

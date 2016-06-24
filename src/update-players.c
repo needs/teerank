@@ -73,7 +73,7 @@ static void merge_delta(struct player *player, struct player_delta *delta)
 int main(int argc, char **argv)
 {
 	struct delta delta;
-	struct player players[MAX_PLAYERS] = {0};
+	struct player players[MAX_PLAYERS];
 	unsigned i;
 
 	load_config();
@@ -81,6 +81,9 @@ int main(int argc, char **argv)
 		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
+
+	for (i = 0; i < MAX_PLAYERS; i++)
+		init_player(&players[i]);
 
 	while (scan_delta(&delta)) {
 		unsigned length = 0;

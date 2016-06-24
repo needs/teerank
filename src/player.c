@@ -56,6 +56,19 @@ void name_to_hexname(const char *name, char *hex)
 	strcpy(hex, "00");
 }
 
+void init_player(struct player *player)
+{
+	const unsigned HOUR = 60 * 60;
+
+	static const struct player PLAYER_ZERO;
+	*player = PLAYER_ZERO;
+
+	init_historic(&player->elo_historic, sizeof(player->elo),  UINT_MAX, 0);
+	init_historic(&player->hourly_rank,  sizeof(player->rank), 24,       HOUR);
+	init_historic(&player->daily_rank,   sizeof(player->rank), 30,       24 * HOUR);
+	init_historic(&player->monthly_rank, sizeof(player->rank), UINT_MAX, 30 * 24 * HOUR);
+}
+
 static char *get_path(char *name)
 {
 	static char path[PATH_MAX];
@@ -73,29 +86,29 @@ static char *get_path(char *name)
  */
 static void reset_player(struct player *player, const char *name)
 {
-	const time_t HOUR = 60 * 60;
-
 	strcpy(player->name, name);
 	strcpy(player->clan, "00");
 	player->elo = INVALID_ELO;
 	player->rank = INVALID_RANK;
+
 	player->is_modified = 0;
-
 	player->delta = NULL;
-
-	init_historic(&player->elo_historic, sizeof(player->elo), 0);
-	init_historic(&player->hourly_rank,  sizeof(player->rank), HOUR);
-	init_historic(&player->daily_rank,   sizeof(player->rank), 24 * HOUR);
-	init_historic(&player->monthly_rank, sizeof(player->rank), 30 * 24 * HOUR);
 }
 
-/* player must have been reseted */
-static int new_player(struct player *player)
+static int create_player(struct player *player, char *name)
 {
 	assert(player != NULL);
 
-	if (!append_record(&player->elo_historic, &DEFAULT_ELO))
-		return 0;
+	strcpy(player->name, name);
+	strcpy(player->clan, "00");
+
+	create_historic(&player->elo_historic);
+	create_historic(&player->hourly_rank);
+	create_historic(&player->daily_rank);
+	create_historic(&player->monthly_rank);
+
+	set_elo(player, DEFAULT_ELO);
+	set_rank(player, INVALID_RANK);
 
 	player->is_rankable = 0;
 	player->is_modified = IS_MODIFIED_CREATED;
@@ -184,7 +197,7 @@ int read_player(struct player *player, char *name)
 
 	if (!(file = fopen(path, "r"))) {
 		if (errno == ENOENT)
-			return new_player(player);
+			return create_player(player, name);
 		else
 			return perror(path), 0;
 	}
@@ -202,10 +215,16 @@ int read_player(struct player *player, char *name)
 	if (!read_historic(&player->monthly_rank, file, path, read_rank))
 		goto fail;
 
-	if (&player->elo_historic.nrecords > 0)
-		player->elo = *(int*)record_data(&player->elo_historic, last_record(&player->elo_historic));
-	if (&player->hourly_rank.nrecords > 0)
-		player->rank = *(unsigned*)record_data(&player->hourly_rank, last_record(&player->hourly_rank));
+	/* Historics cannot be empty */
+	assert(player->elo_historic.nrecords > 0);
+	assert(player->hourly_rank.nrecords > 0);
+	assert(player->daily_rank.nrecords > 0);
+	assert(player->monthly_rank.nrecords > 0);
+
+	player->elo = *(int*)record_data(&player->elo_historic,
+	                                 player->elo_historic.last);
+	player->rank = *(unsigned*)record_data(&player->hourly_rank,
+	                                       player->hourly_rank.last);
 
 	fclose(file);
 	return 1;

@@ -82,6 +82,7 @@ int main(int argc, char **argv)
 	static char path[PATH_MAX];
 	unsigned i;
 	unsigned nrepair = 0;
+	struct player player;
 
 	load_config();
 
@@ -94,8 +95,8 @@ int main(int argc, char **argv)
 		return perror(path), EXIT_FAILURE;
 
 	/* Build clan list */
+	init_player(&player);
 	while ((dp = readdir(dir))) {
-		struct player player = PLAYER_ZERO;
 		struct clan *clan;
 
 		if (!strcmp(dp->d_name, "..") || !strcmp(dp->d_name, "."))

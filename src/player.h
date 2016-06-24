@@ -105,17 +105,17 @@ enum {
 };
 
 /**
- * @def PLAYER_ZERO
+ * Every struct layer must be initialized once for all, before any
+ * use.  The pattern is as follow: init once, use multiple times.
  *
- * Players used for the first time must have been assigned to this symbolic
- * constant.
+ * @param player Player to be initialized
  */
-const struct player PLAYER_ZERO;
+void init_player(struct player *player);
 
 /**
  * Read from the disk a player.  This function allocate or reuse buffers
- * allocated by previous calls.  Hence player must be initialized to
- * zero using PLAYER_ZERO on the first call.
+ * allocated by previous calls.  Hence player must been initialized
+ * with init_player() before the first call to real_player().
  *
  * Even if read fail, the player is suitable for printing.
  *

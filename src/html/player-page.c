@@ -10,7 +10,7 @@
 int main(int argc, char **argv)
 {
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
-	struct player player = PLAYER_ZERO;
+	struct player player;
 	int player_found;
 
 	load_config();
@@ -21,6 +21,8 @@ int main(int argc, char **argv)
 
 	if (!is_valid_hexname(argv[1]))
 		return EXIT_NOT_FOUND;
+
+	init_player(&player);
 	player_found = read_player(&player, argv[1]);
 
 	hexname_to_name(argv[1], name);

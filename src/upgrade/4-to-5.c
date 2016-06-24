@@ -109,10 +109,10 @@ static int read_old_player(struct player *player, char *name)
         fclose(file);
 
         strcpy(player->name, name);
-        init_historic(&player->elo_historic, sizeof(player->elo), 0);
-        init_historic(&player->hourly_rank,  sizeof(player->rank), HOUR);
-        init_historic(&player->daily_rank,   sizeof(player->rank), 24 * HOUR);
-        init_historic(&player->monthly_rank, sizeof(player->rank), 30 * 24 * HOUR);
+        init_historic(&player->elo_historic, sizeof(player->elo),  UINT_MAX, 0);
+        init_historic(&player->hourly_rank,  sizeof(player->rank), 24,       HOUR);
+        init_historic(&player->daily_rank,   sizeof(player->rank), 30,       24 * HOUR);
+        init_historic(&player->monthly_rank, sizeof(player->rank), UINT_MAX, 30 * 24 * HOUR);
 
         static_alloc_historics(player);
 
@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
 	struct dirent *dp;
 	int ret;
 	static char path[PATH_MAX];
+	struct player player;
 
 	load_config();
 
@@ -165,8 +166,8 @@ int main(int argc, char *argv[])
 	if (!dir)
 		return perror(path), EXIT_FAILURE;
 
+	init_player(&player);
 	while ((dp = readdir(dir))) {
-		struct player player = PLAYER_ZERO;
 
 		if (!is_valid_hexname(dp->d_name))
 			continue;

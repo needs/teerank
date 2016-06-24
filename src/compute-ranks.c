@@ -13,6 +13,7 @@ static void load_players(struct player_array *array)
 	DIR *dir;
 	struct dirent *dp;
 	static char path[PATH_MAX];
+	struct player player;
 
 	assert(array != NULL);
 
@@ -20,9 +21,8 @@ static void load_players(struct player_array *array)
 	if (!(dir = opendir(path)))
 		perror(path), exit(EXIT_FAILURE);
 
+	init_player(&player);
 	while ((dp = readdir(dir))) {
-		struct player player = PLAYER_ZERO;
-
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 		if (!is_valid_hexname(dp->d_name))

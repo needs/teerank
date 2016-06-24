@@ -1,6 +1,7 @@
 /*
  * Old format did not have any kind of historic.  This program does
- * initialize every necessary historic with values available.
+ * initialize every necessary historic with values available.  Hence
+ * resulting historics will always have one single record.
  */
 
 #include <stdlib.h>
@@ -16,6 +17,57 @@
 #include "config.h"
 #include "player.h"
 #include "historic.h"
+
+/*
+ * Internally historics record buffer and data buffer are allocated on
+ * the heap using malloc().  However we know that only a single record
+ * will be stored in those historics.  hence we will manually set
+ * those buffers to static storage.
+ *
+ * It's definitively a hack but it will speed up things and will not
+ * require alloc_historic() from historic.c to be exposed in the
+ * header just because we exclusively need it here.
+ *
+ * It bascically speed up the process because malloc() is expensive.
+ * However since allocated buffers are reused when using the same
+ * struct player for different players, it is not that much of a gain.
+ */
+static void static_alloc_historics(struct player *player)
+{
+	time_t now = time(NULL);
+
+	static struct record elo_records;
+	static int elo_data;
+
+	static struct record hourly_rank_records;
+	static unsigned hourly_rank_data;
+
+	static struct record daily_rank_records;
+	static unsigned daily_rank_data;
+
+	static struct record monthly_rank_records;
+	static unsigned monthly_rank_data;
+
+	player->elo_historic.records = &elo_records;
+	player->elo_historic.data = &elo_data;
+	player->elo_historic.length = 1;
+	player->elo_historic.epoch = now;
+
+	player->hourly_rank.records = &hourly_rank_records;
+	player->hourly_rank.data = &hourly_rank_data;
+	player->hourly_rank.length = 1;
+	player->hourly_rank.epoch = now;
+
+	player->daily_rank.records = &daily_rank_records;
+	player->daily_rank.data = &daily_rank_data;
+	player->daily_rank.length = 1;
+	player->daily_rank.epoch = now;
+
+	player->monthly_rank.records = &monthly_rank_records;
+	player->monthly_rank.data = &monthly_rank_data;
+	player->monthly_rank.length = 1;
+	player->monthly_rank.epoch = now;
+}
 
 static int read_old_player(struct player *player, char *name)
 {
@@ -61,6 +113,8 @@ static int read_old_player(struct player *player, char *name)
         init_historic(&player->hourly_rank,  sizeof(player->rank), HOUR);
         init_historic(&player->daily_rank,   sizeof(player->rank), 24 * HOUR);
         init_historic(&player->monthly_rank, sizeof(player->rank), 30 * 24 * HOUR);
+
+        static_alloc_historics(player);
 
         /*
          * Error message refers to "init" despite initialization phase is

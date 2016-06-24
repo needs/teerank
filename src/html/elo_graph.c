@@ -293,13 +293,13 @@ static void print_notice_empty(struct graph *graph)
 	printf("\t<text x=\"50%%\" y=\"50%%\" style=\"font-size: 0.9em; text-anchor: middle;\">No data available</text>\n");
 }
 
-static void print_graph(struct player *player)
+static void print_graph(struct historic *hist)
 {
 	struct graph graph;
 
-	assert(player != NULL);
+	assert(hist != NULL);
 
-	graph = init_graph(&player->elo_historic);
+	graph = init_graph(hist);
 
 	printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
 	printf("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\">\n");
@@ -336,7 +336,7 @@ int main(int argc, char **argv)
 	if (!read_player(&player, name))
 		return EXIT_FAILURE;
 
-	print_graph(&player);
+	print_graph(&player.elo_historic);
 
 	return EXIT_SUCCESS;
 }

@@ -306,7 +306,6 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 static void print_point(struct graph *graph, struct record *record)
 {
 	struct point p;
-	unsigned i;
 	long data;
 	const char *label_pos;
 	float zone_width;
@@ -315,7 +314,6 @@ static void print_point(struct graph *graph, struct record *record)
 	assert(record != NULL);
 
 	p = init_point(graph, record);
-	i = record - graph->hist->records;
 	data = graph->to_long(record_data(graph->hist, record));
 
 	label_pos = point_label_pos(graph, record, data);
@@ -333,13 +331,12 @@ static void print_point(struct graph *graph, struct record *record)
 	else
 		zone_width = 1.0 / (graph->hist->nrecords - 1) * 100.0;
 
-	svg("<g style=\"visibility: hidden\">");
+	svg("<rect class=\"zone\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\"/>", p.x - zone_width / 2.0, zone_width);
+	svg("<g class=\"label\">");
 	svg("<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\" style=\"stroke: #bbb;\"/>", p.x, p.x);
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #725800;\"/>", p.x, p.y);
 	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; %s\">%ld</text>", p.x, p.y, label_pos, data);
-	svg("<set attributeName=\"visibility\" to=\"visible\" begin=\"zone%u.mouseover\" end=\"zone%u.mouseout\"/>", i, i);
 	svg("</g>");
-	svg("<rect id=\"zone%u\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\" style=\"fill: black; fill-opacity: 0;\"/>", i, p.x - zone_width / 2.0, zone_width);
 }
 
 static void print_points(struct graph *graph)
@@ -349,6 +346,24 @@ static void print_points(struct graph *graph)
 	assert(graph != NULL);
 
 	svg("<!-- Points -->");
+	/*
+	 * We want to show label when mouse is in the previous .zone
+	 * rectangle.  Since label come after the rectangle, when the
+	 * mouse is over the label, the rectangle will not be hovered
+	 * anymore and then the label will be hidden.
+	 *
+	 * To avoid that, we just show label that are hovered too.
+	 *
+	 * Let's also note that without pointer-events: all, mouseover
+	 * and mouseout events will not be triggered.
+	 */
+	svg("<style>");
+	svg(".label { visibility: hidden; }");
+	svg(".label:hover { visibility: visible; }");
+	svg(".zone { fill: none; pointer-events: all; }");
+	svg(".zone:hover + .label { visibility: visible; }");
+	svg("</style>");
+
 	svg("<g>");
 
 	for (rec = graph->hist->first; rec; rec = rec->next) {

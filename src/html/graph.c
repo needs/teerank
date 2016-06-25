@@ -76,8 +76,6 @@ static int does_fit(unsigned range, unsigned gap, unsigned factor)
 	return MINIMUM_NUMBER_OF_AXES * gap * factor < range;
 }
 
-#define DEFAULT_GAP 100
-
 static unsigned best_axes_gap(unsigned range)
 {
 	static const unsigned gaps[] = { 1, 2, 5 };
@@ -91,7 +89,7 @@ static unsigned best_axes_gap(unsigned range)
 
 	/* Return previous gap, or the default gap if any */
 	if (i == 0 && factor == 1)
-		return DEFAULT_GAP;
+		return 1;
 	else if (i == 0)
 		return gaps[2] * (factor / 10);
 	else

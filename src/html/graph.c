@@ -267,7 +267,7 @@ static void print_lines(struct graph *graph)
 	svg("</g>");
 }
 
-static const char *point_label_pos(struct graph *graph, struct record *record, long data)
+static const char *point_label_pos(struct graph *graph, struct record *record, long data, struct point p)
 {
 	const char *top_left = "text-anchor: end;\" transform=\"translate(-10, -11)";
 	const char *top_right = "text-anchor: start;\" transform=\"translate(10, -11)";
@@ -283,23 +283,44 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 	 * Eventually if there is no next point, label should be on
 	 * the left, and we apply again the same reasoning exposed
 	 * above, except we look at the previous point.
+	 *
+	 * When label are too close to a border, then its position is
+	 * enforced to make it sure it is inside svg rendering area.
 	 */
-	if (record->next) {
-		long next_data = graph->to_long(record_data(graph->hist, record->next));
+	if (p.x > 92.0) {
+		long prev_data;
 
-		if (next_data > data)
-			return bottom_right;
-		else
-			return top_right;
-	} else if (record->prev) {
-		long prev_data = graph->to_long(record_data(graph->hist, record->prev));
+		if (p.y > 95.0)
+			return top_left;
+		else if (p.y < 5.0)
+			return bottom_left;
+
+		if (!record->prev)
+			return bottom_left;
+
+		prev_data = graph->to_long(record_data(graph->hist, record->prev));
 
 		if (prev_data > data)
 			return bottom_left;
 		else
 			return top_left;
 	} else {
-		return bottom_right;
+		long next_data;
+
+		if (p.y > 95.0)
+			return top_right;
+		else if (p.y < 5.0)
+			return bottom_right;
+
+		if (!record->next)
+			return bottom_right;
+
+		next_data = graph->to_long(record_data(graph->hist, record->next));
+
+		if (next_data > data)
+			return bottom_right;
+		else
+			return top_right;
 	}
 }
 
@@ -316,7 +337,7 @@ static void print_point(struct graph *graph, struct record *record)
 	p = init_point(graph, record);
 	data = graph->to_long(record_data(graph->hist, record));
 
-	label_pos = point_label_pos(graph, record, data);
+	label_pos = point_label_pos(graph, record, data, p);
 
 	/*
 	 * Too much points in a graph reduce readability, above 24

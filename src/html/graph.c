@@ -309,6 +309,7 @@ static void print_point(struct graph *graph, struct record *record)
 	unsigned i;
 	long data;
 	const char *label_pos;
+	float zone_width;
 
 	assert(graph != NULL);
 	assert(record != NULL);
@@ -327,13 +328,18 @@ static void print_point(struct graph *graph, struct record *record)
 		svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>", p.x, p.y);
 
 	/* Hover */
+	if (graph->hist->nrecords == 1)
+		zone_width = 100.0;
+	else
+		zone_width = 1.0 / (graph->hist->nrecords - 1) * 100.0;
+
 	svg("<g style=\"visibility: hidden\">");
 	svg("<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\" style=\"stroke: #bbb;\"/>", p.x, p.x);
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #725800;\"/>", p.x, p.y);
 	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; %s\">%ld</text>", p.x, p.y, label_pos, data);
 	svg("<set attributeName=\"visibility\" to=\"visible\" begin=\"zone%u.mouseover\" end=\"zone%u.mouseout\"/>", i, i);
 	svg("</g>");
-	svg("<rect id=\"zone%u\" x=\"%.1f%%\" y=\"0%%\" width=\"10%%\" height=\"100%%\" style=\"fill: black; fill-opacity: 0;\"/>", i, p.x - 5);
+	svg("<rect id=\"zone%u\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\" style=\"fill: black; fill-opacity: 0;\"/>", i, p.x - zone_width / 2.0, zone_width);
 }
 
 static void print_points(struct graph *graph)

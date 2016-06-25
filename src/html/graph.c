@@ -272,6 +272,9 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 	const char *bottom_left = "text-anchor: end;\" transform=\"translate(-10, 18)";
 	const char *bottom_right = "text-anchor: start;\" transform=\"translate(10, 18)";
 
+	const float X_MARGIN = 8.0;
+	const float Y_MARGIN = 8.0;
+
 	/*
 	 * Label are by default bottom right.
 	 *
@@ -285,12 +288,12 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 	 * When label are too close to a border, then its position is
 	 * enforced to make it sure it is inside svg rendering area.
 	 */
-	if (p.x > 92.0) {
+	if (p.x > 100.0 - X_MARGIN) {
 		long prev_data;
 
-		if (p.y > 95.0)
+		if (p.y > 100.0 - Y_MARGIN)
 			return top_left;
-		else if (p.y < 5.0)
+		else if (p.y < Y_MARGIN)
 			return bottom_left;
 
 		if (!record->prev)
@@ -305,9 +308,9 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 	} else {
 		long next_data;
 
-		if (p.y > 95.0)
+		if (p.y > 100.0 - Y_MARGIN)
 			return top_right;
-		else if (p.y < 5.0)
+		else if (p.y < Y_MARGIN)
 			return bottom_right;
 
 		if (!record->next)

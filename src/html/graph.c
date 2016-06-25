@@ -267,11 +267,48 @@ static void print_lines(struct graph *graph)
 	svg("</g>");
 }
 
+static const char *point_label_pos(struct graph *graph, struct record *record, long data)
+{
+	const char *top_left = "text-anchor: end;\" transform=\"translate(-10, -11)";
+	const char *top_right = "text-anchor: start;\" transform=\"translate(10, -11)";
+	const char *bottom_left = "text-anchor: end;\" transform=\"translate(-10, 18)";
+	const char *bottom_right = "text-anchor: start;\" transform=\"translate(10, 18)";
+
+	/*
+	 * Label are by default bottom right.
+	 *
+	 * If the curve is going down, the the label should placed on
+	 * top of it.  If it's going, up, label should be below it.
+	 *
+	 * Eventually if there is no next point, label should be on
+	 * the left, and we apply again the same reasoning exposed
+	 * above, except we look at the previous point.
+	 */
+	if (record->next) {
+		long next_data = graph->to_long(record_data(graph->hist, record->next));
+
+		if (next_data > data)
+			return bottom_right;
+		else
+			return top_right;
+	} else if (record->prev) {
+		long prev_data = graph->to_long(record_data(graph->hist, record->prev));
+
+		if (prev_data > data)
+			return bottom_left;
+		else
+			return top_left;
+	} else {
+		return bottom_right;
+	}
+}
+
 static void print_point(struct graph *graph, struct record *record)
 {
 	struct point p;
 	unsigned i;
 	long data;
+	const char *label_pos;
 
 	assert(graph != NULL);
 	assert(record != NULL);
@@ -280,13 +317,15 @@ static void print_point(struct graph *graph, struct record *record)
 	i = record - graph->hist->records;
 	data = graph->to_long(record_data(graph->hist, record));
 
+	label_pos = point_label_pos(graph, record, data);
+
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>", p.x, p.y);
 
 	/* Hover */
 	svg("<g style=\"visibility: hidden\">");
 	svg("<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\" style=\"stroke: #bbb;\"/>", p.x, p.x);
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #725800;\"/>", p.x, p.y);
-	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; text-anchor: start;\" transform=\"translate(10, 18)\">%ld</text>", p.x, p.y, data);
+	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; %s\">%ld</text>", p.x, p.y, label_pos, data);
 	svg("<set attributeName=\"visibility\" to=\"visible\" begin=\"zone%u.mouseover\" end=\"zone%u.mouseout\"/>", i, i);
 	svg("</g>");
 	svg("<rect id=\"zone%u\" x=\"%.1f%%\" y=\"0%%\" width=\"10%%\" height=\"100%%\" style=\"fill: black; fill-opacity: 0;\"/>", i, p.x - 5);

@@ -288,11 +288,6 @@ int append_record(struct historic *hist, const void *data)
 	if (!last) {
 		last = new_record(hist);
 	} else if (!same_timeframe(last->time, now, hist->timestep)) {
-		if (hist->timestep)
-			printf("last = %lu, now = %lu\n",
-			       (last->time - hist->epoch) / hist->timestep,
-			       (now - hist->epoch) / hist->timestep);
-
 		last->time = next_timeframe(last->time, hist->timestep);
 		last = new_record(hist);
 	}

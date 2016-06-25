@@ -319,7 +319,12 @@ static void print_point(struct graph *graph, struct record *record)
 
 	label_pos = point_label_pos(graph, record, data);
 
-	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>", p.x, p.y);
+	/*
+	 * Too much points in a graph reduce readability, above 24
+	 * points, don't draw them anymore.
+	 */
+	if (graph->hist->nrecords <= 24)
+		svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>", p.x, p.y);
 
 	/* Hover */
 	svg("<g style=\"visibility: hidden\">");

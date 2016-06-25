@@ -84,8 +84,9 @@ static unsigned best_axes_gap(unsigned range)
 	unsigned i = 0, factor = 1;
 
 	while (does_fit(range, gaps[i], factor)) {
-		factor *= 10;
 		i = (i + 1) % 3;
+		if (i == 0)
+			factor *= 10;
 	}
 
 	/* Return previous gap, or the default gap if any */

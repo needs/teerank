@@ -185,6 +185,24 @@ static long axe_data(struct graph *graph, unsigned i)
 	return graph->min + (i + 1) * graph->gap;
 }
 
+static float pad(float value, float left, float right)
+{
+	float scale = (100.0 - left - right) / 100.0;
+	return left + value * scale;
+}
+
+static float pad_x(float x)
+{
+	const float PADDING = 7.0;
+	return pad(x, PADDING, PADDING);
+}
+
+static float pad_y(float y)
+{
+	const float PADDING = 10.0;
+	return pad(y, PADDING, PADDING);
+}
+
 static float percentage(float range, float value, int reversed)
 {
 	float ret;
@@ -211,7 +229,7 @@ static float x_coord(struct graph *graph, struct record *record)
 	range = graph->hist->nrecords - 1;
 	value = record - graph->hist->records;
 
-	return percentage(range, value, 1);
+	return pad_x(percentage(range, value, 1));
 }
 
 static float y_coord(struct graph *graph, long data)
@@ -221,12 +239,16 @@ static float y_coord(struct graph *graph, long data)
 	range = graph->max - graph->min;
 	value = data - graph->min;
 
-	return percentage(range, value, graph->reversed);
+	return pad_y(percentage(range, value, graph->reversed));
 }
 
 static void print_axes(struct graph *graph)
 {
 	unsigned i;
+	float x_start, x_end;
+
+	x_start = pad_x(0) - 1.0;
+	x_end = pad_x(100) + 1.0;
 
 	svg("<!-- Axes -->");
 	svg("<g>");
@@ -238,7 +260,7 @@ static void print_axes(struct graph *graph)
 			svg("");
 
 		/* Line */
-		svg("<line x1=\"0\" y1=\"%.1f%%\" x2=\"100%%\" y2=\"%.1f%%\" stroke=\"#bbb\" stroke-dasharray=\"3, 3\"/>", y , y);
+		svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\" stroke=\"#bbb\" stroke-dasharray=\"3, 3\"/>", x_start, y , x_end, y);
 
 		/* Left and right labels */
 		svg("<text x=\"10\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle;\">%ld</text>", y, data);
@@ -398,9 +420,9 @@ static void print_point(struct graph *graph, struct record *record)
 
 	/* Hover */
 	if (graph->hist->nrecords == 1)
-		zone_width = 100.0;
+		zone_width = pad_x(100.0);
 	else
-		zone_width = 1.0 / (graph->hist->nrecords - 1) * 100.0;
+		zone_width = pad_x(100.0 / (graph->hist->nrecords - 1)) - pad_x(0);
 
 	svg("<rect class=\"zone\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\"/>", p.x - zone_width / 2.0, zone_width);
 	svg("<g class=\"label\">");

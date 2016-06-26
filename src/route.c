@@ -129,12 +129,14 @@ static void init_player_elo_graph(struct file *file, struct url *url)
 {
 	file->args[1] = url->dirs[url->ndirs - 1];
 	file->args[2] = "elo";
+	file->args[3] = "hourly";
 }
 
 static void init_player_rank_graph(struct file *file, struct url *url)
 {
 	file->args[1] = url->dirs[url->ndirs - 1];
 	file->args[2] = "rank";
+	file->args[3] = "daily";
 }
 
 static void init_search_file(struct file *file, struct url *url)

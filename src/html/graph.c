@@ -432,10 +432,10 @@ static void print_graph(
 int main(int argc, char **argv)
 {
 	struct player player;
-	char *name, *dataset;
+	char *name, *dataset, *timescale;
 
-	if (argc != 3) {
-		fprintf(stderr, "Usage: %s <player_name> [elo|rank]\n", argv[0]);
+	if (argc != 4) {
+		fprintf(stderr, "Usage: %s <player_name> elo|rank hourly|daily|monthly\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -451,12 +451,26 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	dataset = argv[2];
+	timescale = argv[3];
 	if (strcmp(dataset, "elo") == 0) {
+		/* Timescale is irrelevant for elo, ignore it */
 		print_graph(&player.elo_historic, elo_to_long);
 	} else if (strcmp(dataset, "rank") == 0) {
-		print_graph(&player.daily_rank, rank_to_long);
+		if (strcmp(timescale, "hourly") == 0)
+			print_graph(&player.hourly_rank, rank_to_long);
+		else if (strcmp(timescale, "daily") == 0)
+			print_graph(&player.daily_rank, rank_to_long);
+		else if (strcmp(timescale, "monthly") == 0)
+			print_graph(&player.monthly_rank, rank_to_long);
+		else {
+			fprintf(stderr, "\"%s\" is not a valid timescale, "
+			        "expected \"hourly\", \"daily\" or \"monthly\"\n",
+			        timescale);
+			return EXIT_FAILURE;
+		}
 	} else {
-		fprintf(stderr, "\"%s\" is not a valid dataset, expected \"elo\" or \"rank\"\n", dataset);
+		fprintf(stderr, "\"%s\" is not a valid dataset, "
+		        "expected \"elo\" or \"rank\"\n", dataset);
 		return EXIT_FAILURE;
 	}
 

@@ -65,15 +65,15 @@ static long find_data(
 }
 
 /* We want at least 3 axes on the graph */
-#define MINIMUM_NUMBER_OF_AXES 3
+#define MIN_NAXES 3
 
 /*
  * Given a gap (plus a multiplier) and a range of values, return true if
- * at least MINIMUM_NUMBER_OF_AXES axes can be displayed.
+ * at least MIN_NAXES axes can be displayed.
  */
 static int does_fit(unsigned range, unsigned gap, unsigned factor)
 {
-	return MINIMUM_NUMBER_OF_AXES * gap * factor < range;
+	return MIN_NAXES * gap * factor < range;
 }
 
 static unsigned best_axes_gap(unsigned range)
@@ -97,14 +97,14 @@ static unsigned best_axes_gap(unsigned range)
 }
 
 /*
- * When called we now that *at least* MINIMUM_NUMBER_OF_AXES fits in the
+ * When called we now that *at least* MIN_NAXES fits in the
  * given range (max - min).  However even more axes can be displayed.  This
  * function get the maximum number of axes that can be displayed in the
  * given range.
  */
 static unsigned number_of_axes(int min, int max, unsigned gap)
 {
-	unsigned n = MINIMUM_NUMBER_OF_AXES;
+	unsigned n = MIN_NAXES;
 	int count = min - (min % gap) + 3 * gap;
 
 	while (count < max) {
@@ -112,7 +112,7 @@ static unsigned number_of_axes(int min, int max, unsigned gap)
 		count += gap;
 	}
 
-	return n - 1 < MINIMUM_NUMBER_OF_AXES ? MINIMUM_NUMBER_OF_AXES : n - 1;
+	return n - 1 < MIN_NAXES ? MIN_NAXES : n - 1;
 }
 
 /*

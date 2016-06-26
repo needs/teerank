@@ -193,8 +193,7 @@ static float pad(float value, float left, float right)
 
 static float pad_x(float x)
 {
-	const float PADDING = 7.0;
-	return pad(x, PADDING, PADDING);
+	return pad(x, 7.0, 1.0);
 }
 
 static float pad_y(float y)
@@ -264,7 +263,6 @@ static void print_axes(struct graph *graph)
 
 		/* Left and right labels */
 		svg("<text x=\"10\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle;\">%ld</text>", y, data);
-		svg("<text x=\"100%%\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle; text-anchor: end;\" transform=\"translate(-10, 0)\">%ld</text>", y, data);
 	}
 	svg("</g>");
 }

@@ -121,6 +121,7 @@ static unsigned number_of_axes(int min, int max, unsigned gap)
 struct graph {
 	struct historic *hist;
 	int is_empty;
+	int reversed;
 
 	to_long_t to_long;
 
@@ -148,7 +149,7 @@ static int max_cmp(long a, long b)
 }
 
 static struct graph init_graph(
-	struct historic *hist, to_long_t to_long)
+	struct historic *hist, to_long_t to_long, int reversed)
 {
 	static const struct graph GRAPH_ZERO;
 	struct graph graph = GRAPH_ZERO;
@@ -156,6 +157,7 @@ static struct graph init_graph(
 
 	graph.hist = hist;
 	graph.to_long = to_long;
+	graph.reversed = reversed;
 
 	if (hist->nrecords == 0) {
 		graph.is_empty = 1;
@@ -178,9 +180,48 @@ static struct graph init_graph(
 	return graph;
 }
 
-static long axe_offset(struct graph *graph, unsigned i)
+static long axe_label(struct graph *graph, unsigned i)
 {
 	return graph->min + (i + 1) * graph->gap;
+}
+
+static float percentage(float range, float value, int reversed)
+{
+	float ret;
+
+	if (range == 0.0)
+		return 0.0;
+
+	ret = value / range * 100.0;
+	if (!reversed)
+		ret = 100.0 - ret;
+
+	if (ret < 0.0)
+		return 0.0;
+	else if (ret > 100.0)
+		return 100.0;
+
+	return ret;
+}
+
+static float x_coord(struct graph *graph, struct record *record)
+{
+	float range, value;
+
+	range = graph->hist->nrecords - 1;
+	value = record - graph->hist->records;
+
+	return percentage(range, value, 1);
+}
+
+static float y_coord(struct graph *graph, long data)
+{
+	float range, value;
+
+	range = graph->max - graph->min;
+	value = data - graph->min;
+
+	return percentage(range, value, graph->reversed);
 }
 
 static void print_axes(struct graph *graph)
@@ -190,8 +231,8 @@ static void print_axes(struct graph *graph)
 	svg("<!-- Axes -->");
 	svg("<g>");
 	for (i = 0; i < graph->naxes; i++) {
-		const float y = 100.0 - (i + 1) * (100.0 / ((graph->naxes + 1)));
-		const long label = axe_offset(graph, i);
+		const long label = axe_label(graph, i);
+		const float y = y_coord(graph, label);
 
 		if (i)
 			svg("");
@@ -223,15 +264,8 @@ struct point init_point(struct graph *graph, struct record *record)
 
 	data = graph->to_long(record_data(graph->hist, record));
 
-	if (graph->hist->nrecords - 1 == 0)
-		p.x = 0;
-	else
-		p.x = (float)((record - graph->hist->records)) / (graph->hist->nrecords - 1) * 100.0;
-
-	if (graph->max - graph->min == 0)
-		p.y = 0;
-	else
-		p.y = 100.0 - ((float)(data - graph->min) / (graph->max - graph->min) * 100.0);
+	p.x = x_coord(graph, record);
+	p.y = y_coord(graph, data);
 
 	return p;
 }
@@ -274,6 +308,21 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 
 	const float X_MARGIN = 8.0;
 	const float Y_MARGIN = 8.0;
+
+	if (graph->reversed) {
+		const char *tmp;
+
+		tmp = top_left;
+		top_left = bottom_left;
+		bottom_left = tmp;
+
+		tmp = top_right;
+		top_right = bottom_right;
+		bottom_right = tmp;
+
+		/* Hacky */
+		p.y = 100.0 - p.y;
+	}
 
 	/*
 	 * Label are by default bottom right.
@@ -405,13 +454,13 @@ static void print_notice_empty(struct graph *graph)
 }
 
 static void print_graph(
-	struct historic *hist, to_long_t to_long)
+	struct historic *hist, to_long_t to_long, int reversed)
 {
 	struct graph graph;
 
 	assert(hist != NULL);
 
-	graph = init_graph(hist, to_long);
+	graph = init_graph(hist, to_long, reversed);
 
 	svg("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
 	svg("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\" style=\"font-family: Verdana,Arial,Helvetica,sans-serif;\">");
@@ -454,14 +503,14 @@ int main(int argc, char **argv)
 	timescale = argv[3];
 	if (strcmp(dataset, "elo") == 0) {
 		/* Timescale is irrelevant for elo, ignore it */
-		print_graph(&player.elo_historic, elo_to_long);
+		print_graph(&player.elo_historic, elo_to_long, 0);
 	} else if (strcmp(dataset, "rank") == 0) {
 		if (strcmp(timescale, "hourly") == 0)
-			print_graph(&player.hourly_rank, rank_to_long);
+			print_graph(&player.hourly_rank, rank_to_long, 1);
 		else if (strcmp(timescale, "daily") == 0)
-			print_graph(&player.daily_rank, rank_to_long);
+			print_graph(&player.daily_rank, rank_to_long, 1);
 		else if (strcmp(timescale, "monthly") == 0)
-			print_graph(&player.monthly_rank, rank_to_long);
+			print_graph(&player.monthly_rank, rank_to_long, 1);
 		else {
 			fprintf(stderr, "\"%s\" is not a valid timescale, "
 			        "expected \"hourly\", \"daily\" or \"monthly\"\n",

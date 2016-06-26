@@ -180,7 +180,7 @@ static struct graph init_graph(
 	return graph;
 }
 
-static long axe_label(struct graph *graph, unsigned i)
+static long axe_data(struct graph *graph, unsigned i)
 {
 	return graph->min + (i + 1) * graph->gap;
 }
@@ -231,8 +231,8 @@ static void print_axes(struct graph *graph)
 	svg("<!-- Axes -->");
 	svg("<g>");
 	for (i = 0; i < graph->naxes; i++) {
-		const long label = axe_label(graph, i);
-		const float y = y_coord(graph, label);
+		const long data = axe_data(graph, i);
+		const float y = y_coord(graph, data);
 
 		if (i)
 			svg("");
@@ -241,8 +241,8 @@ static void print_axes(struct graph *graph)
 		svg("<line x1=\"0\" y1=\"%.1f%%\" x2=\"100%%\" y2=\"%.1f%%\" stroke=\"#bbb\" stroke-dasharray=\"3, 3\"/>", y , y);
 
 		/* Left and right labels */
-		svg("<text x=\"10\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle;\">%ld</text>", y, label);
-		svg("<text x=\"100%%\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle; text-anchor: end;\" transform=\"translate(-10, 0)\">%ld</text>", y, label);
+		svg("<text x=\"10\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle;\">%ld</text>", y, data);
+		svg("<text x=\"100%%\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle; text-anchor: end;\" transform=\"translate(-10, 0)\">%ld</text>", y, data);
 	}
 	svg("</g>");
 }

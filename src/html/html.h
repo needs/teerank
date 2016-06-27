@@ -5,6 +5,7 @@
 
 void html(const char *fmt, ...);
 void svg(const char *fmt, ...);
+void css(const char *fmt, ...);
 
 char *escape(const char *str);
 

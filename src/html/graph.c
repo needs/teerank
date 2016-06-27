@@ -449,10 +449,19 @@ static void print_points(struct graph *graph)
 	 * and mouseout events will not be triggered.
 	 */
 	svg("<style>");
-	svg(".label { visibility: hidden; }");
-	svg(".label:hover { visibility: visible; }");
-	svg(".zone { fill: none; pointer-events: all; }");
-	svg(".zone:hover + .label { visibility: visible; }");
+	css(".label {");
+	css("visibility: hidden;");
+	css("}");
+	css(".label:hover {");
+	css("visibility: visible;");
+	css("}");
+	css(".zone {");
+	css("fill: none;");
+	css("pointer-events: all;");
+	css("}");
+	css(".zone:hover + .label {");
+	css("visibility: visible;");
+	css("}");
 	svg("</style>");
 
 	svg("<g>");

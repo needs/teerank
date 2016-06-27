@@ -6,15 +6,55 @@
 #include "html.h"
 
 #ifdef NDEBUG
-static void xml(const char *fmt, va_list ap)
+static void html(const char *fmt, ...)
 {
+	va_list ap;
+
+	va_start(ap, fmt);
 	vprintf(fmt, ap);
+	va_end(ap);
 }
-#else
+
+static void svg(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+}
+
+static void css(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+}
+
+#else  /* NDEBUG */
+
+/*
+ * Indentation level is shared so that nested languages (CSS in HTML
+ * for instance) are not mis-indented.
+ */
+static int indent = 0;
+
+static void print(const char *fmt, va_list ap)
+{
+	unsigned i;
+
+	for (i = 0; i < indent; i++)
+		putchar('\t');
+
+	vprintf(fmt, ap);
+	putchar('\n');
+}
+
 static void xml(const char *fmt, va_list ap)
 {
-	static int indent = 0;
-	int i, opening_tag = 0, closing_tag = 0;
+	int opening_tag = 0, closing_tag = 0;
 	size_t len = strlen(fmt);
 
 	if (*fmt == '\0')
@@ -44,24 +84,10 @@ print:
 	if (!opening_tag && closing_tag)
 		indent--;
 
-	for (i = 0; i < indent; i++)
-		putchar('\t');
-
-	vprintf(fmt, ap);
-	putchar('\n');
+	print(fmt, ap);
 
 	if (opening_tag && !closing_tag)
 		indent++;
-}
-#endif
-
-void svg(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	xml(fmt, ap);
-	va_end(ap);
 }
 
 void html(const char *fmt, ...)
@@ -72,6 +98,32 @@ void html(const char *fmt, ...)
 	xml(fmt, ap);
 	va_end(ap);
 }
+
+void svg(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	xml(fmt, ap);
+	va_end(ap);
+}
+
+void css(const char *fmt, ...)
+{
+	va_list ap;
+
+	if (fmt[0] == '}')
+		indent--;
+
+	va_start(ap, fmt);
+	print(fmt, ap);
+	va_end(ap);
+
+	if (fmt[strlen(fmt) - 1] == '{')
+		indent++;
+}
+
+#endif  /* NDEBUG */
 
 const struct tab CTF_TAB = { "CTF", "/" };
 const struct tab ABOUT_TAB = { "About", "/about.html" };

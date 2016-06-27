@@ -157,11 +157,9 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 	state->num_clients = unpack_int(&up);     /* Client number */
 	unpack_string(&up);     /* Client max number */
 
-	if (state->num_clients > MAX_CLIENTS) {
-		fprintf(stderr, "num_clients shouldn't be higher than %d\n",
-		        MAX_CLIENTS);
+	if (state->num_clients > MAX_CLIENTS)
+		/* Vanilla servers do not have more than MAX_CLIENTS */
 		return 0;
-	}
 
 	/* Players */
 	for (i = 0; i < state->num_clients; i++) {
@@ -173,12 +171,6 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 		unpack_string(&up); /* Country */
 		state->clients[i].score  = unpack_int(&up); /* Score */
 		state->clients[i].ingame = unpack_int(&up); /* Ingame? */
-	}
-
-	if (up.offset != up.data->size) {
-		fprintf(stderr,
-		        "%lu bytes remaining after unpacking server state\n",
-		        up.data->size - up.offset);
 	}
 
 	if (!validate_clients_info(state))

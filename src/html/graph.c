@@ -413,7 +413,7 @@ static void print_point(struct graph *graph, struct record *record)
 	 * Too much points in a graph reduce readability, above 24
 	 * points, don't draw them anymore.
 	 */
-	if (graph->hist->nrecords <= 24)
+	if (record == graph->hist->last || graph->hist->nrecords <= 24)
 		svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>", p.x, p.y);
 
 	/* Hover */

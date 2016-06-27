@@ -193,7 +193,7 @@ static float pad(float value, float left, float right)
 
 static float pad_x(float x)
 {
-	return pad(x, 7.0, 1.0);
+	return pad(x, 7.0, 2.0);
 }
 
 static float pad_y(float y)

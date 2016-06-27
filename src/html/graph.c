@@ -341,10 +341,10 @@ static void print_lines(struct graph *graph)
 
 static const char *point_label_pos(struct graph *graph, struct record *record, long data, struct point p)
 {
-	const char *top_left = "text-anchor: end;\" transform=\"translate(-10, -11)";
-	const char *top_right = "text-anchor: start;\" transform=\"translate(10, -11)";
-	const char *bottom_left = "text-anchor: end;\" transform=\"translate(-10, 18)";
-	const char *bottom_right = "text-anchor: start;\" transform=\"translate(10, 18)";
+	const char *top_left = "top_left";
+	const char *top_right = "top_right";
+	const char *bottom_left = "bottom_left";
+	const char *bottom_right = "bottom_right";
 
 	const float X_MARGIN = 8.0;
 	const float Y_MARGIN = 8.0;
@@ -445,13 +445,13 @@ static void print_point(struct graph *graph, struct record *record)
 
 	svg("<rect class=\"zone\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\"/>",
 	    p.x - zone_width / 2.0, zone_width);
-	svg("<g class=\"label\">");
+	svg("<g class=\"label %s\">", label_pos);
 	svg("<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\"/>",
 	    p.x, p.x);
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
 	    p.x, p.y);
-	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"%s\">%ld</text>",
-	    p.x, p.y, label_pos, data);
+	svg("<text x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",
+	    p.x, p.y, data);
 	svg("</g>");
 }
 
@@ -492,6 +492,23 @@ static void print_points(struct graph *graph)
 	css("}");
 	css(".label > text {");
 	css("font-size: 0.9em;");
+	css("}");
+	css("");
+	css(".label.top_left > text {");
+	css("text-anchor: end;");
+	css("transform: translate(-10px, -11px);");
+	css("}");
+	css(".label.top_right > text {");
+	css("text-anchor: start;");
+	css("transform: translate(10px, -11px);");
+	css("}");
+	css(".label.bottom_left > text {");
+	css("text-anchor: end;");
+	css("transform: translate(-10px, 18px);");
+	css("}");
+	css(".label.bottom_right > text {");
+	css("text-anchor: start;");
+	css("transform: translate(10px, 18px);");
 	css("}");
 	css("");
 	css(".zone {");

@@ -198,7 +198,7 @@ static float pad_x(float x)
 
 static float pad_y(float y)
 {
-	const float PADDING = 10.0;
+	const float PADDING = 1.0;
 	return pad(y, PADDING, PADDING);
 }
 
@@ -446,8 +446,8 @@ static void print_point(struct graph *graph, struct record *record)
 	svg("<rect class=\"zone\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\"/>",
 	    p.x - zone_width / 2.0, zone_width);
 	svg("<g class=\"label %s\">", label_pos);
-	svg("<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\"/>",
-	    p.x, p.x);
+	svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
+	    p.x, pad_y(0.0), p.x, pad_y(100.0));
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
 	    p.x, p.y);
 	svg("<text x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",

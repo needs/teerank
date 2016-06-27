@@ -250,6 +250,18 @@ static void print_axes(struct graph *graph)
 	x_end = pad_x(100) + 1.0;
 
 	svg("<!-- Axes -->");
+	svg("<style>");
+	css(".axe {");
+	css("stroke: #bbb;");
+	css("stroke-dasharray: 3, 3;");
+	css("}");
+	css(".axe_label {");
+	css("fill: #777;");
+	css("font-size: 0.9em;");
+	css("dominant-baseline: middle;");
+	css("}");
+	svg("</style>");
+
 	svg("<g>");
 	for (i = 0; i < graph->naxes; i++) {
 		const long data = axe_data(graph, i);
@@ -259,10 +271,10 @@ static void print_axes(struct graph *graph)
 			svg("");
 
 		/* Line */
-		svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\" stroke=\"#bbb\" stroke-dasharray=\"3, 3\"/>", x_start, y , x_end, y);
+		svg("<line class=\"axe\" x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>", x_start, y , x_end, y);
 
 		/* Left and right labels */
-		svg("<text x=\"10\" y=\"%.1f%%\" style=\"fill: #777; font-size: 0.9em; dominant-baseline: middle;\">%ld</text>", y, data);
+		svg("<text class=\"axe_label\" x=\"10\" y=\"%.1f%%\">%ld</text>", y, data);
 	}
 	svg("</g>");
 }
@@ -300,7 +312,8 @@ static void print_line(struct graph *graph, struct record *a, struct record *b)
 	pa = init_point(graph, a);
 	pb = init_point(graph, b);
 
-	svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\" style=\"fill: none; stroke:#970; stroke-width: 3px;\"/>", pa.x, pa.y, pb.x, pb.y);
+	svg("<line class=\"curve\" x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
+	    pa.x, pa.y, pb.x, pb.y);
 }
 
 static void print_lines(struct graph *graph)
@@ -311,6 +324,13 @@ static void print_lines(struct graph *graph)
 	assert(!graph->is_empty);
 
 	svg("<!-- Path -->");
+	svg("<style>");
+	css(".curve {");
+	css("fill: none;");
+	css("stroke:#970;");
+	css("stroke-width: 3px;");
+	css("}");
+	svg("</style>");
 	svg("<g>");
 
 	for (rec = graph->hist->first->next; rec; rec = rec->next)
@@ -414,7 +434,8 @@ static void print_point(struct graph *graph, struct record *record)
 	 * points, don't draw them anymore.
 	 */
 	if (record == graph->hist->last || graph->hist->nrecords <= 24)
-		svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #970;\"/>", p.x, p.y);
+		svg("<circle class=\"point\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
+		    p.x, p.y);
 
 	/* Hover */
 	if (graph->hist->nrecords == 1)
@@ -422,11 +443,15 @@ static void print_point(struct graph *graph, struct record *record)
 	else
 		zone_width = pad_x(100.0 / (graph->hist->nrecords - 1)) - pad_x(0);
 
-	svg("<rect class=\"zone\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\"/>", p.x - zone_width / 2.0, zone_width);
+	svg("<rect class=\"zone\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\"/>",
+	    p.x - zone_width / 2.0, zone_width);
 	svg("<g class=\"label\">");
-	svg("<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\" style=\"stroke: #bbb;\"/>", p.x, p.x);
-	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\" style=\"fill: #725800;\"/>", p.x, p.y);
-	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-size: 0.9em; %s\">%ld</text>", p.x, p.y, label_pos, data);
+	svg("<line x1=\"%.1f%%\" y1=\"0%%\" x2=\"%.1f%%\" y2=\"100%%\"/>",
+	    p.x, p.x);
+	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
+	    p.x, p.y);
+	svg("<text x=\"%.1f%%\" y=\"%.1f%%\" style=\"%s\">%ld</text>",
+	    p.x, p.y, label_pos, data);
 	svg("</g>");
 }
 
@@ -449,12 +474,26 @@ static void print_points(struct graph *graph)
 	 * and mouseout events will not be triggered.
 	 */
 	svg("<style>");
+	css(".point {");
+	css("fill: #970;");
+	css("}");
+	css("");
 	css(".label {");
 	css("visibility: hidden;");
 	css("}");
 	css(".label:hover {");
 	css("visibility: visible;");
 	css("}");
+	css(".label > line {");
+	css("stroke: #bbb;");
+	css("}");
+	css(".label > circle {");
+	css("fill: #725800;");
+	css("}");
+	css(".label > text {");
+	css("font-size: 0.9em;");
+	css("}");
+	css("");
 	css(".zone {");
 	css("fill: none;");
 	css("pointer-events: all;");

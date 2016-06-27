@@ -148,18 +148,14 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 	unpack_string(&up);     /* Token */
 	unpack_string(&up);     /* Version */
 	unpack_string(&up);     /* Name */
-	unpack_string(&up);     /* Map */
-	state->gametype = unpack_string(&up);     /* Gametype */
+	state->map = unpack_string(&up);      /* Map */
+	state->gametype = unpack_string(&up); /* Gametype */
 
 	unpack_string(&up);     /* Flags */
 	unpack_string(&up);     /* Player number */
 	unpack_string(&up);     /* Player max number */
-	state->num_clients = unpack_int(&up);     /* Client number */
-	unpack_string(&up);     /* Client max number */
-
-	if (state->num_clients > MAX_CLIENTS)
-		/* Vanilla servers do not have more than MAX_CLIENTS */
-		return 0;
+	state->num_clients = unpack_int(&up); /* Client number */
+	state->max_clients = unpack_int(&up); /* Client max number */
 
 	/* Players */
 	for (i = 0; i < state->num_clients; i++) {
@@ -276,6 +272,36 @@ static void remove_spectators(struct server_state *state)
 	}
 }
 
+static int is_vanilla(struct server_state *state)
+{
+	if (strcmp(state->gametype, "CTF") != 0
+	    && strcmp(state->gametype, "DM") != 0
+	    && strcmp(state->gametype, "TDM") != 0)
+		return 0;
+
+	if (strcmp(state->map, "ctf1") != 0
+	    && strcmp(state->map, "ctf2") != 0
+	    && strcmp(state->map, "ctf3") != 0
+	    && strcmp(state->map, "ctf4") != 0
+	    && strcmp(state->map, "ctf5") != 0
+	    && strcmp(state->map, "ctf6") != 0
+	    && strcmp(state->map, "ctf7") != 0
+	    && strcmp(state->map, "dm1") != 0
+	    && strcmp(state->map, "dm2") != 0
+	    && strcmp(state->map, "dm6") != 0
+	    && strcmp(state->map, "dm7") != 0
+	    && strcmp(state->map, "dm8") != 0
+	    && strcmp(state->map, "dm9") != 0)
+		return 0;
+
+	if (state->num_clients > MAX_CLIENTS)
+		return 0;
+	if (state->max_clients > MAX_CLIENTS)
+		return 0;
+
+	return 1;
+}
+
 static int handle_data(struct data *data, struct server *server)
 {
 	struct server_state old, new;
@@ -288,7 +314,7 @@ static int handle_data(struct data *data, struct server *server)
 	if (!unpack_server_state(data, &new))
 		return 0;
 
-	if (strcmp(new.gametype, "CTF")) {
+	if (!is_vanilla(&new) || strcmp(new.gametype, "CTF") != 0) {
 		/*
 		 * We don't rank this server but we still want to check
 		 * it time to time to see if its gametype change.

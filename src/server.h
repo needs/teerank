@@ -8,8 +8,10 @@
 
 struct server_state {
 	char *gametype;
+	char *map;
 
 	int num_clients;
+	int max_clients;
 	struct client {
 		char name[HEXNAME_LENGTH], clan[HEXNAME_LENGTH];
 		long score;

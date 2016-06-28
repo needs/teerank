@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 	int fd;
 	unsigned i;
 	static char path[PATH_MAX];
-	unsigned count_added = 0;
+	unsigned count_new = 0;
 
 	load_config();
 	if (argc != 1) {
@@ -222,14 +222,14 @@ int main(int argc, char **argv)
 		if (ret == -1 && errno != EEXIST)
 			fprintf(stderr, "%s/%s: %s\n",
 			        argv[1], dirname, strerror(errno));
-		else
-			count_added++;
+		else if (ret != -1)
+			count_new++;
 	}
 
 	close(fd);
 
-	verbose("Over %u servers referenced by masters, %u have been added\n",
-	        list.length, count_added);
+	verbose("Over %u servers referenced by masters, %u are new\n",
+	        list.length, count_new);
 
 	return EXIT_SUCCESS;
 }

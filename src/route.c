@@ -75,6 +75,9 @@ struct url parse_url(char *uri, char *query)
 	 * instances.
 	 */
 
+	if (query[0] == '\0')
+		return url;
+
 	name = strtok(query, "&");
 	do {
 		if (url.nargs == MAX_ARGS)

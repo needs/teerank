@@ -302,21 +302,7 @@ struct point init_point(struct graph *graph, struct record *record)
 	return p;
 }
 
-static void print_line(struct graph *graph, struct record *a, struct record *b)
-{
-	struct point pa, pb;
-
-	assert(a != NULL);
-	assert(b != NULL);
-
-	pa = init_point(graph, a);
-	pb = init_point(graph, b);
-
-	svg("<line class=\"curve\" x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
-	    pa.x, pa.y, pb.x, pb.y);
-}
-
-static void print_lines(struct graph *graph)
+static void print_path(struct graph *graph)
 {
 	struct record *rec;
 
@@ -324,19 +310,25 @@ static void print_lines(struct graph *graph)
 	assert(!graph->is_empty);
 
 	svg("<!-- Path -->");
-	svg("<style>");
-	css(".curve {");
-	css("fill: none;");
-	css("stroke:#970;");
-	css("stroke-width: 3px;");
-	css("}");
-	svg("</style>");
-	svg("<g>");
+	svg("<svg viewBox=\"0 0 100 100\" preserveAspectRatio=\"none\">");
 
-	for (rec = graph->hist->first->next; rec; rec = rec->next)
-		print_line(graph, rec->prev, rec);
+	/* No need to create a class for a single element */
+	svg("<path style=\"fill: none; stroke: #970; stroke-width: 3px;\" d=\"");
+	for (rec = graph->hist->first; rec; rec = rec->next) {
+		struct point p;
+		char c;
 
-	svg("</g>");
+		if (rec == graph->hist->first)
+			c = 'M';
+		else
+			c = 'L';
+
+		p = init_point(graph, rec);
+		svg("%c %.1f %.1f", c, p.x, p.y);
+
+	}
+	svg("\" vector-effect=\"non-scaling-stroke\"/>");
+	svg("</svg>");
 }
 
 static const char *point_label_pos(struct graph *graph, struct record *record, long data, struct point p)
@@ -555,7 +547,7 @@ static void print_graph(
 	} else {
 		print_axes(&graph);
 		svg("");
-		print_lines(&graph);
+		print_path(&graph);
 		svg("");
 		print_points(&graph);
 	}

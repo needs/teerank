@@ -123,6 +123,11 @@ static void init_default_clan_file(struct file *file, struct url *url)
 static void init_default_player_file(struct file *file, struct url *url)
 {
 	file->args[1] = strtok(url->filename, ".");
+
+	if (url->nargs == 1)
+		file->args[2] = url->args[0].name;
+	else
+		file->args[2] = "hourly";
 }
 
 static void init_player_elo_graph(struct file *file, struct url *url)
@@ -136,7 +141,11 @@ static void init_player_rank_graph(struct file *file, struct url *url)
 {
 	file->args[1] = url->dirs[url->ndirs - 1];
 	file->args[2] = "rank";
-	file->args[3] = "daily";
+
+	if (url->nargs == 1)
+		file->args[3] = url->args[0].name;
+	else
+		file->args[3] = "hourly";
 }
 
 static void init_search_file(struct file *file, struct url *url)

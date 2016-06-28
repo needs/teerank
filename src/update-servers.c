@@ -54,7 +54,6 @@ static int can_unpack(struct unpacker *up, unsigned length)
 			if (--length == 0)
 				return 1;
 
-	fprintf(stderr, "can_unpack(): %u field(s) missing\n", length);
 	return 0;
 }
 

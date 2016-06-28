@@ -267,10 +267,16 @@ void remove_server(char *name)
 
 	assert(name != NULL);
 
-	if (unlink((path = get_path(name, "state"))) == -1)
-		perror(path);
-	if (unlink((path = get_path(name, "meta"))) == -1)
-		perror(path);
-	if (rmdir((path = get_path(name, ""))) == -1)
-		perror(path);
+	if (unlink((path = get_path(name, "state"))) == -1) {
+		if (errno != ENOENT)
+			perror(path);
+	}
+	if (unlink((path = get_path(name, "meta"))) == -1) {
+		if (errno != ENOENT)
+			perror(path);
+	}
+	if (rmdir((path = get_path(name, ""))) == -1) {
+		if (errno != ENOENT)
+			perror(path);
+	}
 }

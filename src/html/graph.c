@@ -411,7 +411,7 @@ static void print_point(struct graph *graph, struct record *record)
 	struct point p;
 	long data;
 	const char *label_pos;
-	float zone_width;
+	float gap, zone_start, zone_width;
 
 	assert(graph != NULL);
 	assert(record != NULL);
@@ -430,13 +430,25 @@ static void print_point(struct graph *graph, struct record *record)
 		    p.x, p.y);
 
 	/* Hover */
+
 	if (graph->hist->nrecords == 1)
-		zone_width = pad_x(100.0);
+		gap = 100.0;
 	else
-		zone_width = pad_x(100.0 / (graph->hist->nrecords - 1)) - pad_x(0);
+		gap = pad_x(100.0 / (graph->hist->nrecords - 1)) - pad_x(0);
+
+	if (record == graph->hist->first) {
+		zone_start = 0.0;
+		zone_width = pad_x(0) + gap / 2.0;
+	} else if (record == graph->hist->last) {
+		zone_start = p.x - gap / 2.0;
+		zone_width = pad_x(100.0) + gap / 2.0;
+	} else {
+		zone_start = p.x - gap / 2.0;
+		zone_width = gap;
+	}
 
 	svg("<rect class=\"zone\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\"/>",
-	    p.x - zone_width / 2.0, zone_width);
+	    zone_start, zone_width);
 	svg("<g class=\"label %s\">", label_pos);
 	svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
 	    p.x, pad_y(0.0), p.x, pad_y(100.0));

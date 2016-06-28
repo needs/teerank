@@ -480,7 +480,7 @@ static void poll_servers(struct server_list *list, struct sockets *sockets)
 		failed_count++;
 	}
 
-	verbose("%u servers has not been successfully polled\n", failed_count);
+	verbose("Polling failed for %u servers\n", failed_count);
 }
 
 static const struct server_list SERVER_LIST_ZERO;

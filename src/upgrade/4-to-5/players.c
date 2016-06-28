@@ -14,6 +14,7 @@
 #include <time.h>
 #include <ctype.h>
 
+#include "4-to-5.h"
 #include "config.h"
 #include "player.h"
 #include "historic.h"
@@ -146,7 +147,7 @@ fail:
         return 0;
 }
 
-int main(int argc, char *argv[])
+void upgrade_players(void)
 {
 	DIR *dir;
 	struct dirent *dp;
@@ -154,17 +155,17 @@ int main(int argc, char *argv[])
 	static char path[PATH_MAX];
 	struct player player;
 
-	load_config();
-
 	ret = snprintf(path, PATH_MAX, "%s/players", config.root);
 	if (ret >= PATH_MAX) {
 		fprintf(stderr, "%s: Path to long\n", config.root);
-		return EXIT_FAILURE;
+		exit(EXIT_FAILURE);
 	}
 
 	dir = opendir(path);
-	if (!dir)
-		return perror(path), EXIT_FAILURE;
+	if (!dir) {
+		perror(path);
+		exit(EXIT_FAILURE);
+	}
 
 	init_player(&player);
 	while ((dp = readdir(dir))) {
@@ -179,6 +180,4 @@ int main(int argc, char *argv[])
 	}
 
 	closedir(dir);
-
-	return EXIT_SUCCESS;
 }

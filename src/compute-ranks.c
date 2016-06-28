@@ -90,6 +90,11 @@ static int cmp_players_elo(const void *p1, const void *p2)
 	return b->elo - a->elo;
 }
 
+#define _str(s) #s
+#define str(s) _str(s)
+
+#define TEST (HEXNAME_LENGTH - 1)
+
 static void write_ranks(struct player_summary *players, unsigned nplayers)
 {
 	unsigned i;
@@ -110,7 +115,13 @@ static void write_ranks(struct player_summary *players, unsigned nplayers)
 	/* ...and print player's name, and then save player infos themself. */
 	init_player(&player);
 	for (i = 0; i < nplayers; i++) {
-		fprintf(file, "%s\n", players[i].name);
+		/*
+		 * Name is padded so each line is exactly
+		 * HEXNAME_LENGTH bytes.  This is done so that
+		 * seeking by a n * HEXNAME_LENGTH bytes does
+		 * end up on the nth name.
+		 */
+		fprintf(file, "%-*s\n", HEXNAME_LENGTH - 1, players[i].name);
 
 		if (!read_player(&player, players[i].name))
 			continue;

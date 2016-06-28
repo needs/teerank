@@ -11,20 +11,24 @@
 #include "player.h"
 
 struct page {
-	unsigned number, total;
+	unsigned pnum, npages;
+	unsigned i;
 
 	FILE *file;
 };
 
-static void load_page(struct page *page, unsigned number)
+#define PLAYERS_PER_PAGE 100
+
+static void load_page(struct page *page, unsigned pnum)
 {
 	static char path[PATH_MAX];
+	unsigned nplayers, npages;
 	int ret;
 	FILE *file;
 
 	assert(page != NULL);
 
-	ret = snprintf(path, PATH_MAX, "%s/pages/%u", config.root, number);
+	ret = snprintf(path, PATH_MAX, "%s/ranks", config.root);
 	if (ret >= PATH_MAX) {
 		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);
 		exit(EXIT_FAILURE);
@@ -35,12 +39,25 @@ static void load_page(struct page *page, unsigned number)
 		exit(EXIT_FAILURE);
 	}
 
-	if (fscanf(file, "page %u/%u ", &page->number, &page->total) != 2) {
-		fprintf(stderr, "%s: Cannot match page header\n", path);
-		fclose(file);
+	/* First, read header */
+	if (fscanf(file, "%u players\n", &nplayers) != 1) {
+		fprintf(stderr, "%s: No header\n", path);
 		exit(EXIT_FAILURE);
 	}
 
+	npages = nplayers / PLAYERS_PER_PAGE + 1;
+	if (pnum > npages) {
+		fprintf(stderr, "Only %u pages available\n", npages);
+		exit(EXIT_NOT_FOUND);
+	}
+
+	if (fseek(file, HEXNAME_LENGTH * (pnum - 1) * PLAYERS_PER_PAGE, SEEK_CUR) == -1) {
+		perror("fseek()");
+		exit(EXIT_FAILURE);
+	}
+
+	page->npages = npages;
+	page->pnum = pnum;
 	page->file = file;
 }
 
@@ -53,8 +70,13 @@ static struct player_summary *next_player(struct page *page)
 {
 	char name[HEXNAME_LENGTH];
 
-	while (fscanf(page->file, " %s", name) == 1) {
+	while (page->i < PLAYERS_PER_PAGE) {
 		static struct player_summary player;
+
+		if (fscanf(page->file, " %s", name) != 1)
+			break;
+
+		page->i++;
 
 		if (!is_valid_hexname(name))
 			continue;
@@ -86,43 +108,46 @@ static void print_nav(struct page *page)
 {
 	/* Number of pages shown before and after the current page */
 	static const unsigned PAGE_SHOWN = 3;
-	unsigned i;
+	unsigned pnum, npages, i;
 
 	assert(page != NULL);
 
+	pnum = page->pnum;
+	npages = page->npages;
+
 	html("<nav class=\"pages\">");
-	if (page->number == 1)
+	if (pnum == 1)
 		html("<a class=\"previous\">Previous</a>");
 	else
 		html("<a class=\"previous\" href=\"/pages/%u.html\">Previous</a>",
-		       page->number - 1);
+		       pnum - 1);
 
-	if (page->number > PAGE_SHOWN + 1)
+	if (pnum > PAGE_SHOWN + 1)
 		html("<a href=\"/pages/1.html\">1</a>");
-	if (page->number > PAGE_SHOWN + 2)
+	if (pnum > PAGE_SHOWN + 2)
 		html("<span>...</span>");
 
-	for (i = min(PAGE_SHOWN, page->number - 1); i > 0; i--)
+	for (i = min(PAGE_SHOWN, pnum - 1); i > 0; i--)
 		html("<a href=\"/pages/%u.html\">%u</a>",
-		       page->number - i, page->number - i);
+		       pnum - i, pnum - i);
 
-	html("<a class=\"current\">%u</a>", page->number);
+	html("<a class=\"current\">%u</a>", pnum);
 
-	for (i = 1; i <= min(PAGE_SHOWN, page->total - page->number); i++)
+	for (i = 1; i <= min(PAGE_SHOWN, npages - pnum); i++)
 		html("<a href=\"/pages/%u.html\">%u</a>",
-		       page->number + i, page->number + i);
+		       pnum + i, pnum + i);
 
-	if (page->number + PAGE_SHOWN + 1 < page->total)
+	if (pnum + PAGE_SHOWN + 1 < npages)
 		html("<span>...</span>");
-	if (page->number + PAGE_SHOWN < page->total)
+	if (pnum + PAGE_SHOWN < npages)
 		html("<a href=\"/pages/%u.html\">%u</a>",
-		       page->total, page->total);
+		       npages, npages);
 
-	if (page->number == page->total)
+	if (pnum == npages)
 		html("<a class=\"next\">Next</a>");
 	else
 		html("<a class=\"next\" href=\"/pages/%u.html\">Next</a>",
-		       page->number + 1);
+		       pnum + 1);
 	html("</nav>");
 }
 
@@ -158,6 +183,9 @@ static unsigned parse_page_number(const char *str)
 		exit(EXIT_NOT_FOUND);
 	} else if (ret < 0 || ret > UINT_MAX) {
 		fprintf(stderr, "%s: invalid page number\n", str);
+		exit(EXIT_NOT_FOUND);
+	} else if (ret == 0) {
+		fprintf(stderr, "%s: Pages start at 1\n", str);
 		exit(EXIT_NOT_FOUND);
 	}
 

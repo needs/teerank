@@ -2,6 +2,7 @@
 #define DELTA_H
 
 #include "player.h"
+#include "server.h"
 
 #define MAX_PLAYERS 16
 struct delta {
@@ -20,5 +21,8 @@ int scan_delta(struct delta *delta);
 
 /* Print delta on stdin */
 void print_delta(struct delta *delta);
+
+struct delta delta_states(
+	struct server_state *old, struct server_state *new, int elapsed);
 
 #endif /* DELTA_H */

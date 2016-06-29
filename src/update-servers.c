@@ -188,54 +188,6 @@ struct server_list {
 	struct server *servers;
 };
 
-static struct client *get_player(
-	struct server_state *state, struct client *client)
-{
-	unsigned i;
-
-	assert(state != NULL);
-	assert(client != NULL);
-
-	for (i = 0; i < state->num_clients; i++)
-		if (!strcmp(state->clients[i].name, client->name))
-			return &state->clients[i];
-
-	return NULL;
-}
-
-static void print_server_state_delta(
-	struct server_state *old, struct server_state *new, int elapsed)
-{
-	struct delta delta;
-	unsigned i;
-
-	assert(old != NULL);
-	assert(new != NULL);
-	assert(strcmp(old->gametype, "CTF") == 0);
-	assert(strcmp(new->gametype, "CTF") == 0);
-
-	delta.elapsed = elapsed;
-	delta.length = 0;
-	for (i = 0; i < new->num_clients; i++) {
-		struct client *old_player, *new_player;
-
-		new_player = &new->clients[i];
-		old_player = get_player(old, new_player);
-
-		if (old_player) {
-			struct player_delta *player;
-			player = &delta.players[delta.length];
-			strcpy(player->name, new_player->name);
-			strcpy(player->clan, new_player->clan);
-			player->score = new_player->score;
-			player->delta = new_player->score - old_player->score;
-			delta.length++;
-		}
-	}
-
-	print_delta(&delta);
-}
-
 static void remove_spectators(struct server_state *state)
 {
 	unsigned i;
@@ -300,9 +252,11 @@ static int handle_data(struct data *data, struct server *server)
 
 	if (rankable) {
 		int elapsed = time(NULL) - server->state.last_seen;
+		struct delta delta;
 
 		remove_spectators(&new);
-		print_server_state_delta(&server->state, &new, elapsed);
+		delta = delta_states(&server->state, &new, elapsed);
+		print_delta(&delta);
 	}
 
 	return 1;

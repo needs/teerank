@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
+#include <string.h>
 
 #include "delta.h"
 
@@ -67,4 +68,52 @@ void print_delta(struct delta *delta)
 			       delta->players[i].delta);
 		}
 	}
+}
+
+static struct client *get_player(
+	struct server_state *state, struct client *client)
+{
+	unsigned i;
+
+	assert(state != NULL);
+	assert(client != NULL);
+
+	for (i = 0; i < state->num_clients; i++)
+		if (!strcmp(state->clients[i].name, client->name))
+			return &state->clients[i];
+
+	return NULL;
+}
+
+struct delta delta_states(
+	struct server_state *old, struct server_state *new, int elapsed)
+{
+	struct delta delta;
+	unsigned i;
+
+	assert(old != NULL);
+	assert(new != NULL);
+	assert(strcmp(old->gametype, "CTF") == 0);
+	assert(strcmp(new->gametype, "CTF") == 0);
+
+	delta.elapsed = elapsed;
+	delta.length = 0;
+	for (i = 0; i < new->num_clients; i++) {
+		struct client *old_player, *new_player;
+
+		new_player = &new->clients[i];
+		old_player = get_player(old, new_player);
+
+		if (old_player) {
+			struct player_delta *player;
+			player = &delta.players[delta.length];
+			strcpy(player->name, new_player->name);
+			strcpy(player->clan, new_player->clan);
+			player->score = new_player->score;
+			player->delta = new_player->score - old_player->score;
+			delta.length++;
+		}
+	}
+
+	return delta;
 }

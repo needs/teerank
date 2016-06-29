@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 	upgrade_players();
 	upgrade_ranks();
 	delete_pages();
+	upgrade_servers();
 
 	return EXIT_SUCCESS;
 }

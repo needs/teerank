@@ -72,7 +72,6 @@ static void static_alloc_historics(struct player *player)
 
 static int read_old_player(struct player *player, char *name)
 {
-	const time_t HOUR = 60 * 60;
 	static char path[PATH_MAX];
         FILE *file;
         int ret;
@@ -110,10 +109,6 @@ static int read_old_player(struct player *player, char *name)
         fclose(file);
 
         strcpy(player->name, name);
-        init_historic(&player->elo_historic, sizeof(player->elo),  UINT_MAX, 0);
-        init_historic(&player->hourly_rank,  sizeof(player->rank), 24,       HOUR);
-        init_historic(&player->daily_rank,   sizeof(player->rank), 30,       24 * HOUR);
-        init_historic(&player->monthly_rank, sizeof(player->rank), UINT_MAX, 30 * 24 * HOUR);
 
         static_alloc_historics(player);
 

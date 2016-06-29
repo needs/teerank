@@ -9,45 +9,67 @@
 #include "server.h"
 #include "config.h"
 
-static char *get_path(char *server_name, char *filename)
+static char *get_path(const char *server_name)
 {
 	static char path[PATH_MAX];
 
-	if (snprintf(path, PATH_MAX, "%s/servers/%s/%s",
-	             config.root, server_name, filename) >= PATH_MAX) {
-		fprintf(stderr, "%s: Pathname to meta file too long\n",
-		        server_name);
+	if (snprintf(path, PATH_MAX, "%s/servers/%s",
+	             config.root, server_name) >= PATH_MAX) {
+		fprintf(stderr, "%s: Too long\n", config.root);
 		return NULL;
 	}
 
 	return path;
 }
 
+static int read_server_meta(FILE *file, const char *path, struct server_state *state)
+{
+	int ret;
+
+	assert(file != NULL);
+	assert(path != NULL);
+	assert(state != NULL);
+
+	errno = 0;
+	ret = fscanf(file, "last seen: %ju\nexpire: %ju\n",
+	             &state->last_seen, &state->expire);
+
+	if (ret == EOF && errno != 0) {
+		perror(path);
+		return 0;
+	} else if (ret == EOF || ret == 0) {
+		fprintf(stderr, "%s: Can't match 'last seen' field\n", path);
+		return 0;
+	} else if (ret == 1) {
+		fprintf(stderr, "%s: Can't match 'expire' field\n", path);
+		return 0;
+	}
+
+	return 1;
+}
+
 int read_server_state(struct server_state *state, char *server_name)
 {
+	FILE *file = NULL;
+	char *path;
 	unsigned i;
 	int ret;
-	FILE *file;
-	char *path;
 
 	assert(state != NULL);
 	assert(server_name != NULL);
 
-	/* A NULL gametype signal an empty state */
-	state->gametype = NULL;
-
-	if (!(path = get_path(server_name, "state")))
-		return 0;
+	if (!(path = get_path(server_name)))
+		goto fail;
 	if (!(file = fopen(path, "r"))) {
-		if (errno == ENOENT)
-			/* State file has not been created yet */
-			return 1;
 		perror(path);
-		return 0;
+		goto fail;
 	}
 
+	if (!read_server_meta(file, path, state))
+		goto fail;
+
 	errno = 0;
-	ret = fscanf(file, "%d", &state->num_clients);
+	ret = fscanf(file, " %d", &state->num_clients);
 
 	if (ret == EOF && errno != 0) {
 		perror(path);
@@ -81,22 +103,46 @@ int read_server_state(struct server_state *state, char *server_name)
 	return 1;
 
 fail:
-	fclose(file);
+	if (file)
+		fclose(file);
 	return 0;
 }
 
-int write_server_state(struct server_state *state, char *server_name)
+static int write_server_meta(FILE *file, const char *path, struct server_state *state)
 {
-	unsigned i;
+	int ret;
+
+	assert(file != NULL);
+	assert(path != NULL);
+	assert(state != NULL);
+
+	ret = fprintf(file, "last seen: %ju\nexpire: %ju\n",
+	              state->last_seen, state->expire);
+	if (ret < 0) {
+		perror(path);
+		return 0;
+	}
+
+	return 1;
+}
+
+int write_server_state(struct server_state *state, const char *server_name)
+{
+	FILE *file = NULL;
 	char *path;
-	FILE *file;
+	unsigned i;
 
 	assert(state != NULL);
 
-	if (!(path = get_path(server_name, "state")))
-		return 0;
-	if (!(file = fopen(path, "w")))
-		return perror(path), 0;
+	if (!(path = get_path(server_name)))
+		goto fail;
+	if (!(file = fopen(path, "w"))) {
+		perror(path);
+		goto fail;
+	}
+
+	if (!write_server_meta(file, path, state))
+		goto fail;
 
 	if (fprintf(file, "%d\n", state->num_clients) <= 0) {
 		perror(path);
@@ -117,91 +163,23 @@ int write_server_state(struct server_state *state, char *server_name)
 	return 1;
 
 fail:
-	/* TODO: on failure, it might be better to remove the file to avoid
-	 *       corrupted state. */
-	fclose(file);
-	return 0;
-}
-
-void read_server_meta(struct server_meta *meta, char *server_name)
-{
-	static char *path;
-	FILE *file;
-	time_t now;
-	int ret;
-
-	assert(meta != NULL);
-	assert(server_name != NULL);
-
-	if (!(path = get_path(server_name, "meta")))
-		goto fail;
-	if (!(file = fopen(path, "r"))) {
-		if (errno != ENOENT)
-			perror(path);
-		goto fail;
-	}
-
-	errno = 0;
-	ret = fscanf(file, "last seen: %ju\nexpire: %ju\n",
-	             &meta->last_seen, &meta->expire);
-
-	if (ret == EOF && errno != 0) {
-		perror(path);
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Can't match 'last seen' field\n", path);
-	} else if (ret == 1) {
-		fprintf(stderr, "%s: Can't match 'expire' field\n", path);
-	} else {
+	if (file)
 		fclose(file);
-		return;
-	}
-	fclose(file);
-
-fail:
-	/*
-	 * If metadata could not be read for whatever reason, we choose
-	 * to set 'last_seen' field to now, so it wouldn't not appear to be old
-	 * and therefor deleted.  We also set 'expire' field to 0 to force
-	 * an update (if any).
-	 */
-	now = time(NULL);
-	meta->last_seen = now;
-	meta->expire = 0;
+	return 0;
 }
 
-void write_server_meta(struct server_meta *meta, char *server_name)
-{
-	static char *path;
-	FILE *file;
-
-	assert(meta != NULL);
-	assert(server_name != NULL);
-
-	if (!(path = get_path(server_name, "meta")))
-		return;
-	if (!(file = fopen(path, "w")))
-		return perror(path);
-
-	/*
-	 * We don't really care about a failure here, because metadata
-	 * are not mandatory, plus read_server_meta() is robust.
-	 */
-	fprintf(file, "last seen: %ju\nexpire: %ju\n",
-	        meta->last_seen, meta->expire);
-	fclose(file);
-}
-
-int server_need_refresh(struct server_meta *meta)
+int server_expired(struct server_state *state)
 {
 	time_t now;
 
-	assert(meta != NULL);
+	assert(state != NULL);
 
-	if ((now = time(NULL)) == (time_t)-1)
+	now = time(NULL);
+
+	if (now == (time_t)-1)
 		return 1;
-	if (now > meta->expire)
-		return 1;
-	return 0;
+
+	return now > state->expire;
 }
 
 static unsigned min(unsigned a, unsigned b)
@@ -209,11 +187,11 @@ static unsigned min(unsigned a, unsigned b)
 	return a < b ? a : b;
 }
 
-void mark_server_offline(struct server_meta *meta)
+void mark_server_offline(struct server_state *state)
 {
 	time_t now;
 
-	assert(meta != NULL);
+	assert(state != NULL);
 
 	/*
 	 * We won't want to check an offline server too often, because it will
@@ -223,7 +201,7 @@ void mark_server_offline(struct server_meta *meta)
 	 *
 	 * To meet the requirements above, we schedule the next poll to:
 	 *
-	 * 	now + min(now - meta->last_seen, 2 hours)
+	 * 	now + min(now - state->last_seen, 2 hours)
 	 *
 	 * So for example if the server was seen 5 minutes ago, the next poll
 	 * will be schedule in 5 minutes.  If the server is still offline 5
@@ -232,21 +210,21 @@ void mark_server_offline(struct server_meta *meta)
 	 */
 
 	now = time(NULL);
-	meta->expire = now + min(now - meta->last_seen, 2 * 3600);
+	state->expire = now + min(now - state->last_seen, 2 * 3600);
 }
 
-void mark_server_online(struct server_meta *meta, int expire_now)
+void mark_server_online(struct server_state *state, int expire_now)
 {
 	time_t now;
 	static int initialized = 0;
 
-	assert(meta != NULL);
+	assert(state != NULL);
 
 	now = time(NULL);
-	meta->last_seen = now;
+	state->last_seen = now;
 
 	if (expire_now) {
-		meta->expire = 0;
+		state->expire = 0;
 	} else {
 		/*
 		 * We just choose a random value between a half hour and
@@ -257,26 +235,42 @@ void mark_server_online(struct server_meta *meta, int expire_now)
 			initialized = 1;
 			srand(now);
 		}
-		meta->expire = now + 1800 + 3600 * ((double)rand() / (double)RAND_MAX);
+		state->expire = now + 1800 + 3600 * ((double)rand() / (double)RAND_MAX);
 	}
 }
 
-void remove_server(char *name)
+void remove_server(const char *name)
 {
-	char *path;
+	const char *path;
 
 	assert(name != NULL);
 
-	if (unlink((path = get_path(name, "state"))) == -1) {
+	path = get_path(name);
+	if (!path)
+		return;
+
+	if (unlink(path) == -1)
 		if (errno != ENOENT)
 			perror(path);
-	}
-	if (unlink((path = get_path(name, "meta"))) == -1) {
-		if (errno != ENOENT)
-			perror(path);
-	}
-	if (rmdir((path = get_path(name, ""))) == -1) {
-		if (errno != ENOENT)
-			perror(path);
-	}
+}
+
+int create_server(const char *sname)
+{
+	static const struct server_state SERVER_STATE_ZERO;
+	struct server_state state = SERVER_STATE_ZERO;
+
+	state.last_seen = time(NULL);
+
+	return write_server_state(&state, sname);
+}
+
+int server_exist(const char *sname)
+{
+	const char *path;
+
+	path = get_path(sname);
+	if (!path)
+		return 1;
+
+	return access(path, F_OK) == 0;
 }

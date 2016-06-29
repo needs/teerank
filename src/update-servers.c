@@ -175,10 +175,10 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 }
 
 struct server {
-	char dirname[PATH_MAX];
+	char filename[PATH_MAX];
 	struct sockaddr_storage addr;
 
-	struct server_meta meta;
+	struct server_state state;
 
 	struct pool_entry entry;
 };
@@ -187,23 +187,6 @@ struct server_list {
 	unsigned length;
 	struct server *servers;
 };
-
-static int swap_server_state(
-	struct server *server,
-	struct server_state *old, struct server_state *new)
-{
-	assert(server != NULL);
-	assert(old != NULL);
-	assert(new != NULL);
-	assert(!strcmp(new->gametype, "CTF"));
-
-	if (!read_server_state(old, server->dirname))
-		return 0;
-	if (!write_server_state(new, server->dirname))
-		return 0;
-
-	return 1;
-}
 
 static struct client *get_player(
 	struct server_state *state, struct client *client)
@@ -228,12 +211,8 @@ static void print_server_state_delta(
 
 	assert(old != NULL);
 	assert(new != NULL);
-	assert(!strcmp(new->gametype, "CTF"));
-
-	/* A NULL gametype means empty old server states */
-	if (!old->gametype)
-		return;
-	assert(!strcmp(old->gametype, "CTF"));
+	assert(strcmp(old->gametype, "CTF") == 0);
+	assert(strcmp(new->gametype, "CTF") == 0);
 
 	delta.elapsed = elapsed;
 	delta.length = 0;
@@ -303,7 +282,8 @@ static int is_vanilla(struct server_state *state)
 
 static int handle_data(struct data *data, struct server *server)
 {
-	struct server_state old, new;
+	struct server_state new;
+	int rankable;
 
 	assert(data != NULL);
 	assert(server != NULL);
@@ -313,23 +293,16 @@ static int handle_data(struct data *data, struct server *server)
 	if (!unpack_server_state(data, &new))
 		return 0;
 
-	if (!is_vanilla(&new) || strcmp(new.gametype, "CTF") != 0) {
-		/*
-		 * We don't rank this server but we still want to check
-		 * it time to time to see if its gametype change.
-		 */
-		mark_server_online(&server->meta, 0);
-		write_server_meta(&server->meta, server->dirname);
-	} else {
-		int elapsed = time(NULL) - server->meta.last_seen;
-		mark_server_online(&server->meta, 1);
-		write_server_meta(&server->meta, server->dirname);
+	rankable = is_vanilla(&new) && strcmp(new.gametype, "CTF") == 0;
+
+	mark_server_online(&new, rankable);
+	write_server_state(&new, server->filename);
+
+	if (rankable) {
+		int elapsed = time(NULL) - server->state.last_seen;
 
 		remove_spectators(&new);
-		if (!swap_server_state(server, &old, &new))
-			return 0;
-
-		print_server_state_delta(&old, &new, elapsed);
+		print_server_state_delta(&server->state, &new, elapsed);
 	}
 
 	return 1;
@@ -399,12 +372,21 @@ static int fill_server_list(struct server_list *list)
 	struct dirent *dp;
 	char path[PATH_MAX];
 	unsigned count = 0;
+	int ret;
 
 	assert(list != NULL);
 
-	sprintf(path, "%s/servers", config.root);
-	if (!(dir = opendir(path)))
-		return perror(path), 0;
+	ret = snprintf(path, PATH_MAX, "%s/servers", config.root);
+	if (ret >= PATH_MAX) {
+		fprintf(stderr, "%s: Too long\n", config.root);
+		return 0;
+	}
+
+	dir = opendir(path);
+	if (!dir) {
+		perror(path);
+		return 0;
+	}
 
 	/* Fill array (ignore server on error) */
 	while ((dp = readdir(dir))) {
@@ -415,16 +397,13 @@ static int fill_server_list(struct server_list *list)
 			continue;
 
 		count++;
-		/*
-		 * By reading server metadata we are able to filter-out
-		 * servers that has not the wanted gamemode or servers
-		 * that do not need to be refreshed often.
-		 */
-		read_server_meta(&server.meta, dp->d_name);
-		if (!server_need_refresh(&server.meta))
+
+		if (!read_server_state(&server.state, dp->d_name))
+			continue;
+		if (!server_expired(&server.state))
 			continue;
 
-		strcpy(server.dirname, dp->d_name);
+		strcpy(server.filename, dp->d_name);
 		if (!extract_ip_and_port(dp->d_name, ip, port))
 			continue;
 		if (!get_sockaddr(ip, port, &server.addr))
@@ -474,8 +453,8 @@ static void poll_servers(struct server_list *list, struct sockets *sockets)
 
 	while ((entry = foreach_failed_poll(&pool))) {
 		struct server *server = get_server(entry);
-		mark_server_offline(&server->meta);
-		write_server_meta(&server->meta, server->dirname);
+		mark_server_offline(&server->state);
+		write_server_state(&server->state, server->filename);
 		failed_count++;
 	}
 

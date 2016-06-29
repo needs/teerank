@@ -17,6 +17,7 @@
 
 #include "config.h"
 #include "network.h"
+#include "server.h"
 
 struct master {
 	char *node, *service;
@@ -166,7 +167,7 @@ static void fill_server_list(struct server_list *list)
 	close_sockets(&sockets);
 }
 
-static char *addr_to_dirname(struct server_addr *addr)
+static char *addr_to_filename(struct server_addr *addr)
 {
 	static char ret[2 + 1 + IP_LENGTH + 1 + PORT_LENGTH + 1];
 	unsigned i;
@@ -215,14 +216,12 @@ int main(int argc, char **argv)
 
 	fill_server_list(&list);
 	for (i = 0; i < list.length; i++) {
-		char *dirname = addr_to_dirname(&list.addrs[i]);
-		int ret;
+		char *filename = addr_to_filename(&list.addrs[i]);
 
-		ret = mkdirat(fd, dirname, 0777);
-		if (ret == -1 && errno != EEXIST)
-			fprintf(stderr, "%s/%s: %s\n",
-			        argv[1], dirname, strerror(errno));
-		else if (ret != -1)
+		if (server_exist(filename))
+			continue;
+		verbose("New server: %s\n", filename);
+		if (create_server(filename))
 			count_new++;
 	}
 

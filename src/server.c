@@ -9,12 +9,12 @@
 #include "server.h"
 #include "config.h"
 
-static char *get_path(const char *server_name)
+static char *get_path(const char *sname)
 {
 	static char path[PATH_MAX];
 
 	if (snprintf(path, PATH_MAX, "%s/servers/%s",
-	             config.root, server_name) >= PATH_MAX) {
+	             config.root, sname) >= PATH_MAX) {
 		fprintf(stderr, "%s: Too long\n", config.root);
 		return NULL;
 	}
@@ -48,7 +48,7 @@ static int read_server_meta(FILE *file, const char *path, struct server_state *s
 	return 1;
 }
 
-int read_server_state(struct server_state *state, char *server_name)
+int read_server_state(struct server_state *state, char *sname)
 {
 	FILE *file = NULL;
 	char *path;
@@ -56,9 +56,9 @@ int read_server_state(struct server_state *state, char *server_name)
 	int ret;
 
 	assert(state != NULL);
-	assert(server_name != NULL);
+	assert(sname != NULL);
 
-	if (!(path = get_path(server_name)))
+	if (!(path = get_path(sname)))
 		goto fail;
 	if (!(file = fopen(path, "r"))) {
 		perror(path);
@@ -126,7 +126,7 @@ static int write_server_meta(FILE *file, const char *path, struct server_state *
 	return 1;
 }
 
-int write_server_state(struct server_state *state, const char *server_name)
+int write_server_state(struct server_state *state, const char *sname)
 {
 	FILE *file = NULL;
 	char *path;
@@ -134,7 +134,7 @@ int write_server_state(struct server_state *state, const char *server_name)
 
 	assert(state != NULL);
 
-	if (!(path = get_path(server_name)))
+	if (!(path = get_path(sname)))
 		goto fail;
 	if (!(file = fopen(path, "w"))) {
 		perror(path);

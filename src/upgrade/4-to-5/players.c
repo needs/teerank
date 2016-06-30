@@ -29,45 +29,19 @@
  * require alloc_historic() from historic.c to be exposed in the
  * header just because we exclusively need it here.
  *
- * It bascically speed up the process because malloc() is expensive.
+ * It basically speed up the process because malloc() is expensive.
  * However since allocated buffers are reused when using the same
  * struct player for different players, it is not that much of a gain.
  */
 static void static_alloc_historics(struct player *player)
 {
-	time_t now = time(NULL);
+	static struct record records[1];
+	static struct player_record record_data[1];
 
-	static struct record elo_records;
-	static int elo_data;
-
-	static struct record hourly_rank_records;
-	static unsigned hourly_rank_data;
-
-	static struct record daily_rank_records;
-	static unsigned daily_rank_data;
-
-	static struct record monthly_rank_records;
-	static unsigned monthly_rank_data;
-
-	player->elo_historic.records = &elo_records;
-	player->elo_historic.data = &elo_data;
-	player->elo_historic.length = 1;
-	player->elo_historic.epoch = now;
-
-	player->hourly_rank.records = &hourly_rank_records;
-	player->hourly_rank.data = &hourly_rank_data;
-	player->hourly_rank.length = 1;
-	player->hourly_rank.epoch = now;
-
-	player->daily_rank.records = &daily_rank_records;
-	player->daily_rank.data = &daily_rank_data;
-	player->daily_rank.length = 1;
-	player->daily_rank.epoch = now;
-
-	player->monthly_rank.records = &monthly_rank_records;
-	player->monthly_rank.data = &monthly_rank_data;
-	player->monthly_rank.length = 1;
-	player->monthly_rank.epoch = now;
+	player->hist.records = records;
+	player->hist.data = &record_data;
+	player->hist.length = 1;
+	player->hist.epoch = time(NULL);
 }
 
 static int read_old_player(struct player *player, char *name)
@@ -75,6 +49,7 @@ static int read_old_player(struct player *player, char *name)
 	static char path[PATH_MAX];
         FILE *file;
         int ret;
+        struct player_record rec;
 
         assert(name != NULL);
         assert(player != NULL);
@@ -112,26 +87,16 @@ static int read_old_player(struct player *player, char *name)
 
         static_alloc_historics(player);
 
+        rec.elo = player->elo;
+        rec.rank = player->rank;
+
         /*
          * Error message refers to "init" despite initialization phase is
          * finish because technically an empty historic is not considered
          * as initialized.
          */
-
-        if (!append_record(&player->elo_historic, &player->elo)) {
-	        fprintf(stderr, "%s: Cannot init elo historic\n", path);
-	        return 0;
-        }
-        if (!append_record(&player->hourly_rank, &player->rank)) {
-	        fprintf(stderr, "%s: Cannot init hourly rank historic\n", path);
-	        return 0;
-        }
-        if (!append_record(&player->daily_rank, &player->rank)) {
-	        fprintf(stderr, "%s: Cannot init daily rank historic\n", path);
-	        return 0;
-        }
-        if (!append_record(&player->monthly_rank, &player->rank)) {
-	        fprintf(stderr, "%s: Cannot init monthly rank historic\n", path);
+        if (!append_record(&player->hist, &rec)) {
+	        fprintf(stderr, "%s: Cannot init player historic\n", path);
 	        return 0;
         }
 

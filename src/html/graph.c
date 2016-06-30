@@ -28,12 +28,12 @@ typedef long (*to_long_t)(const void *data);
 
 static long elo_to_long(const void *data)
 {
-	return (long)*(int*)data;
+	return (long)((const struct player_record*)(data))->elo;
 }
 
 static long rank_to_long(const void *data)
 {
-	unsigned rank = *(unsigned*)data;
+	unsigned rank = ((const struct player_record*)(data))->rank;
 
 	if (rank > LONG_MAX)
 		return LONG_MAX;
@@ -570,10 +570,10 @@ static void print_graph(
 int main(int argc, char **argv)
 {
 	struct player player;
-	char *name, *dataset, *timescale;
+	char *name, *dataset;
 
-	if (argc != 4) {
-		fprintf(stderr, "Usage: %s <player_name> elo|rank hourly|daily|monthly\n", argv[0]);
+	if (argc != 3) {
+		fprintf(stderr, "Usage: %s <player_name> elo|rank\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -589,23 +589,11 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	dataset = argv[2];
-	timescale = argv[3];
 	if (strcmp(dataset, "elo") == 0) {
 		/* Timescale is irrelevant for elo, ignore it */
-		print_graph(&player.elo_historic, elo_to_long, 0);
+		print_graph(&player.hist, elo_to_long, 0);
 	} else if (strcmp(dataset, "rank") == 0) {
-		if (strcmp(timescale, "hourly") == 0)
-			print_graph(&player.hourly_rank, rank_to_long, 1);
-		else if (strcmp(timescale, "daily") == 0)
-			print_graph(&player.daily_rank, rank_to_long, 1);
-		else if (strcmp(timescale, "monthly") == 0)
-			print_graph(&player.monthly_rank, rank_to_long, 1);
-		else {
-			fprintf(stderr, "\"%s\" is not a valid timescale, "
-			        "expected \"hourly\", \"daily\" or \"monthly\"\n",
-			        timescale);
-			return EXIT_FAILURE;
-		}
+		print_graph(&player.hist, rank_to_long, 1);
 	} else {
 		fprintf(stderr, "\"%s\" is not a valid dataset, "
 		        "expected \"elo\" or \"rank\"\n", dataset);

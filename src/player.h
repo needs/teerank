@@ -57,6 +57,11 @@ void hexname_to_name(const char *hex, char *name);
  */
 void name_to_hexname(const char *name, char *hex);
 
+struct player_record {
+	int elo;
+	unsigned rank;
+};
+
 /**
  * @struct player
  *
@@ -69,10 +74,7 @@ struct player {
 	int elo;
 	unsigned rank;
 
-	struct historic elo_historic;
-	struct historic hourly_rank;
-	struct historic daily_rank;
-	struct historic monthly_rank;
+	struct historic hist;
 
 	struct player_delta *delta;
 
@@ -88,14 +90,14 @@ struct player {
  *
  * Value used to mark the absence of ELO points.
  */
-static const int      INVALID_ELO  = INT_MIN;
+static const int INVALID_ELO  = INT_MIN;
 
 /**
- * @def INVALID_RANK
+ * @def UNRANKED
  *
  * Value used to mark the absence of any rank.
  */
-static const unsigned INVALID_RANK = 0;
+static const unsigned UNRANKED = 0;
 
 enum {
 	IS_MODIFIED_CREATED = (1 << 0),
@@ -136,8 +138,9 @@ int read_player(struct player *player, char *name);
 int write_player(struct player *player);
 
 /**
- * Change current elo point of the given player.  Add a record to elo historic.
- * It may fail because adding a record may need a realloc().
+ * Change current elo point of the given player.  Add a record to
+ * historic.  It may fail because adding a record may need a
+ * realloc().  Rank field of the new record is set to UNRANKED.
  *
  * @param player Player to update elo
  * @param elo New elo value for the given player
@@ -147,15 +150,15 @@ int write_player(struct player *player);
 int set_elo(struct player *player, int elo);
 
 /**
- * Change current rank of the given player.  Add a record to rank historic.
- * It may fail because adding a record may need a realloc().
+ * Change current rank of the given player.  If the new last record's
+ * rank was UNRANKED, it does change it with the given rank.  This
+ * function will never add a new record to historic, hence it cannot
+ * fail.
  *
  * @param player Player to update rank
  * @param rank New rank value for the given player
- *
- * @return 1 on success, 0 on failure
  */
-int set_rank(struct player *player, unsigned rank);
+void set_rank(struct player *player, unsigned rank);
 
 /**
  * Change current clan of the given player.
@@ -183,10 +186,7 @@ struct player_summary {
 	int elo;
 	unsigned rank;
 
-	struct historic_summary elo_hs;
-	struct historic_summary hourly_rank;
-	struct historic_summary daily_rank;
-	struct historic_summary monthly_rank;
+	struct historic_summary hist;
 };
 
 /**

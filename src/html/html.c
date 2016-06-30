@@ -282,7 +282,7 @@ void html_print_player(struct player_summary *player, int show_clan_link)
 	html("<tr>");
 
 	/* Rank */
-	if (player->rank == INVALID_RANK)
+	if (player->rank == UNRANKED)
 		html("<td>?</td>");
 	else
 		html("<td>%u</td>", player->rank);

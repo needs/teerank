@@ -169,7 +169,6 @@ int append_record(struct historic *hist, const void *data);
 struct historic_summary {
 	time_t epoch;
 	unsigned nrecords;
-	struct record last_record;
 };
 
 /**
@@ -178,13 +177,11 @@ struct historic_summary {
  * @param hs Historic summary to fill
  * @param file File to read the historic summary from
  * @param path Used as a prefix for error message
- * @param read_data Function called to fill paramater last_data
  * @param skip_data Function called to skip unused historic data
- * @param last_data a pointer to a valid buaffer to hold the last data
  *
  * @return 1 on success, 0 on failure
  */
 int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path,
-                          read_data_func_t read_data, skip_data_func_t skip_data, void *last_data);
+                          skip_data_func_t skip_data);
 
 #endif /* HISTORIC_H */

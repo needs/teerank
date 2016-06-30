@@ -301,7 +301,7 @@ int append_record(struct historic *hist, const void *data)
 }
 
 int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path,
-                          read_data_func_t read_data, skip_data_func_t skip_data, void *last_data)
+                          skip_data_func_t skip_data)
 {
 	unsigned i;
 
@@ -311,13 +311,10 @@ int read_historic_summary(struct historic_summary *hs, FILE *file, const char *p
         if (hs->nrecords == 0)
 	        return 1;
 
-        /* Last record */
-        if (read_record(file, path, hs->epoch, &hs->last_record, last_data, read_data) == 0)
-	        return 0;
-
         /* Skip remaning records */
-        for (i = 1; i < hs->nrecords; i++) {
-	        fscanf(file, ", ");
+        for (i = 0; i < hs->nrecords; i++) {
+	        if (i != 0)
+		        fscanf(file, ", ");
 	        if (skip_record(file, path, skip_data) == 0)
 		        return 0;
         }

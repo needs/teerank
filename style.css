@@ -270,38 +270,3 @@ object {
 	width: 100%;
 	height: 300px;
 }
-
-header.with_timescale {
-	display: flex;
-	flex-direction: row;
-}
-
-#timescale {
-	margin: auto 0 auto auto;
-	padding: 0;
-	display: inline-block;
-}
-
-#timescale li {
-	display: inline-block;
-}
-
-#timescale li a {
-	border-radius: 0.3em;
-	padding: 0.5em 1.2em;
-	text-decoration: none;
-}
-
-#timescale li a.available:hover {
-	background-color: #eee;
-}
-
-#timescale li a.active {
-	background-color: #ddd;
-	color: #666;
-}
-
-#timescale li a.disabled {
-	cursor: not-allowed;
-	color: #aaa;
-}

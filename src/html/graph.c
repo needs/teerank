@@ -118,6 +118,7 @@ static unsigned number_of_axes(int min, int max, unsigned gap)
 struct curve {
 	to_long_t to_long;
 	int reversed;
+	const char *color, *hover_color;
 
 	/*
 	 * The minimum (and maximum) value that can be plotted in the graph.
@@ -196,7 +197,8 @@ static void scale_curve(struct curve *curve, unsigned old_naxes, unsigned new_na
 }
 
 static void add_curve(
-	struct graph *graph, to_long_t to_long, int reversed)
+	struct graph *graph, to_long_t to_long, int reversed,
+	const char *color, const char *hover_color)
 {
 	struct curve *curve;
 	long ymin, ymax;
@@ -208,6 +210,8 @@ static void add_curve(
 
 	curve->to_long = to_long;
 	curve->reversed = reversed;
+	curve->color = color;
+	curve->hover_color = hover_color;
 
 	if (graph->hist->nrecords == 0)
 		return;
@@ -415,7 +419,7 @@ static void print_path(struct graph *graph, struct curve *curve)
 	svg("<svg viewBox=\"0 0 100 100\" preserveAspectRatio=\"none\">");
 
 	/* No need to create a class for a single element */
-	svg("<path style=\"fill: none; stroke: #970; stroke-width: 3px;\" d=\"");
+	svg("<path style=\"fill: none; stroke: %s; stroke-width: 3px;\" d=\"", curve->color);
 	for (rec = graph->hist->first; rec; rec = rec->next) {
 		struct point p;
 		char c;
@@ -536,10 +540,11 @@ static void print_zone(struct graph *graph, struct record *rec, struct point p)
 	    zone_start, zone_width);
 }
 
-static void print_label(struct point p, long data, const char *label_pos)
+static void print_label(
+	struct point p, long data, const char *label_pos, unsigned curve_index)
 {
-	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
-	    p.x, p.y);
+	svg("<circle class=\"curve%u_hover\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
+	    curve_index, p.x, p.y);
 	svg("<text class=\"%s\" x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",
 	    label_pos, p.x, p.y, data);
 }
@@ -568,7 +573,7 @@ static void print_labels(struct graph *graph)
 			p = init_point(graph, curve, rec);
 			data = curve->to_long(record_data(graph->hist, rec));
 			label_pos = point_label_pos(graph, curve, rec, data, p);
-			print_label(p, data, label_pos);
+			print_label(p, data, label_pos, i);
 		}
 
 		svg("</g>");
@@ -591,8 +596,8 @@ static void print_point(
 	 * points, don't draw them anymore.
 	 */
 	if (record == graph->hist->last || graph->hist->nrecords <= 24)
-		svg("<circle class=\"point\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
-		    p.x, p.y);
+		svg("<circle class=\"curve%u\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
+		    curve - graph->curves, p.x, p.y);
 }
 
 static void print_points(struct graph *graph, struct curve *curve)
@@ -629,6 +634,8 @@ static void print_notice_empty(struct graph *graph)
 
 static void print_css(struct graph *graph)
 {
+	unsigned i;
+
 	/*
 	 * We want to show label when mouse is in the previous .zone
 	 * rectangle.  Since label come after the rectangle, when the
@@ -641,10 +648,6 @@ static void print_css(struct graph *graph)
 	 * and mouseout events will not be triggered.
 	 */
 	svg("<style>");
-	css(".point {");
-	css("fill: #970;");
-	css("}");
-	css("");
 	css(".labels {");
 	css("visibility: hidden;");
 	css("}");
@@ -653,9 +656,6 @@ static void print_css(struct graph *graph)
 	css("}");
 	css(".labels > line {");
 	css("stroke: #bbb;");
-	css("}");
-	css(".labels circle {");
-	css("fill: #725800;");
 	css("}");
 	css(".labels text {");
 	css("font-size: 0.9em;");
@@ -685,6 +685,17 @@ static void print_css(struct graph *graph)
 	css(".zone:hover + .labels {");
 	css("visibility: visible;");
 	css("}");
+	css("");
+
+	for (i = 0; i < graph->ncurves; i++) {
+		css(".curve%u {", i);
+		css("fill: %s;", graph->curves[i].color);
+		css("}");
+		css(".curve%u_hover {", i);
+		css("fill: %s;", graph->curves[i].hover_color);
+		css("}");
+	}
+
 	svg("</style>");
 }
 
@@ -744,8 +755,8 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	graph = init_graph(&player.hist);
-	add_curve(&graph, elo_to_long, 0);
-	add_curve(&graph, rank_to_long, 1);
+	add_curve(&graph, elo_to_long, 0, "#970", "#725800");
+	add_curve(&graph, rank_to_long, 1, "#5c84c0", "#3e5881");
 	print_graph(&graph);
 
 	return EXIT_SUCCESS;

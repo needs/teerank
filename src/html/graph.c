@@ -41,21 +41,63 @@ static long rank_to_long(const void *data)
 	return (long)rank;
 }
 
+struct curve {
+	to_long_t to_long;
+	int reversed;
+	const char *color, *hover_color;
+
+	/*
+	 * The minimum (and maximum) value that can be plotted in the graph.
+	 *
+	 * These values are not the same than the minimum (and maximum) values
+	 * that *will* be plotted in the graph.  They are used to compute the
+	 * offset of point to be plotted.
+	 */
+	long ymin, ymax;
+
+	unsigned padding_top, padding_bottom;
+	unsigned gap;
+};
+
+/* Only two curves are handled because placing axes is not trivial */
+#define MAX_CURVES 2
+
+#define MAX_POINTS 48
+
+struct graph {
+	struct historic *hist;
+
+	/*
+	 * Not the whole historic is plotted, only the last MAX_POINT
+	 * points are.
+	 */
+	struct record *first;
+	unsigned nrecords;
+
+	/*
+	 * Number of axes is shared between curves so we don't mix up
+	 * graph of each curve.
+	 */
+	unsigned naxes;
+
+	unsigned ncurves;
+	struct curve curves[MAX_CURVES];
+};
+
 static long find_data(
-	struct historic *hist, int (*cmp)(long, long), to_long_t to_long)
+	struct graph *graph, int (*cmp)(long, long), to_long_t to_long)
 {
 	struct record *rec;
 	long ret;
 
-	assert(hist != NULL);
 	assert(cmp != NULL);
 	assert(to_long != NULL);
-	assert(hist->nrecords > 0);
-	assert(hist->first != NULL);
+	assert(graph->nrecords > 0);
+	assert(graph->first != NULL);
 
-	ret = to_long(record_data(hist, hist->first));
-	for (rec = hist->first->next; rec; rec = rec->next) {
-		long data = to_long(record_data(hist, rec));
+	ret = to_long(record_data(graph->hist, graph->first));
+	for (rec = graph->first->next; rec; rec = rec->next) {
+		long data = to_long(record_data(graph->hist, rec));
 
 		if (cmp(data, ret))
 			ret = data;
@@ -115,40 +157,6 @@ static unsigned number_of_axes(int min, int max, unsigned gap)
 	return n - 1 < MIN_NAXES ? MIN_NAXES : n - 1;
 }
 
-struct curve {
-	to_long_t to_long;
-	int reversed;
-	const char *color, *hover_color;
-
-	/*
-	 * The minimum (and maximum) value that can be plotted in the graph.
-	 *
-	 * These values are not the same than the minimum (and maximum) values
-	 * that *will* be plotted in the graph.  They are used to compute the
-	 * offset of point to be plotted.
-	 */
-	long ymin, ymax;
-
-	unsigned padding_top, padding_bottom;
-	unsigned gap;
-};
-
-/* Only two curves are handled because placing axes is not trivial */
-#define MAX_CURVES 2
-
-struct graph {
-	struct historic *hist;
-
-	/*
-	 * Number of axes is shared between curves so we don't mix up
-	 * graph of each curve.
-	 */
-	unsigned naxes;
-
-	unsigned ncurves;
-	struct curve curves[MAX_CURVES];
-};
-
 static int min_cmp(long a, long b)
 {
 	return a < b;
@@ -163,8 +171,18 @@ static struct graph init_graph(struct historic *hist)
 {
 	static const struct graph GRAPH_ZERO;
 	struct graph graph = GRAPH_ZERO;
+	unsigned nrecords;
+	struct record *rec;
 
 	graph.hist = hist;
+
+	for (nrecords = 1, rec = hist->last;
+	     nrecords < MAX_POINTS && rec->prev;
+	     nrecords++, rec = rec->prev)
+		;
+
+	graph.nrecords = nrecords;
+	graph.first = rec;
 
 	return graph;
 }
@@ -213,11 +231,11 @@ static void add_curve(
 	curve->color = color;
 	curve->hover_color = hover_color;
 
-	if (graph->hist->nrecords == 0)
+	if (graph->nrecords == 0)
 		return;
 
-	ymin = find_data(graph->hist, min_cmp, to_long);
-	ymax = find_data(graph->hist, max_cmp, to_long);
+	ymin = find_data(graph, min_cmp, to_long);
+	ymax = find_data(graph, max_cmp, to_long);
 
 	curve->gap = best_axes_gap(ymax - ymin);
 	naxes = number_of_axes(ymin, ymax, curve->gap);
@@ -295,8 +313,8 @@ static float x_coord(
 {
 	float range, value;
 
-	range = graph->hist->nrecords - 1;
-	value = record - graph->hist->records;
+	range = graph->nrecords - 1;
+	value = record - graph->first;
 
 	return pad_x(graph, percentage(range, value, 1));
 }
@@ -412,7 +430,7 @@ static void print_path(struct graph *graph, struct curve *curve)
 
 	assert(curve != NULL);
 
-	if (graph->hist->nrecords < 2)
+	if (graph->nrecords < 2)
 		return;
 
 	svg("<!-- Path -->");
@@ -420,11 +438,11 @@ static void print_path(struct graph *graph, struct curve *curve)
 
 	/* No need to create a class for a single element */
 	svg("<path style=\"fill: none; stroke: %s; stroke-width: 3px;\" d=\"", curve->color);
-	for (rec = graph->hist->first; rec; rec = rec->next) {
+	for (rec = graph->first; rec; rec = rec->next) {
 		struct point p;
 		char c;
 
-		if (rec == graph->hist->first)
+		if (rec == graph->first)
 			c = 'M';
 		else
 			c = 'L';
@@ -518,14 +536,14 @@ static void print_zone(struct graph *graph, struct record *rec, struct point p)
 {
 	float gap, zone_start, zone_width;
 
-	if (graph->hist->nrecords == 1)
+	if (graph->nrecords == 1)
 		gap = 100.0;
 	else {
-		const float unpadded_gap = 100.0 / (graph->hist->nrecords - 1);
+		const float unpadded_gap = 100.0 / (graph->nrecords - 1);
 		gap = pad_x(graph, unpadded_gap) - pad_x(graph, 0.0);
 	}
 
-	if (rec == graph->hist->first) {
+	if (rec == graph->first) {
 		zone_start = 0.0;
 		zone_width = pad_x(graph, 0.0) + gap / 2.0;
 	} else if (rec == graph->hist->last) {
@@ -555,7 +573,7 @@ static void print_labels(struct graph *graph)
 	const char *label_pos;
 	unsigned i;
 
-	for (rec = graph->hist->first; rec; rec = rec->next) {
+	for (rec = graph->first; rec; rec = rec->next) {
 		struct point p;
 		long data;
 
@@ -595,7 +613,7 @@ static void print_point(
 	 * Too much points in a curve reduce readability, above 24
 	 * points, don't draw them anymore.
 	 */
-	if (record == graph->hist->last || graph->hist->nrecords <= 24)
+	if (record == graph->hist->last || graph->nrecords <= 24)
 		svg("<circle class=\"curve%u\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
 		    curve - graph->curves, p.x, p.y);
 }
@@ -609,7 +627,7 @@ static void print_points(struct graph *graph, struct curve *curve)
 	svg("<!-- Points -->");
 	svg("<g>");
 
-	for (rec = graph->hist->first; rec; rec = rec->next) {
+	for (rec = graph->first; rec; rec = rec->next) {
 		if (rec->prev)
 			svg("");
 		print_point(graph, curve, rec);
@@ -701,7 +719,7 @@ static void print_css(struct graph *graph)
 
 static int is_empty(struct graph *graph)
 {
-	return graph->hist->nrecords == 0;
+	return graph->nrecords == 0;
 }
 
 static void print_graph(struct graph *graph)

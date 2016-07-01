@@ -704,17 +704,20 @@ static void print_graph(struct graph *graph)
 
 	if (is_empty(graph)) {
 		print_notice_empty(graph);
-	} else {
-		print_css(graph);
-		svg("");
-		print_axes(graph);
-		for (i = 0; i < graph->ncurves; i++) {
-			svg("");
-			print_curve(graph, &graph->curves[i]);
-		}
-		print_labels(graph);
+		goto end;
 	}
 
+	print_css(graph);
+	svg("");
+	print_axes(graph);
+	for (i = 0; i < graph->ncurves; i++) {
+		svg("");
+		print_curve(graph, &graph->curves[i]);
+	}
+	svg("");
+	print_labels(graph);
+
+end:
 	svg("</svg>");
 }
 

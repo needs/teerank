@@ -115,27 +115,37 @@ static unsigned number_of_axes(int min, int max, unsigned gap)
 	return n - 1 < MIN_NAXES ? MIN_NAXES : n - 1;
 }
 
-/*
- * Carry the context necessary to draw the graph.
- */
-struct graph {
+struct curve {
 	struct historic *hist;
-	int is_empty;
+	to_long_t to_long;
 	int reversed;
 
-	to_long_t to_long;
-
 	/*
-	 * The minimum (and maximum) value  that can be plotted in the graph.
+	 * The minimum (and maximum) value that can be plotted in the graph.
 	 *
 	 * These values are not the same than the minimum (and maximum) values
-	 * the will be plotted in the graph.  They are used to compute the
+	 * that *will* be plotted in the graph.  They are used to compute the
 	 * offset of point to be plotted.
 	 */
-	long min, max;
+	long ymin, ymax;
 
-	/* Number of axes and gap between each axes. */
-	unsigned naxes, gap;
+	unsigned padding_top, padding_bottom;
+	unsigned gap;
+};
+
+/* Only two curves are handled because placing axes is not trivial */
+#define MAX_CURVES 2
+
+struct graph {
+	/*
+	 * Number of axes is shared between curves so we don't mix up
+	 * graph of each curve.
+	 */
+	unsigned naxes;
+	int is_empty;
+
+	unsigned ncurves;
+	struct curve curves[MAX_CURVES];
 };
 
 static int min_cmp(long a, long b)
@@ -148,41 +158,90 @@ static int max_cmp(long a, long b)
 	return a > b;
 }
 
-static struct graph init_graph(
-	struct historic *hist, to_long_t to_long, int reversed)
+static struct graph init_graph(void)
 {
 	static const struct graph GRAPH_ZERO;
 	struct graph graph = GRAPH_ZERO;
-	long min, max;
 
-	graph.hist = hist;
-	graph.to_long = to_long;
-	graph.reversed = reversed;
+	graph.is_empty = 1;
 
-	if (hist->nrecords == 0) {
-		graph.is_empty = 1;
-		return graph;
+	return graph;
+}
+
+/*
+ * Scale a curve to the new number of axes
+ */
+static void scale_curve(struct curve *curve, unsigned old_naxes, unsigned new_naxes)
+{
+	unsigned half, remainder;
+	unsigned top, bottom;
+
+	assert(new_naxes > old_naxes);
+
+	half = (new_naxes - old_naxes) / 2;
+	remainder = (new_naxes - old_naxes) % 2;
+
+	if (curve->padding_top == curve->padding_bottom) {
+		top = half + remainder;
+		bottom = half;
+	} else {
+		top = half;
+		bottom = half + remainder;
 	}
 
-	min = find_data(hist, min_cmp, to_long);
-	max = find_data(hist, max_cmp, to_long);
+	curve->padding_top += top;
+	curve->padding_bottom += bottom;
+	curve->ymin -= bottom * curve->gap;
+	curve->ymax += top * curve->gap;
+}
 
-	graph.gap = best_axes_gap(max - min);
-	graph.naxes = number_of_axes(min, max, graph.gap);
+static void add_curve(
+	struct graph *graph, struct historic *hist,
+	to_long_t to_long, int reversed)
+{
+	struct curve *curve;
+	long ymin, ymax;
+	unsigned naxes;
+
+	assert(graph->ncurves < MAX_CURVES);
+	curve = &graph->curves[graph->ncurves];
+	graph->ncurves++;
+
+	curve->hist = hist;
+	curve->to_long = to_long;
+	curve->reversed = reversed;
+
+	if (hist->nrecords == 0)
+		return;
+	graph->is_empty = 0;
+
+	ymin = find_data(hist, min_cmp, to_long);
+	ymax = find_data(hist, max_cmp, to_long);
+
+	curve->gap = best_axes_gap(ymax - ymin);
+	naxes = number_of_axes(ymin, ymax, curve->gap);
+
+	curve->padding_top = 0;
+	curve->padding_bottom = 0;
+
+	if (naxes > graph->naxes) {
+		unsigned i;
+		for (i = 0; i < graph->ncurves - 1; i++)
+			scale_curve(&graph->curves[i], graph->naxes, naxes);
+		graph->naxes = naxes;
+	}
 
 	/*
 	 * We round down the minimum and maximum values so that axes are
 	 * evenly spaced between themself and borders.
 	 */
-	graph.min = min - (min % graph.gap);
-	graph.max = graph.min + (graph.naxes + 1) * graph.gap;
-
-	return graph;
+	curve->ymin = ymin - (ymin % curve->gap);
+	curve->ymax = curve->ymin + (graph->naxes + 1) * curve->gap;
 }
 
-static long axe_data(struct graph *graph, unsigned i)
+static long axe_data(struct curve *curve, unsigned i)
 {
-	return graph->min + (i + 1) * graph->gap;
+	return curve->ymin + (i + 1) * curve->gap;
 }
 
 static float pad(float value, float left, float right)
@@ -191,12 +250,21 @@ static float pad(float value, float left, float right)
 	return left + value * scale;
 }
 
-static float pad_x(float x)
+static float pad_x(struct graph *graph, float x)
 {
-	return pad(x, 7.0, 2.0);
+	const float PADDING = 2.0;
+	const float LABEL_SIZE = 4.0;
+
+	const unsigned nleft = graph->ncurves / 2.0 + graph->ncurves % 2;
+	const unsigned nright = graph->ncurves / 2.0;
+
+	const float padding_left = PADDING + nleft * LABEL_SIZE;
+	const float padding_right = PADDING + nright * LABEL_SIZE;
+
+	return pad(x, padding_left, padding_right);
 }
 
-static float pad_y(float y)
+static float pad_y(struct graph *graph, float y)
 {
 	const float PADDING = 1.0;
 	return pad(y, PADDING, PADDING);
@@ -221,33 +289,34 @@ static float percentage(float range, float value, int reversed)
 	return ret;
 }
 
-static float x_coord(struct graph *graph, struct record *record)
+static float x_coord(
+	struct graph *graph, struct curve *curve, struct record *record)
 {
 	float range, value;
 
-	range = graph->hist->nrecords - 1;
-	value = record - graph->hist->records;
+	range = curve->hist->nrecords - 1;
+	value = record - curve->hist->records;
 
-	return pad_x(percentage(range, value, 1));
+	return pad_x(graph, percentage(range, value, 1));
 }
 
-static float y_coord(struct graph *graph, long data)
+static float y_coord(struct graph *graph, struct curve *curve, long data)
 {
 	float range, value;
 
-	range = graph->max - graph->min;
-	value = data - graph->min;
+	range = curve->ymax - curve->ymin;
+	value = data - curve->ymin;
 
-	return pad_y(percentage(range, value, graph->reversed));
+	return pad_y(graph, percentage(range, value, curve->reversed));
 }
 
 static void print_axes(struct graph *graph)
 {
-	unsigned i;
+	unsigned i, j;
 	float x_start, x_end;
 
-	x_start = pad_x(0) - 1.0;
-	x_end = pad_x(100) + 1.0;
+	x_start = pad_x(graph, 0) - 1.0;
+	x_end = pad_x(graph, 100) + 1.0;
 
 	svg("<!-- Axes -->");
 	svg("<style>");
@@ -260,21 +329,54 @@ static void print_axes(struct graph *graph)
 	css("font-size: 0.9em;");
 	css("dominant-baseline: middle;");
 	css("}");
+	css(".axe_label.left {");
+	css("transform: translate(10, 0);");
+	css("text-anchor: start;");
+	css("}");
+	css(".axe_label.right {");
+	css("transform: translate(-10, 0);");
+	css("text-anchor: end;");
+	css("}");
 	svg("</style>");
 
 	svg("<g>");
-	for (i = 0; i < graph->naxes; i++) {
-		const long data = axe_data(graph, i);
-		const float y = y_coord(graph, data);
 
-		if (i)
-			svg("");
+	/* Axes */
+	for (i = 0; i < graph->naxes; i++) {
+		struct curve *curve = &graph->curves[0];
+		long data = axe_data(curve, i);
+		const float y = y_coord(graph, curve, data);
 
 		/* Line */
-		svg("<line class=\"axe\" x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>", x_start, y , x_end, y);
+		svg("<line class=\"axe\" x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
+		    x_start, y , x_end, y);
+	}
+	svg("");
 
-		/* Left and right labels */
-		svg("<text class=\"axe_label\" x=\"10\" y=\"%.1f%%\">%ld</text>", y, data);
+	/* Labels */
+	for (i = 0; i < graph->ncurves; i++) {
+		struct curve *curve = &graph->curves[i];
+
+		for (j = 0; j < graph->naxes; j++) {
+			long data;
+			float y;
+			float x;
+			const char *class;
+
+			data = axe_data(curve, j);
+			y = y_coord(graph, curve, data);
+
+			if (i % 2 == 0) {
+				class = "left";
+				x = 0.0;
+			} else if (i % 2 == 1) {
+				class = "right";
+				x = 100.0;
+			}
+
+			svg("<text class=\"axe_label %s\" x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",
+			    class, x, y, data);
+		}
 	}
 	svg("</g>");
 }
@@ -284,46 +386,49 @@ struct point {
 };
 
 /*
- * Given an entry compute the coordinates of the point on the graph.
+ * Given an entry compute the coordinates of the point on the curve.
  */
-struct point init_point(struct graph *graph, struct record *record)
+struct point init_point(
+	struct graph *graph, struct curve *curve, struct record *record)
 {
 	struct point p;
 	long data;
 
-	assert(graph != NULL);
+	assert(curve != NULL);
 	assert(record != NULL);
 
-	data = graph->to_long(record_data(graph->hist, record));
+	data = curve->to_long(record_data(curve->hist, record));
 
-	p.x = x_coord(graph, record);
-	p.y = y_coord(graph, data);
+	p.x = x_coord(graph, curve, record);
+	p.y = y_coord(graph, curve, data);
 
 	return p;
 }
 
-static void print_path(struct graph *graph)
+static void print_path(struct graph *graph, struct curve *curve)
 {
 	struct record *rec;
 
-	assert(graph != NULL);
-	assert(!graph->is_empty);
+	assert(curve != NULL);
+
+	if (curve->hist->nrecords < 2)
+		return;
 
 	svg("<!-- Path -->");
 	svg("<svg viewBox=\"0 0 100 100\" preserveAspectRatio=\"none\">");
 
 	/* No need to create a class for a single element */
 	svg("<path style=\"fill: none; stroke: #970; stroke-width: 3px;\" d=\"");
-	for (rec = graph->hist->first; rec; rec = rec->next) {
+	for (rec = curve->hist->first; rec; rec = rec->next) {
 		struct point p;
 		char c;
 
-		if (rec == graph->hist->first)
+		if (rec == curve->hist->first)
 			c = 'M';
 		else
 			c = 'L';
 
-		p = init_point(graph, rec);
+		p = init_point(graph, curve, rec);
 		svg("%c %.1f %.1f", c, p.x, p.y);
 
 	}
@@ -331,7 +436,7 @@ static void print_path(struct graph *graph)
 	svg("</svg>");
 }
 
-static const char *point_label_pos(struct graph *graph, struct record *record, long data, struct point p)
+static const char *point_label_pos(struct curve *curve, struct record *record, long data, struct point p)
 {
 	const char *top_left = "top_left";
 	const char *top_right = "top_right";
@@ -341,7 +446,7 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 	const float X_MARGIN = 8.0;
 	const float Y_MARGIN = 8.0;
 
-	if (graph->reversed) {
+	if (curve->reversed) {
 		const char *tmp;
 
 		tmp = top_left;
@@ -380,7 +485,7 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 		if (!record->prev)
 			return bottom_left;
 
-		prev_data = graph->to_long(record_data(graph->hist, record->prev));
+		prev_data = curve->to_long(record_data(curve->hist, record->prev));
 
 		if (prev_data > data)
 			return bottom_left;
@@ -397,7 +502,7 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 		if (!record->next)
 			return bottom_right;
 
-		next_data = graph->to_long(record_data(graph->hist, record->next));
+		next_data = curve->to_long(record_data(curve->hist, record->next));
 
 		if (next_data > data)
 			return bottom_right;
@@ -406,42 +511,45 @@ static const char *point_label_pos(struct graph *graph, struct record *record, l
 	}
 }
 
-static void print_point(struct graph *graph, struct record *record)
+static void print_point(
+	struct graph *graph, struct curve *curve, struct record *record)
 {
 	struct point p;
 	long data;
 	const char *label_pos;
 	float gap, zone_start, zone_width;
 
-	assert(graph != NULL);
+	assert(curve != NULL);
 	assert(record != NULL);
 
-	p = init_point(graph, record);
-	data = graph->to_long(record_data(graph->hist, record));
+	p = init_point(graph, curve, record);
+	data = curve->to_long(record_data(curve->hist, record));
 
-	label_pos = point_label_pos(graph, record, data, p);
+	label_pos = point_label_pos(curve, record, data, p);
 
 	/*
-	 * Too much points in a graph reduce readability, above 24
+	 * Too much points in a curve reduce readability, above 24
 	 * points, don't draw them anymore.
 	 */
-	if (record == graph->hist->last || graph->hist->nrecords <= 24)
+	if (record == curve->hist->last || curve->hist->nrecords <= 24)
 		svg("<circle class=\"point\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
 		    p.x, p.y);
 
 	/* Hover */
 
-	if (graph->hist->nrecords == 1)
+	if (curve->hist->nrecords == 1)
 		gap = 100.0;
-	else
-		gap = pad_x(100.0 / (graph->hist->nrecords - 1)) - pad_x(0);
+	else {
+		const float unpadded_gap = 100.0 / (curve->hist->nrecords - 1);
+		gap = pad_x(graph, unpadded_gap) - pad_x(graph, 0.0);
+	}
 
-	if (record == graph->hist->first) {
+	if (record == curve->hist->first) {
 		zone_start = 0.0;
-		zone_width = pad_x(0) + gap / 2.0;
-	} else if (record == graph->hist->last) {
+		zone_width = pad_x(graph, 0.0) + gap / 2.0;
+	} else if (record == curve->hist->last) {
 		zone_start = p.x - gap / 2.0;
-		zone_width = pad_x(100.0) + gap / 2.0;
+		zone_width = pad_x(graph, 100.0) + gap / 2.0;
 	} else {
 		zone_start = p.x - gap / 2.0;
 		zone_width = gap;
@@ -451,7 +559,7 @@ static void print_point(struct graph *graph, struct record *record)
 	    zone_start, zone_width);
 	svg("<g class=\"label %s\">", label_pos);
 	svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
-	    p.x, pad_y(0.0), p.x, pad_y(100.0));
+	    p.x, pad_y(graph, 0.0), p.x, pad_y(graph, 100.0));
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
 	    p.x, p.y);
 	svg("<text x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",
@@ -459,13 +567,40 @@ static void print_point(struct graph *graph, struct record *record)
 	svg("</g>");
 }
 
-static void print_points(struct graph *graph)
+static void print_points(struct graph *graph, struct curve *curve)
 {
 	struct record *rec;
 
-	assert(graph != NULL);
+	assert(curve != NULL);
 
 	svg("<!-- Points -->");
+	svg("<g>");
+
+	for (rec = curve->hist->first; rec; rec = rec->next) {
+		if (rec->prev)
+			svg("");
+		print_point(graph, curve, rec);
+	}
+
+	svg("</g>");
+}
+
+static void print_curve(struct graph *graph, struct curve *curve)
+{
+	print_path(graph, curve);
+	svg("");
+	print_points(graph, curve);
+}
+
+static void print_notice_empty(struct graph *graph)
+{
+	assert(graph != NULL);
+
+	svg("<text x=\"50%%\" y=\"50%%\" style=\"font-size: 0.9em; text-anchor: middle;\">No data available</text>");
+}
+
+static void print_css(struct graph *graph)
+{
 	/*
 	 * We want to show label when mouse is in the previous .zone
 	 * rectangle.  Since label come after the rectangle, when the
@@ -523,45 +658,27 @@ static void print_points(struct graph *graph)
 	css("visibility: visible;");
 	css("}");
 	svg("</style>");
-
-	svg("<g>");
-
-	for (rec = graph->hist->first; rec; rec = rec->next) {
-		if (rec->prev)
-			svg("");
-		print_point(graph, rec);
-	}
-
-	svg("</g>");
 }
 
-static void print_notice_empty(struct graph *graph)
+static void print_graph(struct graph *graph)
 {
+	unsigned i;
+
 	assert(graph != NULL);
-
-	svg("<text x=\"50%%\" y=\"50%%\" style=\"font-size: 0.9em; text-anchor: middle;\">No data available</text>");
-}
-
-static void print_graph(
-	struct historic *hist, to_long_t to_long, int reversed)
-{
-	struct graph graph;
-
-	assert(hist != NULL);
-
-	graph = init_graph(hist, to_long, reversed);
 
 	svg("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
 	svg("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\" style=\"font-family: Verdana,Arial,Helvetica,sans-serif;\">");
 
-	if (graph.is_empty) {
-		print_notice_empty(&graph);
+	if (graph->is_empty) {
+		print_notice_empty(graph);
 	} else {
-		print_axes(&graph);
+		print_css(graph);
 		svg("");
-		print_path(&graph);
-		svg("");
-		print_points(&graph);
+		print_axes(graph);
+		for (i = 0; i < graph->ncurves; i++) {
+			svg("");
+			print_curve(graph, &graph->curves[i]);
+		}
 	}
 
 	svg("</svg>");
@@ -570,10 +687,11 @@ static void print_graph(
 int main(int argc, char **argv)
 {
 	struct player player;
-	char *name, *dataset;
+	char *name;
+	struct graph graph;
 
-	if (argc != 3) {
-		fprintf(stderr, "Usage: %s <player_name> elo|rank\n", argv[0]);
+	if (argc != 2) {
+		fprintf(stderr, "Usage: %s <player_name>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -588,17 +706,10 @@ int main(int argc, char **argv)
 	if (!read_player(&player, name))
 		return EXIT_FAILURE;
 
-	dataset = argv[2];
-	if (strcmp(dataset, "elo") == 0) {
-		/* Timescale is irrelevant for elo, ignore it */
-		print_graph(&player.hist, elo_to_long, 0);
-	} else if (strcmp(dataset, "rank") == 0) {
-		print_graph(&player.hist, rank_to_long, 1);
-	} else {
-		fprintf(stderr, "\"%s\" is not a valid dataset, "
-		        "expected \"elo\" or \"rank\"\n", dataset);
-		return EXIT_FAILURE;
-	}
+	graph = init_graph();
+	add_curve(&graph, &player.hist, elo_to_long, 0);
+	add_curve(&graph, &player.hist, rank_to_long, 1);
+	print_graph(&graph);
 
 	return EXIT_SUCCESS;
 }

@@ -756,7 +756,7 @@ int main(int argc, char **argv)
 
 	graph = init_graph(&player.hist);
 	add_curve(&graph, elo_to_long, 0, "#970", "#725800");
-	add_curve(&graph, rank_to_long, 1, "#5c84c0", "#3e5881");
+	add_curve(&graph, rank_to_long, 1, "#aaa", "#888");
 	print_graph(&graph);
 
 	return EXIT_SUCCESS;

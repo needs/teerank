@@ -510,31 +510,9 @@ static const char *point_label_pos(
 	}
 }
 
-static void print_point(
-	struct graph *graph, struct curve *curve, struct record *record)
+static void print_zone(struct graph *graph, struct record *rec, struct point p)
 {
-	struct point p;
-	long data;
-	const char *label_pos;
 	float gap, zone_start, zone_width;
-
-	assert(curve != NULL);
-	assert(record != NULL);
-
-	p = init_point(graph, curve, record);
-	data = curve->to_long(record_data(graph->hist, record));
-
-	label_pos = point_label_pos(graph, curve, record, data, p);
-
-	/*
-	 * Too much points in a curve reduce readability, above 24
-	 * points, don't draw them anymore.
-	 */
-	if (record == graph->hist->last || graph->hist->nrecords <= 24)
-		svg("<circle class=\"point\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
-		    p.x, p.y);
-
-	/* Hover */
 
 	if (graph->hist->nrecords == 1)
 		gap = 100.0;
@@ -543,10 +521,10 @@ static void print_point(
 		gap = pad_x(graph, unpadded_gap) - pad_x(graph, 0.0);
 	}
 
-	if (record == graph->hist->first) {
+	if (rec == graph->hist->first) {
 		zone_start = 0.0;
 		zone_width = pad_x(graph, 0.0) + gap / 2.0;
-	} else if (record == graph->hist->last) {
+	} else if (rec == graph->hist->last) {
 		zone_start = p.x - gap / 2.0;
 		zone_width = pad_x(graph, 100.0) + gap / 2.0;
 	} else {
@@ -556,14 +534,65 @@ static void print_point(
 
 	svg("<rect class=\"zone\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\"/>",
 	    zone_start, zone_width);
-	svg("<g class=\"label %s\">", label_pos);
-	svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
-	    p.x, pad_y(graph, 0.0), p.x, pad_y(graph, 100.0));
+}
+
+static void print_label(struct point p, long data, const char *label_pos)
+{
 	svg("<circle cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
 	    p.x, p.y);
-	svg("<text x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",
-	    p.x, p.y, data);
-	svg("</g>");
+	svg("<text class=\"%s\" x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",
+	    label_pos, p.x, p.y, data);
+}
+
+static void print_labels(struct graph *graph)
+{
+	struct record *rec;
+	const char *label_pos;
+	unsigned i;
+
+	for (rec = graph->hist->first; rec; rec = rec->next) {
+		struct point p;
+		long data;
+
+		p = init_point(graph, &graph->curves[0], rec);
+
+		print_zone(graph, rec, p);
+
+		svg("<g class=\"labels\">");
+		svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
+		    p.x, pad_y(graph, 0.0), p.x, pad_y(graph, 100.0));
+
+		for (i = 0; i < graph->ncurves; i++) {
+			struct curve *curve = &graph->curves[i];
+
+			p = init_point(graph, curve, rec);
+			data = curve->to_long(record_data(graph->hist, rec));
+			label_pos = point_label_pos(graph, curve, rec, data, p);
+			print_label(p, data, label_pos);
+		}
+
+		svg("</g>");
+	}
+
+}
+
+static void print_point(
+	struct graph *graph, struct curve *curve, struct record *record)
+{
+	struct point p;
+
+	assert(curve != NULL);
+	assert(record != NULL);
+
+	p = init_point(graph, curve, record);
+
+	/*
+	 * Too much points in a curve reduce readability, above 24
+	 * points, don't draw them anymore.
+	 */
+	if (record == graph->hist->last || graph->hist->nrecords <= 24)
+		svg("<circle class=\"point\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
+		    p.x, p.y);
 }
 
 static void print_points(struct graph *graph, struct curve *curve)
@@ -616,35 +645,35 @@ static void print_css(struct graph *graph)
 	css("fill: #970;");
 	css("}");
 	css("");
-	css(".label {");
+	css(".labels {");
 	css("visibility: hidden;");
 	css("}");
-	css(".label:hover {");
+	css(".labels:hover {");
 	css("visibility: visible;");
 	css("}");
-	css(".label > line {");
+	css(".labels > line {");
 	css("stroke: #bbb;");
 	css("}");
-	css(".label > circle {");
+	css(".labels circle {");
 	css("fill: #725800;");
 	css("}");
-	css(".label > text {");
+	css(".labels text {");
 	css("font-size: 0.9em;");
 	css("}");
 	css("");
-	css(".label.top_left > text {");
+	css(".labels > text.top_left {");
 	css("text-anchor: end;");
 	css("transform: translate(-10px, -11px);");
 	css("}");
-	css(".label.top_right > text {");
+	css(".labels > text.top_right {");
 	css("text-anchor: start;");
 	css("transform: translate(10px, -11px);");
 	css("}");
-	css(".label.bottom_left > text {");
+	css(".labels > text.bottom_left {");
 	css("text-anchor: end;");
 	css("transform: translate(-10px, 18px);");
 	css("}");
-	css(".label.bottom_right > text {");
+	css(".labels > text.bottom_right {");
 	css("text-anchor: start;");
 	css("transform: translate(10px, 18px);");
 	css("}");
@@ -653,7 +682,7 @@ static void print_css(struct graph *graph)
 	css("fill: none;");
 	css("pointer-events: all;");
 	css("}");
-	css(".zone:hover + .label {");
+	css(".zone:hover + .labels {");
 	css("visibility: visible;");
 	css("}");
 	svg("</style>");
@@ -683,6 +712,7 @@ static void print_graph(struct graph *graph)
 			svg("");
 			print_curve(graph, &graph->curves[i]);
 		}
+		print_labels(graph);
 	}
 
 	svg("</svg>");

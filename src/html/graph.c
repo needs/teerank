@@ -143,7 +143,6 @@ struct graph {
 	 * graph of each curve.
 	 */
 	unsigned naxes;
-	int is_empty;
 
 	unsigned ncurves;
 	struct curve curves[MAX_CURVES];
@@ -164,7 +163,6 @@ static struct graph init_graph(struct historic *hist)
 	static const struct graph GRAPH_ZERO;
 	struct graph graph = GRAPH_ZERO;
 
-	graph.is_empty = 1;
 	graph.hist = hist;
 
 	return graph;
@@ -213,7 +211,6 @@ static void add_curve(
 
 	if (graph->hist->nrecords == 0)
 		return;
-	graph->is_empty = 0;
 
 	ymin = find_data(graph->hist, min_cmp, to_long);
 	ymax = find_data(graph->hist, max_cmp, to_long);
@@ -662,6 +659,11 @@ static void print_css(struct graph *graph)
 	svg("</style>");
 }
 
+static int is_empty(struct graph *graph)
+{
+	return graph->hist->nrecords == 0;
+}
+
 static void print_graph(struct graph *graph)
 {
 	unsigned i;
@@ -671,7 +673,7 @@ static void print_graph(struct graph *graph)
 	svg("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
 	svg("<svg version=\"1.1\" baseProfile=\"full\" xmlns=\"http://www.w3.org/2000/svg\" style=\"font-family: Verdana,Arial,Helvetica,sans-serif;\">");
 
-	if (graph->is_empty) {
+	if (is_empty(graph)) {
 		print_notice_empty(graph);
 	} else {
 		print_css(graph);

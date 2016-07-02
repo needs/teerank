@@ -287,8 +287,7 @@ static float pad_x(struct graph *graph, float x)
 
 static float pad_y(struct graph *graph, float y)
 {
-	const float PADDING = 1.0;
-	return pad(y, PADDING, PADDING);
+	return pad(y, 1.0, 7.0);
 }
 
 static float percentage(float range, float value, int reversed)
@@ -556,6 +555,7 @@ static void print_labels(struct graph *graph)
 	unsigned i;
 
 	for (rec = graph->first; rec; rec = rec->next) {
+		char buf[128];
 		struct point p;
 		long data;
 
@@ -565,7 +565,7 @@ static void print_labels(struct graph *graph)
 
 		svg("<g class=\"labels\">");
 		svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
-		    p.x, pad_y(graph, 0.0), p.x, pad_y(graph, 100.0));
+		    p.x, pad_y(graph, 0.0), p.x, 100.0);
 
 		for (i = 0; i < graph->ncurves; i++) {
 			struct curve *curve = &graph->curves[i];
@@ -575,6 +575,12 @@ static void print_labels(struct graph *graph)
 			label_pos = point_label_pos(graph, curve, rec, data, p);
 			print_label(p, data, label_pos, i);
 		}
+
+		strftime(buf, sizeof(buf), "%m %b %H:%M", gmtime(&rec->time));
+
+		/* X label */
+		svg("<text class=\"axe_label time\" x=\"%.1f%%\" y=\"100%%\">%s</text>",
+		    p.x, buf);
 
 		svg("</g>");
 	}
@@ -734,6 +740,10 @@ static void print_css(struct graph *graph)
 	css(".labels > text.bottom_right {");
 	css("text-anchor: start;");
 	css("transform: translate(10px, 18px);");
+	css("}");
+	css("text.axe_label.time {");
+	css("dominant-baseline: text-after-edge;");
+	css("transform: translate(10px, 0px);");
 	css("}");
 	css("");
 	css(".zone {");

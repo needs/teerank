@@ -45,6 +45,7 @@ struct curve {
 	to_long_t to_long;
 	int reversed;
 	const char *color, *hover_color;
+	const char *name;
 
 	/*
 	 * The minimum (and maximum) value that can be plotted in the graph.
@@ -216,7 +217,7 @@ static void scale_curve(struct curve *curve, unsigned old_naxes, unsigned new_na
 
 static void add_curve(
 	struct graph *graph, to_long_t to_long, int reversed,
-	const char *color, const char *hover_color)
+	const char *color, const char *hover_color, const char *name)
 {
 	struct curve *curve;
 	long ymin, ymax;
@@ -230,6 +231,7 @@ static void add_curve(
 	curve->reversed = reversed;
 	curve->color = color;
 	curve->hover_color = hover_color;
+	curve->name = name;
 
 	if (graph->nrecords == 0)
 		return;
@@ -260,7 +262,7 @@ static void add_curve(
 
 static long axe_data(struct curve *curve, unsigned i)
 {
-	return curve->ymin + (i + 1) * curve->gap;
+	return curve->ymin + i * curve->gap;
 }
 
 static float pad(float value, float left, float right)
@@ -338,32 +340,12 @@ static void print_axes(struct graph *graph)
 	x_end = pad_x(graph, 100) + 1.0;
 
 	svg("<!-- Axes -->");
-	svg("<style>");
-	css(".axe {");
-	css("stroke: #bbb;");
-	css("stroke-dasharray: 3, 3;");
-	css("}");
-	css(".axe_label {");
-	css("fill: #777;");
-	css("font-size: 0.9em;");
-	css("dominant-baseline: middle;");
-	css("}");
-	css(".axe_label.left {");
-	css("transform: translate(10, 0);");
-	css("text-anchor: start;");
-	css("}");
-	css(".axe_label.right {");
-	css("transform: translate(-10, 0);");
-	css("text-anchor: end;");
-	css("}");
-	svg("</style>");
-
 	svg("<g>");
 
 	/* Axes */
 	for (i = 0; i < graph->naxes; i++) {
 		struct curve *curve = &graph->curves[0];
-		long data = axe_data(curve, i);
+		long data = axe_data(curve, i + 1);
 		const float y = y_coord(graph, curve, data);
 
 		/* Line */
@@ -382,7 +364,7 @@ static void print_axes(struct graph *graph)
 			float x;
 			const char *class;
 
-			data = axe_data(curve, j);
+			data = axe_data(curve, j + 1);
 			y = y_coord(graph, curve, data);
 
 			if (i % 2 == 0) {
@@ -636,11 +618,51 @@ static void print_points(struct graph *graph, struct curve *curve)
 	svg("</g>");
 }
 
+static unsigned axe_before(struct curve *curve, long data)
+{
+	return (data - (curve->ymin)) / curve->gap;
+}
+
+static void print_name(struct graph *graph, struct curve *curve)
+{
+	struct record *rec;
+	long data;
+	unsigned curve_index;
+	float x, y;
+	const char *class;
+	unsigned axe;
+
+	curve_index = curve - graph->curves;
+
+	if (curve_index == 0) {
+		rec = graph->first;
+		x = 0.0;
+		class = "left";
+	} else {
+		rec = graph->hist->last;
+		x = 100.0;
+		class = "right";
+	}
+
+	data = curve->to_long(record_data(graph->hist, rec));
+	axe = axe_before(curve, data);
+
+	y = 0;
+	y += y_coord(graph, curve, axe_data(curve, axe));
+	y += y_coord(graph, curve, axe_data(curve, axe + 1));
+	y /= 2.0;
+
+	svg("<text class=\"curve%u axe_label %s\" x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-weight: bold;\">%s</text>",
+	    curve_index, class, x, y, curve->name);
+}
+
 static void print_curve(struct graph *graph, struct curve *curve)
 {
 	print_path(graph, curve);
 	svg("");
 	print_points(graph, curve);
+	svg("");
+	print_name(graph, curve);
 }
 
 static void print_notice_empty(struct graph *graph)
@@ -666,6 +688,24 @@ static void print_css(struct graph *graph)
 	 * and mouseout events will not be triggered.
 	 */
 	svg("<style>");
+	css(".axe {");
+	css("stroke: #bbb;");
+	css("stroke-dasharray: 3, 3;");
+	css("}");
+	css(".axe_label {");
+	css("fill: #777;");
+	css("font-size: 0.9em;");
+	css("dominant-baseline: middle;");
+	css("}");
+	css(".axe_label.left {");
+	css("transform: translate(10, 0);");
+	css("text-anchor: start;");
+	css("}");
+	css(".axe_label.right {");
+	css("transform: translate(-10, 0);");
+	css("text-anchor: end;");
+	css("}");
+	css("");
 	css(".labels {");
 	css("visibility: hidden;");
 	css("}");
@@ -773,8 +813,8 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	graph = init_graph(&player.hist);
-	add_curve(&graph, elo_to_long, 0, "#970", "#725800");
-	add_curve(&graph, rank_to_long, 1, "#aaa", "#888");
+	add_curve(&graph, elo_to_long, 0, "#970", "#725800", "Elo");
+	add_curve(&graph, rank_to_long, 1, "#aaa", "#888", "Rank");
 	print_graph(&graph);
 
 	return EXIT_SUCCESS;

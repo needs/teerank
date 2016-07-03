@@ -5,7 +5,7 @@ export PATH=.:"$PATH"
 #
 # Database update
 #
-teerank-create-database
+teerank-init
 teerank-upgrade
 teerank-remove-offline-servers 1
 teerank-add-new-servers

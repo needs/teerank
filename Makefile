@@ -1,8 +1,8 @@
 CFLAGS += -lm -Icore -Icgi -Wall -Werror -O -std=c89 -D_POSIX_C_SOURCE=200809L -g
 
 BINS_HTML = $(addprefix teerank-html-,about player-page rank-page clan-page graph search)
-BINS = $(addprefix teerank-,add-new-servers update-servers update-players update-clans compute-ranks remove-offline-servers repair upgrade-4-to-5) $(BINS_HTML)
-SCRIPTS = $(addprefix teerank-,create-database upgrade-0-to-1 upgrade-1-to-2 upgrade-2-to-3 upgrade-3-to-4 upgrade update)
+BINS = $(addprefix teerank-,init add-new-servers update-servers update-players update-clans compute-ranks remove-offline-servers repair upgrade-4-to-5) $(BINS_HTML)
+SCRIPTS = $(addprefix teerank-,upgrade-0-to-1 upgrade-1-to-2 upgrade-2-to-3 upgrade-3-to-4 upgrade update)
 CGI = teerank.cgi
 
 .PHONY: all clean install
@@ -22,6 +22,9 @@ $(page_objs): $(page_headers)
 #
 # Binaries
 #
+
+teerank-init: builtin/init.o $(core_objs)
+	$(CC) -o $@ $(CFLAGS) $^
 
 teerank-add-new-servers: builtin/add-new-servers.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
@@ -68,9 +71,6 @@ teerank-upgrade-4-to-5: upgrade/4-to-5/4-to-5.o upgrade/4-to-5/ranks.o upgrade/4
 #
 # Scripts
 #
-
-teerank-create-database: core/script-header.inc.sh builtin/create-database.sh
-	cat $^ >$@ && chmod +x $@
 
 teerank-upgrade: core/script-header.inc.sh builtin/upgrade.sh
 	cat $^ >$@ && chmod +x $@

@@ -1,4 +1,5 @@
-CFLAGS += -Isrc -Wall -Werror -O -std=c89 -D_POSIX_C_SOURCE=200809L -g
+CFLAGS += -lm -Icore -Icgi -Wall -Werror -O -std=c89 -D_POSIX_C_SOURCE=200809L -g
+
 BINS_HTML = $(addprefix teerank-html-,about player-page rank-page clan-page graph search)
 BINS = $(addprefix teerank-,add-new-servers update-servers update-players update-clans compute-ranks remove-offline-servers repair upgrade-4-to-5) $(BINS_HTML)
 SCRIPTS = $(addprefix teerank-,create-database upgrade-0-to-1 upgrade-1-to-2 upgrade-2-to-3 upgrade-3-to-4 upgrade update)
@@ -9,95 +10,88 @@ CGI = teerank.cgi
 all: $(BINS) $(SCRIPTS) $(CGI)
 
 # Header file dependancies
-src/config.o: src/config.h
-src/player.o: src/player.h
-src/cgi.o: src/cgi.h
-src/delta.o: src/delta.h
-src/elo.o: src/elo.h
-src/network.o: src/network.h
-src/pool.o: src/pool.h
-src/route.o: src/route.h
-src/server.o: src/server.h
-src/clan.o: src/clan.h
+core_objs = $(patsubst %.c,%.o,$(wildcard core/*.c))
+page_objs = cgi/html.o
 
-# All binaries share the same configuration
-$(BINS): src/config.o
-$(CGI): src/config.o
-$(BINS_HTML): src/html/html.o
+core_headers = $(wildcard core/*.h)
+page_headers = cgi/html.h
+
+$(core_objs): $(core_headers)
+$(page_objs): $(page_headers)
 
 #
 # Binaries
 #
 
-teerank-add-new-servers: src/add-new-servers.o src/network.o src/server.o
+teerank-add-new-servers: builtin/add-new-servers.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-update-servers: src/update-servers.o src/network.o src/pool.o src/delta.o src/server.o src/player.o src/historic.o
+teerank-update-servers: builtin/update-servers.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-update-players: src/update-players.o src/delta.o src/elo.o src/player.o src/historic.o
+teerank-update-players: builtin/update-players.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^ -lm
 
-teerank-update-clans: src/update-clans.o src/player.o src/historic.o src/clan.o
+teerank-update-clans: builtin/update-clans.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-compute-ranks: src/compute-ranks.o src/player.o src/historic.o
+teerank-compute-ranks: builtin/compute-ranks.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-remove-offline-servers: src/remove-offline-servers.o src/server.o
+teerank-remove-offline-servers: builtin/remove-offline-servers.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-repair: src/repair.o src/player.o src/historic.o src/clan.o
+teerank-repair: builtin/repair.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-clan-page: src/html/clan-page.o src/player.o src/historic.o src/clan.o
+teerank-html-clan-page: cgi/page/clan-page.o $(core_objs) $(page_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-rank-page: src/html/rank-page.o src/player.o src/historic.o
+teerank-html-rank-page: cgi/page/rank-page.o $(core_objs) $(page_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-player-page: src/html/player-page.o src/player.o src/historic.o
+teerank-html-player-page: cgi/page/player-page.o $(core_objs) $(page_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-about: src/html/about.o src/player.o src/historic.o
+teerank-html-about: cgi/page/about.o $(core_objs) $(page_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-search: src/html/search.o src/player.o src/historic.o
+teerank-html-search: cgi/page/search.o $(core_objs) $(page_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-html-graph: src/html/graph.o src/player.o src/historic.o
+teerank-html-graph: cgi/page/graph.o $(core_objs) $(page_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-upgrade-4-to-5: src/upgrade/4-to-5/4-to-5.o src/upgrade/4-to-5/ranks.o src/upgrade/4-to-5/players.o src/upgrade/4-to-5/servers.o src/player.o src/historic.o
+teerank-upgrade-4-to-5: upgrade/4-to-5/4-to-5.o upgrade/4-to-5/ranks.o upgrade/4-to-5/players.o upgrade/4-to-5/servers.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 #
 # Scripts
 #
 
-teerank-create-database: src/script-header.inc.sh src/create-database.sh
+teerank-create-database: core/script-header.inc.sh builtin/create-database.sh
 	cat $^ >$@ && chmod +x $@
 
-teerank-upgrade: src/script-header.inc.sh src/upgrade.sh
+teerank-upgrade: core/script-header.inc.sh builtin/upgrade.sh
 	cat $^ >$@ && chmod +x $@
 
-teerank-upgrade-0-to-1: src/script-header.inc.sh src/upgrade/0-to-1.sh
+teerank-upgrade-0-to-1: core/script-header.inc.sh upgrade/0-to-1.sh
 	cat $^ >$@ && chmod +x $@
-teerank-upgrade-1-to-2: src/script-header.inc.sh src/upgrade/1-to-2.sh
+teerank-upgrade-1-to-2: core/script-header.inc.sh upgrade/1-to-2.sh
 	cat $^ >$@ && chmod +x $@
-teerank-upgrade-2-to-3: src/script-header.inc.sh src/upgrade/2-to-3.sh
+teerank-upgrade-2-to-3: core/script-header.inc.sh upgrade/2-to-3.sh
 	cat $^ >$@ && chmod +x $@
-teerank-upgrade-3-to-4: src/script-header.inc.sh src/upgrade/3-to-4.sh
+teerank-upgrade-3-to-4: core/script-header.inc.sh upgrade/3-to-4.sh
 	cat $^ >$@ && chmod +x $@
 
-teerank-update: src/update.sh
+teerank-update: builtin/update.sh
 	cp $< $@
 
 #
 # CGI
 #
 
-$(CGI): src/cgi.o src/route.o
+$(CGI): cgi/cgi.o cgi/route.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 #
@@ -105,7 +99,7 @@ $(CGI): src/cgi.o src/route.o
 #
 
 clean:
-	rm -f src/*.o src/html/*.o $(BINS) $(SCRIPTS) $(CGI)
+	rm -f core/*.o builtin/*.o cgi/*.o cgi/page/*.o $(BINS) $(SCRIPTS) $(CGI)
 
 #
 # Install

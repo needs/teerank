@@ -40,7 +40,10 @@ static void url_decode(char *str)
 			*tmp = *(char*)&byte;
 			str += 3;
 		} else {
-			*tmp = *str;
+			if (*str == '+')
+				*tmp = ' ';
+			else
+				*tmp = *str;
 			str++;
 		}
 		tmp++;
@@ -79,13 +82,14 @@ struct url parse_url(char *uri, char *query)
 		return url;
 
 	name = strtok(query, "&");
-	do {
+	while (name) {
 		if (url.nargs == MAX_ARGS)
 			error(414, NULL);
 
 		url.args[url.nargs].name = name;
 		url.nargs++;
-	} while ((name = strtok(NULL, "&")));
+		name = strtok(NULL, "&");
+	}
 
 	for (i = 0; i < url.nargs; i++) {
 		strtok(url.args[i].name, "=");

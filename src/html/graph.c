@@ -558,6 +558,7 @@ static void print_labels(struct graph *graph)
 		char buf[128];
 		struct point p;
 		long data;
+		const char *class;
 
 		p = init_point(graph, &graph->curves[0], rec);
 
@@ -578,9 +579,14 @@ static void print_labels(struct graph *graph)
 
 		strftime(buf, sizeof(buf), "%m %b %H:%M", gmtime(&rec->time));
 
+		if (p.x > 88.0)
+			class = "right";
+		else
+			class = "left";
+
 		/* X label */
-		svg("<text class=\"axe_label time\" x=\"%.1f%%\" y=\"100%%\">%s</text>",
-		    p.x, buf);
+		svg("<text class=\"axe_label time %s\" x=\"%.1f%%\" y=\"100%%\">%s</text>",
+		    class, p.x, buf);
 
 		svg("</g>");
 	}
@@ -704,11 +710,11 @@ static void print_css(struct graph *graph)
 	css("dominant-baseline: middle;");
 	css("}");
 	css(".axe_label.left {");
-	css("transform: translate(10, 0);");
+	css("transform: translate(10px, 0px);");
 	css("text-anchor: start;");
 	css("}");
 	css(".axe_label.right {");
-	css("transform: translate(-10, 0);");
+	css("transform: translate(-10px, 0px);");
 	css("text-anchor: end;");
 	css("}");
 	css("");
@@ -743,7 +749,6 @@ static void print_css(struct graph *graph)
 	css("}");
 	css("text.axe_label.time {");
 	css("dominant-baseline: text-after-edge;");
-	css("transform: translate(10px, 0px);");
 	css("}");
 	css("");
 	css(".zone {");

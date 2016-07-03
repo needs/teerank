@@ -4,28 +4,29 @@
 
 #include "config.h"
 
-/*
- * Default values are for local use (ie when working on source code) rather
- * than global use (using the CGI with /var/...).  This is done to make it
- * easy to hack on it, since everything will work after git clone && make
- * without any extra steps.
- */
 struct config config = {
-	.root = ".teerank",
-	.verbose = 0,
-	.debug = 0
+#define STRING(envname, value, fname) \
+	.fname = value,
+#define BOOL(envname, value, fname) \
+	.fname = value,
+#include "default_config.h"
+#undef BOOL
+#undef STRING
 };
 
 void load_config(void)
 {
 	char *tmp;
 
-	if ((tmp = getenv("TEERANK_ROOT")))
-		config.root = tmp;
-	if ((tmp = getenv("TEERANK_VERBOSE")))
-		config.verbose = 1;
-	if ((tmp = getenv("TEERANK_DEBUG")))
-		config.debug = 1;
+#define STRING(envname, value, fname) \
+	if ((tmp = getenv(envname)))  \
+		config.fname = tmp;
+#define BOOL(envname, value, fname) \
+	if ((tmp = getenv(envname)))  \
+		config.fname = 1;
+#include "default_config.h"
+#undef BOOL
+#undef STRING
 }
 
 void verbose(const char *fmt, ...)

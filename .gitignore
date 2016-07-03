@@ -10,3 +10,5 @@
 
 /teerank-*
 /teerank.cgi
+/build/generate-default-config
+/build/script-header.inc.sh

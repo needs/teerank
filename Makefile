@@ -1,18 +1,32 @@
 CFLAGS += -lm -Icore -Icgi -Wall -Werror -O -std=c89 -D_POSIX_C_SOURCE=200809L -g
 
-BINS_HTML = $(addprefix teerank-html-,about player-page rank-page clan-page graph search)
-BINS = $(addprefix teerank-,init add-new-servers update-servers update-players update-clans compute-ranks remove-offline-servers repair upgrade-4-to-5) $(BINS_HTML)
-SCRIPTS = $(addprefix teerank-,upgrade-0-to-1 upgrade-1-to-2 upgrade-2-to-3 upgrade-3-to-4 upgrade update)
+BUILTINS_SCRIPTS += upgrade
+BUILTINS_SCRIPTS += update
+BUILTINS_SCRIPTS := $(addprefix teerank-,$(BUILTINS_SCRIPTS))
+
+UPGRADE_SCRIPTS += upgrade-0-to-1
+UPGRADE_SCRIPTS += upgrade-1-to-2
+UPGRADE_SCRIPTS += upgrade-2-to-3
+UPGRADE_SCRIPTS += upgrade-3-to-4
+UPGRADE_SCRIPTS := $(addprefix teerank-,$(UPGRADE_SCRIPTS))
+
+SCRIPTS = $(BUILTINS_SCRIPTS) $(UPGRADE_SCRIPTS)
+
+HTML_BINS = $(addprefix teerank-html-,about player-page rank-page clan-page graph search)
+BUILTINS_BINS = $(addprefix teerank-,$(patsubst builtin/%.c,%,$(wildcard builtin/*.c)))
+UPGRADE_BINS = $(addprefix teerank-,upgrade-4-to-5)
+
+BINS = $(UPGRADE_BINS) $(BUILTINS_BINS) $(HTML_BINS)
 CGI = teerank.cgi
 
 .PHONY: all clean install
-
 all: $(BINS) $(SCRIPTS) $(CGI)
 
-# Header file dependancies
+# Object files
 core_objs = $(patsubst %.c,%.o,$(wildcard core/*.c))
 page_objs = cgi/html.o
 
+# Header file dependancies
 core_headers = $(wildcard core/*.h)
 page_headers = cgi/html.h
 
@@ -23,50 +37,13 @@ $(page_objs): $(page_headers)
 # Binaries
 #
 
-teerank-init: builtin/init.o $(core_objs)
+$(BINS): $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
-teerank-add-new-servers: builtin/add-new-servers.o $(core_objs)
-	$(CC) -o $@ $(CFLAGS) $^
+$(BUILTINS_BINS): teerank-% : builtin/%.o
+$(HTML_BINS): teerank-html-% : cgi/page/%.o $(page_objs)
 
-teerank-update-servers: builtin/update-servers.o $(core_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-update-players: builtin/update-players.o $(core_objs)
-	$(CC) -o $@ $(CFLAGS) $^ -lm
-
-teerank-update-clans: builtin/update-clans.o $(core_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-compute-ranks: builtin/compute-ranks.o $(core_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-remove-offline-servers: builtin/remove-offline-servers.o $(core_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-repair: builtin/repair.o $(core_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-html-clan-page: cgi/page/clan-page.o $(core_objs) $(page_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-html-rank-page: cgi/page/rank-page.o $(core_objs) $(page_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-html-player-page: cgi/page/player-page.o $(core_objs) $(page_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-html-about: cgi/page/about.o $(core_objs) $(page_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-html-search: cgi/page/search.o $(core_objs) $(page_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-html-graph: cgi/page/graph.o $(core_objs) $(page_objs)
-	$(CC) -o $@ $(CFLAGS) $^
-
-teerank-upgrade-4-to-5: upgrade/4-to-5/4-to-5.o upgrade/4-to-5/ranks.o upgrade/4-to-5/players.o upgrade/4-to-5/servers.o $(core_objs)
-	$(CC) -o $@ $(CFLAGS) $^
+teerank-upgrade-4-to-5: $(patsubst %.c,%.o,$(wildcard upgrade/4-to-5/*.c))
 
 #
 # Scripts
@@ -81,20 +58,11 @@ build/script-header.inc.sh: build/generate-default-config
 	@echo "#!/bin/sh" >$@
 	./$< >>$@
 
-teerank-upgrade: build/script-header.inc.sh builtin/upgrade.sh
+$(SCRIPTS): build/script-header.inc.sh
 	cat $^ >$@ && chmod +x $@
 
-teerank-upgrade-0-to-1: build/script-header.inc.sh upgrade/0-to-1.sh
-	cat $^ >$@ && chmod +x $@
-teerank-upgrade-1-to-2: build/script-header.inc.sh upgrade/1-to-2.sh
-	cat $^ >$@ && chmod +x $@
-teerank-upgrade-2-to-3: build/script-header.inc.sh upgrade/2-to-3.sh
-	cat $^ >$@ && chmod +x $@
-teerank-upgrade-3-to-4: build/script-header.inc.sh upgrade/3-to-4.sh
-	cat $^ >$@ && chmod +x $@
-
-teerank-update: builtin/update.sh
-	cp $< $@
+$(UPGRADE_SCRIPTS): teerank-upgrade-%: upgrade/%.sh
+$(BUILTIN_SCRIPTS): teerank-%: builtin/%.sh
 
 #
 # CGI
@@ -104,7 +72,7 @@ $(CGI): cgi/cgi.o cgi/route.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 #
-# Phony targets
+# Clean
 #
 
 clean:

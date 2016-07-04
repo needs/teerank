@@ -58,11 +58,11 @@ build/script-header.inc.sh: build/generate-default-config
 	@echo "#!/bin/sh" >$@
 	./$< >>$@
 
+$(UPGRADE_SCRIPTS): teerank-upgrade-%: upgrade/%.sh
+$(BUILTINS_SCRIPTS): teerank-%: builtin/%.sh
+
 $(SCRIPTS): build/script-header.inc.sh
 	cat $^ >$@ && chmod +x $@
-
-$(UPGRADE_SCRIPTS): teerank-upgrade-%: upgrade/%.sh
-$(BUILTIN_SCRIPTS): teerank-%: builtin/%.sh
 
 #
 # CGI

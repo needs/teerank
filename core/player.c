@@ -84,7 +84,7 @@ void init_player(struct player *player)
 	init_historic(&player->hist, sizeof(struct player_record),  UINT_MAX, 0);
 }
 
-static char *get_path(char *name)
+static char *get_path(const char *name)
 {
 	static char path[PATH_MAX];
 
@@ -110,7 +110,7 @@ static void reset_player(struct player *player, const char *name)
 	player->delta = NULL;
 }
 
-static int create_player(struct player *player, char *name)
+static int create_player(struct player *player, const char *name)
 {
 	assert(player != NULL);
 
@@ -184,7 +184,7 @@ static int read_player_header(FILE *file, const char *path, struct player *playe
 	return 1;
 }
 
-int read_player(struct player *player, char *name)
+int read_player(struct player *player, const char *name)
 {
 	char *path;
 	FILE *file;

@@ -126,7 +126,7 @@ void init_player(struct player *player);
  *
  * @return 1 on success, 0 on failure
  */
-int read_player(struct player *player, char *name);
+int read_player(struct player *player, const char *name);
 
 /**
  * Write a player to the disk.

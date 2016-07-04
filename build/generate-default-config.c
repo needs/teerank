@@ -12,5 +12,10 @@ int main(int argc, char *argv[])
 #include "default_config.h"
 #undef BOOL
 #undef STRING
+
+	printf("TEERANK_VERSION=%d\n", TEERANK_VERSION);
+	printf("DATABASE_VERSION=%d\n", DATABASE_VERSION);
+	printf("STABLE_VERSION=%d\n", STABLE_VERSION);
+
 	return EXIT_SUCCESS;
 }

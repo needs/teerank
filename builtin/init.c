@@ -63,14 +63,15 @@ static void set_database_version(unsigned version)
 
 int main(int argc, char *argv[])
 {
-	load_config();
+	/* Since database may not exist, checking version is useless */
+	load_config(0);
 
 	create_dir("");
 	create_dir("servers");
 	create_dir("players");
 	create_dir("clans");
 
-	set_database_version(5);
+	set_database_version(DATABASE_VERSION);
 
 	return EXIT_SUCCESS;
 }

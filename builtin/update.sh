@@ -1,10 +1,9 @@
 #!/bin/sh
 
+set -e
+
 export PATH=.:"$PATH"
 
-#
-# Database update
-#
 teerank-init
 teerank-upgrade
 teerank-remove-offline-servers 1

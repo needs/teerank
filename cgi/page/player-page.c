@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	struct player player;
 	enum read_player_ret ret;
 
-	load_config();
+	load_config(0);
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <player_name>\n", argv[0]);
 		return EXIT_FAILURE;

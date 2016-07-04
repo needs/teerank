@@ -64,7 +64,7 @@ fail:
 
 int main(int argc, char *argv[])
 {
-	load_config();
+	load_config(0);
 
 	upgrade_players();
 	upgrade_ranks();

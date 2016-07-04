@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 	unsigned missing_members, i;
 	char clan_name[NAME_LENGTH];
 
-	load_config();
+	load_config(0);
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <clan_name>\n", argv[0]);
 		return EXIT_FAILURE;

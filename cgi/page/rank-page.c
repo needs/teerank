@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 	enum mode mode;
 	unsigned page_number;
 
-	load_config();
+	load_config(0);
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s [full-page|only-rows] <page_number>\n", argv[0]);
 		return EXIT_FAILURE;

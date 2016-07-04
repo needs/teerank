@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 	struct player players[MAX_PLAYERS];
 	unsigned i;
 
-	load_config();
+	load_config(1);
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;

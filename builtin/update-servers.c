@@ -422,7 +422,7 @@ int main(int argc, char **argv)
 	struct sockets sockets;
 	struct server_list list = SERVER_LIST_ZERO;
 
-	load_config();
+	load_config(1);
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;

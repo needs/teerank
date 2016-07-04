@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 	char    old[HEXNAME_LENGTH];
 	char    new[HEXNAME_LENGTH];
 
-	load_config();
+	load_config(1);
 
 	while ((ret = scanf(" %s %s %s", player, old, new)) == 3) {
 		if (!strcmp(old, new)) {

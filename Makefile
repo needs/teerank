@@ -1,4 +1,11 @@
+TEERANK_VERSION = 2
+DATABASE_VERSION = 5
+STABLE_VERSION = 0
+
 CFLAGS += -lm -Icore -Icgi -Wall -Werror -O -std=c89 -D_POSIX_C_SOURCE=200809L -g
+CFLAGS += -DTEERANK_VERSION=$(TEERANK_VERSION)
+CFLAGS += -DDATABASE_VERSION=$(DATABASE_VERSION)
+CFLAGS += -DSTABLE_VERSION=$(STABLE_VERSION)
 
 BUILTINS_SCRIPTS += upgrade
 BUILTINS_SCRIPTS += update
@@ -25,6 +32,9 @@ all: $(BINS) $(SCRIPTS) $(CGI)
 #
 # Binaries
 #
+
+# config.c use version constants defined here
+core/config.o: Makefile
 
 # Object files
 core_objs = $(patsubst %.c,%.o,$(wildcard core/*.c))

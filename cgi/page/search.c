@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 	struct list list = LIST_ZERO;
 	size_t length;
 
-	load_config();
+	load_config(0);
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <query>\n", argv[0]);

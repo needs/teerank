@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 	unsigned nrepair = 0;
 	struct player player;
 
-	load_config();
+	load_config(1);
 
 	if (snprintf(path, PATH_MAX, "%s/players/", config.root) >= PATH_MAX) {
 		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);

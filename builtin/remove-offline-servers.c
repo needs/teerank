@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 	int dry_run = 0;
 	unsigned count_offline = 0;
 
-	load_config();
+	load_config(1);
 
 	if (argc != 2 && argc != 3) {
 		fprintf(stderr, "usage: %s <days> [dry-run]\n", argv[0]);

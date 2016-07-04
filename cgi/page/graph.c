@@ -813,7 +813,7 @@ int main(int argc, char **argv)
 	struct graph graph;
 	enum read_player_ret ret;
 
-	load_config();
+	load_config(0);
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s <player_name>\n", argv[0]);
 		return EXIT_FAILURE;

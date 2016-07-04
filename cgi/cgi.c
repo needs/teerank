@@ -203,7 +203,14 @@ static char *get_query(void)
 
 int main(int argc, char **argv)
 {
-	load_config();
+	/*
+	 * I'm not sure we do want to check database version because
+	 * CGI can be called often.  And as long it is not a fast-cgi,
+	 * version checking will happen every time.  But I guess for
+	 * now it shouldn't be an issue since teerank users are almost
+	 * non-existent.
+	 */
+	load_config(1);
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);

@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 	static char path[PATH_MAX];
 	unsigned count_new = 0;
 
-	load_config();
+	load_config(1);
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;

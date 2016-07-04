@@ -811,6 +811,7 @@ int main(int argc, char **argv)
 	struct player player;
 	char *name;
 	struct graph graph;
+	enum read_player_ret ret;
 
 	load_config();
 	if (argc != 2) {
@@ -826,7 +827,11 @@ int main(int argc, char **argv)
 	}
 
 	init_player(&player);
-	if (!read_player(&player, name))
+
+	ret = read_player(&player, name);
+	if (ret == PLAYER_NOT_FOUND)
+		return EXIT_NOT_FOUND;
+	else if (ret == PLAYER_ERROR)
 		return EXIT_FAILURE;
 
 	graph = init_graph(&player.hist);

@@ -12,7 +12,7 @@ int main(int argc, char **argv)
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
 	const char *hexname;
 	struct player player;
-	int player_found;
+	enum read_player_ret ret;
 
 	load_config();
 	if (argc != 2) {
@@ -26,12 +26,13 @@ int main(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 	}
 
-	player_found = player_exist(hexname);
+	init_player(&player);
+	ret = read_player(&player, hexname);
 
-	if (player_found) {
-		init_player(&player);
-		player_found = read_player(&player, hexname);
-	}
+	if (ret == PLAYER_ERROR)
+		return EXIT_FAILURE;
+	if (ret == PLAYER_NOT_FOUND)
+		return EXIT_NOT_FOUND;
 
 	hexname_to_name(hexname, name);
 	CUSTOM_TAB.name = name;
@@ -39,23 +40,19 @@ int main(int argc, char **argv)
 	html_header(&CUSTOM_TAB, name, NULL);
 
 	/* Print player logo, name, clan, rank and elo */
-	if (player_found) {
-		hexname_to_name(player.clan, clan);
-		html("<header id=\"player_header\">");
-		html("<img src=\"/images/player.png\"/>");
-		html("<section>");
-		html("<h1>%s</h1>", name);
-		html("<p>%s</p>", clan);
-		html("</section>");
-		html("<p>#%u (%d ELO)</p>", player.rank, player.elo);
-		html("</header>");
-		html("");
-		html("<h2>Historic</h2>");
-		html("<object data=\"/players/%s/elo+rank.svg\" type=\"image/svg+xml\"></object>",
-		     player.name);
-	} else {
-		html("<p>Player not found</p>");
-	}
+	hexname_to_name(player.clan, clan);
+	html("<header id=\"player_header\">");
+	html("<img src=\"/images/player.png\"/>");
+	html("<section>");
+	html("<h1>%s</h1>", name);
+	html("<p>%s</p>", clan);
+	html("</section>");
+	html("<p>#%u (%d ELO)</p>", player.rank, player.elo);
+	html("</header>");
+	html("");
+	html("<h2>Historic</h2>");
+	html("<object data=\"/players/%s/elo+rank.svg\" type=\"image/svg+xml\"></object>",
+	     player.name);
 
 	html_footer();
 

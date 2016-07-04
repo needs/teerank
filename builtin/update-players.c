@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "player.h"
 #include "delta.h"
 #include "elo.h"
 
@@ -90,10 +91,21 @@ int main(int argc, char **argv)
 
 		/* Load player (ignore fail) */
 		for (i = 0; i < delta.length; i++) {
-			if (!read_player(&players[length], delta.players[i].name))
-				continue;
+			struct player *player;
+			const char *name;
+			enum read_player_ret ret;
 
-			merge_delta(&players[length], &delta.players[i]);
+			player = &players[length];
+			name = delta.players[i].name;
+
+			ret = read_player(player, name);
+
+			if (ret == PLAYER_ERROR)
+				continue;
+			else if (ret == PLAYER_NOT_FOUND)
+				create_player(player, name);
+
+			merge_delta(player, &delta.players[i]);
 			length++;
 		}
 

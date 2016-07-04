@@ -123,7 +123,7 @@ static void write_ranks(struct player_summary *players, unsigned nplayers)
 		 */
 		fprintf(file, "%-*s\n", HEXNAME_LENGTH - 1, players[i].name);
 
-		if (!read_player(&player, players[i].name))
+		if (read_player(&player, players[i].name) != PLAYER_FOUND)
 			continue;
 
 		set_rank(&player, i + 1);

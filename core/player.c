@@ -97,17 +97,6 @@ static char *get_path(const char *name)
 	return path;
 }
 
-int player_exist(const char *name)
-{
-	const char *path;
-
-	path = get_path(name);
-	if (!path)
-		return 0;
-
-	return access(path, F_OK) == 0;
-}
-
 /*
  * Set all player's fields to meaningless values suitable for printing.
  */
@@ -122,7 +111,7 @@ static void reset_player(struct player *player, const char *name)
 	player->delta = NULL;
 }
 
-static int create_player(struct player *player, const char *name)
+void create_player(struct player *player, const char *name)
 {
 	assert(player != NULL);
 
@@ -136,8 +125,6 @@ static int create_player(struct player *player, const char *name)
 
 	player->is_rankable = 0;
 	player->is_modified = IS_MODIFIED_CREATED;
-
-	return 1;
 }
 
 static int skip_player_record(FILE *file, const char *path)
@@ -196,10 +183,10 @@ static int read_player_header(FILE *file, const char *path, struct player *playe
 	return 1;
 }
 
-int read_player(struct player *player, const char *name)
+enum read_player_ret read_player(struct player *player, const char *name)
 {
+	FILE *file = NULL;
 	char *path;
-	FILE *file;
 
 	assert(name != NULL);
 	assert(player != NULL);
@@ -215,13 +202,14 @@ int read_player(struct player *player, const char *name)
 	reset_player(player, name);
 
 	if (!(path = get_path(name)))
-		return 0;
+		goto fail;
 
 	if (!(file = fopen(path, "r"))) {
 		if (errno == ENOENT)
-			return create_player(player, name);
-		else
-			return perror(path), 0;
+			return PLAYER_NOT_FOUND;
+
+		perror(path);
+		goto fail;
 	}
 
 	if (!read_player_header(file, path, player))
@@ -233,11 +221,12 @@ int read_player(struct player *player, const char *name)
 	assert(player->hist.nrecords > 0);
 
 	fclose(file);
-	return 1;
+	return PLAYER_FOUND;
 
 fail:
-	fclose(file);
-	return 0;
+	if (file)
+		fclose(file);
+	return PLAYER_ERROR;
 }
 
 static int write_player_record(FILE *file, const char *path, void *buf)

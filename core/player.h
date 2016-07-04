@@ -114,28 +114,38 @@ enum {
  */
 void init_player(struct player *player);
 
+enum read_player_ret {
+	PLAYER_FOUND,
+	PLAYER_NOT_FOUND,
+	PLAYER_ERROR
+};
+
 /**
- * Check if the given player exist in the database.
+ * Create a player with the given name.
  *
- * @param name Player name to check existence
+ * The player is *not* written in the database, but it can be written
+ * with write_player().
  *
- * @return 1 if player exists, 0 otherwise
+ * @param player Player to be created
+ * @param name Name of the new player
  */
-int player_exist(const char *name);
+void create_player(struct player *player, const char *name);
 
 /**
  * Read from the disk a player.  This function allocate or reuse buffers
  * allocated by previous calls.  Hence player must been initialized
  * with init_player() before the first call to real_player().
  *
- * Even if read fail, the player is suitable for printing.
+ * If anything, the returned player is still printable, as the
+ * function may have read some data before failure.
  *
  * @param player Player to read
  * @param name Name of the player to read
  *
- * @return 1 on success, 0 on failure
+ * @return PLAYER_FOUND on success, PLAYER_NOT_FOUND when player does
+ *         not exist, PLAYER_ERROR when an error occured.
  */
-int read_player(struct player *player, const char *name);
+enum read_player_ret read_player(struct player *player, const char *name);
 
 /**
  * Write a player to the disk.

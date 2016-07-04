@@ -19,8 +19,10 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (!is_valid_hexname(argv[1]))
+	if (!is_valid_hexname(argv[1])) {
+		fprintf(stderr, "%s: Not a valid player name\n", argv[1]);
 		return EXIT_NOT_FOUND;
+	}
 
 	init_player(&player);
 	player_found = read_player(&player, argv[1]);

@@ -14,21 +14,41 @@
 /* Minimum time between two entries */
 #define HISTORY_TIMEFRAME_LENGTH 3600
 
+static int is_valid_hexpair(const char *hex)
+{
+	char c1, c2;
+
+	if (hex[0] == '\0' || hex[1] == '\0')
+		return 0;
+
+	c1 = hex[0];
+	c2 = hex[1];
+
+	if (!isxdigit(c1) || !isxdigit(c2))
+		return 0;
+
+	if (c1 == '0' && c2 == '0')
+		return 0;
+
+	return 1;
+}
+
+static int is_terminating_hexpair(const char *hex)
+{
+	if (hex[0] == '\0' || hex[1] == '\0')
+		return 0;
+
+	return hex[0] == '0' && hex[1] == '0' && hex[2] == '\0';
+}
+
 int is_valid_hexname(const char *hex)
 {
-	size_t length;
-
 	assert(hex != NULL);
 
-	length = strlen(hex);
-	if (length >= HEXNAME_LENGTH)
-		return 0;
-	if (length % 2 == 1)
-		return 0;
+	while (is_valid_hexpair(hex))
+		hex += 2;
 
-	while (isxdigit(*hex))
-		hex++;
-	return *hex == '\0';
+	return is_terminating_hexpair(hex);
 }
 
 void hexname_to_name(const char *hex, char *name)

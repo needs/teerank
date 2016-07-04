@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "config.h"
 #include "player.h"
 #include "html.h"
 
@@ -811,6 +812,7 @@ int main(int argc, char **argv)
 	char *name;
 	struct graph graph;
 
+	load_config();
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s <player_name>\n", argv[0]);
 		return EXIT_FAILURE;

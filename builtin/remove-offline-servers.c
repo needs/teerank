@@ -95,5 +95,5 @@ int main(int argc, char **argv)
 
 	closedir(dir);
 
-	return EXIT_FAILURE;
+	return EXIT_SUCCESS;
 }

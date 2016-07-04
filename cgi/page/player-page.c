@@ -10,6 +10,7 @@
 int main(int argc, char **argv)
 {
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
+	const char *hexname;
 	struct player player;
 	int player_found;
 
@@ -19,15 +20,20 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (!is_valid_hexname(argv[1])) {
-		fprintf(stderr, "%s: Not a valid player name\n", argv[1]);
+	hexname = argv[1];
+	if (!is_valid_hexname(hexname)) {
+		fprintf(stderr, "%s: Not a valid player name\n", hexname);
 		return EXIT_NOT_FOUND;
 	}
 
-	init_player(&player);
-	player_found = read_player(&player, argv[1]);
+	player_found = player_exist(hexname);
 
-	hexname_to_name(argv[1], name);
+	if (player_found) {
+		init_player(&player);
+		player_found = read_player(&player, hexname);
+	}
+
+	hexname_to_name(hexname, name);
 	CUSTOM_TAB.name = name;
 	CUSTOM_TAB.href = "";
 	html_header(&CUSTOM_TAB, name, NULL);

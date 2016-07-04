@@ -6,6 +6,7 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "player.h"
 #include "config.h"
@@ -94,6 +95,17 @@ static char *get_path(const char *name)
 	             config.root, name) >= PATH_MAX)
 		return NULL;
 	return path;
+}
+
+int player_exist(const char *name)
+{
+	const char *path;
+
+	path = get_path(name);
+	if (!path)
+		return 0;
+
+	return access(path, F_OK) == 0;
 }
 
 /*

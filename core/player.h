@@ -115,6 +115,15 @@ enum {
 void init_player(struct player *player);
 
 /**
+ * Check if the given player exist in the database.
+ *
+ * @param name Player name to check existence
+ *
+ * @return 1 if player exists, 0 otherwise
+ */
+int player_exist(const char *name);
+
+/**
  * Read from the disk a player.  This function allocate or reuse buffers
  * allocated by previous calls.  Hence player must been initialized
  * with init_player() before the first call to real_player().

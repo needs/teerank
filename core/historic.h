@@ -9,22 +9,22 @@
  * An historic store records over time and can be read from and written to
  * a file.  An historic associate with each record user supplied data.
  *
- * Here is how to create an history:
+ * Historics must be initialized before any other uses:
  *
- *	hist = HISTORIC_ZERO;
  *	init_historic(&hist, sizeof(player->elo), UINT_MAX, 0);
  *
- * Here is how to append a record to a file:
+ * Historics needs to be initialized only once, hence the following
+ * exmaple usage can be run again without calling init_historic()
+ * twice.
  *
- *	hist = HISTORIC_ZERO;
- * 	init_historic(&hist, sizeof(player->elo), UINT_MAX, 0);
+ * Here is how to append a record to a file:
  *
  * 	read_historic(&hist, file, path, read_elo);
  * 	append_record(&hist, &new_elo);
  * 	write_historic(&hist, file, path, write_elo);
  *
- * Note that the previous historic can be re-initialized without setting it
- * to HISTORIC_ZERO.  However, it *must* be re-intialized each time.
+ * This example does not check return values, a compliant
+ * implementation should.
  */
 
 #include <stdio.h>
@@ -63,13 +63,6 @@ struct historic {
 	void *data;
 };
 
-/**
- * @def HISTORIC_ZERO
- *
- * Any fresh new historic must be set to this before a call to init_historic().
- */
-const struct historic HISTORIC_ZERO;
-
 typedef int (*read_data_func_t)(FILE *, const char *, void *);
 typedef int (*skip_data_func_t)(FILE *, const char *);
 typedef int (*write_data_func_t)(FILE *, const char *, void *);
@@ -77,11 +70,12 @@ typedef int (*write_data_func_t)(FILE *, const char *, void *);
 /**
  * Initialize an historic.
  *
- * If the historic is initialized for te first time, it *must* have been
- * set with HISTORIC_ZERO before any calls to this function.
+ * Historics needs to be initialized once for all.  Hence you should
+ * not see multiple call to init_historic() for the same historic.
  *
- * On the other hand an history that have already been initialized do not
- * need to be set with HISTORIC_ZERO as allocated buffer can be reused.
+ * Initialized historics are NOT usable yet.  A call to
+ * create_historic() or read_historic() needs to be made in order to
+ * allocate buffer and fille them with data.
  *
  * Timestep is the minimum time gap between two records.  Except for
  * the very last record, which can have any timestamp without any
@@ -99,7 +93,13 @@ void init_historic(struct historic *hist, size_t data_size,
                    unsigned max_records, time_t timestep);
 
 /**
- * TODO
+ * Create a fresh, empty, historic.
+ *
+ * historic must have been previously initialized with init_historic().
+ * Buffers previously allocated by read_historic() or even
+ * create_historic() are reused if possible.
+ *
+ * @param hist Historic to create
  */
 void create_historic(struct historic *hist);
 

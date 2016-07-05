@@ -9,15 +9,23 @@
 void init_historic(struct historic *hist, size_t data_size,
                    unsigned max_records, time_t timestep)
 {
+	static const struct historic HISTORIC_ZERO;
+
 	assert(hist != NULL);
 	assert(data_size > 0);
 	assert(max_records > 0);
 
+	*hist = HISTORIC_ZERO;
 	hist->data_size = data_size;
 	hist->timestep = timestep;
 	hist->max_records = max_records;
 }
 
+/*
+ * This function try to predict how much record will be added to an
+ * existing historic.  It also make sure we don't realloc() buffer
+ * too often when historics are re-used.
+ */
 static unsigned round_length(unsigned length)
 {
 	const unsigned LENGTH_STEP = 1024;

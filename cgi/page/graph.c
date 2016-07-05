@@ -795,9 +795,14 @@ static void print_graph(struct graph *graph)
 	print_css(graph);
 	svg("");
 	print_axes(graph);
+
+	/*
+	 * Print curves in reverse order so that the curve added first
+	 * are on top of every other curves.
+	 */
 	for (i = 0; i < graph->ncurves; i++) {
 		svg("");
-		print_curve(graph, &graph->curves[i]);
+		print_curve(graph, &graph->curves[graph->ncurves - i - 1]);
 	}
 	svg("");
 	print_labels(graph);

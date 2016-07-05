@@ -6,7 +6,7 @@
 #include "html.h"
 
 #ifdef NDEBUG
-static void html(const char *fmt, ...)
+void html(const char *fmt, ...)
 {
 	va_list ap;
 
@@ -15,7 +15,7 @@ static void html(const char *fmt, ...)
 	va_end(ap);
 }
 
-static void svg(const char *fmt, ...)
+void svg(const char *fmt, ...)
 {
 	va_list ap;
 
@@ -24,7 +24,7 @@ static void svg(const char *fmt, ...)
 	va_end(ap);
 }
 
-static void css(const char *fmt, ...)
+void css(const char *fmt, ...)
 {
 	va_list ap;
 

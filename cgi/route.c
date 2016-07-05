@@ -160,11 +160,11 @@ static const struct directory root = {
 				{ NULL }
 			}, NULL },
 		{ "clans", (struct file[]) {
-				{ NULL, { "teerank-html-clan-page" }, init_default_clan_file },
+				{ NULL, { "teerank-html-clan" }, init_default_clan_file },
 				{ NULL }
 			}, NULL },
 		{ "players", (struct file[]) {
-				{ NULL, { "teerank-html-player-page" }, init_default_player_file },
+				{ NULL, { "teerank-html-player" }, init_default_player_file },
 				{ NULL }
 			}, (struct directory[]) {
 				{ NULL, (struct file[]) {

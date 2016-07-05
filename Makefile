@@ -19,7 +19,7 @@ UPGRADE_SCRIPTS := $(addprefix teerank-,$(UPGRADE_SCRIPTS))
 
 SCRIPTS = $(BUILTINS_SCRIPTS) $(UPGRADE_SCRIPTS)
 
-HTML_BINS = $(addprefix teerank-html-,about player-page rank-page clan-page graph search)
+HTML_BINS = $(addprefix teerank-html-,about player rank-page clan graph search)
 BUILTINS_BINS = $(addprefix teerank-,$(patsubst builtin/%.c,%,$(wildcard builtin/*.c)))
 UPGRADE_BINS = $(addprefix teerank-,upgrade-4-to-5)
 

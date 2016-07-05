@@ -19,11 +19,22 @@ UPGRADE_SCRIPTS := $(addprefix teerank-,$(UPGRADE_SCRIPTS))
 
 SCRIPTS = $(BUILTINS_SCRIPTS) $(UPGRADE_SCRIPTS)
 
-HTML_BINS = $(addprefix teerank-page-,about player rank-page clan graph search)
+HTML_BINS += about
+HTML_BINS += player
+HTML_BINS += rank-page
+HTML_BINS += clan
+HTML_BINS += graph
+HTML_BINS += search
+HTML_BINS := $(addprefix teerank-page-,$(HTML_BINS))
+
+UPGRADE_BINS += upgrade-4-to-5
+UPGRADE_BINS := $(addprefix teerank-,$(UPGRADE_BINS))
+
+# Each builtin have one C file with main() function in "builtin/"
 BUILTINS_BINS = $(addprefix teerank-,$(patsubst builtin/%.c,%,$(wildcard builtin/*.c)))
-UPGRADE_BINS = $(addprefix teerank-,upgrade-4-to-5)
 
 BINS = $(UPGRADE_BINS) $(BUILTINS_BINS) $(HTML_BINS)
+
 CGI = teerank.cgi
 
 .PHONY: all clean install

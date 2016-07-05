@@ -19,7 +19,7 @@ UPGRADE_SCRIPTS := $(addprefix teerank-,$(UPGRADE_SCRIPTS))
 
 SCRIPTS = $(BUILTINS_SCRIPTS) $(UPGRADE_SCRIPTS)
 
-HTML_BINS = $(addprefix teerank-html-,about player rank-page clan graph search)
+HTML_BINS = $(addprefix teerank-page-,about player rank-page clan graph search)
 BUILTINS_BINS = $(addprefix teerank-,$(patsubst builtin/%.c,%,$(wildcard builtin/*.c)))
 UPGRADE_BINS = $(addprefix teerank-,upgrade-4-to-5)
 
@@ -51,7 +51,7 @@ $(BINS): $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 $(BUILTINS_BINS): teerank-% : builtin/%.o
-$(HTML_BINS): teerank-html-% : cgi/page/%.o $(page_objs)
+$(HTML_BINS): teerank-page-% : cgi/page/%.o $(page_objs)
 
 teerank-upgrade-4-to-5: $(patsubst %.c,%.o,$(wildcard upgrade/4-to-5/*.c))
 

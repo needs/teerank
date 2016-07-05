@@ -151,24 +151,24 @@ static void init_search_file(struct file *file, struct url *url)
 
 static const struct directory root = {
 	"", (struct file[]) {
-		{ "about.html", { "teerank-html-about" }, NULL },
-		{ "search",     { "teerank-html-search" }, init_search_file },
+		{ "about.html", { "teerank-page-about" }, NULL },
+		{ "search",     { "teerank-page-search" }, init_search_file },
 		{ NULL }
 	}, (struct directory[]) {
 		{ "pages", (struct file[]) {
-				{ NULL, { "teerank-html-rank-page" }, init_default_page_file },
+				{ NULL, { "teerank-page-rank-page" }, init_default_page_file },
 				{ NULL }
 			}, NULL },
 		{ "clans", (struct file[]) {
-				{ NULL, { "teerank-html-clan" }, init_default_clan_file },
+				{ NULL, { "teerank-page-clan" }, init_default_clan_file },
 				{ NULL }
 			}, NULL },
 		{ "players", (struct file[]) {
-				{ NULL, { "teerank-html-player" }, init_default_player_file },
+				{ NULL, { "teerank-page-player" }, init_default_player_file },
 				{ NULL }
 			}, (struct directory[]) {
 				{ NULL, (struct file[]) {
-						{ "elo+rank.svg", { "teerank-html-graph" }, init_player_graph },
+						{ "elo+rank.svg", { "teerank-page-graph" }, init_player_graph },
 						{ NULL }
 					}, NULL },
 				{ NULL }

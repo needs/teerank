@@ -111,12 +111,10 @@ clean:
 #
 
 install: TEERANK_ROOT       = $(prefix)/var/lib/teerank
-install: TEERANK_CACHE_ROOT = $(prefix)/var/cache/teerank
 install: TEERANK_DATA_ROOT  = $(prefix)/usr/share/webapps/teerank
 install: TEERANK_BIN_ROOT   = $(prefix)/usr/bin
 install:
 	mkdir -p $(TEERANK_ROOT)
-	mkdir -p $(TEERANK_CACHE_ROOT)
 	mkdir -p $(TEERANK_DATA_ROOT)
 	mkdir -p $(TEERANK_BIN_ROOT)
 

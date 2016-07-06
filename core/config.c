@@ -35,6 +35,13 @@ static int get_version(void)
 
 	file = fopen(path, "r");
 	if (!file) {
+		/*
+		 * First databases did not have version file at all.
+		 * Hence it is like version 0.
+		 */
+		if (errno == ENOENT)
+			return 0;
+
 		perror(path);
 		goto fail;
 	}

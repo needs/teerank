@@ -1,9 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-/* TODO: Move this to some kind of CGI header only */
-#define EXIT_NOT_FOUND 2
-
 struct config {
 #define STRING(envname, value, fname) \
 	char *fname;

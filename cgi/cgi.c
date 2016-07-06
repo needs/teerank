@@ -15,16 +15,7 @@
 
 #include "config.h"
 #include "route.h"
-
-static int exit_status_to_http_error(int status)
-{
-	switch (status) {
-	case EXIT_SUCCESS: return 200;
-	case EXIT_FAILURE: return 500;
-	case 2:            return 404;
-	default:           return 500;
-	}
-}
+#include "cgi.h"
 
 static char *reason_phrase(int code)
 {
@@ -67,110 +58,128 @@ void error(int code, char *fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-static void dump_child_stderr(int fd, int status, char *progname)
+/*
+ * And http status is passed to the function because in order to dum the
+ * content of fd, we need to fdopen() it, and it can fail.  If that fail
+ * we want to print an error.
+ */
+static int dump(int status, int fd, FILE *copy)
 {
-	FILE *in;
-	int c, have_newline = 1;
-
-	assert(fd != -1);
-	assert(progname != NULL);
-
-	print_error(status);
-
-	if (!(in = fdopen(fd, "r"))) {
-		fprintf(stderr, "Can't dump child stderr: fdopen(): %s\n", strerror(errno));
-		return;
-	}
-
-	while ((c = fgetc(in)) != EOF) {
-		if (have_newline)
-			fprintf(stderr, "%s: ", progname);
-
-		have_newline = (c == '\n');
-
-		fputc(c, stderr);
-	}
-
-	fclose(in);
-}
-
-static int generate(char **args)
-{
-	int out[2], err[2];
-	pid_t pid;
-
-	assert(args != NULL);
-	assert(args[0] != NULL);
-
-	verbose("Generating data with '%s'\n", args[0]);
-
-	if (pipe(out) == -1)
-		error(500, "pipe(out): %s\n", strerror(errno));
-
-	if (pipe(err) == -1)
-		error(500, "pipe(err): %s\n", strerror(errno));
-
-	pid = fork();
-	if (pid == -1) {
-		error(500, "fork(): %s\n", strerror(errno));
-	} else if (pid == 0) {
-		/*
-		 * Child process just do redirections and execute the program.
-		 */
-
-		dup2(err[1], STDERR_FILENO);
-		close(err[0]);
-
-		dup2(out[1], STDOUT_FILENO);
-		close(out[0]);
-
-		execvp(args[0], args);
-		fprintf(stderr, "execvp(%s): %s\n", args[0], strerror(errno));
-		exit(EXIT_FAILURE);
-	} else {
-		/*
-		 * Parent process wait for it's child to terminate and dump the
-		 * content of the pipe if child's exit status is different than 0.
-		 */
-
-		int c;
-
-		close(err[1]);
-		close(out[1]);
-
-		if (wait(&c) == -1)
-			error(500, "wait(): %s\n", strerror(errno));
-
-		if (!WIFEXITED(c) || WEXITSTATUS(c) != EXIT_SUCCESS) {
-			dump_child_stderr(err[0], exit_status_to_http_error(WEXITSTATUS(c)), args[0]);
-			close(err[0]);
-			exit(EXIT_FAILURE);
-		}
-
-		close(err[0]);
-		return out[0];
-	}
-
-	/* Should never be reached */
-	return -1;
-}
-
-static void dump(int fd)
-{
-	FILE *in;
+	FILE *file;
 	int c;
 
 	assert(fd != -1);
 
-	if (!(in = fdopen(fd, "r")))
+	if (!(file = fdopen(fd, "r")))
 		error(500, "fdopen(): %s\n", strerror(errno));
 
-	printf("Content-Type: text/html\n\n");
-	while ((c = fgetc(in)) != EOF)
-		putchar(c);
+	if (status == 200)
+		printf("Content-Type: text/html\n\n");
+	else
+		print_error(status);
 
-	fclose(in);
+	if (copy) {
+		while ((c = fgetc(file)) != EOF) {
+			putchar(c);
+			fputc(c, copy);
+		}
+	} else {
+		while ((c = fgetc(file)) != EOF)
+			putchar(c);
+	}
+
+	fclose(file);
 	close(fd);
+
+	return 1;
+}
+
+static int page_argc(struct page *page)
+{
+	unsigned i;
+
+	for (i = 0; i < MAX_ARGS && page->args[i]; i++)
+		;
+
+	return i;
+}
+
+static int generate(struct page *page)
+{
+	int out[2], err[2];
+	int stdout_save, stderr_save;
+	int ret;
+
+	assert(page != NULL);
+
+	verbose("Generating data with '%s'\n", page->args[0]);
+
+	/*
+	 * Create a pipe to redirect stdout and stderr to.  It is
+	 * necessary because when a failure happen we don't want to send
+	 * any content generated before the failure.  Intsead we want to
+	 * print something from the error stream.
+	 */
+	if (pipe(out) == -1)
+		error(500, "pipe(out): %s\n", strerror(errno));
+	if (pipe(err) == -1)
+		error(500, "pipe(err): %s\n", strerror(errno));
+
+	/*
+	 * Duplicate stdout and stderr so we can replace them with our
+	 * previsouly created pipes, and then restore them to their
+	 * actual value once page genaration is done.
+	 */
+
+	stdout_save = dup(STDOUT_FILENO);
+	if (stdout_save == -1)
+		error(500, "dup(out): %s\n", strerror(errno));
+
+	stderr_save = dup(STDERR_FILENO);
+	if (stderr_save == -1)
+		error(500, "dup(err): %s\n", strerror(errno));
+
+	/* Replace stdout and stderr */
+	if (dup2(out[1], STDOUT_FILENO) == -1)
+		error(500, "dup2(out): %s\n", strerror(errno));
+	if (dup2(err[1], STDERR_FILENO) == -1)
+		error(500, "dup2(err): %s\n", strerror(errno));
+	close(out[1]);
+	close(err[1]);
+
+	/* Run page generation */
+	ret = page->main(page_argc(page), page->args);
+
+	/*
+	 * Some data may not be written yet to the pipe.  Dumping data
+	 * now will just raise an empty string.  We need to flush both
+	 * stdout and stderr in order to dump generated content.
+	 */
+	fflush(stdout);
+	fflush(stderr);
+
+	/*
+	 * Then, restore stdout and stderr, page output is waiting at
+	 * the read-end of the pipe "out[0]", and any error are waiting
+	 * at the read-end of the pipe "err[0]".
+	 */
+	if (dup2(stdout_save, STDOUT_FILENO) == -1)
+		error(500, "dup2(out, save): %s\n", strerror(errno));
+	if (dup2(stderr_save, STDERR_FILENO) == -1)
+		error(500, "dup2(err, save): %s\n", strerror(errno));
+	close(stdout_save);
+	close(stderr_save);
+
+	if (ret == EXIT_SUCCESS)
+		return dump(200, out[0], NULL);
+	else if (ret == EXIT_FAILURE)
+		return dump(500, err[0], stderr);
+	else if (ret == EXIT_NOT_FOUND)
+		return dump(404, err[0], stderr);
+	else
+		return dump(500, err[0], stderr);
+
+	return 1;
 }
 
 static char *get_path(void)
@@ -218,7 +227,7 @@ int main(int argc, char **argv)
 		error(500, NULL);
 	}
 
-	dump(generate(do_route(get_path(), get_query())));
+	generate(do_route(get_path(), get_query()));
 
 	return EXIT_SUCCESS;
 }

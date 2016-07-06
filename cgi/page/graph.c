@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "cgi.h"
 #include "config.h"
 #include "player.h"
 #include "html.h"
@@ -811,14 +812,13 @@ end:
 	svg("</svg>");
 }
 
-int main(int argc, char **argv)
+int page_graph_main(int argc, char **argv)
 {
 	struct player player;
 	char *name;
 	struct graph graph;
 	enum read_player_ret ret;
 
-	load_config(0);
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s <player_name>\n", argv[0]);
 		return EXIT_FAILURE;

@@ -19,21 +19,13 @@ UPGRADE_SCRIPTS := $(addprefix teerank-,$(UPGRADE_SCRIPTS))
 
 SCRIPTS = $(BUILTINS_SCRIPTS) $(UPGRADE_SCRIPTS)
 
-HTML_BINS += about
-HTML_BINS += player
-HTML_BINS += rank-page
-HTML_BINS += clan
-HTML_BINS += graph
-HTML_BINS += search
-HTML_BINS := $(addprefix teerank-page-,$(HTML_BINS))
-
 UPGRADE_BINS += upgrade-4-to-5
 UPGRADE_BINS := $(addprefix teerank-,$(UPGRADE_BINS))
 
 # Each builtin have one C file with main() function in "builtin/"
 BUILTINS_BINS = $(addprefix teerank-,$(patsubst builtin/%.c,%,$(wildcard builtin/*.c)))
 
-BINS = $(UPGRADE_BINS) $(BUILTINS_BINS) $(HTML_BINS)
+BINS = $(UPGRADE_BINS) $(BUILTINS_BINS)
 
 CGI = teerank.cgi
 
@@ -54,7 +46,7 @@ core/config.o: Makefile
 
 # Object files
 core_objs = $(patsubst %.c,%.o,$(wildcard core/*.c))
-page_objs = cgi/html.o
+page_objs = $(patsubst %.c,%.o,$(wildcard cgi/page/*.c)) cgi/html.o cgi/route.o
 
 # Header file dependancies
 core_headers = $(wildcard core/*.h)
@@ -67,7 +59,6 @@ $(BINS): $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 $(BUILTINS_BINS): teerank-% : builtin/%.o
-$(HTML_BINS): teerank-page-% : cgi/page/%.o $(page_objs)
 
 teerank-upgrade-4-to-5: $(patsubst %.c,%.o,$(wildcard upgrade/4-to-5/*.c))
 
@@ -95,7 +86,7 @@ $(SCRIPTS): build/script-header.inc.sh
 # CGI
 #
 
-$(CGI): cgi/cgi.o cgi/route.o $(core_objs)
+$(CGI): cgi/cgi.o cgi/route.o $(core_objs) $(page_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 #

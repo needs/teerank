@@ -238,7 +238,7 @@ static void try_add_result(struct list *list, unsigned relevance, char *name)
 	insert_before(list, r, result);
 }
 
-static void search(char *query, struct list *list)
+static int search(char *query, struct list *list)
 {
 	DIR *dir;
 	struct dirent *dp;
@@ -249,12 +249,12 @@ static void search(char *query, struct list *list)
 
 	if (snprintf(path, PATH_MAX, "%s/players", config.root) >= PATH_MAX) {
 		fprintf(stderr, "Path to teerank database too long\n");
-		exit(EXIT_FAILURE);
+		return 0;
 	}
 
 	if (!(dir = opendir(path))) {
 		fprintf(stderr, "opendir(%s): %s\n", path, strerror(errno));
-		exit(EXIT_FAILURE);
+		return 0;
 	}
 
 	to_lowercase(query, lowercase_query);
@@ -271,16 +271,15 @@ static void search(char *query, struct list *list)
 	}
 
 	closedir(dir);
+	return 1;
 }
 
 static struct list LIST_ZERO;
 
-int main(int argc, char **argv)
+int page_search_main(int argc, char **argv)
 {
 	struct list list = LIST_ZERO;
 	size_t length;
-
-	load_config(0);
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <query>\n", argv[0]);
@@ -289,8 +288,10 @@ int main(int argc, char **argv)
 
 	/* No need to search when the query is too long or empty */
 	length = strlen(argv[1]);
-	if (length > 0 && length < NAME_LENGTH)
-		search(argv[1], &list);
+	if (length > 0 && length < NAME_LENGTH) {
+		if (!search(argv[1], &list))
+			return EXIT_FAILURE;
+	}
 
 	CUSTOM_TAB.name = "Search results";
 	CUSTOM_TAB.href = "";

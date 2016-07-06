@@ -4,10 +4,8 @@
 #include "config.h"
 #include "html.h"
 
-int main(int argc, char **argv)
+int page_about_main(int argc, char **argv)
 {
-	load_config(0);
-
 	html_header(&ABOUT_TAB, "About", NULL);
 
 	html("<h1>About</h1>");

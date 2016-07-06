@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <errno.h>
 
+#include "cgi.h"
 #include "config.h"
 #include "html.h"
 #include "player.h"
@@ -19,7 +20,7 @@ struct page {
 
 #define PLAYERS_PER_PAGE 100
 
-static void load_page(struct page *page, unsigned pnum)
+static int load_page(struct page *page, unsigned pnum)
 {
 	static char path[PATH_MAX];
 	unsigned nplayers, npages;
@@ -31,34 +32,36 @@ static void load_page(struct page *page, unsigned pnum)
 	ret = snprintf(path, PATH_MAX, "%s/ranks", config.root);
 	if (ret >= PATH_MAX) {
 		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	if (!(file = fopen(path, "r"))) {
 		perror(path);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	/* First, read header */
 	if (fscanf(file, "%u players\n", &nplayers) != 1) {
 		fprintf(stderr, "%s: No header\n", path);
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	npages = nplayers / PLAYERS_PER_PAGE + 1;
 	if (pnum > npages) {
 		fprintf(stderr, "Only %u pages available\n", npages);
-		exit(EXIT_NOT_FOUND);
+		return EXIT_NOT_FOUND;
 	}
 
 	if (fseek(file, HEXNAME_LENGTH * (pnum - 1) * PLAYERS_PER_PAGE, SEEK_CUR) == -1) {
 		perror("fseek()");
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	page->npages = npages;
 	page->pnum = pnum;
 	page->file = file;
+
+	return EXIT_SUCCESS;
 }
 
 static void free_page(struct page *page)
@@ -169,7 +172,7 @@ static enum mode parse_mode(const char *str)
 	}
 }
 
-static unsigned parse_page_number(const char *str)
+static int parse_page_number(const char *str, unsigned *page_number)
 {
 	long ret;
 	char *endptr;
@@ -180,36 +183,43 @@ static unsigned parse_page_number(const char *str)
 	ret = strtol(str, &endptr, 10);
 	if (ret == 0 && errno == EINVAL) {
 		fprintf(stderr, "%s: is not a number\n", str);
-		exit(EXIT_NOT_FOUND);
+		return EXIT_FAILURE;
 	} else if (ret < 0 || ret > UINT_MAX) {
 		fprintf(stderr, "%s: invalid page number\n", str);
-		exit(EXIT_NOT_FOUND);
+		return EXIT_NOT_FOUND;
 	} else if (ret == 0) {
 		fprintf(stderr, "%s: Pages start at 1\n", str);
-		exit(EXIT_NOT_FOUND);
+		return EXIT_FAILURE;
 	}
 
-	return (unsigned)ret;
+	*page_number = (unsigned)ret;
+
+	return EXIT_SUCCESS;
 }
 
 static const struct page PAGE_ZERO;
 
-int main(int argc, char **argv)
+int page_rank_page_main(int argc, char **argv)
 {
 	struct page page = PAGE_ZERO;
 	enum mode mode;
 	unsigned page_number;
+	int ret;
 
-	load_config(0);
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s [full-page|only-rows] <page_number>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
 	mode = parse_mode(argv[1]);
-	page_number = parse_page_number(argv[2]);
 
-	load_page(&page, page_number);
+	ret = parse_page_number(argv[2], &page_number);
+	if (ret != EXIT_SUCCESS)
+		return ret;
+
+	ret = load_page(&page, page_number);
+	if (ret != EXIT_SUCCESS)
+		return ret;
 
 	if (mode == FULL_PAGE) {
 		html_header(&CTF_TAB, "CTF", NULL);

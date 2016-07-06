@@ -17,7 +17,6 @@ struct arg {
 };
 
 #define MAX_DIRS 8
-#define MAX_ARGS 8
 
 struct url {
 	unsigned ndirs;
@@ -102,42 +101,39 @@ struct url parse_url(char *uri, char *query)
 	return url;
 }
 
-struct file {
-	char *name;
-	char *args[MAX_ARGS];
-
-	void (*init)(struct file *file, struct url *url);
-};
-
 struct directory {
 	char *name;
 
-	struct file *files;
+	struct page *pages;
 	struct directory *dirs;
 };
 
-static void init_default_page_file(struct file *file, struct url *url)
+static void init_page_about(struct page *page, struct url *url)
 {
-	file->args[1] = "full-page";
-	file->args[2] = strtok(url->filename, ".");
 }
 
-static void init_default_clan_file(struct file *file, struct url *url)
+static void init_page_rank_page(struct page *page, struct url *url)
 {
-	file->args[1] = strtok(url->filename, ".");
+	page->args[1] = "full-page";
+	page->args[2] = strtok(url->filename, ".");
 }
 
-static void init_default_player_file(struct file *file, struct url *url)
+static void init_page_clan(struct page *page, struct url *url)
 {
-	file->args[1] = strtok(url->filename, ".");
+	page->args[1] = strtok(url->filename, ".");
 }
 
-static void init_player_graph(struct file *file, struct url *url)
+static void init_page_player(struct page *page, struct url *url)
 {
-	file->args[1] = url->dirs[url->ndirs - 1];
+	page->args[1] = strtok(url->filename, ".");
 }
 
-static void init_search_file(struct file *file, struct url *url)
+static void init_page_graph(struct page *page, struct url *url)
+{
+	page->args[1] = url->dirs[url->ndirs - 1];
+}
+
+static void init_page_search(struct page *page, struct url *url)
 {
 	if (url->nargs != 1)
 		error(400, "Missing 'q' parameter\n");
@@ -146,35 +142,42 @@ static void init_search_file(struct file *file, struct url *url)
 	if (!url->args[0].val)
 		error(400, "'q' parameter must have a value\n");
 
-	file->args[1] = url->args[0].val;
+	page->args[1] = url->args[0].val;
+}
+
+#define PAGE(filename, pagename) { \
+	filename, { "teerank-page-" #pagename }, init_page_##pagename, page_##pagename##_main \
 }
 
 static const struct directory root = {
-	"", (struct file[]) {
-		{ "about.html", { "teerank-page-about" }, NULL },
-		{ "search",     { "teerank-page-search" }, init_search_file },
+	"", (struct page[]) {
+		PAGE("about.html", about),
+		PAGE("search", search),
 		{ NULL }
 	}, (struct directory[]) {
-		{ "pages", (struct file[]) {
-				{ NULL, { "teerank-page-rank-page" }, init_default_page_file },
+		{
+			"pages", (struct page[]) {
+				PAGE(NULL, rank_page),
 				{ NULL }
-			}, NULL },
-		{ "clans", (struct file[]) {
-				{ NULL, { "teerank-page-clan" }, init_default_clan_file },
+			}, NULL
+		}, {
+			"clans", (struct page[]) {
+				PAGE(NULL, clan),
 				{ NULL }
-			}, NULL },
-		{ "players", (struct file[]) {
-				{ NULL, { "teerank-page-player" }, init_default_player_file },
+			}, NULL
+		}, {
+			"players", (struct page[]) {
+				PAGE(NULL, player),
 				{ NULL }
 			}, (struct directory[]) {
-				{ NULL, (struct file[]) {
-						{ "elo+rank.svg", { "teerank-page-graph" }, init_player_graph },
+				{
+					NULL, (struct page[]) {
+						PAGE("elo+rank.svg", graph),
 						{ NULL }
-					}, NULL },
-				{ NULL }
+					}, NULL
+				}
 			}
-		},
-		{ NULL }
+		}
 	}
 };
 
@@ -191,38 +194,38 @@ static struct directory *find_directory(const struct directory *parent, char *na
 				return dir;
 
 		/* Fallback on default directory, if any */
-		if (dir->files)
+		if (dir->pages)
 			return dir;
 	}
 
 	return NULL;
 }
 
-static struct file *find_file(const struct directory *dir, char *name)
+static struct page *find_page(const struct directory *dir, char *name)
 {
-	struct file *file;
+	struct page *page;
 
 	assert(dir != NULL);
 	assert(name != NULL);
 
-	if (!dir->files)
+	if (!dir->pages)
 		return NULL;
 
-	for (file = dir->files; file->name; file++)
-		if (!strcmp(file->name, name))
-			return file;
+	for (page = dir->pages; page->name; page++)
+		if (!strcmp(page->name, name))
+			return page;
 
-	/* Fallback on default file, if any */
-	if (!file->name && file->args[0])
-		return file;
+	/* Fallback on default page, if any */
+	if (!page->name && page->args[0])
+		return page;
 
 	return NULL;
 }
 
-char **do_route(char *uri, char *query)
+struct page *do_route(char *uri, char *query)
 {
 	const struct directory *dir = &root;
-	struct file *file = NULL;
+	struct page *page = NULL;
 	struct url url;
 	unsigned i;
 
@@ -233,11 +236,11 @@ char **do_route(char *uri, char *query)
 			error(404, NULL);
 	}
 
-	if (!(file = find_file(dir, url.filename)))
+	if (!(page = find_page(dir, url.filename)))
 		error(404, NULL);
 
-	if (file->init)
-		file->init(file, &url);
+	if (page->init)
+		page->init(page, &url);
 
-	return file->args;
+	return page;
 }

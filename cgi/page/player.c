@@ -3,18 +3,18 @@
 #include <assert.h>
 #include <string.h>
 
+#include "cgi.h"
 #include "config.h"
 #include "html.h"
 #include "player.h"
 
-int main(int argc, char **argv)
+int page_player_main(int argc, char **argv)
 {
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
 	const char *hexname;
 	struct player player;
 	enum read_player_ret ret;
 
-	load_config(0);
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <player_name>\n", argv[0]);
 		return EXIT_FAILURE;

@@ -5,6 +5,7 @@
 #include <libgen.h>
 #include <string.h>
 
+#include "cgi.h"
 #include "config.h"
 #include "html.h"
 #include "player.h"
@@ -22,13 +23,12 @@ static int cmp_player(const void *p1, const void *p2)
 	return 0;
 }
 
-int main(int argc, char **argv)
+int page_clan_main(int argc, char **argv)
 {
 	struct clan clan;
 	unsigned missing_members, i;
 	char clan_name[NAME_LENGTH];
 
-	load_config(0);
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <clan_name>\n", argv[0]);
 		return EXIT_FAILURE;

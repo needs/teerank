@@ -39,6 +39,7 @@ static void static_alloc_historics(struct player *player)
 	static struct player_record record_data[1];
 
 	player->hist.records = records;
+	player->hist.nrecords = 0;
 	player->hist.data = &record_data;
 	player->hist.length = 1;
 	player->hist.epoch = time(NULL);

@@ -19,32 +19,6 @@
 #include "player.h"
 #include "historic.h"
 
-/*
- * Internally historics record buffer and data buffer are allocated on
- * the heap using malloc().  However we know that only a single record
- * will be stored in those historics.  hence we will manually set
- * those buffers to static storage.
- *
- * It's definitively a hack but it will speed up things and will not
- * require alloc_historic() from historic.c to be exposed in the
- * header just because we exclusively need it here.
- *
- * It basically speed up the process because malloc() is expensive.
- * However since allocated buffers are reused when using the same
- * struct player for different players, it is not that much of a gain.
- */
-static void static_alloc_historics(struct player *player)
-{
-	static struct record records[1];
-	static struct player_record record_data[1];
-
-	player->hist.records = records;
-	player->hist.nrecords = 0;
-	player->hist.data = &record_data;
-	player->hist.length = 1;
-	player->hist.epoch = time(NULL);
-}
-
 static int read_old_player(struct player *player, char *name)
 {
 	static char path[PATH_MAX];
@@ -86,7 +60,7 @@ static int read_old_player(struct player *player, char *name)
 
         strcpy(player->name, name);
 
-        static_alloc_historics(player);
+        create_historic(&player->hist);
 
         rec.elo = player->elo;
         rec.rank = player->rank;

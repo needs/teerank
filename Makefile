@@ -73,9 +73,19 @@ teerank-upgrade-4-to-5: $(patsubst %.c,%.o,$(wildcard upgrade/4-to-5/*.c))
 # following rule define how to build this program...
 build/generate-default-config: build/generate-default-config.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
-# ...and use it to generate a header for scripts
+
+# This generate a header prepended to every scripts.  This header set
+# default values for configuration variables as well as adding the
+# current working directory to the PATH.  This is done so that scripts
+# will use binaries in the same directory in priority.
+#
+# Hence doing ./teerank-update for instance will have the desired, as
+# it wont use system wide installed binaries (if any).  And doing
+# teerank-update in the same directory will use system wide installed
+# binaries, as expected too.
 generated/script-header.inc.sh: build/generate-default-config
 	@echo "#!/bin/sh" >$@
+	@echo 'PATH="$$(dirname $$BASH_SOURCE):$$PATH"' >>$@
 	./$< >>$@
 
 $(UPGRADE_SCRIPTS): teerank-upgrade-%: upgrade/%.sh

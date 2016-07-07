@@ -2,8 +2,6 @@
 
 set -e
 
-export PATH=.:"$PATH"
-
 teerank-init
 teerank-add-new-servers
 teerank-remove-offline-servers 1

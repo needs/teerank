@@ -43,19 +43,19 @@ release: $(BINS) $(SCRIPTS) $(CGI)
 # Binaries
 #
 
-# config.c use version constants defined here
-core/config.o: Makefile
-
 # Object files
 core_objs = $(patsubst %.c,%.o,$(wildcard core/*.c))
-page_objs = $(patsubst %.c,%.o,$(wildcard cgi/page/*.c)) cgi/html.o cgi/route.o
+page_objs = $(patsubst %.c,%.o,$(wildcard cgi/*.o) $(wildcard cgi/page/*.c))
 
 # Header file dependancies
 core_headers = $(wildcard core/*.h)
-page_headers = cgi/html.h
+page_headers = $(wildcard cgi/*.h)
 
 $(core_objs): $(core_headers)
-$(page_objs): $(page_headers)
+$(page_objs): $(page_headers) $(core_headers)
+
+# config.c use version constants defined here
+$(core_objs): Makefile
 
 $(BINS): $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^

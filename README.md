@@ -11,52 +11,50 @@ How to build
 make
 ```
 
+You may want to build a version opimized for your own server using:
+
+```bash
+make -B release
+```
+
 How to use
 ==========
 
-Teerank generate HTML files from a database.  So in order to get the
-HTML files, you must create and fill a database.  This is done by
-running:
+Teerank is split in two parts: a set of program to populate a database,
+and a CGI as a user interface for the database.
+
+To populate the database, use `teerank-update`.
 
 ```bash
 ./teerank-update
 ```
 
-It puts the database in `./.teerank` by default, check it out!
-Then, use teerank.cgi to generate some HTML pages:
+Call it within regular intervals so that you can rank players over time:
 
 ```bash
-PATH=. PATH_INFO=/pages/1.html ./teerank.cgi
+while true; do ./teerank-update & sleep 300; done
 ```
 
-In order to have the CSS, you have to start a webserver at the root of your
-git repository.  Here is a simple way of doing it:
+By default, database is generated in `.teerank`, you can overide this
+setting using `$TEERANK_ROOT`.  You can also enable verbose mode which
+should give more insight on what's going on.
 
 ```bash
-python -m http.server &
+TEERANK_ROOT=/var/lib/teerank TEERANK_VERBOSE=1 ./teerank-update
 ```
 
-You can then see the previously generated page in your browser:
+Setting up CGI
+==============
+
+First off, it is recommended to install teerank system-wide using:
 
 ```bash
-firefox http://localhost:8000/pages/1.html
+make install
 ```
 
-Advanced use
-============
-
-To update continuesly the database, use something like:
-
-```bash
-while true; do ./teerank-update; sleep 300; done
-```
-
-You may want to use teerank.cgi as a CGI.  That way, pages will be
-generated on demand, and then cached for further reuse if the database
-hasn't changed.
-
-First, install teerank on your system using `make install`.  Then
-configure you webserver.  Here is an example for nginx, with FastCGI.
+Then configure your webserver to use installed cgi (by default in
+`/usr/share/webapps/teerank`).  here is an example for Nginx, assuming
+database is located at `/var/lib/teerank`.
 
 ```
 http {
@@ -71,7 +69,6 @@ http {
 			include       fastcgi_params;
 
 			fastcgi_param TEERANK_ROOT       /var/lib/teerank;
-			fastcgi_param TEERANK_CACHE_ROOT /var/cache/teerank;
 
 			fastcgi_param SCRIPT_FILENAME $document_root/teerank.cgi;
 			fastcgi_pass  unix:/run/fcgiwrap.sock;
@@ -79,16 +76,6 @@ http {
 	}
 }
 ```
-
-The environement variables `$TEERANK_ROOT` must point to the database,
-and `$TEERANK_CACHE_ROOT` the were cached files will be stored.  Be
-sure to run `teerank-update` with the appropriate values:
-
-```bash
-TEERANK_ROOT=/var/lib/teerank teerank-update
-```
-
-You may have to change permission to get it working.
 
 Tips
 ====
@@ -100,14 +87,19 @@ system-wide:
 makepkg -i BUILDDIR=/tmp/makepkg
 ```
 
-You can enable verbose output by setting `TEERANK_VERBOSE`.
+Setting up a CGI for developpement may be cumbursome, you can actually
+simulate CGI environement with the command line, like so:
 
-```sh
-TEERANK_VERBOSE=1 ./teerank-update
+```bash
+DOCUMENT_URI="/search" QUERY_STRING="q=Nameless" ./teerank.cgi >assets/test.html
 ```
 
-Verbose output give some insight on what's going on when you run a
-binary.  It aim to help newcomer to dig in the code.
+Launch a lightweight server in `assets/` to then access the generated
+page at [localhost:8000/test.html](http://localhost:8000/test.html):
+
+```bash
+cd assets && python -m http.server &
+```
 
 Contributing
 ============

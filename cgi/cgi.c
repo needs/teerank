@@ -63,7 +63,7 @@ void error(int code, char *fmt, ...)
  * content of fd, we need to fdopen() it, and it can fail.  If that fail
  * we want to print an error.
  */
-static int dump(int status, int fd, FILE *copy)
+static int dump(int status, const char *content_type, int fd, FILE *copy)
 {
 	FILE *file;
 	int c;
@@ -74,7 +74,7 @@ static int dump(int status, int fd, FILE *copy)
 		error(500, "fdopen(): %s\n", strerror(errno));
 
 	if (status == 200)
-		printf("Content-Type: text/html\n\n");
+		printf("Content-Type: %s\n\n", content_type);
 	else
 		print_error(status);
 
@@ -171,13 +171,13 @@ static int generate(struct page *page)
 	close(stderr_save);
 
 	if (ret == EXIT_SUCCESS)
-		return dump(200, out[0], NULL);
+		return dump(200, page->content_type, out[0], NULL);
 	else if (ret == EXIT_FAILURE)
-		return dump(500, err[0], stderr);
+		return dump(500, NULL, err[0], stderr);
 	else if (ret == EXIT_NOT_FOUND)
-		return dump(404, err[0], stderr);
+		return dump(404, NULL, err[0], stderr);
 	else
-		return dump(500, err[0], stderr);
+		return dump(500, NULL, err[0], stderr);
 
 	return 1;
 }

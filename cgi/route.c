@@ -145,34 +145,39 @@ static void init_page_search(struct page *page, struct url *url)
 	page->args[1] = url->args[0].val;
 }
 
-#define PAGE(filename, pagename) { \
-	filename, { "teerank-page-" #pagename }, init_page_##pagename, page_##pagename##_main \
+#define PAGE_HTML(filename, pagename) {                                 \
+	filename, { "teerank-page-" #pagename }, "text/html",           \
+	init_page_##pagename, page_##pagename##_main                    \
+}
+#define PAGE_SVG(filename, pagename) {                                  \
+	filename, { "teerank-page-" #pagename }, "text/svg",            \
+	init_page_##pagename, page_##pagename##_main                    \
 }
 
 static const struct directory root = {
 	"", (struct page[]) {
-		PAGE("about.html", about),
-		PAGE("search", search),
+		PAGE_HTML("about.html", about),
+		PAGE_HTML("search", search),
 		{ NULL }
 	}, (struct directory[]) {
 		{
 			"pages", (struct page[]) {
-				PAGE(NULL, rank_page),
+				PAGE_HTML(NULL, rank_page),
 				{ NULL }
 			}, NULL
 		}, {
 			"clans", (struct page[]) {
-				PAGE(NULL, clan),
+				PAGE_HTML(NULL, clan),
 				{ NULL }
 			}, NULL
 		}, {
 			"players", (struct page[]) {
-				PAGE(NULL, player),
+				PAGE_HTML(NULL, player),
 				{ NULL }
 			}, (struct directory[]) {
 				{
 					NULL, (struct page[]) {
-						PAGE("elo+rank.svg", graph),
+						PAGE_SVG("elo+rank.svg", graph),
 						{ NULL }
 					}, NULL
 				}

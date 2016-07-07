@@ -12,6 +12,8 @@ struct page {
 	char *name;
 	char *args[MAX_ARGS];
 
+	const char *content_type;
+
 	init_func_t init;
 	page_func_t main;
 };

@@ -29,6 +29,8 @@ BINS = $(UPGRADE_BINS) $(BUILTINS_BINS)
 
 CGI = teerank.cgi
 
+$(shell mkdir -p generated)
+
 # Add debugging symbols and optimizations to check for more warnings
 debug: CFLAGS += -O -g
 debug: $(BINS) $(SCRIPTS) $(CGI)
@@ -72,14 +74,14 @@ teerank-upgrade-4-to-5: $(patsubst %.c,%.o,$(wildcard upgrade/4-to-5/*.c))
 build/generate-default-config: build/generate-default-config.o $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 # ...and use it to generate a header for scripts
-build/script-header.inc.sh: build/generate-default-config
+generated/script-header.inc.sh: build/generate-default-config
 	@echo "#!/bin/sh" >$@
 	./$< >>$@
 
 $(UPGRADE_SCRIPTS): teerank-upgrade-%: upgrade/%.sh
 $(BUILTINS_SCRIPTS): teerank-%: builtin/%.sh
 
-$(SCRIPTS): build/script-header.inc.sh
+$(SCRIPTS): generated/script-header.inc.sh
 	cat $^ >$@ && chmod +x $@
 
 #
@@ -96,7 +98,8 @@ $(CGI): cgi/cgi.o cgi/route.o $(core_objs) $(page_objs)
 clean:
 	rm -f core/*.o builtin/*.o cgi/*.o cgi/page/*.o build/*.o
 	rm -f $(BINS) $(SCRIPTS) $(CGI)
-	rm -f build/script-header.inc.sh build/generate-default-config
+	rm -f generated/script-header.inc.sh build/generate-default-config
+	rm -r generated/
 
 #
 # Install

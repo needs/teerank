@@ -44,7 +44,10 @@ int page_player_main(int argc, char **argv)
 	html("<img src=\"/images/player.png\"/>");
 	html("<section>");
 	html("<h1>%s</h1>", name);
-	html("<p>%s</p>", clan);
+
+	if (*clan)
+		html("<p><a href=\"/clans/%s.html\">%s</a></p>", player.clan, clan);
+
 	html("</section>");
 	html("<p>#%u (%d ELO)</p>", player.rank, player.elo);
 	html("</header>");

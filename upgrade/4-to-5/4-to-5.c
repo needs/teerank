@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <limits.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 
 #include "4-to-5.h"
@@ -22,9 +23,12 @@ static void delete_pages(void)
 	}
 
 	dir = opendir(dirpath);
-	if (dir == NULL) {
+	if (!dir && errno != ENOENT) {
 		perror(dirpath);
 		goto fail;
+	} else if (!dir && errno == ENOENT) {
+		/* Directory is already gone, yay! */
+		return;
 	}
 
 	while ((dp = readdir(dir))) {
@@ -39,7 +43,7 @@ static void delete_pages(void)
 		}
 
 		ret = unlink(path);
-		if (ret == -1) {
+		if (ret == -1 && errno != ENOENT) {
 			perror(path);
 			goto fail;
 		}

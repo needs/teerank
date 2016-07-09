@@ -48,6 +48,15 @@ static void remove_server_directory(const char *sname)
 	if (!remove_server_file(sname, "meta"))
 		goto fail;
 
+	/*
+	 * "infos" files should not exist anymore, however there was a
+	 * way in previous upgrade scripts that an "infos" file will not
+	 * be deleted.  Instead of ignoring it and failing at rmdir(),
+	 * delete it.
+	 */
+	if (!remove_server_file(sname, "infos"))
+		goto fail;
+
 	ret = snprintf(server_dir, PATH_MAX, "%s/servers/%s",
 	               config.root, sname);
 	if (ret >= PATH_MAX) {

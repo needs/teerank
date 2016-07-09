@@ -129,8 +129,7 @@ void create_player(struct player *player, const char *name)
 
 static int skip_player_record(FILE *file, const char *path)
 {
-	fscanf(file, " %*d %*u");
-	return 1;
+	return fscanf(file, " %*d %*u") == 0;
 }
 
 static int read_player_record(FILE *file, const char *path, void *buf)

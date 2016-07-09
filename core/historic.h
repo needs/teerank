@@ -63,7 +63,6 @@ struct historic {
 };
 
 typedef int (*read_data_func_t)(FILE *, const char *, void *);
-typedef int (*skip_data_func_t)(FILE *, const char *);
 typedef int (*write_data_func_t)(FILE *, const char *, void *);
 
 /**
@@ -175,7 +174,6 @@ struct historic_summary {
  *
  * @return 1 on success, 0 on failure
  */
-int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path,
-                          skip_data_func_t skip_data);
+int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path);
 
 #endif /* HISTORIC_H */

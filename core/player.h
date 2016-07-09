@@ -214,6 +214,6 @@ struct player_summary {
  * @param ps Player summary to be read
  * @param name Name of the player to read
  */
-int read_player_summary(struct player_summary *ps, char *name);
+int read_player_summary(struct player_summary *ps, const char *name);
 
 #endif /* PLAYER_H */

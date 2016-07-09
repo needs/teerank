@@ -109,20 +109,6 @@ static int read_record(FILE *file, const char *path, time_t epoch, struct record
 	return 1;
 }
 
-static int skip_record(FILE *file, const char *path, skip_data_func_t skip_data)
-{
-	int ret;
-
-	errno = 0;
-	ret = fscanf(file, " %*u");
-	if (ret == EOF && errno != 0)
-		return perror(path), 0;
-	if (skip_data(file, path) == 0)
-		return 0;
-
-	return 1;
-}
-
 static int read_historic_header(FILE *file, const char *path,
                                 unsigned *nrecords, time_t *epoch)
 {
@@ -281,24 +267,23 @@ int append_record(struct historic *hist, const void *data)
 	return 1;
 }
 
-int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path,
-                          skip_data_func_t skip_data)
+static void skip_records(FILE *file)
 {
-	unsigned i;
+	int c;
 
+	do
+		c = fgetc(file);
+	while (c != EOF && c != '\n');
+}
+
+int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path)
+{
 	if (read_historic_header(file, path, &hs->nrecords, &hs->epoch) == 0)
 		return 0;
 
         if (hs->nrecords == 0)
 	        return 1;
 
-        /* Skip remaning records */
-        for (i = 0; i < hs->nrecords; i++) {
-	        if (i != 0)
-		        fscanf(file, ", ");
-	        if (skip_record(file, path, skip_data) == 0)
-		        return 0;
-        }
-
+        skip_records(file);
         return 1;
 }

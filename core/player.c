@@ -127,11 +127,6 @@ void create_player(struct player *player, const char *name)
 	player->is_modified = IS_MODIFIED_CREATED;
 }
 
-static int skip_player_record(FILE *file, const char *path)
-{
-	return fscanf(file, " %*d %*u") == 0;
-}
-
 static int read_player_record(FILE *file, const char *path, void *buf)
 {
 	int ret;
@@ -357,7 +352,7 @@ static int read_player_summary_header(
 	return 1;
 }
 
-int read_player_summary(struct player_summary *ps, char *name)
+int read_player_summary(struct player_summary *ps, const char *name)
 {
 	FILE *file = NULL;
 	char *path;
@@ -374,7 +369,7 @@ int read_player_summary(struct player_summary *ps, char *name)
 
 	if (!read_player_summary_header(file, path, ps))
 		goto fail;
-	if (!read_historic_summary(&ps->hist, file, path, skip_player_record))
+	if (!read_historic_summary(&ps->hist, file, path))
 		goto fail;
 
 	fclose(file);

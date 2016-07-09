@@ -9,4 +9,3 @@
  */
 STRING("TEERANK_ROOT", ".teerank", root)
 BOOL("TEERANK_VERBOSE", 0, verbose)
-BOOL("TEERANK_DEBUG", 0, debug)

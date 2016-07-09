@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <time.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "4-to-5.h"
 #include "config.h"
@@ -22,7 +23,7 @@
 static int read_old_player(struct player *player, char *name)
 {
 	static char path[PATH_MAX];
-        FILE *file;
+        FILE *file = NULL;
         int ret;
         struct player_record rec;
 
@@ -33,11 +34,13 @@ static int read_old_player(struct player *player, char *name)
 	if (snprintf(path, PATH_MAX, "%s/players/%s",
 	             config.root, name) >= PATH_MAX) {
 		fprintf(stderr, "%s: Path too long\n", config.root);
-		return 0;
+		goto fail;
 	}
 
-        if (!(file = fopen(path, "r")))
-	        return perror(path), 0;
+	if (!(file = fopen(path, "r"))) {
+		perror(path);
+		goto fail;
+	}
 
         errno = 0;
         ret = fscanf(file, "%s %d %u\n",
@@ -72,14 +75,36 @@ static int read_old_player(struct player *player, char *name)
          */
         if (!append_record(&player->hist, &rec)) {
 	        fprintf(stderr, "%s: Cannot init player historic\n", path);
-	        return 0;
+	        goto fail;
         }
 
         return 1;
 
 fail:
-        fclose(file);
+        if (file)
+	        fclose(file);
         return 0;
+}
+
+static void remove_player(const char *name)
+{
+	char path[PATH_MAX];
+	int ret;
+
+	ret = snprintf(path, PATH_MAX, "%s/players/%s", config.root, name);
+	if (ret >= PATH_MAX) {
+		fprintf(stderr, "%s: Too long\n", config.root);
+		return;
+	}
+
+	ret = unlink(path);
+
+	/*
+	 * Unlikely but still possible: someone else may have removed
+	 * player right before us, ignore it.
+	 */
+	if (ret == -1 && errno != ENOENT)
+		perror(path);
 }
 
 void upgrade_players(void)
@@ -108,8 +133,10 @@ void upgrade_players(void)
 		if (!is_valid_hexname(dp->d_name))
 			continue;
 
-		if (!read_old_player(&player, dp->d_name))
+		if (!read_old_player(&player, dp->d_name)) {
+			remove_player(dp->d_name);
 			continue;
+		}
 
 		write_player(&player);
 	}

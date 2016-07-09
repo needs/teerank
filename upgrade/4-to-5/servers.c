@@ -140,6 +140,7 @@ static int upgrade_server(const char *sname)
 		perror(state_path);
 		goto fail;
 	} else if (!fstate && errno == ENOENT) {
+		fclose(fmeta);
 		remove_server_directory(sname);
 		return 0;
 	}
@@ -160,9 +161,9 @@ static int upgrade_server(const char *sname)
 	}
 
 	fclose(fmeta);
+	fclose(fdst);
 	if (fstate)
 		fclose(fstate);
-	fclose(fdst);
 
 	remove_server_directory(sname);
 	commit_upgrade(sname, dst_path);

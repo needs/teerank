@@ -162,9 +162,12 @@ unsigned load_members(struct clan *clan)
 {
 	unsigned i;
 	unsigned removed = 0;
+	enum read_player_ret ret;
 
 	for (i = 0; i < clan->length; i++) {
-		if (!read_player_summary(&clan->members[i], clan->members[i].name)) {
+		ret = read_player_summary(&clan->members[i], clan->members[i].name);
+
+		if (ret != PLAYER_FOUND) {
 			remove_member(clan, &clan->members[i]);
 			removed++;
 		}

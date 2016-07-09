@@ -213,7 +213,10 @@ struct player_summary {
  *
  * @param ps Player summary to be read
  * @param name Name of the player to read
+ *
+ * @return PLAYER_FOUND on success, PLAYER_NOT_FOUND when player does
+ *         not exist, PLAYER_ERROR when an error occured.
  */
-int read_player_summary(struct player_summary *ps, const char *name);
+enum read_player_ret read_player_summary(struct player_summary *ps, const char *name);
 
 #endif /* PLAYER_H */

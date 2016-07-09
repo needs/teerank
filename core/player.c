@@ -111,6 +111,14 @@ static void reset_player(struct player *player, const char *name)
 	player->delta = NULL;
 }
 
+static void reset_player_summary(struct player_summary *player, const char *name)
+{
+	strcpy(player->name, name);
+	strcpy(player->clan, "00");
+	player->elo = INVALID_ELO;
+	player->rank = UNRANKED;
+}
+
 void create_player(struct player *player, const char *name)
 {
 	assert(player != NULL);
@@ -352,7 +360,7 @@ static int read_player_summary_header(
 	return 1;
 }
 
-int read_player_summary(struct player_summary *ps, const char *name)
+enum read_player_ret read_player_summary(struct player_summary *ps, const char *name)
 {
 	FILE *file = NULL;
 	char *path;
@@ -360,9 +368,13 @@ int read_player_summary(struct player_summary *ps, const char *name)
 	init_player_summary(ps);
 	strcpy(ps->name, name);
 
+	reset_player_summary(ps, name);
+
 	if (!(path = get_path(name)))
 		goto fail;
 	if (!(file = fopen(path, "r"))) {
+		if (errno == ENOENT)
+			return PLAYER_NOT_FOUND;
 		perror(path);
 		goto fail;
 	}
@@ -373,10 +385,10 @@ int read_player_summary(struct player_summary *ps, const char *name)
 		goto fail;
 
 	fclose(file);
-	return 1;
+	return PLAYER_FOUND;
 
 fail:
 	if (file)
 		fclose(file);
-	return 0;
+	return PLAYER_ERROR;
 }

@@ -181,14 +181,16 @@ static void insert_before(struct list *list, struct result *target, struct resul
 	}
 }
 
-static int get_rank(struct result *result)
+static void try_load_result(struct result *result)
 {
 	if (!result->is_loaded) {
-		read_player_summary(&result->player, result->name);
-		result->is_loaded = 1;
-	}
+		enum read_player_ret ret;
 
-	return result->player.rank;
+		ret = read_player_summary(&result->player, result->name);
+
+		if (ret == PLAYER_FOUND)
+			result->is_loaded = 1;
+	}
 }
 
 static int cmp_results(struct result *a, struct result *b)
@@ -197,12 +199,16 @@ static int cmp_results(struct result *a, struct result *b)
 		return -1;
 	else if (a->relevance > b->relevance)
 		return 1;
-	else if (get_rank(a) > get_rank(b))
+
+	try_load_result(a);
+	try_load_result(b);
+
+	if (a->player.rank > b->player.rank)
 		return -1;
-	else if (get_rank(a) < get_rank(b))
+	else if (a->player.rank < b->player.rank)
 		return 1;
-	else
-		return 0;
+
+	return 0;
 }
 
 static void try_add_result(struct list *list, unsigned relevance, char *name)
@@ -304,8 +310,7 @@ int page_search_main(int argc, char **argv)
 
 		html_start_player_list();
 		for (result = list.first; result; result = result->next) {
-			if (!result->is_loaded)
-				read_player_summary(&result->player, result->name);
+			try_load_result(result);
 			html_print_player(&result->player, 1);
 		}
 		html_end_player_list();

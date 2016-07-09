@@ -71,7 +71,7 @@ static struct player_summary *load_all_players(unsigned *nplayers)
 			continue;
 
 		player = new_player(&players, nplayers);
-		if (!read_player_summary(player, dp->d_name)) {
+		if (read_player_summary(player, dp->d_name) != PLAYER_FOUND) {
 			ignore_newest_player();
 			continue;
 		}

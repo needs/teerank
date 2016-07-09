@@ -83,7 +83,7 @@ static struct player_summary *next_player(struct page *page)
 
 		if (!is_valid_hexname(name))
 			continue;
-		if (read_player_summary(&player, name) == 0)
+		if (read_player_summary(&player, name) != PLAYER_FOUND)
 			continue;
 
 		return &player;

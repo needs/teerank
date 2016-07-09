@@ -140,7 +140,7 @@ static void init_page_search(struct page *page, struct url *url)
 	if (strcmp(url->args[0].name, "q") != 0)
 		error(400, "First and only parameter should be named 'q'\n");
 	if (!url->args[0].val)
-		error(400, "'q' parameter must have a value\n");
+		url->args[0].val = "";
 
 	page->args[1] = url->args[0].val;
 }

@@ -150,7 +150,7 @@ static void init_page_search(struct page *page, struct url *url)
 	init_page_##pagename, page_##pagename##_main                    \
 }
 #define PAGE_SVG(filename, pagename) {                                  \
-	filename, { "teerank-page-" #pagename }, "text/svg",            \
+	filename, { "teerank-page-" #pagename }, "image/svg+xml",       \
 	init_page_##pagename, page_##pagename##_main                    \
 }
 

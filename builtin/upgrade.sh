@@ -30,7 +30,10 @@ fi
 backup="teerank.$version.upgrade-backup.tar.gz"
 
 echo "Creating backup \"$backup\""
-tar czf "$backup" "$TEERANK_ROOT"
+tar czf "$backup" "$TEERANK_ROOT" || {
+	echo "Cannot create backup, aborting"
+	exit 1
+}
 
 while (( version < $DATABASE_VERSION )); do
         echo "Upgrading from $version to $((version + 1))..."

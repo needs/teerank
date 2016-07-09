@@ -11,7 +11,7 @@
  *
  * Historics must be initialized before any other uses:
  *
- *	init_historic(&hist, sizeof(player->elo), UINT_MAX, 0);
+ *	init_historic(&hist, sizeof(player->elo), UINT_MAX);
  *
  * Historics needs to be initialized only once, hence the following
  * exmaple usage can be run again without calling init_historic()
@@ -50,7 +50,6 @@ struct record {
  */
 struct historic {
 	time_t epoch;
-	time_t timestep;
 
 	unsigned nrecords;
 	unsigned max_records;
@@ -77,20 +76,15 @@ typedef int (*write_data_func_t)(FILE *, const char *, void *);
  * create_historic() or read_historic() needs to be made in order to
  * allocate buffer and fille them with data.
  *
- * Timestep is the minimum time gap between two records.  Except for
- * the very last record, which can have any timestamp without any
- * constraints.
- *
  * Use UINT_MAX from limits.h if you want no limits on the maximum
  * number of records.
  *
  * @param hist Historic to initialize
  * @param data_size Data size in historic, used for buffer allocation
  * @param max_records Maximum number of records
- * @param timestep Minimum time gap between two records
  */
 void init_historic(struct historic *hist, size_t data_size,
-                   unsigned max_records, time_t timestep);
+                   unsigned max_records);
 
 /**
  * Create a fresh, empty, historic.

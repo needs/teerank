@@ -7,7 +7,7 @@
 #include "historic.h"
 
 void init_historic(struct historic *hist, size_t data_size,
-                   unsigned max_records, time_t timestep)
+                   unsigned max_records)
 {
 	static const struct historic HISTORIC_ZERO;
 
@@ -17,7 +17,6 @@ void init_historic(struct historic *hist, size_t data_size,
 
 	*hist = HISTORIC_ZERO;
 	hist->data_size = data_size;
-	hist->timestep = timestep;
 	hist->max_records = max_records;
 }
 
@@ -268,42 +267,16 @@ void *record_data(struct historic *hist, struct record *record)
 	return (char*)hist->data + (record - hist->records) * hist->data_size;
 }
 
-static int same_timeframe(time_t a, time_t b, time_t timestep)
-{
-	if (timestep)
-		return a / timestep == b / timestep;
-	else
-		return a == b;
-}
-
-static time_t next_timeframe(time_t t, time_t timestep)
-{
-	if (timestep)
-		return (t - (t % timestep)) + timestep;
-	else
-		return t;
-}
-
 int append_record(struct historic *hist, const void *data)
 {
-	struct record *last;
+	struct record *rec;
 	time_t now = time(NULL);
 
 	assert(hist != NULL);
 
-	last = hist->last;
-
-	if (!last) {
-		last = new_record(hist);
-	} else if (!same_timeframe(last->time, now, hist->timestep)) {
-		last->time = next_timeframe(last->time, hist->timestep);
-		last = new_record(hist);
-	}
-
-	assert(last != NULL);
-
-	last->time = now;
-	memcpy(record_data(hist, last), data, hist->data_size);
+	rec = new_record(hist);
+	rec->time = now;
+	memcpy(record_data(hist, rec), data, hist->data_size);
 
 	return 1;
 }

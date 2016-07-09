@@ -82,7 +82,7 @@ void init_player(struct player *player)
 	static const struct player PLAYER_ZERO;
 	*player = PLAYER_ZERO;
 
-	init_historic(&player->hist, sizeof(struct player_record),  UINT_MAX, 0);
+	init_historic(&player->hist, sizeof(struct player_record),  UINT_MAX);
 }
 
 static char *get_path(const char *name)

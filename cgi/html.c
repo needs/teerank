@@ -170,7 +170,7 @@ void html_header(const struct tab *active, char *title, char *search)
 	html("<html>");
 	html("<head>");
 	html("<meta charset=\"utf-8\"/>");
-	html("<title>Teerank - %s</title>", escape(title));
+	html("<title>%s - Teerank</title>", escape(title));
 
 	html("<link rel=\"stylesheet\" href=\"/style.css\"/>");
 	html("</head>");

@@ -45,7 +45,7 @@ release: $(BINS) $(SCRIPTS) $(CGI)
 
 # Object files
 core_objs = $(patsubst %.c,%.o,$(wildcard core/*.c))
-page_objs = $(patsubst %.c,%.o,$(wildcard cgi/*.o) $(wildcard cgi/page/*.c))
+page_objs = $(patsubst %.c,%.o,$(wildcard cgi/*.c) $(wildcard cgi/page/*.c))
 
 # Header file dependancies
 core_headers = $(wildcard core/*.h)

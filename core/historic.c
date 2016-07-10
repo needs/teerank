@@ -129,6 +129,7 @@ static int read_historic_header(FILE *file, const char *path,
 	return 1;
 }
 
+/* Can never fail */
 static struct record *new_record(struct historic *hist)
 {
 	assert(hist != NULL);
@@ -253,7 +254,7 @@ void *record_data(struct historic *hist, struct record *record)
 	return (char*)hist->data + (record - hist->records) * hist->data_size;
 }
 
-int append_record(struct historic *hist, const void *data)
+void append_record(struct historic *hist, const void *data)
 {
 	struct record *rec;
 	time_t now = time(NULL);
@@ -263,8 +264,6 @@ int append_record(struct historic *hist, const void *data)
 	rec = new_record(hist);
 	rec->time = now;
 	memcpy(record_data(hist, rec), data, hist->data_size);
-
-	return 1;
 }
 
 static void skip_records(FILE *file)

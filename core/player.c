@@ -298,19 +298,28 @@ fail:
 	return 0;
 }
 
-int set_elo(struct player *player, int elo)
+void set_elo(struct player *player, int elo)
 {
-	struct player_record rec;
+	struct player_record *last;
 
 	assert(player != NULL);
-
-	rec.elo = elo;
-	rec.rank = UNRANKED;
 
 	player->elo = elo;
 	player->is_modified |= IS_MODIFIED_ELO;
 
-	return append_record(&player->hist, &rec);
+	last = (struct player_record*)player->hist.last;
+
+	if (last && last->rank == UNRANKED) {
+		last->elo = elo;
+	} else {
+		struct player_record rec;
+
+		rec.elo = elo;
+		rec.rank = UNRANKED;
+
+		append_record(&player->hist, &rec);
+	}
+
 }
 
 void set_rank(struct player *player, unsigned rank)

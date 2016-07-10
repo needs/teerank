@@ -157,16 +157,16 @@ enum read_player_ret read_player(struct player *player, const char *name);
 int write_player(struct player *player);
 
 /**
- * Change current elo point of the given player.  Add a record to
- * historic.  It may fail because adding a record may need a
- * realloc().  Rank field of the new record is set to UNRANKED.
+ * Change current elo point of the given player.
+ *
+ * If last record is UNRANKED, it does not add a new record to the
+ * historic but rather update its elo value.  When the last record is
+ * already ranked, it just add a new record with UNRANKED as rank.
  *
  * @param player Player to update elo
  * @param elo New elo value for the given player
- *
- * @return 1 on success, 0 on failure
  */
-int set_elo(struct player *player, int elo);
+void set_elo(struct player *player, int elo);
 
 /**
  * Change current rank of the given player.  If the new last record's

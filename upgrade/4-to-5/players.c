@@ -67,16 +67,7 @@ static int read_old_player(struct player *player, char *name)
 
         rec.elo = player->elo;
         rec.rank = player->rank;
-
-        /*
-         * Error message refers to "init" despite initialization phase is
-         * finish because technically an empty historic is not considered
-         * as initialized.
-         */
-        if (!append_record(&player->hist, &rec)) {
-	        fprintf(stderr, "%s: Cannot init player historic\n", path);
-	        goto fail;
-        }
+        append_record(&player->hist, &rec);
 
         return 1;
 

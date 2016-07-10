@@ -141,18 +141,12 @@ int write_historic(struct historic *hist, FILE *file, const char *path,
 void *record_data(struct historic *hist, struct record *record);
 
 /**
- * Add a record at the end of the given historic
- *
- * Supplied data are copied back to the buffer pointed by hist->last_data.
- * Failure can happen because we may realloc() data buffer and record buffer
- * if they are too small to contain the new record.
+ * Add a record at the end of the given historic.
  *
  * @param hist Historic where the data must be added
  * @param data Data to be recorded
- *
- * @return 1 on success, 0 on failure
  */
-int append_record(struct historic *hist, const void *data);
+void append_record(struct historic *hist, const void *data);
 
 /**
  * @struct historic_summary

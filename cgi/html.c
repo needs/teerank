@@ -15,6 +15,15 @@ void html(const char *fmt, ...)
 	va_end(ap);
 }
 
+void xml(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+}
+
 void svg(const char *fmt, ...)
 {
 	va_list ap;
@@ -52,7 +61,7 @@ static void print(const char *fmt, va_list ap)
 	putchar('\n');
 }
 
-static void xml(const char *fmt, va_list ap)
+static void _xml(const char *fmt, va_list ap)
 {
 	int opening_tag = 0, closing_tag = 0;
 	size_t len = strlen(fmt);
@@ -95,7 +104,16 @@ void html(const char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	xml(fmt, ap);
+	_xml(fmt, ap);
+	va_end(ap);
+}
+
+void xml(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	_xml(fmt, ap);
 	va_end(ap);
 }
 
@@ -104,7 +122,7 @@ void svg(const char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	xml(fmt, ap);
+	_xml(fmt, ap);
 	va_end(ap);
 }
 

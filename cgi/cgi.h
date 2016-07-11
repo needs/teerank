@@ -22,5 +22,6 @@ int page_player_main(int argc, char **argv);
 int page_search_main(int argc, char **argv);
 int page_rank_page_main(int argc, char **argv);
 int page_robots_main(int argc, char **argv);
+int page_sitemap_main(int argc, char **argv);
 
 #endif /* CGI_H */

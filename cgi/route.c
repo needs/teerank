@@ -149,12 +149,20 @@ static void init_page_robots(struct page *page, struct url *url)
 {
 }
 
+static void init_page_sitemap(struct page *page, struct url *url)
+{
+}
+
 #define PAGE_HTML(filename, pagename) {                                 \
 	filename, { "teerank-page-" #pagename }, "text/html",           \
 	init_page_##pagename, page_##pagename##_main                    \
 }
 #define PAGE_TXT(filename, pagename) {                                  \
 	filename, { "teerank-page-" #pagename }, "text/plain",          \
+	init_page_##pagename, page_##pagename##_main                    \
+}
+#define PAGE_XML(filename, pagename) {                                  \
+	filename, { "teerank-page-" #pagename }, "text/xml",            \
 	init_page_##pagename, page_##pagename##_main                    \
 }
 #define PAGE_SVG(filename, pagename) {                                  \
@@ -167,6 +175,7 @@ static const struct directory root = {
 		PAGE_HTML("about.html", about),
 		PAGE_HTML("search", search),
 		PAGE_TXT("robots.txt", robots),
+		PAGE_XML("sitemap.xml", sitemap),
 		{ NULL }
 	}, (struct directory[]) {
 		{

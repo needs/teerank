@@ -300,14 +300,15 @@ fail:
 
 void set_elo(struct player *player, int elo)
 {
-	struct player_record *last;
+	struct player_record *last = NULL;
 
 	assert(player != NULL);
 
 	player->elo = elo;
 	player->is_modified |= IS_MODIFIED_ELO;
 
-	last = (struct player_record*)player->hist.last;
+	if (player->hist.last)
+		last = record_data(&player->hist, player->hist.last);
 
 	if (last && last->rank == UNRANKED) {
 		last->elo = elo;
@@ -319,7 +320,6 @@ void set_elo(struct player *player, int elo)
 
 		append_record(&player->hist, &rec);
 	}
-
 }
 
 void set_rank(struct player *player, unsigned rank)

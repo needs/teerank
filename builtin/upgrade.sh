@@ -30,7 +30,7 @@ fi
 backup="teerank.$version.upgrade-backup.tar.gz"
 
 echo "Creating backup \"$backup\""
-tar czf "$backup" "$TEERANK_ROOT" || {
+tar czfC "$backup" "$TEERANK_ROOT" . || {
 	echo "Cannot create backup, aborting"
 	exit 1
 }
@@ -44,7 +44,7 @@ while (( version < $DATABASE_VERSION )); do
 
 		# We could use rm -r but I'm actually afraid of any
 		# mistake that will delete the wrong directory
-		tar xzf "$backup"
+		tar xzf "$backup" -C "$TEERANK_ROOT"
 		rm "$backup"
 
 		exit 1

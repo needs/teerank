@@ -190,6 +190,7 @@ void html_header(const struct tab *active, char *title, char *search)
 	html("<meta charset=\"utf-8\"/>");
 	html("<title>%s - Teerank</title>", escape(title));
 
+	html("<meta name=\"description\" content=\"Teerank is a simple and fast ranking system for teeworlds.\"/>");
 	html("<link rel=\"stylesheet\" href=\"/style.css\"/>");
 	html("</head>");
 	html("<body>");

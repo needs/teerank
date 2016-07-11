@@ -17,6 +17,10 @@
 #include "route.h"
 #include "cgi.h"
 
+struct cgi_config cgi_config = {
+	"teerank.com", "80"
+};
+
 static char *reason_phrase(int code)
 {
 	switch (code) {
@@ -208,6 +212,30 @@ static char *get_query(void)
 	return query;
 }
 
+static void load_cgi_config(void)
+{
+	const char *tmp, *port = NULL;
+	int ret;
+
+	if ((tmp = getenv("SERVER_NAME")))
+		cgi_config.name = tmp;
+	if ((tmp = getenv("SERVER_PORT")))
+		cgi_config.port = tmp;
+
+	if (!cgi_config.name)
+		fprintf(stderr, "Warning, SERVER_NAME not set, defaulting to \"teerank.com\"\n");
+
+	if (strcmp(cgi_config.port, "80") != 0)
+		port = cgi_config.port;
+
+	ret = snprintf(
+		cgi_config.domain, MAX_DOMAIN_LENGTH, "%s%s%s",
+		cgi_config.name, port ? ":" : "", port ? port : "");
+
+	if (ret >= MAX_DOMAIN_LENGTH)
+		error(414, "%s: Server name too long", cgi_config.name);
+}
+
 int main(int argc, char **argv)
 {
 	/*
@@ -218,6 +246,13 @@ int main(int argc, char **argv)
 	 * non-existent.
 	 */
 	load_config(1);
+
+	/*
+	 * A lot of page doesn't use cgi_config structure.  We still
+	 * load it because that way a mis-configuration are catched as
+	 * soon as possible.
+	 */
+	load_cgi_config();
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);

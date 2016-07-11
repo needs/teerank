@@ -145,8 +145,16 @@ static void init_page_search(struct page *page, struct url *url)
 	page->args[1] = url->args[0].val;
 }
 
+static void init_page_robots(struct page *page, struct url *url)
+{
+}
+
 #define PAGE_HTML(filename, pagename) {                                 \
 	filename, { "teerank-page-" #pagename }, "text/html",           \
+	init_page_##pagename, page_##pagename##_main                    \
+}
+#define PAGE_TXT(filename, pagename) {                                  \
+	filename, { "teerank-page-" #pagename }, "text/plain",          \
 	init_page_##pagename, page_##pagename##_main                    \
 }
 #define PAGE_SVG(filename, pagename) {                                  \
@@ -158,6 +166,7 @@ static const struct directory root = {
 	"", (struct page[]) {
 		PAGE_HTML("about.html", about),
 		PAGE_HTML("search", search),
+		PAGE_TXT("robots.txt", robots),
 		{ NULL }
 	}, (struct directory[]) {
 		{

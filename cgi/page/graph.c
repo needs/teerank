@@ -579,7 +579,7 @@ static void print_labels(struct graph *graph)
 			print_label(p, data, label_pos, i);
 		}
 
-		strftime(buf, sizeof(buf), "%m %b %H:%M", gmtime(&rec->time));
+		strftime(buf, sizeof(buf), "%d %b %H:%M", gmtime(&rec->time));
 
 		if (p.x > 88.0)
 			class = "right";

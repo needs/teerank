@@ -14,6 +14,7 @@ int main(int argc, char *argv[])
 #undef STRING
 
 	printf("TEERANK_VERSION=%d\n", TEERANK_VERSION);
+	printf("TEERANK_SUBVERSION=%d\n", TEERANK_SUBVERSION);
 	printf("DATABASE_VERSION=%d\n", DATABASE_VERSION);
 	printf("STABLE_VERSION=%d\n", STABLE_VERSION);
 

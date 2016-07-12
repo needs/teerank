@@ -239,6 +239,12 @@ void html_footer(void)
 {
 	html("</section>");
 	html("</main>");
+
+	html("<footer>");
+	html("<p>Teerank %d.%d (%s)</p>", TEERANK_VERSION, TEERANK_SUBVERSION,
+	     STABLE_VERSION ? "stable" : "unstable");
+	html("</footer>");
+
 	html("</body>");
 	html("</html>");
 }

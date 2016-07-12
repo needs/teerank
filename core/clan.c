@@ -51,7 +51,7 @@ struct player_summary *add_member(struct clan *clan, char *name)
 
 static const struct clan CLAN_ZERO;
 
-int read_clan(struct clan *clan, char *cname)
+int read_clan(struct clan *clan, const char *cname)
 {
 	char *path;
 	char pname[HEXNAME_LENGTH];

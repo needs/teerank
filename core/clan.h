@@ -26,7 +26,7 @@ struct clan {
  *
  * @return 1 on success, 0 on failure
  */
-int read_clan(struct clan *clan, char *name);
+int read_clan(struct clan *clan, const char *name);
 
 /**
  * Write the given clan on the disk.

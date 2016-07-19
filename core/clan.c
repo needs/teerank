@@ -7,6 +7,7 @@
 
 #include "config.h"
 #include "clan.h"
+#include "index.h"
 
 static char *clan_path(const char *clan)
 {
@@ -49,6 +50,13 @@ struct player_summary *add_member(struct clan *clan, char *name)
 	return member;
 }
 
+void create_clan(struct clan *clan, const char *name)
+{
+	clan->length = 0;
+	clan->members = NULL;
+	strcpy(clan->name, name);
+}
+
 static const struct clan CLAN_ZERO;
 
 int read_clan(struct clan *clan, const char *cname)
@@ -68,15 +76,10 @@ int read_clan(struct clan *clan, const char *cname)
 	*clan = CLAN_ZERO;
 
 	if (!(file = fopen(path, "r"))) {
-		if (errno == ENOENT) {
-			clan->length = 0;
-			clan->members = NULL;
-			strcpy(clan->name, cname);
-			return 1;
-		} else {
-			perror(path);
-			return 0;
-		}
+		if (errno == ENOENT)
+			return CLAN_NOT_FOUND;
+		perror(path);
+		return CLAN_ERROR;
 	}
 
 	/* Ignore failure for now... */

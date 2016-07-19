@@ -38,7 +38,9 @@ static int clan_move_player(char *src_clan, char *dest_clan, char *player)
 	if (strcmp(src_clan, "00")) {
 		struct clan clan = CLAN_ZERO;
 
-		read_clan(&clan, src_clan);
+		if (read_clan(&clan, src_clan) != CLAN_FOUND)
+			return 0;
+
 		remove_member(&clan, get_member(&clan, player));
 		ret = write_clan(&clan);
 		free_clan(&clan);

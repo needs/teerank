@@ -15,6 +15,12 @@ struct clan {
 	struct player_summary *members;
 };
 
+enum {
+	CLAN_FOUND,
+	CLAN_NOT_FOUND,
+	CLAN_ERROR
+};
+
 /**
  * Read the given clan.
  *
@@ -24,9 +30,21 @@ struct clan {
  * @param clan Clan structure to contain readed data
  * @param name Clan name
  *
- * @return 1 on success, 0 on failure
+ * @return CLAN_FOUND on success, CLAN_NOT_FOUND when does not exist,
+ *         CLAN_ERROR otherwise
  */
 int read_clan(struct clan *clan, const char *name);
+
+/**
+ * Create and initialize a new clan
+ *
+ * No entry in the database are created yet: write_clan() should be
+ * called to save clan in the database.
+ *
+ * @param clan Clan to be created
+ * @param name Name of the new clan
+ */
+void create_clan(struct clan *clan, const char *name);
 
 /**
  * Write the given clan on the disk.

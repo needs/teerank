@@ -1,7 +1,7 @@
 TEERANK_VERSION = 2
 TEERANK_SUBVERSION = 0
-DATABASE_VERSION = 5
-STABLE_VERSION = 1
+DATABASE_VERSION = 6
+STABLE_VERSION = 0
 
 CFLAGS += -lm -Icore -Icgi -Wall -Werror -std=c89 -D_POSIX_C_SOURCE=200809L
 CFLAGS += -DTEERANK_VERSION=$(TEERANK_VERSION)
@@ -22,6 +22,7 @@ UPGRADE_SCRIPTS := $(addprefix teerank-,$(UPGRADE_SCRIPTS))
 SCRIPTS = $(BUILTINS_SCRIPTS) $(UPGRADE_SCRIPTS)
 
 UPGRADE_BINS += upgrade-4-to-5
+UPGRADE_BINS += upgrade-5-to-6
 UPGRADE_BINS := $(addprefix teerank-,$(UPGRADE_BINS))
 
 # Each builtin have one C file with main() function in "builtin/"
@@ -65,6 +66,7 @@ $(BINS): $(core_objs)
 $(BUILTINS_BINS): teerank-% : builtin/%.o
 
 teerank-upgrade-4-to-5: $(patsubst %.c,%.o,$(wildcard upgrade/4-to-5/*.c))
+teerank-upgrade-5-to-6: $(patsubst %.c,%.o,$(wildcard upgrade/5-to-6/*.c))
 
 #
 # Scripts

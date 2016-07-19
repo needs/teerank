@@ -22,7 +22,9 @@ void html_footer(void);
 const char *name_to_html(const char *name);
 
 void html_start_player_list(void);
-void html_print_player(struct player_summary *player, int show_clan_link);
+void html_player_list_entry(
+	const char *hexname, const char *hexclan, int elo, unsigned rank,
+	int no_clan_link);
 void html_end_player_list(void);
 
 #endif /* HTML_H */

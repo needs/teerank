@@ -298,37 +298,40 @@ void html_end_player_list(void)
 	html("</table>");
 }
 
-void html_print_player(struct player_summary *player, int show_clan_link)
+void html_player_list_entry(
+	const char *hexname, const char *hexclan, int elo, unsigned rank,
+	int no_clan_link)
 {
 	char name[NAME_LENGTH], clan[NAME_LENGTH];
 
-	assert(player != NULL);
+	assert(hexname != NULL);
+	assert(hexclan != NULL);
 
 	html("<tr>");
 
 	/* Rank */
-	if (player->rank == UNRANKED)
+	if (rank == UNRANKED)
 		html("<td>?</td>");
 	else
-		html("<td>%u</td>", player->rank);
+		html("<td>%u</td>", rank);
 
 	/* Name */
-	hexname_to_name(player->name, name);
-	html("<td><a href=\"/players/%s.html\">%s</a></td>", player->name, escape(name));
+	hexname_to_name(hexname, name);
+	html("<td><a href=\"/players/%s.html\">%s</a></td>", hexname, escape(name));
 
 	/* Clan */
-	hexname_to_name(player->clan, clan);
-	if (!show_clan_link || *clan == '\0')
+	hexname_to_name(hexclan, clan);
+	if (no_clan_link || *clan == '\0')
 		html("<td>%s</td>", escape(clan));
 	else
 		html("<td><a href=\"/clans/%s.html\">%s</a></td>",
-		     player->clan, escape(clan));
+		     hexclan, escape(clan));
 
 	/* Elo */
-	if (player->elo == INVALID_ELO)
+	if (elo == INVALID_ELO)
 		html("<td>?</td>");
 	else
-		html("<td>%d</td>", player->elo);
+		html("<td>%d</td>", elo);
 
 	html("</tr>");
 }

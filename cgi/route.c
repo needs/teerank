@@ -114,8 +114,7 @@ static void init_page_about(struct page *page, struct url *url)
 
 static void init_page_rank_page(struct page *page, struct url *url)
 {
-	page->args[1] = "full-page";
-	page->args[2] = strtok(url->filename, ".");
+	page->args[1] = strtok(url->filename, ".");
 }
 
 static void init_page_clan(struct page *page, struct url *url)

@@ -310,8 +310,12 @@ int page_search_main(int argc, char **argv)
 
 		html_start_player_list();
 		for (result = list.first; result; result = result->next) {
+			struct player_summary *p;
+
 			try_load_result(result);
-			html_print_player(&result->player, 1);
+
+			p = &result->player;
+			html_player_list_entry(p->name, p->clan, p->elo, p->rank, 0);
 		}
 		html_end_player_list();
 	}

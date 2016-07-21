@@ -244,7 +244,8 @@ int write_index(struct index *index, const char *filename)
 
 	ret = snprintf(path, PATH_MAX, "%s/%s", config.root, filename);
 	if (ret >= PATH_MAX) {
-
+		fprintf(stderr, "%s: Too long\n", config.root);
+		goto fail;
 	}
 
 	if (!(file = fopen(path, "w"))) {

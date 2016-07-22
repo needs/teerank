@@ -12,9 +12,6 @@
 #include "config.h"
 #include "elo.h"
 
-/* Minimum time between two entries */
-#define HISTORY_TIMEFRAME_LENGTH 3600
-
 static int is_valid_hexpair(const char *hex)
 {
 	char c1, c2;

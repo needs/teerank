@@ -63,7 +63,7 @@ int read_clan(struct clan *clan, const char *cname)
 {
 	char *path;
 	char pname[HEXNAME_LENGTH];
-	FILE *file;
+	FILE *file = NULL;
 	int ret;
 
 	assert(clan != NULL);
@@ -71,15 +71,15 @@ int read_clan(struct clan *clan, const char *cname)
 	assert(strcmp(cname, "00"));
 
 	if (!(path = clan_path(cname)))
-		return 0;
+		goto fail;
 
 	*clan = CLAN_ZERO;
 
 	if (!(file = fopen(path, "r"))) {
 		if (errno == ENOENT)
-			return CLAN_NOT_FOUND;
+			goto not_found;
 		perror(path);
-		return CLAN_ERROR;
+		goto fail;
 	}
 
 	/* Ignore failure for now... */
@@ -96,11 +96,16 @@ int read_clan(struct clan *clan, const char *cname)
 
 	strcpy(clan->name, cname);
 	fclose(file);
-	return 1;
+	return CLAN_FOUND;
 
 fail:
-	fclose(file);
-	return 0;
+	if (file)
+		fclose(file);
+	return CLAN_ERROR;
+not_found:
+	if (file)
+		fclose(file);
+	return CLAN_NOT_FOUND;
 }
 
 int write_clan(const struct clan *clan)

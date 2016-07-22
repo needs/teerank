@@ -275,7 +275,7 @@ static void skip_records(FILE *file)
 	while (c != EOF && c != '\n');
 }
 
-int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path)
+int read_historic_info(struct historic_info *hs, FILE *file, const char *path)
 {
 	if (read_historic_header(file, path, &hs->nrecords, &hs->epoch) == 0)
 		return 0;

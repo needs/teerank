@@ -189,34 +189,34 @@ void set_clan(struct player *player, char *clan);
 
 
 /**
- * @struct player_summary
+ * @struct player_info
  *
- * Hold a summary of player data.  It is lighter than player data structure
+ * Hold a info of player data.  It is lighter than player data structure
  * because it doesn't store the complete historic.  When dealing with this data
  * structure no malloc() are performed, at all.
  *
  * However, because the structure only holds a part of the complete set of
  * player's data, the structure cannot be written back on the disk.
  */
-struct player_summary {
+struct player_info {
 	char name[HEXNAME_LENGTH];
 	char clan[HEXNAME_LENGTH];
 
 	int elo;
 	unsigned rank;
 
-	struct historic_summary hist;
+	struct historic_info hist;
 };
 
 /**
- * Read and fill player summary.
+ * Read and fill player info.
  *
- * @param ps Player summary to be read
+ * @param ps Player info to be read
  * @param name Name of the player to read
  *
  * @return PLAYER_FOUND on success, PLAYER_NOT_FOUND when player does
  *         not exist, PLAYER_ERROR when an error occured.
  */
-enum read_player_ret read_player_summary(struct player_summary *ps, const char *name);
+enum read_player_ret read_player_info(struct player_info *ps, const char *name);
 
 #endif /* PLAYER_H */

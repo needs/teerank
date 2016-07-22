@@ -31,13 +31,13 @@ struct index_data_infos {
 
 static int create_indexed_player(void *data, const char *name)
 {
-	struct player_summary player;
+	struct player_info player;
 	struct indexed_player *ret = data;
 
 	if (!is_valid_hexname(name))
 		return 0;
 
-	if (read_player_summary(&player, name) != PLAYER_FOUND)
+	if (read_player_info(&player, name) != PLAYER_FOUND)
 		return 0;
 
 	strcpy(ret->name, player.name);

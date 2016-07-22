@@ -12,7 +12,7 @@ int page_player_main(int argc, char **argv)
 {
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
 	const char *hexname;
-	struct player_summary player;
+	struct player_info player;
 	enum read_player_ret ret;
 
 	if (argc != 2) {
@@ -26,7 +26,7 @@ int page_player_main(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 	}
 
-	ret = read_player_summary(&player, hexname);
+	ret = read_player_info(&player, hexname);
 
 	if (ret == PLAYER_ERROR)
 		return EXIT_FAILURE;

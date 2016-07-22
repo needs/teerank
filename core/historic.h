@@ -149,25 +149,25 @@ void *record_data(struct historic *hist, struct record *record);
 void append_record(struct historic *hist, const void *data);
 
 /**
- * @struct historic_summary
+ * @struct historic_info
  *
  * Summarize an historic by just storing the last record.
  */
-struct historic_summary {
+struct historic_info {
 	time_t epoch;
 	unsigned nrecords;
 };
 
 /**
- * Fill the given historic summary with the content of the given file
+ * Fill the given historic info with the content of the given file
  *
- * @param hs Historic summary to fill
- * @param file File to read the historic summary from
+ * @param hs Historic info to fill
+ * @param file File to read the historic info from
  * @param path Used as a prefix for error message
  * @param skip_data Function called to skip unused historic data
  *
  * @return 1 on success, 0 on failure
  */
-int read_historic_summary(struct historic_summary *hs, FILE *file, const char *path);
+int read_historic_info(struct historic_info *hs, FILE *file, const char *path);
 
 #endif /* HISTORIC_H */

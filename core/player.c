@@ -111,7 +111,7 @@ static void reset_player(struct player *player, const char *name)
 	player->delta = NULL;
 }
 
-static void reset_player_summary(struct player_summary *player, const char *name)
+static void reset_player_info(struct player_info *player, const char *name)
 {
 	strcpy(player->name, name);
 	strcpy(player->clan, "00");
@@ -346,15 +346,15 @@ void set_clan(struct player *player, char *clan)
 	player->is_modified |= IS_MODIFIED_CLAN;
 }
 
-static void init_player_summary(struct player_summary *ps)
+static void init_player_info(struct player_info *ps)
 {
 	strcpy(ps->clan, "00");
 	ps->elo = INVALID_ELO;
 	ps->rank = UNRANKED;
 }
 
-static int read_player_summary_header(
-	FILE *file, const char *path, struct player_summary *ps)
+static int read_player_info_header(
+	FILE *file, const char *path, struct player_info *ps)
 {
 	struct player_record rec;
 
@@ -369,15 +369,15 @@ static int read_player_summary_header(
 	return 1;
 }
 
-enum read_player_ret read_player_summary(struct player_summary *ps, const char *name)
+enum read_player_ret read_player_info(struct player_info *ps, const char *name)
 {
 	FILE *file = NULL;
 	char *path;
 
-	init_player_summary(ps);
+	init_player_info(ps);
 	strcpy(ps->name, name);
 
-	reset_player_summary(ps, name);
+	reset_player_info(ps, name);
 
 	if (!(path = get_path(name)))
 		goto fail;
@@ -388,9 +388,9 @@ enum read_player_ret read_player_summary(struct player_summary *ps, const char *
 		goto fail;
 	}
 
-	if (!read_player_summary_header(file, path, ps))
+	if (!read_player_info_header(file, path, ps))
 		goto fail;
-	if (!read_historic_summary(&ps->hist, file, path))
+	if (!read_historic_info(&ps->hist, file, path))
 		goto fail;
 
 	fclose(file);

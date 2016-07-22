@@ -29,7 +29,7 @@ struct result {
 	int relevance;
 
 	int is_loaded;
-	struct player_summary player;
+	struct player_info player;
 
 	struct result *next, *prev;
 };
@@ -186,7 +186,7 @@ static void try_load_result(struct result *result)
 	if (!result->is_loaded) {
 		enum read_player_ret ret;
 
-		ret = read_player_summary(&result->player, result->name);
+		ret = read_player_info(&result->player, result->name);
 
 		if (ret == PLAYER_FOUND)
 			result->is_loaded = 1;
@@ -310,7 +310,7 @@ int page_search_main(int argc, char **argv)
 
 		html_start_player_list();
 		for (result = list.first; result; result = result->next) {
-			struct player_summary *p;
+			struct player_info *p;
 
 			try_load_result(result);
 

@@ -12,7 +12,7 @@ struct clan {
 	char name[HEXNAME_LENGTH];
 
 	unsigned length;
-	struct player_summary *members;
+	struct player_info *members;
 };
 
 enum {
@@ -72,7 +72,7 @@ void free_clan(struct clan *clan);
  *
  * @return A valid pointer to a member if found, NULL otherwise
  */
-struct player_summary *get_member(struct clan *clan, char *name);
+struct player_info *get_member(struct clan *clan, char *name);
 
 /**
  * Add the given member to the member list and return it.
@@ -82,7 +82,7 @@ struct player_summary *get_member(struct clan *clan, char *name);
  *
  * @return A valid pointer to the new member on success, NULL otherwise
  */
-struct player_summary *add_member(struct clan *clan, char *name);
+struct player_info *add_member(struct clan *clan, char *name);
 
 /**
  * Remove the given member from the clan.
@@ -93,12 +93,12 @@ struct player_summary *add_member(struct clan *clan, char *name);
  * @param clan Actual clan of the member to be removed
  * @param member Valid pointer to the member to be removed
  */
-void remove_member(struct clan *clan, struct player_summary *member);
+void remove_member(struct clan *clan, struct player_info *member);
 
 /**
  * Fill in members data
  *
- * Load player's using read_player_summary().  If a read fail, the player is
+ * Load player's using read_player_info().  If a read fail, the player is
  * removed from the members list.
  *
  * @param clan Clan to load members

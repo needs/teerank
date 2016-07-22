@@ -65,7 +65,7 @@ int page_clan_main(int argc, char **argv)
 	html_start_player_list();
 
 	for (i = 0; i < clan.length; i++) {
-		struct player_summary *p = &clan.members[i];
+		struct player_info *p = &clan.members[i];
 		html_player_list_entry(p->name, p->clan, p->elo, p->rank, 1);
 	}
 

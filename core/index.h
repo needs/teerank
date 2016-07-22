@@ -107,13 +107,17 @@ enum {
 /**
  * Load a page of an index
  *
+ * If page length is 0, then the whole index is loaded and page number
+ * should be 1.
+ *
  * @param filename Filename of the index file in the database
  * @param ipage Index page
  * @param infos Index data infos
  * @param pnum Page number, starts from 1
  * @param plen Pages length
  *
- * @return 1 on success, 0 on failure
+ * @return PAGE_FOUND when page does exist, PAGE_NOT_FOUND when it
+ *         doesn't exist, PAGE_ERROR otherwise.
  */
 int open_index_page(
 	const char *filename,

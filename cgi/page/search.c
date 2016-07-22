@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <dirent.h>
 #include <errno.h>
 #include <string.h>
 #include <limits.h>
@@ -8,8 +7,10 @@
 #include <ctype.h>
 
 #include "config.h"
+#include "cgi.h"
 #include "html.h"
 #include "player.h"
+#include "index.h"
 
 /*
  * Too much results is meanless, so by limiting the number of results we can
@@ -25,11 +26,8 @@
  * almost a O(1).
  */
 struct result {
-	char name[HEXNAME_LENGTH];
-	int relevance;
-
-	int is_loaded;
-	struct player_info player;
+	unsigned relevance;
+	struct indexed_player player;
 
 	struct result *next, *prev;
 };
@@ -123,14 +121,17 @@ static int is_full(struct list *list)
 }
 
 /*
- * Just use the list->free pointer and initialize it.
+ * Just use list->free pointer and initialize it.
  */
-static struct result *new_result(struct list *list, unsigned relevance, char *name)
+static struct result *new_result(
+	struct list *list, unsigned relevance, struct indexed_player *player)
 {
-	list->free->relevance = relevance;
-	strcpy(list->free->name, name);
-	list->free->is_loaded = 0;
-	return list->free;
+	struct result *ret = list->free;
+
+	ret->relevance = relevance;
+	ret->player = *player;
+
+	return ret;
 }
 
 /*
@@ -181,27 +182,12 @@ static void insert_before(struct list *list, struct result *target, struct resul
 	}
 }
 
-static void try_load_result(struct result *result)
-{
-	if (!result->is_loaded) {
-		enum read_player_ret ret;
-
-		ret = read_player_info(&result->player, result->name);
-
-		if (ret == PLAYER_FOUND)
-			result->is_loaded = 1;
-	}
-}
-
 static int cmp_results(struct result *a, struct result *b)
 {
 	if (a->relevance < b->relevance)
 		return -1;
 	else if (a->relevance > b->relevance)
 		return 1;
-
-	try_load_result(a);
-	try_load_result(b);
 
 	if (a->player.rank > b->player.rank)
 		return -1;
@@ -211,7 +197,7 @@ static int cmp_results(struct result *a, struct result *b)
 	return 0;
 }
 
-static void try_add_result(struct list *list, unsigned relevance, char *name)
+static void try_add_result(struct list *list, unsigned relevance, struct indexed_player *player)
 {
 	struct result *result, *r;
 
@@ -220,7 +206,7 @@ static void try_add_result(struct list *list, unsigned relevance, char *name)
 	if (relevance == 0)
 		return;
 
-	result = new_result(list, relevance, name);
+	result = new_result(list, relevance, player);
 
 	if (is_empty(list))
 		return insert_before(list, NULL, result);
@@ -246,38 +232,32 @@ static void try_add_result(struct list *list, unsigned relevance, char *name)
 
 static int search(char *query, struct list *list)
 {
-	DIR *dir;
-	struct dirent *dp;
-	static char path[PATH_MAX];
+	struct index_page ipage;
+	struct indexed_player player;
+
 	char lowercase_query[NAME_LENGTH];
+	int ret;
 
 	assert(strlen(query) < NAME_LENGTH);
-
-	if (snprintf(path, PATH_MAX, "%s/players", config.root) >= PATH_MAX) {
-		fprintf(stderr, "Path to teerank database too long\n");
-		return 0;
-	}
-
-	if (!(dir = opendir(path))) {
-		fprintf(stderr, "opendir(%s): %s\n", path, strerror(errno));
-		return 0;
-	}
 
 	to_lowercase(query, lowercase_query);
 	init_list(list);
 
-	while ((dp = readdir(dir))) {
+	ret = open_index_page(
+		"players_by_rank", &ipage, INDEX_DATA_INFOS_PLAYER, 1, 0);
+	if (ret == PAGE_NOT_FOUND)
+		return EXIT_NOT_FOUND;
+	if (ret == PAGE_ERROR)
+		return EXIT_FAILURE;
+
+	while (index_page_foreach(&ipage, &player)) {
 		unsigned relevance;
 
-		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
-			continue;
-
-		relevance = get_relevance(dp->d_name, lowercase_query);
-		try_add_result(list, relevance, dp->d_name);
+		relevance = get_relevance(player.name, lowercase_query);
+		try_add_result(list, relevance, &player);
 	}
 
-	closedir(dir);
-	return 1;
+	return EXIT_SUCCESS;
 }
 
 static struct list LIST_ZERO;
@@ -286,6 +266,7 @@ int page_search_main(int argc, char **argv)
 {
 	struct list list = LIST_ZERO;
 	size_t length;
+	int ret;
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <query>\n", argv[0]);
@@ -295,8 +276,9 @@ int page_search_main(int argc, char **argv)
 	/* No need to search when the query is too long or empty */
 	length = strlen(argv[1]);
 	if (length > 0 && length < NAME_LENGTH) {
-		if (!search(argv[1], &list))
-			return EXIT_FAILURE;
+		ret = search(argv[1], &list);
+		if (ret != EXIT_SUCCESS)
+			return ret;
 	}
 
 	CUSTOM_TAB.name = "Search results";
@@ -310,9 +292,7 @@ int page_search_main(int argc, char **argv)
 
 		html_start_player_list();
 		for (result = list.first; result; result = result->next) {
-			struct player_info *p;
-
-			try_load_result(result);
+			struct indexed_player *p;
 
 			p = &result->player;
 			html_player_list_entry(p->name, p->clan, p->elo, p->rank, 0);

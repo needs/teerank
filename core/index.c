@@ -299,8 +299,7 @@ int open_index_page(
 
 	assert(ipage != NULL);
 	assert(infos != NULL);
-	assert(plen > 0);
-	assert(pnum > 0);
+	assert((plen == 0 && pnum == 1) || (plen > 0 && pnum > 0));
 
 	ipage->file = NULL;
 
@@ -326,7 +325,12 @@ int open_index_page(
 		goto fail;
 	}
 
-	ipage->npages = ndata / plen + 1;
+	if (plen) {
+		ipage->npages = ndata / plen + 1;
+	} else {
+		ipage->npages = 1;
+		plen = ndata;
+	}
 
 	if (pnum > ipage->npages) {
 		fprintf(stderr, "Only %u pages available\n", ipage->npages);

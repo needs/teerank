@@ -88,6 +88,37 @@ static int parse_pnum(const char *str, unsigned *pnum)
 	return 1;
 }
 
+enum section_tab {
+	PLAYER_TAB, CLAN_TAB, SERVER_TAB
+};
+
+static void print_section_tabs(enum section_tab tab)
+{
+	unsigned i;
+
+	struct {
+		const char *title;
+		unsigned num;
+	} tabs[] = {
+		{ "Players", 80000 },
+		{ "Clans", 12000 },
+		{ "Servers", 1000 },
+	};
+
+	html("<nav class=\"section_tabs\">");
+
+	for (i = 0; i < sizeof(tabs) / sizeof(*tabs); i++) {
+		if (i == tab)
+			html("<a class=\"enabled\">%s<small>%u</small></a>",
+			     tabs[i].title, tabs[i].num);
+		else
+			html("<a href=\"#\">%s<small>%u</small></a>",
+			     tabs[i].title, tabs[i].num);
+	}
+
+	html("</nav>");
+}
+
 int page_rank_page_main(int argc, char **argv)
 {
 	struct index_page ipage;
@@ -113,7 +144,8 @@ int page_rank_page_main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	html_header(&CTF_TAB, "CTF", NULL);
-	print_nav(pnum, ipage.npages);
+	print_section_tabs(PLAYER_TAB);
+
 	html_start_player_list();
 
 	while (index_page_foreach(&ipage, &p))

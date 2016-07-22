@@ -126,6 +126,63 @@ body > main > section {
 	box-shadow: 0px 0px 2px #aaa;
 }
 
+/* Section tabs */
+nav.section_tabs {
+	display: flex;
+	flex-direction: row;
+
+	background: linear-gradient(transparent, #eaeaea);
+	padding-left: 5.1em;
+	padding-right: 5.1em;
+	margin-left: -5em;
+	margin-right: -5em;
+	margin-bottom: 20px;
+
+	border-bottom: 1px solid #ddd;
+}
+
+nav.section_tabs a {
+	font-weight: bold;
+
+	flex: 1;
+	padding: 0.7em;
+	text-align: center;
+	display: block;
+
+	font-size: 1.2em;
+	color: #999;
+
+	border-bottom: 2px solid transparent;
+
+	margin-bottom: -1px;
+}
+nav.section_tabs a:hover {
+	text-decoration: none;
+	border-bottom: 2px solid #999;
+	color: #666;
+}
+
+nav.section_tabs a.enabled {
+	border-radius: 6px 6px 0px 0px;
+	border-top: 1px solid #ddd;
+	border-left: 1px solid #ddd;
+	border-right: 1px solid #ddd;
+	border-bottom: none;
+
+	background: white;
+	color: #666;
+}
+
+nav.section_tabs a small {
+	font-weight: normal;
+
+	padding-left: 0.7em;
+	margin-left: 0.7em;
+
+	border-left: 1px solid #ddd;
+	color: #999;
+}
+
 /* Table */
 table {
 	width: 100%;

@@ -117,6 +117,11 @@ static void init_page_rank_page(struct page *page, struct url *url)
 	page->args[1] = strtok(url->filename, ".");
 }
 
+static void init_page_clan_list(struct page *page, struct url *url)
+{
+	page->args[1] = strtok(url->filename, ".");
+}
+
 static void init_page_clan(struct page *page, struct url *url)
 {
 	page->args[1] = strtok(url->filename, ".");
@@ -186,7 +191,14 @@ static const struct directory root = {
 			"clans", (struct page[]) {
 				PAGE_HTML(NULL, clan),
 				{ NULL }
-			}, NULL
+			}, (struct directory[]) {
+				{
+					"pages", (struct page[]) {
+						PAGE_HTML(NULL, clan_list),
+						{ NULL }
+					}, NULL
+				}
+			}
 		}, {
 			"players", (struct page[]) {
 				PAGE_HTML(NULL, player),

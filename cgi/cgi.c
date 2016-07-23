@@ -96,6 +96,19 @@ static int dump(int status, const char *content_type, int fd, FILE *copy)
 	return 1;
 }
 
+static void raw_dump(int fd, FILE *dst)
+{
+	FILE *src;
+	int c;
+
+	if (!(src = fdopen(fd, "r")))
+		error(500, "fdopen(): %s\n", strerror(errno));
+	while ((c = fgetc(src)) != EOF)
+		fputc(c, dst);
+	fclose(src);
+	close(fd);
+}
+
 static int page_argc(struct page *page)
 {
 	unsigned i;
@@ -172,16 +185,16 @@ static int generate(struct page *page)
 	close(stdout_save);
 	close(stderr_save);
 
-	if (ret == EXIT_SUCCESS)
+	if (ret == EXIT_SUCCESS) {
+		raw_dump(err[0], stderr);
 		return dump(200, page->content_type, out[0], NULL);
-	else if (ret == EXIT_FAILURE)
+	}
+	if (ret == EXIT_FAILURE)
 		return dump(500, NULL, err[0], stderr);
-	else if (ret == EXIT_NOT_FOUND)
+	if (ret == EXIT_NOT_FOUND)
 		return dump(404, NULL, err[0], stderr);
-	else
-		return dump(500, NULL, err[0], stderr);
 
-	return 1;
+	return dump(500, NULL, err[0], stderr);
 }
 
 static char *get_path(void)

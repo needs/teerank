@@ -29,6 +29,12 @@ struct indexed_player {
 	unsigned rank;
 };
 
+extern const struct index_data_infos *INDEX_DATA_INFOS_CLAN;
+struct indexed_clan {
+	char name[HEXNAME_LENGTH];
+	unsigned nmembers;
+};
+
 struct index {
 	const struct index_data_infos *infos;
 

@@ -41,11 +41,25 @@ static int sort_by_elo(const void *pa, const void *pb)
 		return -1;
 }
 
+static int sort_by_nmembers(const void *pa, const void *pb)
+{
+	const struct indexed_clan *a = pa, *b = pb;
+
+	if (a->nmembers < b->nmembers)
+		return 1;
+	else if (a->nmembers > b->nmembers)
+		return -1;
+
+	return strcmp(a->name, b->name);
+}
+
 int main(int argc, char *argv[])
 {
 	struct index index;
 
 	load_config(1);
+
+	/* Player index */
 
 	if (!create_index(&index, INDEX_DATA_INFOS_PLAYER))
 		return EXIT_FAILURE;
@@ -54,6 +68,18 @@ int main(int argc, char *argv[])
 	set_players_rank(&index);
 
 	if (!write_index(&index, "players_by_rank"))
+		return EXIT_FAILURE;
+
+	close_index(&index);
+
+	/* Clan index */
+
+	if (!create_index(&index, INDEX_DATA_INFOS_CLAN))
+		return EXIT_FAILURE;
+
+	sort_index(&index, sort_by_nmembers);
+
+	if (!write_index(&index, "clans_by_nmembers"))
 		return EXIT_FAILURE;
 
 	close_index(&index);

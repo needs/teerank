@@ -25,6 +25,13 @@ struct index_data_infos {
 	read_index_data_func_t read_data;
 };
 
+/* Return the size of the decimal representation of the given number */
+#define strsize(n) (int)sizeof(#n)
+
+/* Add one because negative ints are prefixed with '-' */
+#define INT_STRSIZE (strsize(INT_MIN) + 1)
+#define UINT_STRSIZE strsize(UINT_MAX)
+
 /*
  * INDEX_DATA_INFOS_PLAYER
  */
@@ -47,12 +54,6 @@ static int create_indexed_player(void *data, const char *name)
 
 	return 1;
 }
-
-#define strsize(n) (int)sizeof(#n)
-
-/* Add one because negative ints are prefixed with '-' */
-#define INT_STRSIZE (strsize(INT_MIN) + 1)
-#define UINT_STRSIZE strsize(UINT_MAX)
 
 static int write_indexed_player(void *data, FILE *file, const char *path)
 {
@@ -105,6 +106,73 @@ const struct index_data_infos *INDEX_DATA_INFOS_PLAYER = &(struct index_data_inf
 	create_indexed_player,
 	write_indexed_player,
 	read_indexed_player
+};
+
+/*
+ * INDEX_DATA_INFOS_CLAN
+ */
+
+static int create_indexed_clan(void *data, const char *name)
+{
+	struct clan clan;
+	struct indexed_clan *ret = data;
+
+	if (!is_valid_hexname(name))
+		return 0;
+
+	if (read_clan(&clan, name) != CLAN_FOUND)
+		return 0;
+
+	strcpy(ret->name, clan.name);
+	ret->nmembers = clan.length;
+
+	return 1;
+}
+
+static int write_indexed_clan(void *data, FILE *file, const char *path)
+{
+	struct indexed_clan *c = data;
+	int ret;
+
+	ret = fprintf(
+		file, "%-*s %-*u\n",
+		HEXNAME_LENGTH - 1, c->name, UINT_STRSIZE, c->nmembers);
+	if (ret < 0) {
+		perror(path);
+		return 0;
+	}
+
+	return ret;
+}
+
+static int read_indexed_clan(void *data, FILE *file, const char *path)
+{
+	struct indexed_clan *c = data;
+	int ret;
+
+	errno = 0;
+	ret = fscanf(file, "%s %u\n", c->name, &c->nmembers);
+	if (ret == EOF && errno != 0) {
+		perror(path);
+		return 0;
+	} else if (ret == EOF || ret == 0) {
+		fprintf(stderr, "%s: Cannot match indexed clan name\n", path);
+		return 0;
+	} else if (ret == 1) {
+		fprintf(stderr, "%s: Cannot match indexed clan number of members\n", path);
+		return 0;
+	}
+
+	return 1;
+}
+
+const struct index_data_infos *INDEX_DATA_INFOS_CLAN = &(struct index_data_infos) {
+	"clans",
+	sizeof(struct indexed_clan),
+	HEXNAME_LENGTH - 1 + UINT_STRSIZE + 2,
+	create_indexed_clan,
+	write_indexed_clan,
+	read_indexed_clan
 };
 
 /*

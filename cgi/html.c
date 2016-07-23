@@ -363,3 +363,53 @@ void print_section_tabs(enum section_tab tab)
 
 	html("</nav>");
 }
+
+static unsigned min(unsigned a, unsigned b)
+{
+	return a < b ? a : b;
+}
+
+void print_page_nav(const char *prefix, struct index_page *ipage)
+{
+	/* Number of pages shown before and after the current page */
+	static const unsigned EXTRA_PAGES = 3;
+	unsigned i;
+
+	unsigned pnum = ipage->pnum;
+	unsigned npages = ipage->npages;
+
+	html("<nav class=\"pages\">");
+	if (pnum == 1)
+		html("<a class=\"previous\">Previous</a>");
+	else
+		html("<a class=\"previous\" href=\"/pages/%u.html\">Previous</a>",
+		       pnum - 1);
+
+	if (pnum > EXTRA_PAGES + 1)
+		html("<a href=\"/pages/1.html\">1</a>");
+	if (pnum > EXTRA_PAGES + 2)
+		html("<span>...</span>");
+
+	for (i = min(EXTRA_PAGES, pnum - 1); i > 0; i--)
+		html("<a href=\"%s/%u.html\">%u</a>",
+		     prefix, pnum - i, pnum - i);
+
+	html("<a class=\"current\">%u</a>", pnum);
+
+	for (i = 1; i <= min(EXTRA_PAGES, npages - pnum); i++)
+		html("<a href=\"%s/%u.html\">%u</a>",
+		     prefix, pnum + i, pnum + i);
+
+	if (pnum + EXTRA_PAGES + 1 < npages)
+		html("<span>...</span>");
+	if (pnum + EXTRA_PAGES < npages)
+		html("<a href=\"%s/%u.html\">%u</a>",
+		     prefix, npages, npages);
+
+	if (pnum == npages)
+		html("<a class=\"next\">Next</a>");
+	else
+		html("<a class=\"next\" href=\"%s/%u.html\">Next</a>",
+		     prefix, pnum + 1);
+	html("</nav>");
+}

@@ -2,6 +2,7 @@
 #define HTML_H
 
 #include "player.h"
+#include "index.h"
 
 void html(const char *fmt, ...);
 void xml(const char *fmt, ...);
@@ -32,5 +33,7 @@ enum section_tab {
 };
 
 void print_section_tabs(enum section_tab tab);
+
+void print_page_nav(const char *prefix, struct index_page *ipage);
 
 #endif /* HTML_H */

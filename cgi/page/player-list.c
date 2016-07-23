@@ -11,55 +11,6 @@
 #include "html.h"
 #include "index.h"
 
-static unsigned min(unsigned a, unsigned b)
-{
-	return a < b ? a : b;
-}
-
-static void print_nav(unsigned pnum, unsigned npages)
-{
-	/* Number of pages shown before and after the current page */
-	static const unsigned EXTRA_PAGES = 3;
-	unsigned i;
-
-	assert(pnum <= npages);
-
-	html("<nav class=\"pages\">");
-	if (pnum == 1)
-		html("<a class=\"previous\">Previous</a>");
-	else
-		html("<a class=\"previous\" href=\"/pages/%u.html\">Previous</a>",
-		       pnum - 1);
-
-	if (pnum > EXTRA_PAGES + 1)
-		html("<a href=\"/pages/1.html\">1</a>");
-	if (pnum > EXTRA_PAGES + 2)
-		html("<span>...</span>");
-
-	for (i = min(EXTRA_PAGES, pnum - 1); i > 0; i--)
-		html("<a href=\"/pages/%u.html\">%u</a>",
-		       pnum - i, pnum - i);
-
-	html("<a class=\"current\">%u</a>", pnum);
-
-	for (i = 1; i <= min(EXTRA_PAGES, npages - pnum); i++)
-		html("<a href=\"/pages/%u.html\">%u</a>",
-		       pnum + i, pnum + i);
-
-	if (pnum + EXTRA_PAGES + 1 < npages)
-		html("<span>...</span>");
-	if (pnum + EXTRA_PAGES < npages)
-		html("<a href=\"/pages/%u.html\">%u</a>",
-		       npages, npages);
-
-	if (pnum == npages)
-		html("<a class=\"next\">Next</a>");
-	else
-		html("<a class=\"next\" href=\"/pages/%u.html\">Next</a>",
-		       pnum + 1);
-	html("</nav>");
-}
-
 static const unsigned PLAYERS_PER_PAGE = 100;
 
 static int parse_pnum(const char *str, unsigned *pnum)
@@ -121,7 +72,7 @@ int page_player_list_main(int argc, char **argv)
 		html_player_list_entry(p.name, p.clan, p.elo, p.rank, 0);
 
 	html_end_player_list();
-	print_nav(pnum, ipage.npages);
+	print_page_nav("/players/pages", &ipage);
 	html_footer();
 
 	close_index_page(&ipage);

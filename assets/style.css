@@ -210,7 +210,7 @@ table > * > tr > td:nth-child(3) {
 	width: 50%;
 }
 
-table > * > tr > td:last-child {
+table > * > tr > td:last-child, table > * > tr > th:last-child {
 	text-align: right;
 }
 

@@ -428,17 +428,22 @@ not_found:
 	return PAGE_NOT_FOUND;
 }
 
-int index_page_foreach(struct index_page *ipage, void *data)
+unsigned index_page_foreach(struct index_page *ipage, void *data)
 {
 	assert(ipage != NULL);
 	assert(ipage->file != NULL);
 	assert(ipage->i <= ipage->plen);
 
-	if (ipage->i == ipage->plen)
+	if (ipage->i == ipage->plen) {
+		ipage->i = 0;
 		return 0;
+	}
 
 	ipage->i += 1;
-	return ipage->infos->read_data(data, ipage->file, ipage->path);
+	if (ipage->infos->read_data(data, ipage->file, ipage->path) == 0)
+		return 0;
+
+	return (ipage->pnum - 1) * ipage->plen + ipage->i;
 }
 
 void close_index_page(struct index_page *ipage)

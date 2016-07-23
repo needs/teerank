@@ -91,6 +91,7 @@ static void html_start_clan_list(void)
 	html("<table>");
 	html("<thead>");
 	html("<tr>");
+	html("<th></th>");
 	html("<th>Name</th>");
 	html("<th>Members</th>");
 	html("</tr>");
@@ -105,13 +106,15 @@ static void html_end_clan_list(void)
 }
 
 static void html_clan_list_entry(
-	const char *hexname, unsigned nmembers)
+	unsigned pos, const char *hexname, unsigned nmembers)
 {
 	char name[NAME_LENGTH];
 
 	assert(hexname != NULL);
 
 	html("<tr>");
+
+	html("<td>%u</td>", pos);
 
 	/* Name */
 	hexname_to_name(hexname, name);
@@ -129,7 +132,7 @@ int page_clan_list_main(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct indexed_clan c;
-	unsigned pnum;
+	unsigned pnum, pos;
 	int ret;
 
 	if (argc != 2) {
@@ -154,8 +157,8 @@ int page_clan_list_main(int argc, char **argv)
 
 	html_start_clan_list();
 
-	while (index_page_foreach(&ipage, &c))
-		html_clan_list_entry(c.name, c.nmembers);
+	while ((pos = index_page_foreach(&ipage, &c)))
+		html_clan_list_entry(pos, c.name, c.nmembers);
 
 	html_end_clan_list();
 	print_nav(pnum, ipage.npages);

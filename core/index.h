@@ -140,9 +140,10 @@ int open_index_page(
  * @param ipage Index page to loop on
  * @param data A valid buffer to store the next index entry
  *
- * @return 1 if there was an next index entry, 0 otherwise
+ * @return 0 if every entries in the page has been iterated through,
+ *         an absolute entry number otherwise (a positive number)
  */
-int index_page_foreach(struct index_page *ipage, void *data);
+unsigned index_page_foreach(struct index_page *ipage, void *data);
 
 /**
  * Close the given index page

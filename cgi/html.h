@@ -27,4 +27,10 @@ void html_player_list_entry(
 	int no_clan_link);
 void html_end_player_list(void);
 
+enum section_tab {
+	PLAYERS_TAB, CLANS_TAB, SERVERS_TAB
+};
+
+void print_section_tabs(enum section_tab tab);
+
 #endif /* HTML_H */

@@ -335,3 +335,31 @@ void html_player_list_entry(
 
 	html("</tr>");
 }
+
+void print_section_tabs(enum section_tab tab)
+{
+	unsigned i;
+
+	struct {
+		const char *title;
+		const char *url;
+		unsigned num;
+	} tabs[] = {
+		{ "Players", "/pages/1.html", 80000 },
+		{ "Clans", "/clans/pages/1.html", 12000 },
+		{ "Servers", "/servers/pages/1.html", 1000 },
+	};
+
+	html("<nav class=\"section_tabs\">");
+
+	for (i = 0; i < sizeof(tabs) / sizeof(*tabs); i++) {
+		if (i == tab)
+			html("<a class=\"enabled\">%s<small>%u</small></a>",
+			     tabs[i].title, tabs[i].num);
+		else
+			html("<a href=\"%s\">%s<small>%u</small></a>",
+			     tabs[i].url, tabs[i].title, tabs[i].num);
+	}
+
+	html("</nav>");
+}

@@ -48,7 +48,7 @@ static int read_server_meta(FILE *file, const char *path, struct server_state *s
 	return 1;
 }
 
-int read_server_state(struct server_state *state, char *sname)
+int read_server_state(struct server_state *state, const char *sname)
 {
 	FILE *file = NULL;
 	char *path;

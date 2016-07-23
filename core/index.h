@@ -35,6 +35,14 @@ struct indexed_clan {
 	unsigned nmembers;
 };
 
+extern const struct index_data_infos *INDEX_DATA_INFOS_SERVER;
+struct indexed_server {
+	char name[64];
+	char gametype[8];
+	char map[64];
+	unsigned nplayers;
+};
+
 struct index {
 	const struct index_data_infos *infos;
 

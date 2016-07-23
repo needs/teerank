@@ -5,6 +5,7 @@
 #include <string.h>
 #include <dirent.h>
 
+#include "server.h"
 #include "index.h"
 #include "config.h"
 #include "player.h"
@@ -173,6 +174,87 @@ const struct index_data_infos *INDEX_DATA_INFOS_CLAN = &(struct index_data_infos
 	create_indexed_clan,
 	write_indexed_clan,
 	read_indexed_clan
+};
+
+/*
+ * INDEX_DATA_INFOS_SERVER
+ */
+
+static int create_indexed_server(void *data, const char *name)
+{
+	struct server_state server;
+	struct indexed_server *ret = data;
+
+	if (!read_server_state(&server, name))
+		return 0;
+
+	strcpy(ret->name, "");
+	strcpy(ret->gametype, server.gametype);
+	strcpy(ret->map, "");
+	ret->nplayers = server.num_clients;
+
+	return 1;
+}
+
+static int write_indexed_server(void *data, FILE *file, const char *path)
+{
+	struct indexed_server *s = data;
+	int ret;
+
+	ret = fprintf(
+		file, "%-*s %-*s %-*s %*u\n",
+		(int)sizeof(s->name), s->name,
+		(int)sizeof(s->gametype), s->gametype,
+		(int)sizeof(s->map), s->map,
+		UINT_STRSIZE, s->nplayers);
+	if (ret < 0) {
+		perror(path);
+		return 0;
+	}
+
+	return ret;
+}
+
+static int read_indexed_server(void *data, FILE *file, const char *path)
+{
+	struct indexed_server *s = data;
+
+	if (!fgets(s->name, sizeof(s->name), file))
+		goto fail;
+	if (fgetc(file) != ' ')
+		goto fail;
+
+	if (!fgets(s->gametype, sizeof(s->gametype), file))
+		goto fail;
+	if (fgetc(file) != ' ')
+		goto fail;
+
+	if (!fgets(s->map, sizeof(s->map), file))
+		goto fail;
+	if (fgetc(file) != ' ')
+		goto fail;
+
+	if (fscanf(file, "%u", &s->nplayers) != 1)
+		goto fail;
+	if (fgetc(file) != '\n')
+		goto fail;
+
+	return 1;
+fail:
+	if (ferror(file))
+		perror(path);
+	else
+		fprintf(stderr, "%s: Early end-of-file\n", path);
+	return 0;
+}
+
+const struct index_data_infos *INDEX_DATA_INFOS_SERVER = &(struct index_data_infos) {
+	"servers",
+	sizeof(struct indexed_server),
+	64 + 8 + 64 + UINT_STRSIZE + 4,
+	create_indexed_server,
+	write_indexed_server,
+	read_indexed_server
 };
 
 /*
@@ -384,7 +466,7 @@ int open_index_page(
 
 	/* First, read header */
 	errno = 0;
-	ret = fscanf(ipage->file, "%u entries\n", &ndata);
+	ret = fscanf(ipage->file, "%u entries%*1[\n]", &ndata);
 	if (ret == EOF && errno != 0) {
 		perror(ipage->path);
 		goto fail;

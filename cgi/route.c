@@ -122,6 +122,11 @@ static void init_page_clan_list(struct page *page, struct url *url)
 	page->args[1] = strtok(url->filename, ".");
 }
 
+static void init_page_server_list(struct page *page, struct url *url)
+{
+	page->args[1] = strtok(url->filename, ".");
+}
+
 static void init_page_clan(struct page *page, struct url *url)
 {
 	page->args[1] = strtok(url->filename, ".");
@@ -207,6 +212,16 @@ static const struct directory root = {
 				}, {
 					NULL, (struct page[]) {
 						PAGE_SVG("elo+rank.svg", graph),
+						{ NULL }
+					}, NULL
+				}
+			}
+		}, {
+			"servers", NULL,
+			(struct directory[]) {
+				{
+					"pages", (struct page[]) {
+						PAGE_HTML(NULL, server_list),
 						{ NULL }
 					}, NULL
 				}

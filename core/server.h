@@ -36,7 +36,7 @@ struct server_state {
  *
  * @return 1 on success, 0 on failure
  */
-int read_server_state(struct server_state *state, char *sname);
+int read_server_state(struct server_state *state, const char *sname);
 
 /**
  * Write a state file in the database.

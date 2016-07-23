@@ -345,7 +345,7 @@ void print_section_tabs(enum section_tab tab)
 		const char *url;
 		unsigned num;
 	} tabs[] = {
-		{ "Players", "/pages/1.html", 80000 },
+		{ "Players", "/players/pages/1.html", 80000 },
 		{ "Clans", "/clans/pages/1.html", 12000 },
 		{ "Servers", "/servers/pages/1.html", 1000 },
 	};

@@ -88,7 +88,7 @@ static int parse_pnum(const char *str, unsigned *pnum)
 	return 1;
 }
 
-int page_rank_page_main(int argc, char **argv)
+int page_player_list_main(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct indexed_player p;

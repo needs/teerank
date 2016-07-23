@@ -112,7 +112,7 @@ static void init_page_about(struct page *page, struct url *url)
 {
 }
 
-static void init_page_rank_page(struct page *page, struct url *url)
+static void init_page_player_list(struct page *page, struct url *url)
 {
 	page->args[1] = strtok(url->filename, ".");
 }
@@ -183,11 +183,6 @@ static const struct directory root = {
 		{ NULL }
 	}, (struct directory[]) {
 		{
-			"pages", (struct page[]) {
-				PAGE_HTML(NULL, rank_page),
-				{ NULL }
-			}, NULL
-		}, {
 			"clans", (struct page[]) {
 				PAGE_HTML(NULL, clan),
 				{ NULL }
@@ -205,6 +200,11 @@ static const struct directory root = {
 				{ NULL }
 			}, (struct directory[]) {
 				{
+					"pages", (struct page[]) {
+						PAGE_HTML(NULL, player_list),
+						{ NULL }
+					}, NULL
+				}, {
 					NULL, (struct page[]) {
 						PAGE_SVG("elo+rank.svg", graph),
 						{ NULL }

@@ -20,7 +20,7 @@ int page_graph_main(int argc, char **argv);
 int page_about_main(int argc, char **argv);
 int page_player_main(int argc, char **argv);
 int page_search_main(int argc, char **argv);
-int page_rank_page_main(int argc, char **argv);
+int page_player_list_main(int argc, char **argv);
 int page_clan_list_main(int argc, char **argv);
 int page_robots_main(int argc, char **argv);
 int page_sitemap_main(int argc, char **argv);

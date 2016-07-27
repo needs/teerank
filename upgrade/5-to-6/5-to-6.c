@@ -38,14 +38,10 @@ static void create_players_by_rank_file(void)
 
 static void remove_ranks_file(void)
 {
-	int ret;
 	char path[PATH_MAX];
 
-	ret = snprintf(path, PATH_MAX, "%s/ranks", config.root);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(path, PATH_MAX, "ranks"))
 		exit(EXIT_FAILURE);
-	}
 
 	if (unlink(path) == -1 && errno != ENOENT) {
 		perror(path);

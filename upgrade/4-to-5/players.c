@@ -31,11 +31,8 @@ static int read_old_player(struct player *player, char *name)
         assert(player != NULL);
         assert(is_valid_hexname(name));
 
-	if (snprintf(path, PATH_MAX, "%s/players/%s",
-	             config.root, name) >= PATH_MAX) {
-		fprintf(stderr, "%s: Path too long\n", config.root);
+	if (!dbpath(path, PATH_MAX, "players/%s", name))
 		goto fail;
-	}
 
 	if (!(file = fopen(path, "r"))) {
 		perror(path);
@@ -82,11 +79,8 @@ static void remove_player(const char *name)
 	char path[PATH_MAX];
 	int ret;
 
-	ret = snprintf(path, PATH_MAX, "%s/players/%s", config.root, name);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(path, PATH_MAX, "players/%s", name))
 		return;
-	}
 
 	ret = unlink(path);
 
@@ -100,17 +94,14 @@ static void remove_player(const char *name)
 
 void upgrade_players(void)
 {
-	DIR *dir;
+	char path[PATH_MAX];
 	struct dirent *dp;
-	int ret;
-	static char path[PATH_MAX];
+	DIR *dir;
+
 	struct player player;
 
-	ret = snprintf(path, PATH_MAX, "%s/players", config.root);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Path to long\n", config.root);
+	if (!dbpath(path, PATH_MAX, "players"))
 		exit(EXIT_FAILURE);
-	}
 
 	dir = opendir(path);
 	if (!dir) {

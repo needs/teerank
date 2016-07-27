@@ -16,11 +16,8 @@ static void delete_pages(void)
 	DIR *dir = NULL;
 	int ret;
 
-	ret = snprintf(dirpath, PATH_MAX, "%s/pages", config.root);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(dirpath, PATH_MAX, "pages"))
 		goto fail;
-	}
 
 	dir = opendir(dirpath);
 	if (!dir && errno != ENOENT) {
@@ -35,12 +32,8 @@ static void delete_pages(void)
 		if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
 			continue;
 
-		ret = snprintf(path, PATH_MAX, "%s/pages/%s",
-		               config.root, dp->d_name);
-		if (ret >= PATH_MAX) {
-			fprintf(stderr, "%s: Too long\n", config.root);
+		if (!dbpath(path, PATH_MAX, "pages/%s", dp->d_name))
 			goto fail;
-		}
 
 		ret = unlink(path);
 		if (ret == -1 && errno != ENOENT) {

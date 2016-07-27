@@ -19,12 +19,8 @@ static int remove_server_file(const char *sname, const char *filename)
 	char path[PATH_MAX];
 	int ret;
 
-	ret = snprintf(path, PATH_MAX, "%s/servers/%s/%s",
-	               config.root, sname, filename);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(path, PATH_MAX, "servers/%s/%s", sname, filename))
 		return 0;
-	}
 
 	ret = unlink(path);
 	if (ret == -1 && errno != ENOENT) {
@@ -41,7 +37,6 @@ static int remove_server_file(const char *sname, const char *filename)
 static void remove_server_directory(const char *sname)
 {
 	char server_dir[PATH_MAX];
-	int ret;
 
 	if (!remove_server_file(sname, "state"))
 		goto fail;
@@ -57,12 +52,8 @@ static void remove_server_directory(const char *sname)
 	if (!remove_server_file(sname, "infos"))
 		goto fail;
 
-	ret = snprintf(server_dir, PATH_MAX, "%s/servers/%s",
-	               config.root, sname);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(server_dir, PATH_MAX, "servers/%s", sname))
 		goto fail;
-	}
 
 	if (rmdir(server_dir) == -1) {
 		perror(server_dir);
@@ -80,14 +71,9 @@ fail:
 static void commit_upgrade(const char *sname, const char *src_path)
 {
 	char server_dir[PATH_MAX];
-	int ret;
 
-	ret = snprintf(server_dir, PATH_MAX, "%s/servers/%s",
-	               config.root, sname);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(server_dir, PATH_MAX, "servers/%s", sname))
 		goto fail;
-	}
 
 	if (rename(src_path, server_dir) == -1) {
 		fprintf(stderr, "rename(%s, %s): %s\n",
@@ -105,28 +91,14 @@ static int upgrade_server(const char *sname)
 	static char dst_path[PATH_MAX];
 	char meta_path[PATH_MAX], state_path[PATH_MAX];
 	FILE *fstate = NULL, *fmeta = NULL, *fdst = NULL;
-	int c, ret;
+	int c;
 
-	ret = snprintf(meta_path, PATH_MAX, "%s/servers/%s/meta",
-	               config.root, sname);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(meta_path, PATH_MAX, "servers/%s/meta", sname))
 		goto fail;
-	}
-
-	ret = snprintf(state_path, PATH_MAX, "%s/servers/%s/state",
-	               config.root, sname);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(state_path, PATH_MAX, "servers/%s/state", sname))
 		goto fail;
-	}
-
-	ret = snprintf(dst_path, PATH_MAX, "%s/servers/%s.5",
-	               config.root, sname);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(dst_path, PATH_MAX, "servers/%s.5", sname))
 		goto fail;
-	}
 
 	/*
 	 * No meta file or no state file is not fatal but this
@@ -194,13 +166,9 @@ void upgrade_servers(void)
 	char path[PATH_MAX];
 	struct dirent *dp;
 	DIR *dir = NULL;
-	int ret;
 
-	ret = snprintf(path, PATH_MAX, "%s/servers", config.root);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(path, PATH_MAX, "servers"))
 		goto fail;
-	}
 
 	dir = opendir(path);
 	if (!dir) {

@@ -85,17 +85,10 @@ void upgrade_ranks(void)
 	static char old[PATH_MAX], new[PATH_MAX];
 	int ret;
 
-	ret = snprintf(old, PATH_MAX, "%s/ranks", config.root);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(old, PATH_MAX, "ranks"))
 		exit(EXIT_FAILURE);
-	}
-
-	ret = snprintf(new, PATH_MAX, "%s/ranks.5", config.root);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(new, PATH_MAX, "ranks.5"))
 		exit(EXIT_FAILURE);
-	}
 
 	upgrade(old, new);
 

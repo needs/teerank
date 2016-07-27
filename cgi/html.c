@@ -382,11 +382,11 @@ void print_page_nav(const char *prefix, struct index_page *ipage)
 	if (pnum == 1)
 		html("<a class=\"previous\">Previous</a>");
 	else
-		html("<a class=\"previous\" href=\"/pages/%u.html\">Previous</a>",
-		       pnum - 1);
+		html("<a class=\"previous\" href=\"%s/%u.html\">Previous</a>",
+		     prefix, pnum - 1);
 
 	if (pnum > EXTRA_PAGES + 1)
-		html("<a href=\"/pages/1.html\">1</a>");
+		html("<a href=\"/%s/1.html\">1</a>", prefix);
 	if (pnum > EXTRA_PAGES + 2)
 		html("<span>...</span>");
 

@@ -7,26 +7,13 @@
 
 #include "config.h"
 
-static char *get_path(const char *filename)
-{
-	static char path[PATH_MAX];
-	int ret;
-
-	ret = snprintf(path, PATH_MAX, "%s/%s", config.root, filename);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
-		exit(EXIT_FAILURE);
-	}
-
-	return path;
-}
-
 static void create_dir(const char *filename)
 {
-	char *path;
+	char path[PATH_MAX];
 	int ret;
 
-	path = get_path(filename);
+	if (!dbpath(path, PATH_MAX, "%s", filename))
+		exit(EXIT_FAILURE);
 
 	ret = mkdir(path, 0777);
 	if (ret == -1 && errno != EEXIST) {
@@ -37,11 +24,12 @@ static void create_dir(const char *filename)
 
 static void set_database_version(unsigned version)
 {
-	char *path;
+	char path[PATH_MAX];
 	FILE *file;
 	int ret;
 
-	path = get_path("version");
+	if (!dbpath(path, PATH_MAX, "version"))
+		exit(EXIT_FAILURE);
 
 	if (access(path, F_OK) == 0)
 		return;

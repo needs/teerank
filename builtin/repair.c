@@ -79,17 +79,15 @@ int main(int argc, char **argv)
 	DIR *dir;
 	struct dirent *dp;
 	struct clan_list clans = CLAN_LIST_ZERO;
-	static char path[PATH_MAX];
+	char path[PATH_MAX];
 	unsigned i;
 	unsigned nrepair = 0;
 	struct player player;
 
 	load_config(1);
 
-	if (snprintf(path, PATH_MAX, "%s/players/", config.root) >= PATH_MAX) {
-		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);
+	if (!dbpath(path, PATH_MAX, "players/"))
 		return EXIT_FAILURE;
-	}
 
 	if (!(dir = opendir(path)))
 		return perror(path), EXIT_FAILURE;

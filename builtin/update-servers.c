@@ -326,15 +326,11 @@ static int fill_server_list(struct server_list *list)
 	struct dirent *dp;
 	char path[PATH_MAX];
 	unsigned count = 0;
-	int ret;
 
 	assert(list != NULL);
 
-	ret = snprintf(path, PATH_MAX, "%s/servers", config.root);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(path, PATH_MAX, "servers"))
 		return 0;
-	}
 
 	dir = opendir(path);
 	if (!dir) {

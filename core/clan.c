@@ -9,20 +9,6 @@
 #include "clan.h"
 #include "index.h"
 
-static char *clan_path(const char *clan)
-{
-	static char path[PATH_MAX];
-	int ret;
-
-	ret = snprintf(path, PATH_MAX, "%s/clans/%s", config.root, clan);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "snprintf(path, %d): Too long\n", PATH_MAX);
-		return NULL;
-	}
-
-	return path;
-}
-
 struct player_info *add_member(struct clan *clan, char *name)
 {
 	struct player_info *member;
@@ -61,16 +47,17 @@ static const struct clan CLAN_ZERO;
 
 int read_clan(struct clan *clan, const char *cname)
 {
-	char *path;
-	char pname[HEXNAME_LENGTH];
 	FILE *file = NULL;
+	char path[PATH_MAX];
+
+	char pname[HEXNAME_LENGTH];
 	int ret;
 
 	assert(clan != NULL);
 	assert(is_valid_hexname(cname));
 	assert(strcmp(cname, "00"));
 
-	if (!(path = clan_path(cname)))
+	if (!dbpath(path, PATH_MAX, "clans/%s", cname))
 		goto fail;
 
 	*clan = CLAN_ZERO;
@@ -110,14 +97,15 @@ not_found:
 
 int write_clan(const struct clan *clan)
 {
-	unsigned i;
-	char *path;
 	FILE *file;
+	char path[PATH_MAX];
+
+	unsigned i;
 
 	assert(clan != NULL);
 	assert(strcmp(clan->name, "00"));
 
-	if (!(path = clan_path(clan->name)))
+	if (!dbpath(path, PATH_MAX, "clans/%s", clan->name))
 		return 0;
 
 	if (!(file = fopen(path, "w"))) {
@@ -211,14 +199,14 @@ int clan_equal(const struct clan *c1, const struct clan *c2)
 
 int add_member_inline(char *clan, char *player)
 {
-	char *path;
 	FILE *file;
+	char path[PATH_MAX];
 
 	assert(clan != NULL);
 	assert(player != NULL);
 	assert(strcmp(clan, "00") != 0);
 
-	if (!(path = clan_path(clan)))
+	if (!dbpath(path, PATH_MAX, "clans/%s", clan))
 		return 0;
 
 	if (!(file = fopen(path, "a")))

@@ -387,16 +387,13 @@ void *index_foreach(struct index *index)
 int write_index(struct index *index, const char *filename)
 {
 	char path[PATH_MAX];
+	FILE *file = 0;
 
 	unsigned i;
-	FILE *file = 0;
 	int ret;
 
-	ret = snprintf(path, PATH_MAX, "%s/%s", config.root, filename);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(path, PATH_MAX, "%s", filename))
 		goto fail;
-	}
 
 	if (!(file = fopen(path, "w"))) {
 		perror(path);
@@ -447,17 +444,15 @@ int open_index_page(
 	int ret;
 	unsigned ndata;
 
+
 	assert(ipage != NULL);
 	assert(infos != NULL);
 	assert((plen == 0 && pnum == 1) || (plen > 0 && pnum > 0));
 
 	ipage->file = NULL;
 
-	ret = snprintf(ipage->path, PATH_MAX, "%s/%s", config.root, filename);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(ipage->path, sizeof(ipage->path), "%s", filename))
 		goto fail;
-	}
 
 	if (!(ipage->file = fopen(ipage->path, "r"))) {
 		perror(ipage->path);

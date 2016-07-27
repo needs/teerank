@@ -9,57 +9,46 @@
 #include "server.h"
 #include "config.h"
 
-static char *get_path(const char *sname)
-{
-	static char path[PATH_MAX];
-
-	if (snprintf(path, PATH_MAX, "%s/servers/%s",
-	             config.root, sname) >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
-		return NULL;
-	}
-
-	return path;
-}
-
 static int read_server_meta(FILE *file, const char *path, struct server_state *state)
 {
-	int ret;
+       int ret;
 
-	assert(file != NULL);
-	assert(path != NULL);
-	assert(state != NULL);
+       assert(file != NULL);
+       assert(path != NULL);
+       assert(state != NULL);
 
-	errno = 0;
-	ret = fscanf(file, "last seen: %ju\nexpire: %ju\n",
-	             &state->last_seen, &state->expire);
+       errno = 0;
+       ret = fscanf(file, "last seen: %ju\nexpire: %ju\n",
+                    &state->last_seen, &state->expire);
 
-	if (ret == EOF && errno != 0) {
-		perror(path);
-		return 0;
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Can't match 'last seen' field\n", path);
-		return 0;
-	} else if (ret == 1) {
-		fprintf(stderr, "%s: Can't match 'expire' field\n", path);
-		return 0;
-	}
+       if (ret == EOF && errno != 0) {
+               perror(path);
+               return 0;
+       } else if (ret == EOF || ret == 0) {
+               fprintf(stderr, "%s: Can't match 'last seen' field\n", path);
+               return 0;
+       } else if (ret == 1) {
+               fprintf(stderr, "%s: Can't match 'expire' field\n", path);
+               return 0;
+       }
 
-	return 1;
+       return 1;
 }
 
 int read_server_state(struct server_state *state, const char *sname)
 {
 	FILE *file = NULL;
-	char *path;
+	char path[PATH_MAX];
+
 	unsigned i;
 	int ret;
 
 	assert(state != NULL);
 	assert(sname != NULL);
 
-	if (!(path = get_path(sname)))
+	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
 		goto fail;
+
 	if (!(file = fopen(path, "r"))) {
 		perror(path);
 		goto fail;
@@ -129,13 +118,15 @@ static int write_server_meta(FILE *file, const char *path, struct server_state *
 int write_server_state(struct server_state *state, const char *sname)
 {
 	FILE *file = NULL;
-	char *path;
+	char path[PATH_MAX];
+
 	unsigned i;
 
 	assert(state != NULL);
 
-	if (!(path = get_path(sname)))
+	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
 		goto fail;
+
 	if (!(file = fopen(path, "w"))) {
 		perror(path);
 		goto fail;
@@ -241,12 +232,11 @@ void mark_server_online(struct server_state *state, int expire_now)
 
 void remove_server(const char *name)
 {
-	const char *path;
+	char path[PATH_MAX];
 
 	assert(name != NULL);
 
-	path = get_path(name);
-	if (!path)
+	if (!dbpath(path, PATH_MAX, "servers/%s", name))
 		return;
 
 	if (unlink(path) == -1)
@@ -266,11 +256,10 @@ int create_server(const char *sname)
 
 int server_exist(const char *sname)
 {
-	const char *path;
+	char path[PATH_MAX];
 
-	path = get_path(sname);
-	if (!path)
-		return 1;
+	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
+		return 0;
 
 	return access(path, F_OK) == 0;
 }

@@ -30,4 +30,17 @@ void load_config(int check_version);
 
 void verbose(const char *fmt, ...);
 
+/**
+ * Copy the full path to access the given file or directory in the
+ * database in the provided buffer.
+ *
+ * It is recommended to use PATH_MAX for buffer size.
+ *
+ * @param buf A valid buffer
+ * @param size Size of the given buffer
+ * @param fmt See printf() format string
+ * @return Return buf on success, NULL on failure
+ */
+char *dbpath(char *buf, size_t size, const char *fmt, ...);
+
 #endif /* CONFIG_H */

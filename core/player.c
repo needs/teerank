@@ -82,18 +82,6 @@ void init_player(struct player *player)
 	init_historic(&player->hist, sizeof(struct player_record),  UINT_MAX);
 }
 
-static char *get_path(const char *name)
-{
-	static char path[PATH_MAX];
-
-	assert(name != NULL);
-
-	if (snprintf(path, PATH_MAX, "%s/players/%s",
-	             config.root, name) >= PATH_MAX)
-		return NULL;
-	return path;
-}
-
 /*
  * Set all player's fields to meaningless values suitable for printing.
  */
@@ -185,7 +173,7 @@ static int read_player_header(FILE *file, const char *path, struct player *playe
 enum read_player_ret read_player(struct player *player, const char *name)
 {
 	FILE *file = NULL;
-	char *path;
+	char path[PATH_MAX];
 
 	assert(name != NULL);
 	assert(player != NULL);
@@ -200,7 +188,7 @@ enum read_player_ret read_player(struct player *player, const char *name)
 	 */
 	reset_player(player, name);
 
-	if (!(path = get_path(name)))
+	if (!dbpath(path, PATH_MAX, "players/%s", name))
 		goto fail;
 
 	if (!(file = fopen(path, "r"))) {
@@ -269,12 +257,12 @@ static int write_player_header(FILE *file, const char *path, struct player *play
 int write_player(struct player *player)
 {
 	FILE *file = NULL;
-	char *path;
+	char path[PATH_MAX];
 
 	assert(player != NULL);
 	assert(player->name[0] != '\0');
 
-	if (!(path = get_path(player->name)))
+	if (!dbpath(path, PATH_MAX, "players/%s", player->name))
 		goto fail;
 
 	if (!(file = fopen(path, "w"))) {
@@ -369,15 +357,16 @@ static int read_player_info_header(
 enum read_player_ret read_player_info(struct player_info *ps, const char *name)
 {
 	FILE *file = NULL;
-	char *path;
+	char path[PATH_MAX];
 
 	init_player_info(ps);
 	strcpy(ps->name, name);
 
 	reset_player_info(ps, name);
 
-	if (!(path = get_path(name)))
+	if (!dbpath(path, PATH_MAX, "players/%s", name))
 		goto fail;
+
 	if (!(file = fopen(path, "r"))) {
 		if (errno == ENOENT)
 			return PLAYER_NOT_FOUND;

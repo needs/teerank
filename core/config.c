@@ -3,6 +3,8 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <errno.h>
+#include <string.h>
+#include <assert.h>
 
 #include "config.h"
 
@@ -24,14 +26,12 @@ static int get_version(void)
 {
 	char path[PATH_MAX];
 	FILE *file = NULL;
+
 	int ret;
 	int version;
 
-	ret = snprintf(path, PATH_MAX, "%s/version", config.root);
-	if (ret >= PATH_MAX) {
-		fprintf(stderr, "%s: Too long\n", config.root);
+	if (!dbpath(path, PATH_MAX, "version"))
 		goto fail;
-	}
 
 	file = fopen(path, "r");
 	if (!file) {
@@ -104,4 +104,51 @@ void verbose(const char *fmt, ...)
 		vfprintf(stderr, fmt, ap);
 		va_end(ap);
 	}
+}
+
+static char *prefix_root(char *buf, size_t *size)
+{
+	int ret;
+
+	assert(buf != NULL);
+	assert(size != NULL);
+
+	ret = snprintf(buf, *size, "%s/", config.root);
+	if (ret < 0) {
+		perror(config.root);
+		return NULL;
+	} else if (ret >= *size) {
+		fprintf(stderr, "%s: Too long\n", config.root);
+		return NULL;
+	}
+
+	*size -= ret;
+	return buf + ret;
+}
+
+char *dbpath(char *buf, size_t size, const char *fmt, ...)
+{
+	char *tmp;
+	va_list ap;
+	int ret;
+
+	/* Prefix config.root */
+	if (!(tmp = prefix_root(buf, &size)))
+		return NULL;
+
+	va_start(ap, fmt);
+	ret = vsnprintf(tmp, size, fmt, ap);
+	if (ret < 0) {
+		perror(config.root);
+		goto fail;
+	} else if (ret >= size) {
+		fprintf(stderr, "%s: Too long\n", config.root);
+		goto fail;
+	}
+	va_end(ap);
+	return buf;
+
+fail:
+	va_end(ap);
+	return NULL;
 }

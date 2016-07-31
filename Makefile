@@ -106,12 +106,23 @@ $(CGI): cgi/cgi.o cgi/route.o $(core_objs) $(page_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 #
+# Lib
+#
+
+LIB = libteerank$(DATABASE_VERSION).a
+
+lib: $(LIB)
+$(LIB): $(core_objs)
+	ar cr $@ $^
+	objcopy --prefix-symbols=teerank$(DATABASE_VERSION)_ $@
+
+#
 # Clean
 #
 
 clean:
 	rm -f core/*.o builtin/*.o cgi/*.o cgi/page/*.o build/*.o
-	rm -f $(BINS) $(SCRIPTS) $(CGI)
+	rm -f $(BINS) $(SCRIPTS) $(CGI) $(LIB)
 	rm -f generated/script-header.inc.sh build/generate-default-config
 	rm -r generated/
 
@@ -130,4 +141,4 @@ install:
 	cp $(BINS) $(SCRIPTS) $(TEERANK_BIN_ROOT)
 	cp -r $(CGI) assets/* $(TEERANK_DATA_ROOT)
 
-.PHONY: all debug release clean install
+.PHONY: all debug release lib clean install

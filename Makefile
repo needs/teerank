@@ -1,7 +1,10 @@
-TEERANK_VERSION = 2
+TEERANK_VERSION = 3
 TEERANK_SUBVERSION = 0
 DATABASE_VERSION = 6
 STABLE_VERSION = 0
+
+PREVIOUS_VERSION = $(shell expr $(TEERANK_VERSION) - 1)
+PREVIOUS_DATABASE_VERSION = $(shell expr $(DATABASE_VERSION) - 1)
 
 CFLAGS += -lm -Icore -Icgi -Wall -Werror -std=c89 -D_POSIX_C_SOURCE=200809L
 CFLAGS += -DTEERANK_VERSION=$(TEERANK_VERSION)
@@ -13,22 +16,15 @@ BUILTINS_SCRIPTS += upgrade
 BUILTINS_SCRIPTS += update
 BUILTINS_SCRIPTS := $(addprefix teerank-,$(BUILTINS_SCRIPTS))
 
-UPGRADE_SCRIPTS += upgrade-0-to-1
-UPGRADE_SCRIPTS += upgrade-1-to-2
-UPGRADE_SCRIPTS += upgrade-2-to-3
-UPGRADE_SCRIPTS += upgrade-3-to-4
-UPGRADE_SCRIPTS := $(addprefix teerank-,$(UPGRADE_SCRIPTS))
-
-SCRIPTS = $(BUILTINS_SCRIPTS) $(UPGRADE_SCRIPTS)
-
-UPGRADE_BINS += upgrade-4-to-5
-UPGRADE_BINS += upgrade-5-to-6
-UPGRADE_BINS := $(addprefix teerank-,$(UPGRADE_BINS))
+SCRIPTS = $(BUILTINS_SCRIPTS)
 
 # Each builtin have one C file with main() function in "builtin/"
 BUILTINS_BINS = $(addprefix teerank-,$(patsubst builtin/%.c,%,$(wildcard builtin/*.c)))
 
-BINS = $(UPGRADE_BINS) $(BUILTINS_BINS)
+# There is only one upgrade binary per release
+UPGRADE_BIN = teerank-upgrade-$(PREVIOUS_DATABASE_VERSION)-to-$(DATABASE_VERSION)
+
+BINS = $(UPGRADE_BIN) $(BUILTINS_BINS)
 
 CGI = teerank.cgi
 
@@ -65,9 +61,6 @@ $(BINS): $(core_objs)
 
 $(BUILTINS_BINS): teerank-% : builtin/%.o
 
-teerank-upgrade-4-to-5: $(patsubst %.c,%.o,$(wildcard upgrade/4-to-5/*.c))
-teerank-upgrade-5-to-6: $(patsubst %.c,%.o,$(wildcard upgrade/5-to-6/*.c))
-
 #
 # Scripts
 #
@@ -92,7 +85,6 @@ generated/script-header.inc.sh: build/generate-default-config
 	@echo 'PATH="$$(dirname $$BASH_SOURCE):$$PATH"' >>$@
 	./$< >>$@
 
-$(UPGRADE_SCRIPTS): teerank-upgrade-%: upgrade/%.sh
 $(BUILTINS_SCRIPTS): teerank-%: builtin/%.sh
 
 $(SCRIPTS): generated/script-header.inc.sh
@@ -109,12 +101,28 @@ $(CGI): cgi/cgi.o cgi/route.o $(core_objs) $(page_objs)
 # Lib
 #
 
-LIB = libteerank$(DATABASE_VERSION).a
+# Upgrade binary needs both current library and the previous one
+CURRENT_LIB = libteerank$(DATABASE_VERSION).a
+PREVIOUS_LIB = libteerank$(PREVIOUS_DATABASE_VERSION).a
 
-lib: $(LIB)
-$(LIB): $(core_objs)
+PREVIOUS_BRANCH = teerank-$(PREVIOUS_VERSION).y
+
+$(CURRENT_LIB): $(core_objs)
 	ar cr $@ $^
 	objcopy --prefix-symbols=teerank$(DATABASE_VERSION)_ $@
+
+$(PREVIOUS_LIB): .git/refs/heads/$(PREVIOUS_BRANCH)
+	mkdir -p .build
+	git archive $(PREVIOUS_BRANCH) | tar x -C .build
+	$(MAKE) -C .build $(PREVIOUS_LIB)
+	cp .build/$(PREVIOUS_LIB) .
+
+#
+# Upgrade
+#
+
+UPGRADE_OBJS = $(patsubst %.c,%.o,$(wildcard upgrade/*.c))
+$(UPGRADE_BIN): $(UPGRADE_OBJS) $(CURRENT_LIB) $(PREVIOUS_LIB)
 
 #
 # Clean

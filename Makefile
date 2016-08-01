@@ -104,6 +104,15 @@ $(CGI): cgi/cgi.o cgi/route.o $(core_objs) $(page_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 #
+# Lib
+#
+
+CURRENT_LIB = libteerank$(DATABASE_VERSION).a
+$(CURRENT_LIB): $(core_objs)
+	ar cr $@ $^
+	objcopy --prefix-symbols=teerank$(DATABASE_VERSION)_ $@
+
+#
 # Clean
 #
 

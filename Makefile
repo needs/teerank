@@ -101,6 +101,10 @@ $(CGI): cgi/cgi.o cgi/route.o $(core_objs) $(page_objs)
 # Lib
 #
 
+# Header files needs to be prefixed
+build/prefix-header: build/prefix-header.o
+	$(CC) -o $@ $(CFLAGS) $^
+
 # Upgrade binary needs both current library and the previous one
 CURRENT_LIB = libteerank$(DATABASE_VERSION).a
 PREVIOUS_LIB = libteerank$(PREVIOUS_DATABASE_VERSION).a
@@ -111,17 +115,24 @@ $(CURRENT_LIB): $(core_objs)
 	ar cr $@ $^
 	objcopy --prefix-symbols=teerank$(DATABASE_VERSION)_ $@
 
-$(PREVIOUS_LIB): .git/refs/heads/$(PREVIOUS_BRANCH)
-	mkdir -p .build
-	git archive $(PREVIOUS_BRANCH) | tar x -C .build
-	$(MAKE) -C .build $(PREVIOUS_LIB)
-	cp .build/$(PREVIOUS_LIB) .
+$(PREVIOUS_LIB): dest = .build/teerank$(PREVIOUS_DATABASE_VERSION)
+$(PREVIOUS_LIB): .git/refs/heads/$(PREVIOUS_BRANCH) build/prefix-header
+	mkdir -p $(dest)
+	git archive $(PREVIOUS_BRANCH) | tar x -C $(dest)
+	$(MAKE) -C $(dest) $(PREVIOUS_LIB)
+	cp $(dest)/$(PREVIOUS_LIB) .
+
+	# Prefix every header file in core
+	for i in $(dest)/core/*.h; do \
+		./build/prefix-header teerank$(PREVIOUS_DATABASE_VERSION)_ <"$$i" >"$$i"; \
+	done
 
 #
 # Upgrade
 #
 
 UPGRADE_OBJS = $(patsubst %.c,%.o,$(wildcard upgrade/*.c))
+$(UPGRADE_BIN): CFLAGS += -I.build
 $(UPGRADE_BIN): $(UPGRADE_OBJS) $(CURRENT_LIB) $(PREVIOUS_LIB)
 
 #
@@ -131,8 +142,8 @@ $(UPGRADE_BIN): $(UPGRADE_OBJS) $(CURRENT_LIB) $(PREVIOUS_LIB)
 clean:
 	rm -f core/*.o builtin/*.o cgi/*.o cgi/page/*.o build/*.o
 	rm -f $(BINS) $(SCRIPTS) $(CGI) $(LIB)
-	rm -f generated/script-header.inc.sh build/generate-default-config
-	rm -r generated/
+	rm -f generated/script-header.inc.sh build/generate-default-config build/prefix-header
+	rm -r generated/ .build
 
 #
 # Install

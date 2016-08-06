@@ -11,6 +11,7 @@
 /teerank-*
 /teerank.cgi
 /build/generate-default-config
+/build/prefix-header
 /generated
 
 /libteerank*.a

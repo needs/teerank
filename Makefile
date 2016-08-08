@@ -109,8 +109,8 @@ $(CGI): cgi/cgi.o cgi/route.o $(core_objs) $(page_objs)
 
 CURRENT_LIB = libteerank$(DATABASE_VERSION).a
 $(CURRENT_LIB): $(core_objs)
-	ar cr $@ $^
-	objcopy --prefix-symbols=teerank$(DATABASE_VERSION)_ $@
+	ar rcs $@ $^
+	./build/prefix-static-library.sh $@ teerank$(DATABASE_VERSION)_
 
 #
 # Clean

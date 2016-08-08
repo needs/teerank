@@ -112,8 +112,8 @@ PREVIOUS_LIB = libteerank$(PREVIOUS_DATABASE_VERSION).a
 PREVIOUS_BRANCH = teerank-$(PREVIOUS_VERSION).y
 
 $(CURRENT_LIB): $(core_objs)
-	ar cr $@ $^
-	objcopy --prefix-symbols=teerank$(DATABASE_VERSION)_ $@
+	ar rcs $@ $^
+	./build/prefix-static-library.sh $@ teerank$(DATABASE_VERSION)_
 
 $(PREVIOUS_LIB): dest = .build/teerank$(PREVIOUS_DATABASE_VERSION)
 $(PREVIOUS_LIB): .git/refs/heads/$(PREVIOUS_BRANCH) build/prefix-header

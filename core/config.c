@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 #include "config.h"
 
@@ -94,6 +95,10 @@ void load_config(int check_version)
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	/* Doing so makes mktime() usable for UTC time */
+	setenv("TZ", "", 1);
+	tzset();
 }
 
 void verbose(const char *fmt, ...)

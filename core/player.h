@@ -74,6 +74,8 @@ struct player {
 	int elo;
 	unsigned rank;
 
+	struct tm last_seen;
+
 	struct historic hist;
 
 	struct player_delta *delta;
@@ -98,6 +100,13 @@ static const int INVALID_ELO  = INT_MIN;
  * Value used to mark the absence of any rank.
  */
 static const unsigned UNRANKED = 0;
+
+/**
+ * @def NEVER_SEEN
+ *
+ * Special time_t value used for player which has neveer been seen yet
+ */
+static const time_t NEVER_SEEN = 0;
 
 enum {
 	IS_MODIFIED_CREATED = (1 << 0),
@@ -204,6 +213,8 @@ struct player_info {
 
 	int elo;
 	unsigned rank;
+
+	struct tm last_seen;
 
 	struct historic_info hist;
 };

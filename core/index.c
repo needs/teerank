@@ -26,12 +26,18 @@ struct index_data_infos {
 	read_index_data_func_t read_data;
 };
 
-/* Return the size of the decimal representation of the given number */
+/*
+ * Return the size of the decimal representation of the given number,
+ * including terminating nul character.
+ */
 #define strsize(n) (int)sizeof(#n)
 
 /* Add one because negative ints are prefixed with '-' */
 #define INT_STRSIZE (strsize(INT_MIN) + 1)
 #define UINT_STRSIZE strsize(UINT_MAX)
+
+/* Size of RFC-3339 date format */
+#define DATE_STRSIZE sizeof("yyyy-mm-ddThh:mm:ssZ")
 
 /*
  * INDEX_DATA_INFOS_PLAYER
@@ -52,6 +58,7 @@ static int create_indexed_player(void *data, const char *name)
 	strcpy(ret->clan, player.clan);
 	ret->rank = player.rank;
 	ret->elo = player.elo;
+	ret->last_seen = player.last_seen;
 
 	return 1;
 }
@@ -59,12 +66,21 @@ static int create_indexed_player(void *data, const char *name)
 static int write_indexed_player(void *data, FILE *file, const char *path)
 {
 	struct indexed_player *p = data;
+	char last_seen[DATE_STRSIZE];
 	int ret;
 
+	ret = strftime(
+		last_seen, sizeof(last_seen),
+		"%Y-%m-%dT%H:%M:%SZ", &p->last_seen);
+	if (!ret) {
+		fprintf(stderr, "%s: Can't convert last_seen field to RFC-3339 format\n", path);
+		return 0;
+	}
+
 	ret = fprintf(
-		file, "%-*s %-*s %-*d %-*u\n",
+		file, "%-*s %-*s %-*d %-*u %s\n",
 		HEXNAME_LENGTH - 1, p->name, HEXNAME_LENGTH - 1, p->clan,
-		INT_STRSIZE, p->elo, UINT_STRSIZE, p->rank);
+		INT_STRSIZE - 1, p->elo, UINT_STRSIZE - 1, p->rank, last_seen);
 	if (ret < 0) {
 		perror(path);
 		return 0;
@@ -76,10 +92,11 @@ static int write_indexed_player(void *data, FILE *file, const char *path)
 static int read_indexed_player(void *data, FILE *file, const char *path)
 {
 	struct indexed_player *p = data;
+	char last_seen[DATE_STRSIZE];
 	int ret;
 
 	errno = 0;
-	ret = fscanf(file, "%s %s %d %u\n", p->name, p->clan, &p->elo, &p->rank);
+	ret = fscanf(file, "%s %s %d %u %s\n", p->name, p->clan, &p->elo, &p->rank, last_seen);
 	if (ret == EOF && errno != 0) {
 		perror(path);
 		return 0;
@@ -95,6 +112,14 @@ static int read_indexed_player(void *data, FILE *file, const char *path)
 	} else if (ret == 3) {
 		fprintf(stderr, "%s: Cannot match indexed player rank\n", path);
 		return 0;
+	} else if (ret == 4) {
+		fprintf(stderr, "%s: Cannot match indexed player last_seen date\n", path);
+		return 0;
+	}
+
+	if (!strptime(last_seen, "%Y-%m-%dT%H:%M:%SZ", &p->last_seen)) {
+		fprintf(stderr, "%s: Cannot parse last_seen date\n", path);
+		return 0;
 	}
 
 	return 1;
@@ -103,7 +128,7 @@ static int read_indexed_player(void *data, FILE *file, const char *path)
 const struct index_data_infos *INDEX_DATA_INFOS_PLAYER = &(struct index_data_infos) {
 	"players",
 	sizeof(struct indexed_player),
-	HEXNAME_LENGTH - 1 + HEXNAME_LENGTH - 1 + INT_STRSIZE + UINT_STRSIZE + 4,
+	HEXNAME_LENGTH + HEXNAME_LENGTH + INT_STRSIZE + UINT_STRSIZE + DATE_STRSIZE,
 	create_indexed_player,
 	write_indexed_player,
 	read_indexed_player
@@ -414,7 +439,8 @@ int write_index(struct index *index, const char *filename)
 			perror(path);
 			goto fail;
 		} else if (ret != index->infos->entry_size) {
-			fprintf(stderr, "%s: Bytes written do not match entry size\n", path);
+			fprintf(stderr, "%s: Bytes written (%d) do not match entry size (%u)\n",
+			        path, ret, (unsigned)index->infos->entry_size);
 			goto fail;
 		}
 	}

@@ -1,6 +1,8 @@
 #ifndef HTML_H
 #define HTML_H
 
+#include <time.h>
+
 #include "player.h"
 #include "index.h"
 
@@ -24,7 +26,7 @@ const char *name_to_html(const char *name);
 
 void html_start_player_list(void);
 void html_player_list_entry(
-	const char *hexname, const char *hexclan, int elo, unsigned rank,
+	const char *hexname, const char *hexclan, int elo, unsigned rank, struct tm last_seen,
 	int no_clan_link);
 void html_end_player_list(void);
 

@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "player.h"
 #include "config.h"
@@ -106,6 +107,8 @@ static void reset_player_info(struct player_info *player, const char *name)
 
 void create_player(struct player *player, const char *name)
 {
+	time_t now;
+
 	assert(player != NULL);
 
 	strcpy(player->name, name);
@@ -115,6 +118,9 @@ void create_player(struct player *player, const char *name)
 
 	set_elo(player, DEFAULT_ELO);
 	set_rank(player, UNRANKED);
+
+	now = time(NULL);
+	player->last_seen = *gmtime(&now);
 
 	player->is_rankable = 0;
 	player->is_modified = IS_MODIFIED_CREATED;
@@ -155,10 +161,35 @@ static int read_clan(FILE *file, const char *path, char *clan)
 	return 1;
 }
 
+static int read_last_seen(FILE *file, const char *path, struct tm *last_seen)
+{
+	/* RFC-3339 */
+	char buf[] = "yyyy-mm-ddThh-mm-ssZ";
+
+	if (fread(buf, sizeof(buf) - 1, 1, file) != 1) {
+		if (ferror(file)) {
+			perror(path);
+			return 0;
+		} else {
+			fprintf(stderr, "%s: Early end of file\n", path);
+			return 0;
+		}
+	}
+
+	if (strptime(buf, "%Y-%m-%dT%H:%M:%SZ", last_seen) == NULL) {
+		fprintf(stderr, "%s: Cannot match player last seen date\n", path);
+		return 0;
+	}
+
+	return 1;
+}
+
 static int read_player_header(FILE *file, const char *path, struct player *player)
 {
 	struct player_record rec;
 
+	if (!read_last_seen(file, path, &player->last_seen))
+		return 0;
 	if (!read_clan(file, path, player->clan))
 		return 0;
 	if (!read_player_record(file, path, &rec))
@@ -238,6 +269,26 @@ static int write_clan(FILE *file, const char *path, const char *clan)
 	return 1;
 }
 
+static int write_last_seen(FILE *file, const char *path, struct tm *last_seen)
+{
+	/* RFC-3339 */
+	char buf[] = "yyyy-mm-ddThh-mm-ssZ";
+	size_t ret;
+
+	ret = strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", last_seen);
+	if (ret != sizeof(buf) - 1) {
+		fprintf(stderr, "%s: Cannot represent date using RFC-3339\n", path);
+		return 0;
+	}
+
+	if (fprintf(file, "%s\n", buf) < 0) {
+		perror(path);
+		return 0;
+	}
+
+	return 1;
+}
+
 static int write_player_header(FILE *file, const char *path, struct player *player)
 {
 	struct player_record rec;
@@ -245,6 +296,8 @@ static int write_player_header(FILE *file, const char *path, struct player *play
 	rec.elo = player->elo;
 	rec.rank = player->rank;
 
+	if (!write_last_seen(file, path, &player->last_seen))
+		return 0;
 	if (!write_clan(file, path, player->clan))
 		return 0;
 	if (!write_player_record(file, path, &rec))
@@ -343,6 +396,8 @@ static int read_player_info_header(
 {
 	struct player_record rec;
 
+	if (!read_last_seen(file, path, &ps->last_seen))
+		return 0;
 	if (!read_clan(file, path, ps->clan))
 		return 0;
 	if (!read_player_record(file, path, &rec))

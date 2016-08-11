@@ -203,6 +203,7 @@ table th {
 	font-size: 1.2em;
 	font-weight: bold;
 	text-align: left;
+	white-space: nowrap;
 }
 
 table > * > tr > td:nth-child(2),

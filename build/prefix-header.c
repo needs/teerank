@@ -181,6 +181,23 @@ static int next_symbol(struct symbol *s)
 	return 0;
 }
 
+/*
+ * Some symbol just need to be ignored.  Otherwise they will be
+ * prefixed.  For example every symbol defined in standard header files,
+ * like INET6_ADDRSTRLEN must ignored.
+ *
+ * This list should be completed by hand each time we encounter a symbol
+ * that is prefixed but shouldn't.
+ */
+static int is_ignored_symbol(struct symbol *s)
+{
+	return
+		strcmp(s->name, "INET6_ADDRSTRLEN") == 0 ||
+		strcmp(s->name, "sockaddr_storage") == 0 ||
+		strcmp(s->name, "INT_MIN") == 0 ||
+		strcmp(s->name, "pollfd") == 0;
+}
+
 static int is_keyword(struct symbol *s)
 {
 	/*
@@ -197,6 +214,7 @@ static int is_keyword(struct symbol *s)
 		strcmp(s->name, "#ifndef") == 0  ||
 		strcmp(s->name, "#endif") == 0   ||
 		strcmp(s->name, "static") == 0   ||
+		strcmp(s->name, "typedef") == 0   ||
 		strcmp(s->name, "const") == 0;
 }
 
@@ -287,6 +305,11 @@ int main(int argc, char *argv[])
 		if (is_keyword(&s) || is_standard_type(&s)) {
 			printf("%s", s.name);
 			in_enum = 0;
+		}
+
+		/* Don't prefix ignored symbols  */
+		else if (is_ignored_symbol(&s)) {
+			printf("%s", s.name);
 		}
 
 		/* Prefix struct and enum name */

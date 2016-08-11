@@ -287,6 +287,7 @@ void html_start_player_list(void)
 	html("<th>Name</th>");
 	html("<th>Clan</th>");
 	html("<th>Score</th>");
+	html("<th>Last seen</th>");
 	html("</tr>");
 	html("</thead>");
 	html("<tbody>");
@@ -298,8 +299,43 @@ void html_end_player_list(void)
 	html("</table>");
 }
 
+/*
+ * Compute the number of minutes, hours, days, months and years from the
+ * given date to now.
+ */
+static char *elapsed_time_since(struct tm *tm)
+{
+	time_t now = time(NULL), ts;
+	time_t elapsed_seconds;
+	struct tm elapsed;
+	static char buf[64];
+
+	ts = mktime(tm);
+	if (now < ts)
+		elapsed_seconds = ts - now;
+	else
+		elapsed_seconds = now - ts;
+
+	elapsed = *gmtime(&elapsed_seconds);
+
+	if (elapsed.tm_year - 70)
+		sprintf(buf, "%d years", elapsed.tm_year - 70);
+	else if (elapsed.tm_mon)
+		sprintf(buf, "%d months", elapsed.tm_mon);
+	else if (elapsed.tm_mday - 1)
+		sprintf(buf, "%d days", elapsed.tm_mday - 1);
+	else if (elapsed.tm_hour)
+		sprintf(buf, "%d hours", elapsed.tm_hour);
+	else if (elapsed.tm_min >= 10)
+		sprintf(buf, "%d minutes", elapsed.tm_min - (elapsed.tm_min % 5));
+	else
+		sprintf(buf, "Online");
+
+	return buf;
+}
+
 void html_player_list_entry(
-	const char *hexname, const char *hexclan, int elo, unsigned rank,
+	const char *hexname, const char *hexclan, int elo, unsigned rank, struct tm last_seen,
 	int no_clan_link)
 {
 	char name[NAME_LENGTH], clan[NAME_LENGTH];
@@ -332,6 +368,13 @@ void html_player_list_entry(
 		html("<td>?</td>");
 	else
 		html("<td>%d</td>", elo);
+
+	/* Last seen */
+	if (mktime(&last_seen) == NEVER_SEEN) {
+		html("<td></td>");
+	} else {
+		html("<td>%s</td>", elapsed_time_since(&last_seen));
+	}
 
 	html("</tr>");
 }

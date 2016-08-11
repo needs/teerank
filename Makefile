@@ -6,7 +6,7 @@ STABLE_VERSION = 0
 PREVIOUS_VERSION = $(shell expr $(TEERANK_VERSION) - 1)
 PREVIOUS_DATABASE_VERSION = $(shell expr $(DATABASE_VERSION) - 1)
 
-CFLAGS += -lm -Icore -Icgi -Wall -Werror -std=c89 -D_POSIX_C_SOURCE=200809L
+CFLAGS += -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -lm -Icore -Icgi -Wall -Werror -std=c89
 CFLAGS += -DTEERANK_VERSION=$(TEERANK_VERSION)
 CFLAGS += -DTEERANK_SUBVERSION=$(TEERANK_SUBVERSION)
 CFLAGS += -DDATABASE_VERSION=$(DATABASE_VERSION)
@@ -32,10 +32,12 @@ $(shell mkdir -p generated)
 
 # Add debugging symbols and optimizations to check for more warnings
 debug: CFLAGS += -O -g
+debug: CFLAGS_EXTRA = -O -g
 debug: $(BINS) $(SCRIPTS) $(CGI)
 
 # Remove assertions and enable optimizations
 release: CFLAGS += -DNDEBUG -O2
+release: CFLAGS_EXTRA = -DNDEBUG -O2
 release: $(BINS) $(SCRIPTS) $(CGI)
 
 #
@@ -56,7 +58,7 @@ $(page_objs): $(page_headers) $(core_headers)
 # config.c use version constants defined here
 $(core_objs): Makefile
 
-$(BINS): $(core_objs)
+$(BUILTINS_BINS): $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 $(BUILTINS_BINS): teerank-% : builtin/%.o
@@ -119,12 +121,13 @@ $(PREVIOUS_LIB): dest = .build/teerank$(PREVIOUS_DATABASE_VERSION)
 $(PREVIOUS_LIB): .git/refs/heads/$(PREVIOUS_BRANCH) build/prefix-header
 	mkdir -p $(dest)
 	git archive $(PREVIOUS_BRANCH) | tar x -C $(dest)
-	$(MAKE) -C $(dest) $(PREVIOUS_LIB)
+	CFLAGS="$(CFLAGS_EXTRA)" $(MAKE) -C $(dest) $(PREVIOUS_LIB)
 	cp $(dest)/$(PREVIOUS_LIB) .
 
 	# Prefix every header file in core
 	for i in $(dest)/core/*.h; do \
-		./build/prefix-header teerank$(PREVIOUS_DATABASE_VERSION)_ <"$$i" >"$$i"; \
+		./build/prefix-header teerank$(PREVIOUS_DATABASE_VERSION)_ <"$$i" >"$$i".tmp; \
+		mv "$$i".tmp "$$i"; \
 	done
 
 #
@@ -132,8 +135,10 @@ $(PREVIOUS_LIB): .git/refs/heads/$(PREVIOUS_BRANCH) build/prefix-header
 #
 
 UPGRADE_OBJS = $(patsubst %.c,%.o,$(wildcard upgrade/*.c))
-$(UPGRADE_BIN): CFLAGS += -I.build
-$(UPGRADE_BIN): $(UPGRADE_OBJS) $(CURRENT_LIB) $(PREVIOUS_LIB)
+$(UPGRADE_OBJS): CFLAGS += -I.build
+$(UPGRADE_OBJS): $(PREVIOUS_LIB)
+$(UPGRADE_BIN): $(core_objs) $(UPGRADE_OBJS) $(PREVIOUS_LIB)
+	$(CC) -o $@ $(CFLAGS) -I.build $^
 
 #
 # Clean
@@ -142,8 +147,9 @@ $(UPGRADE_BIN): $(UPGRADE_OBJS) $(CURRENT_LIB) $(PREVIOUS_LIB)
 clean:
 	rm -f core/*.o builtin/*.o cgi/*.o cgi/page/*.o build/*.o
 	rm -f $(BINS) $(SCRIPTS) $(CGI) $(LIB)
+	rm -f $(CURRENT_LIB) $(PREVIOUS_LIB)
 	rm -f generated/script-header.inc.sh build/generate-default-config build/prefix-header
-	rm -r generated/ .build
+	rm -rf generated/ .build/
 
 #
 # Install

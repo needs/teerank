@@ -67,13 +67,13 @@ static void html_server_list_entry(unsigned pos, struct indexed_server *server)
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td></td>");
+	html("<td>%s</td>", server->name);
 
 	/* Gametype */
 	html("<td>%s</td>", server->gametype);
 
 	/* Map */
-	html("<td></td>");
+	html("<td>%s</td>", server->map);
 
 	/* Players */
 	html("<td>%u</td>", server->nplayers);

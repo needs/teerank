@@ -9,30 +9,42 @@
 #include "server.h"
 #include "config.h"
 
-static int read_server_meta(FILE *file, const char *path, struct server_state *state)
+static int read_server_header(FILE *file, const char *path, struct server_state *state)
 {
-       int ret;
+	int ret;
 
-       assert(file != NULL);
-       assert(path != NULL);
-       assert(state != NULL);
+	assert(file != NULL);
+	assert(path != NULL);
+	assert(state != NULL);
 
-       errno = 0;
-       ret = fscanf(file, "last seen: %ju\nexpire: %ju\n",
-                    &state->last_seen, &state->expire);
+	errno = 0;
+	ret = fscanf(
+		file, "name: %s\ngametype: %s\nmap: %s\n"
+		"last seen: %ju\nexpire: %ju\n",
+		state->name, state->gametype, state->map,
+		&state->last_seen, &state->expire);
 
-       if (ret == EOF && errno != 0) {
-               perror(path);
-               return 0;
-       } else if (ret == EOF || ret == 0) {
-               fprintf(stderr, "%s: Can't match 'last seen' field\n", path);
-               return 0;
-       } else if (ret == 1) {
-               fprintf(stderr, "%s: Can't match 'expire' field\n", path);
-               return 0;
-       }
+	if (ret == EOF && errno != 0) {
+		perror(path);
+		return 0;
+	} else if (ret == EOF || ret == 0) {
+		fprintf(stderr, "%s: Can't match 'name' field\n", path);
+		return 0;
+	} else if (ret == 1) {
+		fprintf(stderr, "%s: Can't match 'gametype' field\n", path);
+		return 0;
+	} else if (ret == 2) {
+		fprintf(stderr, "%s: Can't match 'map' field\n", path);
+		return 0;
+	} else if (ret == 3) {
+		fprintf(stderr, "%s: Can't match 'last seen' field\n", path);
+		return 0;
+	} else if (ret == 4) {
+		fprintf(stderr, "%s: Can't match 'expire' field\n", path);
+		return 0;
+	}
 
-       return 1;
+	return 1;
 }
 
 int read_server_state(struct server_state *state, const char *sname)
@@ -54,7 +66,7 @@ int read_server_state(struct server_state *state, const char *sname)
 		goto fail;
 	}
 
-	if (!read_server_meta(file, path, state))
+	if (!read_server_header(file, path, state))
 		goto fail;
 
 	errno = 0;
@@ -85,9 +97,6 @@ int read_server_state(struct server_state *state, const char *sname)
 		}
 	}
 
-	/* Assume for now that only CTF games are ranked */
-	state->gametype = "CTF";
-
 	fclose(file);
 	return 1;
 
@@ -97,7 +106,7 @@ fail:
 	return 0;
 }
 
-static int write_server_meta(FILE *file, const char *path, struct server_state *state)
+static int write_server_header(FILE *file, const char *path, struct server_state *state)
 {
 	int ret;
 
@@ -105,8 +114,12 @@ static int write_server_meta(FILE *file, const char *path, struct server_state *
 	assert(path != NULL);
 	assert(state != NULL);
 
-	ret = fprintf(file, "last seen: %ju\nexpire: %ju\n",
-	              state->last_seen, state->expire);
+	ret = fprintf(
+		file, "name: %s\ngametype: %s\nmap: %s\n"
+		"last seen: %ju\nexpire: %ju\n",
+		state->name, state->gametype, state->map,
+		state->last_seen, state->expire);
+
 	if (ret < 0) {
 		perror(path);
 		return 0;
@@ -132,7 +145,7 @@ int write_server_state(struct server_state *state, const char *sname)
 		goto fail;
 	}
 
-	if (!write_server_meta(file, path, state))
+	if (!write_server_header(file, path, state))
 		goto fail;
 
 	if (fprintf(file, "%d\n", state->num_clients) <= 0) {

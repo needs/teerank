@@ -146,9 +146,9 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 
 	unpack_string(&up);     /* Token */
 	unpack_string(&up);     /* Version */
-	unpack_string(&up);     /* Name */
-	state->map = unpack_string(&up);      /* Map */
-	state->gametype = unpack_string(&up); /* Gametype */
+	strcpy(state->name, unpack_string(&up));     /* Name */
+	strcpy(state->map, unpack_string(&up));      /* Map */
+	strcpy(state->gametype, unpack_string(&up)); /* Gametype */
 
 	unpack_string(&up);     /* Flags */
 	unpack_string(&up);     /* Player number */

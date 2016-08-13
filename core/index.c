@@ -213,9 +213,9 @@ static int create_indexed_server(void *data, const char *name)
 	if (!read_server_state(&server, name))
 		return 0;
 
-	strcpy(ret->name, "");
+	strcpy(ret->name, server.name);
 	strcpy(ret->gametype, server.gametype);
-	strcpy(ret->map, "");
+	strcpy(ret->map, server.map);
 	ret->nplayers = server.num_clients;
 
 	return 1;
@@ -228,10 +228,10 @@ static int write_indexed_server(void *data, FILE *file, const char *path)
 
 	ret = fprintf(
 		file, "%-*s %-*s %-*s %*u\n",
-		(int)sizeof(s->name), s->name,
-		(int)sizeof(s->gametype), s->gametype,
-		(int)sizeof(s->map), s->map,
-		UINT_STRSIZE, s->nplayers);
+		(int)sizeof(s->name) - 1, s->name,
+		(int)sizeof(s->gametype) - 1, s->gametype,
+		(int)sizeof(s->map) - 1, s->map,
+		UINT_STRSIZE - 1, s->nplayers);
 	if (ret < 0) {
 		perror(path);
 		return 0;
@@ -276,7 +276,7 @@ fail:
 const struct index_data_infos *INDEX_DATA_INFOS_SERVER = &(struct index_data_infos) {
 	"servers",
 	sizeof(struct indexed_server),
-	64 + 8 + 64 + UINT_STRSIZE + 4,
+	SERVERNAME_STRSIZE + GAMETYPE_STRSIZE + MAP_STRSIZE + UINT_STRSIZE,
 	create_indexed_server,
 	write_indexed_server,
 	read_indexed_server

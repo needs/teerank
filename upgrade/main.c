@@ -8,8 +8,10 @@
 
 #include "config.h"
 #include "index.h"
+#include "server.h"
 
 #include "teerank5/core/player.h"
+#include "teerank5/core/server.h"
 
 static int sort_by_elo(const void *pa, const void *pb)
 {
@@ -116,12 +118,65 @@ static void upgrade_players(void)
 	closedir(dir);
 }
 
+static void upgrade_server(struct teerank5_server_state *old, struct server_state *new)
+{
+	unsigned i;
+
+	/* When a field is new, fill it with "???" */
+	strcpy(new->name, "???");
+	strcpy(new->gametype, "???");
+	strcpy(new->map, "???");
+
+	new->last_seen = old->last_seen;
+	new->expire = old->expire;
+
+	new->num_clients = old->num_clients;
+	new->max_clients = old->max_clients;
+
+	for (i = 0; i < old->num_clients; i++) {
+		strcpy(new->clients[i].name, old->clients[i].name);
+		strcpy(new->clients[i].clan, old->clients[i].clan);
+		new->clients[i].score = old->clients[i].score;
+		new->clients[i].ingame = old->clients[i].ingame;
+	}
+}
+
+static void upgrade_servers(void)
+{
+	struct teerank5_server_state old;
+	struct server_state new;
+
+	char path[PATH_MAX];
+	struct dirent *dp;
+	DIR *dir;
+
+	if (!dbpath(path, PATH_MAX, "servers"))
+		exit(EXIT_FAILURE);
+
+	if ((dir = opendir(path)) == NULL) {
+		perror(path);
+		exit(EXIT_FAILURE);
+	}
+
+	while ((dp = readdir(dir))) {
+		if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
+			continue;
+
+		teerank5_read_server_state(&old, dp->d_name);
+		upgrade_server(&old, &new);
+		write_server_state(&new, dp->d_name);
+	}
+
+	closedir(dir);
+}
+
 int main(int argc, char *argv[])
 {
 	load_config(0);
 
 	remove_ranks_file();
 	upgrade_players();
+	upgrade_servers();
 	create_players_by_rank_file();
 
 	return EXIT_SUCCESS;

@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #include "player.h"
+#include "server.h"
 
 /*
  * Index provide an easy way to load all files from a directory, sort
@@ -38,9 +39,9 @@ struct indexed_clan {
 
 extern const struct index_data_infos *INDEX_DATA_INFOS_SERVER;
 struct indexed_server {
-	char name[64];
-	char gametype[8];
-	char map[64];
+	char name[SERVERNAME_STRSIZE];
+	char gametype[GAMETYPE_STRSIZE];
+	char map[MAP_STRSIZE];
 	unsigned nplayers;
 };
 

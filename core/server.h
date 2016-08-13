@@ -7,17 +7,28 @@
 /* Maximum clients a server state can contains */
 #define MAX_CLIENTS 16
 
+/*
+ * While name and gametype string size is consistently defined accross
+ * Teeworlds source code, map string size is on the other hand sometime
+ * 32 byte, sometime 64 byte.  We choose 64 byte because the whole file
+ * should be less than a block size anyway (>= 512b).
+ */
+#define SERVERNAME_STRSIZE 256
+#define GAMETYPE_STRSIZE 8
+#define MAP_STRSIZE 64
+
 /**
  * @struct server_state
  *
  * Contains the state of a server at the time "last_seen".
  */
 struct server_state {
+	char name[SERVERNAME_STRSIZE];
+	char gametype[GAMETYPE_STRSIZE];
+	char map[MAP_STRSIZE];
+
 	time_t last_seen;
 	time_t expire;
-
-	char *gametype;
-	char *map;
 
 	int num_clients;
 	int max_clients;

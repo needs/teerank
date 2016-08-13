@@ -162,7 +162,7 @@ static int write_indexed_clan(void *data, FILE *file, const char *path)
 
 	ret = fprintf(
 		file, "%-*s %-*u\n",
-		HEXNAME_LENGTH - 1, c->name, UINT_STRSIZE, c->nmembers);
+		HEXNAME_LENGTH - 1, c->name, UINT_STRSIZE - 1, c->nmembers);
 	if (ret < 0) {
 		perror(path);
 		return 0;
@@ -195,7 +195,7 @@ static int read_indexed_clan(void *data, FILE *file, const char *path)
 const struct index_data_infos *INDEX_DATA_INFOS_CLAN = &(struct index_data_infos) {
 	"clans",
 	sizeof(struct indexed_clan),
-	HEXNAME_LENGTH - 1 + UINT_STRSIZE + 2,
+	HEXNAME_LENGTH + UINT_STRSIZE,
 	create_indexed_clan,
 	write_indexed_clan,
 	read_indexed_clan

@@ -70,13 +70,16 @@ int read_server_state(struct server_state *state, const char *sname)
 		goto fail;
 
 	errno = 0;
-	ret = fscanf(file, " %d", &state->num_clients);
+	ret = fscanf(file, " %d / %d", &state->num_clients, &state->max_clients);
 
 	if (ret == EOF && errno != 0) {
 		perror(path);
 		goto fail;
 	} else if (ret == EOF || ret == 0) {
 		fprintf(stderr, "%s: Cannot match clients number\n", path);
+		goto fail;
+	} else if (ret == 1) {
+		fprintf(stderr, "%s: Cannot match max clients number\n", path);
 		goto fail;
 	}
 
@@ -148,7 +151,7 @@ int write_server_state(struct server_state *state, const char *sname)
 	if (!write_server_header(file, path, state))
 		goto fail;
 
-	if (fprintf(file, "%d\n", state->num_clients) <= 0) {
+	if (fprintf(file, "%d / %d\n", state->num_clients, state->max_clients) <= 0) {
 		perror(path);
 		goto fail;
 	}

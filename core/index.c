@@ -217,6 +217,7 @@ static int create_indexed_server(void *data, const char *name)
 	strcpy(ret->gametype, server.gametype);
 	strcpy(ret->map, server.map);
 	ret->nplayers = server.num_clients;
+	ret->maxplayers = server.max_clients;
 
 	return 1;
 }
@@ -227,11 +228,12 @@ static int write_indexed_server(void *data, FILE *file, const char *path)
 	int ret;
 
 	ret = fprintf(
-		file, "%-*s %-*s %-*s %*u\n",
+		file, "%-*s %-*s %-*s %*u %*u\n",
 		(int)sizeof(s->name) - 1, s->name,
 		(int)sizeof(s->gametype) - 1, s->gametype,
 		(int)sizeof(s->map) - 1, s->map,
-		UINT_STRSIZE - 1, s->nplayers);
+		UINT_STRSIZE - 1, s->nplayers,
+		UINT_STRSIZE - 1, s->maxplayers);
 	if (ret < 0) {
 		perror(path);
 		return 0;
@@ -261,6 +263,11 @@ static int read_indexed_server(void *data, FILE *file, const char *path)
 
 	if (fscanf(file, "%u", &s->nplayers) != 1)
 		goto fail;
+	if (fgetc(file) != ' ')
+		goto fail;
+
+	if (fscanf(file, "%u", &s->maxplayers) != 1)
+		goto fail;
 	if (fgetc(file) != '\n')
 		goto fail;
 
@@ -276,7 +283,8 @@ fail:
 const struct index_data_infos *INDEX_DATA_INFOS_SERVER = &(struct index_data_infos) {
 	"servers",
 	sizeof(struct indexed_server),
-	SERVERNAME_STRSIZE + GAMETYPE_STRSIZE + MAP_STRSIZE + UINT_STRSIZE,
+	SERVERNAME_STRSIZE + GAMETYPE_STRSIZE + MAP_STRSIZE
+	+ UINT_STRSIZE + UINT_STRSIZE,
 	create_indexed_server,
 	write_indexed_server,
 	read_indexed_server

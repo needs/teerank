@@ -131,7 +131,7 @@ static void upgrade_server(struct teerank5_server_state *old, struct server_stat
 	new->expire = old->expire;
 
 	new->num_clients = old->num_clients;
-	new->max_clients = old->max_clients;
+	new->max_clients = MAX_CLIENTS;
 
 	for (i = 0; i < old->num_clients; i++) {
 		strcpy(new->clients[i].name, old->clients[i].name);

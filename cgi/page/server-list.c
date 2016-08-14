@@ -76,7 +76,7 @@ static void html_server_list_entry(unsigned pos, struct indexed_server *server)
 	html("<td>%s</td>", server->map);
 
 	/* Players */
-	html("<td>%u</td>", server->nplayers);
+	html("<td>%u / %u</td>", server->nplayers, server->maxplayers);
 
 	html("</tr>");
 }

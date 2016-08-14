@@ -43,6 +43,7 @@ struct indexed_server {
 	char gametype[GAMETYPE_STRSIZE];
 	char map[MAP_STRSIZE];
 	unsigned nplayers;
+	unsigned maxplayers;
 };
 
 struct index {

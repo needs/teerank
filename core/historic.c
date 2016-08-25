@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #include "historic.h"
+#include "json.h"
 
 void init_historic(struct historic *hist, size_t data_size,
                    unsigned max_records)
@@ -87,44 +88,37 @@ void create_historic(struct historic *hist)
 	alloc_historic(hist, 0);
 }
 
-static int read_record(FILE *file, const char *path, time_t epoch, struct record *record, void *data,
-                       read_data_func_t read_data)
+static int read_record(
+	struct jfile *jfile, time_t epoch, struct record *record, void *data,
+	read_data_func_t read_data)
 {
-	int ret;
+	unsigned delta;
 
 	assert(data != NULL);
 
-	errno = 0;
-	ret = fscanf(file, " %lu", &record->time);
-	if (ret == EOF && errno != 0)
-		return perror(path), 0;
-	else if (ret == EOF && ret == 0)
-		return fprintf(stderr, "%s: Cannot match record time\n", path), 0;
-
-	record->time += epoch;
-
-	if (!read_data(file, path, data))
+	if (!json_read_array_start(jfile, NULL))
+		return 0;
+	if (!json_read_unsigned(jfile, NULL, &delta))
+		return 0;
+	if (!read_data(jfile, data))
+		return 0;
+	if (!json_read_array_end(jfile))
 		return 0;
 
+	record->time = epoch + delta;
 	return 1;
 }
 
-static int read_historic_header(FILE *file, const char *path,
-                                unsigned *nrecords, time_t *epoch)
+static int read_historic_header(
+	struct jfile *jfile, unsigned *nrecords, time_t *epoch)
 {
-	int ret;
-
 	assert(nrecords != NULL);
 	assert(epoch != NULL);
 
-	errno = 0;
-	ret = fscanf(file, " %u records starting at %lu\n", nrecords, epoch);
-	if (ret == EOF && errno != 0)
-		return fprintf(stderr, "%s: %s\n", path, strerror(errno)), 0;
-	else if (ret == EOF || ret == 0)
-		return fprintf(stderr, "%s: Cannot match number of record\n", path), 0;
-	else if (ret == 1)
-		return fprintf(stderr, "%s: Cannot match epoch\n", path), 0;
+	if (!json_read_unsigned(jfile, "length", nrecords))
+		return 0;
+	if (!json_read_time(jfile, "epoch", epoch))
+		return 0;
 
 	return 1;
 }
@@ -167,27 +161,28 @@ static struct record *new_record(struct historic *hist)
 	return hist->last;
 }
 
-int read_historic(struct historic *hist, FILE *file, const char *path,
-                  read_data_func_t read_data)
+int read_historic(
+	struct historic *hist, struct jfile *jfile,
+	read_data_func_t read_data)
 {
 	unsigned i;
 
 	assert(hist != NULL);
-	assert(file != NULL);
-	assert(path != NULL);
+	assert(jfile != NULL);
 	assert(read_data != NULL);
 
 	reset_historic(hist);
 
-	if (!read_historic_header(file, path, &hist->nrecords, &hist->epoch))
+	if (!read_historic_header(jfile, &hist->nrecords, &hist->epoch))
 		return 0;
 
-	if (hist->nrecords == 0) {
-		fprintf(stderr, "%s: Empty historic forbidden\n", path);
-		return 0;
-	}
+	if (hist->nrecords == 0)
+		return json_error(jfile, "Empty historic forbidden");
 
 	if (!alloc_historic(hist, hist->nrecords))
+		return 0;
+
+	if (!json_read_array_start(jfile, "records"))
 		return 0;
 
 	for (i = 0; i < hist->nrecords; i++) {
@@ -204,11 +199,12 @@ int read_historic(struct historic *hist, FILE *file, const char *path,
 		if (i < hist->nrecords - 1)
 			rec->prev = rec - 1;
 
-		if (i != 0)
-			fscanf(file, " ,");
-		if (read_record(file, path, hist->epoch, rec, data, read_data) == 0)
+		if (read_record(jfile, hist->epoch, rec, data, read_data) == 0)
 			return 0;
 	}
+
+	if (!json_read_array_end(jfile))
+		return 0;
 
 	hist->first = &hist->records[0];
 	hist->last = &hist->records[hist->nrecords - 1];
@@ -218,33 +214,48 @@ int read_historic(struct historic *hist, FILE *file, const char *path,
 	return 1;
 }
 
-static void write_record(FILE *file, const char *path, struct historic *hist, struct record *record,
-                         write_data_func_t write_data)
+static int write_record(
+	struct jfile *jfile, struct historic *hist, struct record *record,
+	write_data_func_t write_data)
 {
-	fprintf(file, "%lu ", record->time - hist->epoch);
-	write_data(file, path, record_data(hist, record));
+	if (!json_write_array_start(jfile, NULL))
+		return 0;
+
+	if (!json_write_unsigned(jfile, NULL, record->time - hist->epoch))
+		return 0;
+	if (!write_data(jfile, record_data(hist, record)))
+		return 0;
+
+	if (!json_write_array_end(jfile))
+		return 0;
+
+	return 1;
 }
 
-int write_historic(struct historic *hist, FILE *file, const char *path,
-                   write_data_func_t write_data)
+int write_historic(
+	struct historic *hist, struct jfile *jfile,
+	write_data_func_t write_data)
 {
 	struct record *rec;
 
 	assert(hist != NULL);
-	assert(file != NULL);
-	assert(path != NULL);
+	assert(jfile != NULL);
 	assert(write_data != NULL);
 
-	fprintf(file, "%u records starting at %lu\n", hist->nrecords, hist->epoch);
+	if (!json_write_unsigned(jfile, "length", hist->nrecords))
+		return 0;
+	if (!json_write_time(jfile, "epoch", hist->epoch))
+		return 0;
 
-	for (rec = hist->last; rec; rec = rec->prev) {
-		if (rec != hist->last)
-			fprintf(file, ", ");
+	if (!json_write_array_start(jfile, "records"))
+		return 0;
 
-		write_record(file, path, hist, rec, write_data);
-	}
+	for (rec = hist->last; rec; rec = rec->prev)
+		if (!write_record(jfile, hist, rec, write_data))
+			return 0;
 
-	fputc('\n', file);
+	if (!json_write_array_end(jfile))
+		return 0;
 
 	return 1;
 }
@@ -266,23 +277,13 @@ void append_record(struct historic *hist, const void *data)
 	memcpy(record_data(hist, rec), data, hist->data_size);
 }
 
-static void skip_records(FILE *file)
+int read_historic_info(struct historic_info *hs, struct jfile *jfile)
 {
-	int c;
-
-	do
-		c = fgetc(file);
-	while (c != EOF && c != '\n');
-}
-
-int read_historic_info(struct historic_info *hs, FILE *file, const char *path)
-{
-	if (read_historic_header(file, path, &hs->nrecords, &hs->epoch) == 0)
+	if (read_historic_header(jfile, &hs->nrecords, &hs->epoch) == 0)
 		return 0;
 
         if (hs->nrecords == 0)
 	        return 1;
 
-        skip_records(file);
         return 1;
 }

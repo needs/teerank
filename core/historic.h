@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "json.h"
+
 /**
  * @struct record
  *
@@ -62,8 +64,8 @@ struct historic {
 	void *data;
 };
 
-typedef int (*read_data_func_t)(FILE *, const char *, void *);
-typedef int (*write_data_func_t)(FILE *, const char *, void *);
+typedef int (*read_data_func_t)(struct jfile *, void *);
+typedef int (*write_data_func_t)(struct jfile *, void *);
 
 /**
  * Initialize an historic.
@@ -105,14 +107,13 @@ void create_historic(struct historic *hist);
  * It can reuse allocated buffers from a previous call to read_historic().
  *
  * @param hist Historic to be filled
- * @param file Opened file to be read
- * @param path Used as a prefix for error message
+ * @param jfile Initialized JSON file
  * @param read_data Function called each time a data should be read.  It must
  *        handle it's own errors and the result should be placed into data.
  *
  * @return 1 on success, 0 on failure
  */
-int read_historic(struct historic *hist, FILE *file, const char *path,
+int read_historic(struct historic *hist, struct jfile *jfile,
                   read_data_func_t read_data);
 
 /**
@@ -121,13 +122,12 @@ int read_historic(struct historic *hist, FILE *file, const char *path,
  * On success, the historic can be read back with read_data().
  *
  * @param hist Historic to be written
- * @param file File to be written
- * @param path Used as a prefix for error messages
+ * @param jfile Initialized JSON file
  * @param write_data Function called each time a data should be written.
  *
  * @return 1 on success, 0 on failure
  */
-int write_historic(struct historic *hist, FILE *file, const char *path,
+int write_historic(struct historic *hist, struct jfile *jfile,
                    write_data_func_t write_data);
 
 /**
@@ -162,12 +162,11 @@ struct historic_info {
  * Fill the given historic info with the content of the given file
  *
  * @param hs Historic info to fill
- * @param file File to read the historic info from
- * @param path Used as a prefix for error message
+ * @param jfile Initialized JSON file
  * @param skip_data Function called to skip unused historic data
  *
  * @return 1 on success, 0 on failure
  */
-int read_historic_info(struct historic_info *hs, FILE *file, const char *path);
+int read_historic_info(struct historic_info *hs, struct jfile *jfile);
 
 #endif /* HISTORIC_H */

@@ -18,30 +18,40 @@ static const struct clan CLAN_ZERO;
  * This function does the best to make sure if one step fail, the database
  * remain in a consistent state.
  */
-static int clan_move_player(char *src_clan, char *dest_clan, char *player)
+static int clan_move_player(char *src_clan, char *dest_clan, char *pname)
 {
 	int ret;
 
 	assert(src_clan != NULL);
 	assert(dest_clan != NULL);
-	assert(player != NULL);
+	assert(pname != NULL);
 	assert(strcmp(src_clan, dest_clan));
 
 	/*
 	 * Add the player first to make sure the player is referenced by
 	 * at least one clan at any time.
 	 */
-	if (strcmp(dest_clan, "00"))
-		if (!add_member_inline(dest_clan, player))
+	if (strcmp(dest_clan, "00") != 0) {
+		struct clan clan = CLAN_ZERO;
+
+		if (read_clan(&clan, dest_clan) == CLAN_ERROR)
 			return 0;
 
-	if (strcmp(src_clan, "00")) {
+		add_member(&clan, pname);
+		ret = write_clan(&clan);
+		free_clan(&clan);
+
+		if (!ret)
+			return 0;
+	}
+
+	if (strcmp(src_clan, "00") != 0) {
 		struct clan clan = CLAN_ZERO;
 
 		if (read_clan(&clan, src_clan) != CLAN_FOUND)
 			return 0;
 
-		remove_member(&clan, get_member(&clan, player));
+		remove_member(&clan, get_member(&clan, pname));
 		ret = write_clan(&clan);
 		free_clan(&clan);
 

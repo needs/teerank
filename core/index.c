@@ -150,7 +150,7 @@ static int create_indexed_clan(void *data, const char *name)
 		return 0;
 
 	strcpy(ret->name, clan.name);
-	ret->nmembers = clan.length;
+	ret->nmembers = clan.nmembers;
 
 	return 1;
 }

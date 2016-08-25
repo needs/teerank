@@ -93,8 +93,6 @@ struct delta delta_states(
 
 	assert(old != NULL);
 	assert(new != NULL);
-	assert(strcmp(old->gametype, "CTF") == 0);
-	assert(strcmp(new->gametype, "CTF") == 0);
 
 	delta.elapsed = elapsed;
 	delta.length = 0;

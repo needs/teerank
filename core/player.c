@@ -126,77 +126,28 @@ void create_player(struct player *player, const char *name)
 	player->is_modified = IS_MODIFIED_CREATED;
 }
 
-static int read_player_record(FILE *file, const char *path, void *buf)
+static int read_player_record(struct jfile *jfile, void *buf)
 {
-	int ret;
 	struct player_record *rec = buf;
 
-	errno = 0;
-	ret = fscanf(file, " %d %u", &rec->elo, &rec->rank);
-	if (ret == EOF && errno != 0)
-		return perror(path), 0;
-	else if (ret == EOF || ret == 0)
-		return fprintf(stderr, "%s: Cannot match elo\n", path), 0;
-	else if (ret == 1)
-		return fprintf(stderr, "%s: Cannot match rank\n", path), 0;
+	if (!json_read_int(jfile, NULL, &rec->elo))
+		return 0;
+	if (!json_read_unsigned(jfile, NULL, &rec->rank))
+		return 0;
 
 	return 1;
 }
 
-static int read_clan(FILE *file, const char *path, char *clan)
+static int read_player_header(struct jfile *jfile, struct player *player)
 {
-	int ret;
-
-	errno = 0;
-	ret = fscanf(file, " %s\n", clan);
-
-	if (ret == EOF && errno != 0) {
-		perror(path);
+	if (!json_read_tm(jfile, "last_seen", &player->last_seen))
 		return 0;
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Cannot match player clan\n", path);
+	if (!json_read_string(jfile, "clan", player->clan, sizeof(player->clan)))
 		return 0;
-	}
-
-	return 1;
-}
-
-static int read_last_seen(FILE *file, const char *path, struct tm *last_seen)
-{
-	/* RFC-3339 */
-	char buf[] = "yyyy-mm-ddThh-mm-ssZ";
-
-	if (fread(buf, sizeof(buf) - 1, 1, file) != 1) {
-		if (ferror(file)) {
-			perror(path);
-			return 0;
-		} else {
-			fprintf(stderr, "%s: Early end of file\n", path);
-			return 0;
-		}
-	}
-
-	if (strptime(buf, "%Y-%m-%dT%H:%M:%SZ", last_seen) == NULL) {
-		fprintf(stderr, "%s: Cannot match player last seen date\n", path);
+	if (!json_read_int(jfile, "elo", &player->elo))
 		return 0;
-	}
-
-	return 1;
-}
-
-static int read_player_header(FILE *file, const char *path, struct player *player)
-{
-	struct player_record rec;
-
-	if (!read_last_seen(file, path, &player->last_seen))
+	if (!json_read_unsigned(jfile, "rank", &player->rank))
 		return 0;
-	if (!read_clan(file, path, player->clan))
-		return 0;
-	if (!read_player_record(file, path, &rec))
-		return 0;
-
-	player->elo = rec.elo;
-	player->rank = rec.rank;
 
 	return 1;
 }
@@ -204,6 +155,7 @@ static int read_player_header(FILE *file, const char *path, struct player *playe
 enum read_player_ret read_player(struct player *player, const char *name)
 {
 	FILE *file = NULL;
+	struct jfile jfile;
 	char path[PATH_MAX];
 
 	assert(name != NULL);
@@ -230,15 +182,24 @@ enum read_player_ret read_player(struct player *player, const char *name)
 		goto fail;
 	}
 
-	if (!read_player_header(file, path, player))
+	json_init(&jfile, file, path);
+
+	if (!json_read_object_start(&jfile, NULL))
+		return 0;
+
+	if (!read_player_header(&jfile, player))
 		goto fail;
-	if (!read_historic(&player->hist, file, path, read_player_record))
+	if (!read_historic(&player->hist, &jfile, read_player_record))
 		goto fail;
+
+	if (!json_read_object_end(&jfile))
+		return 0;
+
+	fclose(file);
 
 	/* Historics cannot be empty */
 	assert(player->hist.nrecords > 0);
 
-	fclose(file);
 	return PLAYER_FOUND;
 
 fail:
@@ -247,68 +208,35 @@ fail:
 	return PLAYER_ERROR;
 }
 
-static int write_player_record(FILE *file, const char *path, void *buf)
+static int write_player_record(struct jfile *jfile, void *buf)
 {
 	struct player_record *rec = buf;
 
-	if (fprintf(file, "%d %u", rec->elo, rec->rank) < 0) {
-		perror(path);
+	if (!json_write_int(jfile, NULL, rec->elo))
 		return 0;
-	}
+	if (!json_write_unsigned(jfile, NULL, rec->rank))
+		return 0;
 
 	return 1;
 }
 
-static int write_clan(FILE *file, const char *path, const char *clan)
+static int write_player_header(struct jfile *jfile, struct player *player)
 {
-	if (fprintf(file, "%s\n", clan) < 0) {
-		perror(path);
+	if (!json_write_tm(jfile, "last_seen", player->last_seen))
 		return 0;
-	}
-
-	return 1;
-}
-
-static int write_last_seen(FILE *file, const char *path, struct tm *last_seen)
-{
-	/* RFC-3339 */
-	char buf[] = "yyyy-mm-ddThh-mm-ssZ";
-	size_t ret;
-
-	ret = strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", last_seen);
-	if (ret != sizeof(buf) - 1) {
-		fprintf(stderr, "%s: Cannot represent date using RFC-3339\n", path);
+	if (!json_write_string(jfile, "clan", player->clan, sizeof(player->clan)))
 		return 0;
-	}
-
-	if (fprintf(file, "%s\n", buf) < 0) {
-		perror(path);
+	if (!json_write_int(jfile, "elo", player->elo))
 		return 0;
-	}
-
-	return 1;
-}
-
-static int write_player_header(FILE *file, const char *path, struct player *player)
-{
-	struct player_record rec;
-
-	rec.elo = player->elo;
-	rec.rank = player->rank;
-
-	if (!write_last_seen(file, path, &player->last_seen))
+	if (!json_write_unsigned(jfile, "rank", player->rank))
 		return 0;
-	if (!write_clan(file, path, player->clan))
-		return 0;
-	if (!write_player_record(file, path, &rec))
-		return 0;
-	fputc('\n', file);
 
 	return 1;
 }
 
 int write_player(struct player *player)
 {
+	struct jfile jfile;
 	FILE *file = NULL;
 	char path[PATH_MAX];
 
@@ -323,10 +251,18 @@ int write_player(struct player *player)
 		goto fail;
 	}
 
-	if (!write_player_header(file, path, player))
+	json_init(&jfile, file, path);
+
+	if (!json_write_object_start(&jfile, NULL))
+		return 0;
+
+	if (!write_player_header(&jfile, player))
 		goto fail;
-	if (!write_historic(&player->hist, file, path, write_player_record))
+	if (!write_historic(&player->hist, &jfile, write_player_record))
 		goto fail;
+
+	if (!json_write_object_end(&jfile))
+		return 0;
 
 	fclose(file);
 	return 1;
@@ -392,25 +328,23 @@ static void init_player_info(struct player_info *ps)
 }
 
 static int read_player_info_header(
-	FILE *file, const char *path, struct player_info *ps)
+	struct jfile *jfile, struct player_info *ps)
 {
-	struct player_record rec;
-
-	if (!read_last_seen(file, path, &ps->last_seen))
+	if (!json_read_tm(jfile, "last_seen", &ps->last_seen))
 		return 0;
-	if (!read_clan(file, path, ps->clan))
+	if (!json_read_string(jfile, "clan", ps->clan, sizeof(ps->clan)))
 		return 0;
-	if (!read_player_record(file, path, &rec))
+	if (!json_read_int(jfile, "elo", &ps->elo))
 		return 0;
-
-	ps->elo = rec.elo;
-	ps->rank = rec.rank;
+	if (!json_read_unsigned(jfile, "rank", &ps->rank))
+		return 0;
 
 	return 1;
 }
 
 enum read_player_ret read_player_info(struct player_info *ps, const char *name)
 {
+	struct jfile jfile;
 	FILE *file = NULL;
 	char path[PATH_MAX];
 
@@ -429,9 +363,14 @@ enum read_player_ret read_player_info(struct player_info *ps, const char *name)
 		goto fail;
 	}
 
-	if (!read_player_info_header(file, path, ps))
+	json_init(&jfile, file, path);
+
+	if (!json_read_object_start(&jfile, NULL))
 		goto fail;
-	if (!read_historic_info(&ps->hist, file, path))
+
+	if (!read_player_info_header(&jfile, ps))
+		goto fail;
+	if (!read_historic_info(&ps->hist, &jfile))
 		goto fail;
 
 	fclose(file);

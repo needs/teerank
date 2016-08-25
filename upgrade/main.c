@@ -8,10 +8,13 @@
 
 #include "config.h"
 #include "index.h"
+#include "player.h"
 #include "server.h"
+#include "clan.h"
 
 #include "teerank5/core/player.h"
 #include "teerank5/core/server.h"
+#include "teerank5/core/clan.h"
 
 static int sort_by_elo(const void *pa, const void *pb)
 {
@@ -124,7 +127,7 @@ static void upgrade_server(struct teerank5_server_state *old, struct server_stat
 
 	/* When a field is new, fill it with "???" */
 	strcpy(new->name, "???");
-	strcpy(new->gametype, "???");
+	strcpy(new->gametype, "CTF");
 	strcpy(new->map, "???");
 
 	new->last_seen = old->last_seen;
@@ -170,6 +173,45 @@ static void upgrade_servers(void)
 	closedir(dir);
 }
 
+static void upgrade_clan(struct teerank5_clan *old, struct clan *new)
+{
+	unsigned i;
+
+	create_clan(new, old->name, old->length);
+
+	for (i = 0; i < old->length; i++)
+		add_member(new, old->members[i].name);
+}
+
+static void upgrade_clans(void)
+{
+	struct teerank5_clan old;
+	struct clan new;
+
+	char path[PATH_MAX];
+	struct dirent *dp;
+	DIR *dir;
+
+	if (!dbpath(path, PATH_MAX, "clans"))
+		exit(EXIT_FAILURE);
+
+	if ((dir = opendir(path)) == NULL) {
+		perror(path);
+		exit(EXIT_FAILURE);
+	}
+
+	while ((dp = readdir(dir))) {
+		if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
+			continue;
+
+		teerank5_read_clan(&old, dp->d_name);
+		upgrade_clan(&old, &new);
+		write_clan(&new);
+	}
+
+	closedir(dir);
+}
+
 int main(int argc, char *argv[])
 {
 	load_config(0);
@@ -177,6 +219,7 @@ int main(int argc, char *argv[])
 	remove_ranks_file();
 	upgrade_players();
 	upgrade_servers();
+	upgrade_clans();
 	create_players_by_rank_file();
 
 	return EXIT_SUCCESS;

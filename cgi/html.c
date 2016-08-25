@@ -158,13 +158,13 @@ char *escape(const char *str)
 	for (; *str; str++) {
 		switch (*str) {
 		case '<':
-			ret = stpcpy(ret, "&lt;");
+			ret = stpcpy(ret, "&lt;"); break;
 		case '>':
-			ret = stpcpy(ret, "&gt;");
+			ret = stpcpy(ret, "&gt;"); break;
 		case '&':
-			ret = stpcpy(ret, "&amp;");
+			ret = stpcpy(ret, "&amp;"); break;
 		case '"':
-			ret = stpcpy(ret, "&quot;");
+			ret = stpcpy(ret, "&quot;"); break;
 		default:
 			*ret++ = *str;
 		}

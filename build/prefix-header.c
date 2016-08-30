@@ -269,6 +269,13 @@ static void prefix_symbol(struct symbol *s, char *prefix)
 	printf("%s%s", prefix, s->name);
 }
 
+static int is_function_pointer(struct symbol *s)
+{
+	return
+		strcmp(s->name, "read_data_func_t") == 0
+		|| strcmp(s->name, "write_data_func_t") == 0;
+}
+
 int main(int argc, char *argv[])
 {
 	struct symbol prev, s;
@@ -294,6 +301,15 @@ int main(int argc, char *argv[])
 		if (strcmp(s.name, "inline") == 0) {
 			fprintf(stderr, "<stdin>: Inline functions are not handled.\n");
 			return EXIT_FAILURE;
+		}
+
+		/*
+		 * Typedef of functions pointers are not handled without
+		 * this special case.
+		 */
+		if (is_function_pointer(&s)) {
+			prefix_symbol(&s, argv[1]);
+			continue;
 		}
 
 		/* Every definition made in enum should be prefixed */

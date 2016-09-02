@@ -16,6 +16,7 @@ void json_init(struct jfile *jfile, FILE *file, const char *path)
 	*jfile = JFILE_ZERO;
 	jfile->file = file;
 	jfile->path = path;
+	jfile->scope = &jfile->scopes[0];
 }
 
 #define error(jfile, fmt...) json_error(jfile, fmt)
@@ -48,32 +49,45 @@ static char skip_space(struct jfile *jfile)
 
 static int read_field_name(struct jfile *jfile, const char *fname)
 {
-	const char *str = fname;
+	const char *fname_save = fname;
 	int c;
 
-	if (jfile->field_count[jfile->scope_level] > 0 && skip_space(jfile) != ',')
-		return error(jfile, "Expected ',' between two fields");
+	assert(jfile->scope);
 
-	jfile->field_count[jfile->scope_level]++;
+	/* First should not be preceeded by a ','. */
+	if (jfile->scope->field_count > 0 && skip_space(jfile) != ',') {
+		if (fname)
+			return error(jfile, "Expected ',' before %s", fname);
+		else
+			return error(jfile, "Expected ','");
+	}
+
+	jfile->scope->field_count++;
 
 	if (!fname)
 		return 1;
 
+	/*
+	 * JSON field name looks like a string.  They are enclosed with
+	 * double quotes and a ':' must follow.
+	 */
+
 	if (skip_space(jfile) != '\"')
 		return error(jfile, "Expected '\"' to start field name");
 
+	/* Compare the read field name with the given one as we go. */
 	goto start;
-	while (*str) {
+	while (*fname) {
 		if (c == '\"')
 			break;
-		if (c != *str)
-			return error(jfile, "Expected field name \"%s\"", fname);
-		str++;
+		if (c != *fname)
+			return error(jfile, "Expected field name \"%s\"", fname_save);
+		fname++;
 	start:
 		c = fgetc(jfile->file);
 	}
 
-	if (*str)
+	if (*fname != '\0')
 		return error(jfile, "Expected '\"' to end field name");
 	if (fgetc(jfile->file) != ':')
 		return error(jfile, "Expected ':' after field name");
@@ -81,40 +95,113 @@ static int read_field_name(struct jfile *jfile, const char *fname)
 	return 1;
 }
 
-static void increase_scope_level(struct jfile *jfile)
+/*
+ * Set scope pointer to the new scope, reset field count save the
+ * current file position so we can compute the size of the object once
+ * we close the scope.
+ */
+static int increase_scope_level(struct jfile *jfile)
 {
+	assert(jfile->scope_level + 1 < MAX_SCOPE_LEVEL);
+
 	jfile->scope_level++;
-	jfile->field_count[jfile->scope_level] = 0;
+	jfile->scope = &jfile->scopes[jfile->scope_level];
+
+	jfile->scope->field_count = 0;
+	jfile->scope->offset = ftello(jfile->file);
+
+	if (jfile->scope->offset == -1)
+		return error(jfile, "%s", strerror(errno));
+
+	return 1;
 }
 
-static void decrease_scope_level(struct jfile *jfile)
+static int fix_field_size(struct jfile *jfile, size_t field_size)
 {
+	size_t i, remain;
+
+	if (jfile->scope->field_size == 0)
+		return 1;
+
+	/*
+	 * Write the necessary amount of spaces to have a field with a
+	 * size exactly equals to jfile->scope->field_size.
+	 */
+
+	if (field_size > jfile->scope->field_size)
+		return error(jfile, "Actual field size exceeded the given maximum (%zu / %zu)",
+		             field_size, jfile->scope->field_size);
+
+	remain = jfile->scope->field_size - field_size;
+
+	for (i = 0; i < remain; i++)
+		if (fputc(' ', jfile->file) == EOF)
+			return error(jfile, "%s", strerror(errno));
+
+	return 1;
+}
+
+static size_t scope_size(struct jfile *jfile)
+{
+	off_t offset;
+
+	offset = ftello(jfile->file);
+	if (offset == -1)
+		return error(jfile, "%s", strerror(errno));
+
+	return offset - jfile->scope->offset;
+}
+
+/*
+ * Set scope pointer to the previous scope, compute and return object
+ * size.
+ */
+static size_t decrease_scope_level(struct jfile *jfile, int do_fix_field_size)
+{
+	size_t size;
+
 	assert(jfile->scope_level > 0);
+
+	if ((size = scope_size(jfile)) == 0)
+		return 0;
+
 	jfile->scope_level--;
+	jfile->scope = &jfile->scopes[jfile->scope_level];
+
+	if (do_fix_field_size) {
+		/*
+		 * Fix field size now so that every fields, including
+		 * the last field will be padded.  It is important for
+		 * the last field to be padded to know the total size of
+		 * the array given the number of elements.
+		 */
+		fix_field_size(jfile, size);
+	}
+
+	return size;
 }
 
 int json_read_object_start(struct jfile *jfile, const char *fname)
 {
 	if (!read_field_name(jfile, fname))
 		return 0;
+	if (!increase_scope_level(jfile))
+		return 0;
 	if (skip_space(jfile) != '{')
 		return error(jfile, "Expected '{' to start object");
-
-	increase_scope_level(jfile);
 
 	return 1;
 }
 
-int json_read_object_end(struct jfile *jfile)
+size_t json_read_object_end(struct jfile *jfile)
 {
 	if (skip_space(jfile) != '}')
 		return error(jfile, "Expected '}' to end object");
 
-	decrease_scope_level(jfile);
-
-	return 1;
+	return decrease_scope_level(jfile, 0);
 }
 
+/* Doesn't escape special characters */
 static int write_string(struct jfile *jfile, const char *str)
 {
 	if (fputc('\"', jfile->file) == EOF)
@@ -129,12 +216,21 @@ static int write_string(struct jfile *jfile, const char *str)
 
 static int write_field_name(struct jfile *jfile, const char *fname)
 {
-	if (jfile->field_count[jfile->scope_level] > 0) {
+	/*
+	 * The first field does not need to be preceeded by a coma.
+	 * However we need to add a space if the field must have a fixed
+	 * size, so that it have the same size as fields with a
+	 * preceeding coma.
+	 */
+	if (jfile->scope->field_count > 0) {
 		if (fputc(',', jfile->file) == EOF)
+			return error(jfile, "%s", strerror(errno));
+	} else if (jfile->scope->field_size) {
+		if (fputc(' ', jfile->file) == EOF)
 			return error(jfile, "%s", strerror(errno));
 	}
 
-	jfile->field_count[jfile->scope_level]++;
+	jfile->scope->field_count++;
 
 	if (!fname)
 		return 1;
@@ -152,15 +248,15 @@ int json_write_object_start(struct jfile *jfile, const char *fname)
 {
 	if (!write_field_name(jfile, fname))
 		return 0;
+	if (!increase_scope_level(jfile))
+		return 0;
 	if (fputc('{', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
-
-	increase_scope_level(jfile);
 
 	return 1;
 }
 
-int json_write_object_end(struct jfile *jfile)
+size_t json_write_object_end(struct jfile *jfile)
 {
 	assert(jfile != NULL);
 	assert(jfile->scope_level > 0);
@@ -168,46 +264,57 @@ int json_write_object_end(struct jfile *jfile)
 	if (fputc('}', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
 
-	decrease_scope_level(jfile);
-
-	return 1;
+	return decrease_scope_level(jfile, 1);
 }
 
 int json_read_array_start(struct jfile *jfile, const char *fname)
 {
 	if (!read_field_name(jfile, fname))
 		return 0;
+	if (!increase_scope_level(jfile))
+		return 0;
 	if (skip_space(jfile) != '[')
 		return error(jfile, "Expected '[' to start array");
-
-	increase_scope_level(jfile);
 
 	return 1;
 }
 
-int json_read_array_end(struct jfile *jfile)
+size_t json_read_array_end(struct jfile *jfile)
 {
 	if (skip_space(jfile) != ']')
 		return error(jfile, "Expected ']' to end array");
 
-	decrease_scope_level(jfile);
+	return decrease_scope_level(jfile, 0);
+}
+
+int json_read_indexable_array_start(struct jfile *jfile, const char *fname, size_t field_size)
+{
+	if (!json_read_array_start(jfile, fname))
+		return 0;
+
+	jfile->scope->field_size = field_size;
 
 	return 1;
+}
+
+size_t json_read_indexable_array_end(struct jfile *jfile)
+{
+	return json_read_array_end(jfile);
 }
 
 int json_write_array_start(struct jfile *jfile, const char *fname)
 {
 	if (!write_field_name(jfile, fname))
 		return 0;
+	if (!increase_scope_level(jfile))
+		return 0;
 	if (fputc('[', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
-
-	increase_scope_level(jfile);
 
 	return 1;
 }
 
-int json_write_array_end(struct jfile *jfile)
+size_t json_write_array_end(struct jfile *jfile)
 {
 	assert(jfile != NULL);
 	assert(jfile->scope_level > 0);
@@ -215,8 +322,40 @@ int json_write_array_end(struct jfile *jfile)
 	if (fputc(']', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
 
-	decrease_scope_level(jfile);
+	return decrease_scope_level(jfile, 1);
+}
 
+int json_write_indexable_array_start(
+	struct jfile *jfile, const char *fname, size_t field_size)
+{
+	if (!json_write_array_start(jfile, fname))
+		return 0;
+
+	jfile->scope->field_size = field_size;
+
+	return 1;
+}
+
+size_t json_write_indexable_array_end(struct jfile *jfile)
+{
+	return json_write_array_end(jfile);
+}
+
+int json_seek_indexable_array(struct jfile *jfile, unsigned n)
+{
+	off_t offset;
+
+	assert(jfile != NULL);
+	assert(jfile->scope != NULL);
+	assert(jfile->scope->field_size);
+
+	/* Add 1 to count coma */
+	offset = n * (jfile->scope->field_size + 1);
+
+	if (fseek(jfile->file, offset, SEEK_CUR) == -1)
+		return error(jfile, "%s", strerror(errno));
+
+	jfile->scope->field_count = n;
 	return 1;
 }
 

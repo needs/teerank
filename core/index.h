@@ -109,6 +109,7 @@ struct index_page {
 	char *tmpname;
 
 	FILE *file;
+	struct jfile jfile;
 	char path[PATH_MAX];
 
 	unsigned ndata, npages;

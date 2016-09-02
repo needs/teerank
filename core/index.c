@@ -12,8 +12,8 @@
 #include "clan.h"
 
 typedef int (*create_index_data_func_t)(void *data, const char *name);
-typedef int (*write_index_data_func_t)(void *data, FILE *file, const char *path);
-typedef int (*read_index_data_func_t)(void *data, FILE *file, const char *path);
+typedef int (*write_index_data_func_t)(struct jfile *jfile, const void *data);
+typedef int (*read_index_data_func_t)(struct jfile *jfile, void *data);
 
 struct index_data_infos {
 	const char *dirname;
@@ -25,19 +25,6 @@ struct index_data_infos {
 	write_index_data_func_t write_data;
 	read_index_data_func_t read_data;
 };
-
-/*
- * Return the size of the decimal representation of the given number,
- * including terminating nul character.
- */
-#define strsize(n) (int)sizeof(#n)
-
-/* Add one because negative ints are prefixed with '-' */
-#define INT_STRSIZE (strsize(INT_MIN) + 1)
-#define UINT_STRSIZE strsize(UINT_MAX)
-
-/* Size of RFC-3339 date format */
-#define DATE_STRSIZE sizeof("yyyy-mm-ddThh:mm:ssZ")
 
 /*
  * INDEX_DATA_INFOS_PLAYER
@@ -63,64 +50,38 @@ static int create_indexed_player(void *data, const char *name)
 	return 1;
 }
 
-static int write_indexed_player(void *data, FILE *file, const char *path)
+static int write_indexed_player(struct jfile *jfile, const void *data)
 {
-	struct indexed_player *p = data;
-	char last_seen[DATE_STRSIZE];
-	int ret;
+	const struct indexed_player *player = data;
 
-	ret = strftime(
-		last_seen, sizeof(last_seen),
-		"%Y-%m-%dT%H:%M:%SZ", &p->last_seen);
-	if (!ret) {
-		fprintf(stderr, "%s: Can't convert last_seen field to RFC-3339 format\n", path);
+	if (!json_write_string(jfile, NULL, player->name, sizeof(player->name)))
 		return 0;
-	}
-
-	ret = fprintf(
-		file, "%-*s %-*s %-*d %-*u %s\n",
-		HEXNAME_LENGTH - 1, p->name, HEXNAME_LENGTH - 1, p->clan,
-		INT_STRSIZE - 1, p->elo, UINT_STRSIZE - 1, p->rank, last_seen);
-	if (ret < 0) {
-		perror(path);
+	if (!json_write_string(jfile, NULL, player->clan, sizeof(player->clan)))
 		return 0;
-	}
+	if (!json_write_int(jfile, NULL, player->elo))
+		return 0;
+	if (!json_write_unsigned(jfile, NULL, player->rank))
+		return 0;
+	if (!json_write_tm(jfile, NULL, player->last_seen))
+		return 0;
 
-	return ret;
+	return 1;
 }
 
-static int read_indexed_player(void *data, FILE *file, const char *path)
+static int read_indexed_player(struct jfile *jfile, void *data)
 {
-	struct indexed_player *p = data;
-	char last_seen[DATE_STRSIZE];
-	int ret;
+	struct indexed_player *player = data;
 
-	errno = 0;
-	ret = fscanf(file, "%s %s %d %u %s\n", p->name, p->clan, &p->elo, &p->rank, last_seen);
-	if (ret == EOF && errno != 0) {
-		perror(path);
+	if (!json_read_string(jfile, NULL, player->name, sizeof(player->name)))
 		return 0;
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Cannot match indexed player name\n", path);
+	if (!json_read_string(jfile, NULL, player->clan, sizeof(player->clan)))
 		return 0;
-	} else if (ret == 1) {
-		fprintf(stderr, "%s: Cannot match indexed player clan\n", path);
+	if (!json_read_int(jfile, NULL, &player->elo))
 		return 0;
-	} else if (ret == 2) {
-		fprintf(stderr, "%s: Cannot match indexed player elo\n", path);
+	if (!json_read_unsigned(jfile, NULL, &player->rank))
 		return 0;
-	} else if (ret == 3) {
-		fprintf(stderr, "%s: Cannot match indexed player rank\n", path);
+	if (!json_read_tm(jfile, NULL, &player->last_seen))
 		return 0;
-	} else if (ret == 4) {
-		fprintf(stderr, "%s: Cannot match indexed player last_seen date\n", path);
-		return 0;
-	}
-
-	if (!strptime(last_seen, "%Y-%m-%dT%H:%M:%SZ", &p->last_seen)) {
-		fprintf(stderr, "%s: Cannot parse last_seen date\n", path);
-		return 0;
-	}
 
 	return 1;
 }
@@ -128,7 +89,12 @@ static int read_indexed_player(void *data, FILE *file, const char *path)
 const struct index_data_infos *INDEX_DATA_INFOS_PLAYER = &(struct index_data_infos) {
 	"players",
 	sizeof(struct indexed_player),
-	HEXNAME_LENGTH + HEXNAME_LENGTH + INT_STRSIZE + UINT_STRSIZE + DATE_STRSIZE,
+	JSON_ARRAY_SIZE +
+	JSON_RAW_STRING_SIZE(HEXNAME_LENGTH) + /* Name */
+	JSON_RAW_STRING_SIZE(HEXNAME_LENGTH) + /* Clan */
+	JSON_INT_SIZE +                        /* Elo */
+	JSON_UINT_SIZE +                       /* Rank */
+	JSON_DATE_SIZE,                        /* Last seen */
 	create_indexed_player,
 	write_indexed_player,
 	read_indexed_player
@@ -155,39 +121,26 @@ static int create_indexed_clan(void *data, const char *name)
 	return 1;
 }
 
-static int write_indexed_clan(void *data, FILE *file, const char *path)
+static int write_indexed_clan(struct jfile *jfile, const void *data)
 {
-	struct indexed_clan *c = data;
-	int ret;
+	const struct indexed_clan *clan = data;
 
-	ret = fprintf(
-		file, "%-*s %-*u\n",
-		HEXNAME_LENGTH - 1, c->name, UINT_STRSIZE - 1, c->nmembers);
-	if (ret < 0) {
-		perror(path);
+	if (!json_write_string(jfile, NULL, clan->name, sizeof(clan->name)))
 		return 0;
-	}
+	if (!json_write_unsigned(jfile, NULL, clan->nmembers))
+		return 0;
 
-	return ret;
+	return 1;
 }
 
-static int read_indexed_clan(void *data, FILE *file, const char *path)
+static int read_indexed_clan(struct jfile *jfile, void *data)
 {
-	struct indexed_clan *c = data;
-	int ret;
+	struct indexed_clan *clan = data;
 
-	errno = 0;
-	ret = fscanf(file, "%s %u\n", c->name, &c->nmembers);
-	if (ret == EOF && errno != 0) {
-		perror(path);
+	if (!json_read_string(jfile, NULL, clan->name, sizeof(clan->name)))
 		return 0;
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Cannot match indexed clan name\n", path);
+	if (!json_read_unsigned(jfile, NULL, &clan->nmembers))
 		return 0;
-	} else if (ret == 1) {
-		fprintf(stderr, "%s: Cannot match indexed clan number of members\n", path);
-		return 0;
-	}
 
 	return 1;
 }
@@ -195,7 +148,9 @@ static int read_indexed_clan(void *data, FILE *file, const char *path)
 const struct index_data_infos *INDEX_DATA_INFOS_CLAN = &(struct index_data_infos) {
 	"clans",
 	sizeof(struct indexed_clan),
-	HEXNAME_LENGTH + UINT_STRSIZE,
+	JSON_ARRAY_SIZE +
+	JSON_RAW_STRING_SIZE(HEXNAME_LENGTH) + /* Name */
+	JSON_UINT_SIZE,                        /* Number of members */
 	create_indexed_clan,
 	write_indexed_clan,
 	read_indexed_clan
@@ -222,69 +177,51 @@ static int create_indexed_server(void *data, const char *name)
 	return 1;
 }
 
-static int write_indexed_server(void *data, FILE *file, const char *path)
+static int write_indexed_server(struct jfile *jfile, const void *data)
 {
-	struct indexed_server *s = data;
-	int ret;
+	const struct indexed_server *server = data;
 
-	ret = fprintf(
-		file, "%-*s %-*s %-*s %*u %*u\n",
-		(int)sizeof(s->name) - 1, s->name,
-		(int)sizeof(s->gametype) - 1, s->gametype,
-		(int)sizeof(s->map) - 1, s->map,
-		UINT_STRSIZE - 1, s->nplayers,
-		UINT_STRSIZE - 1, s->maxplayers);
-	if (ret < 0) {
-		perror(path);
+	if (!json_write_string(jfile, NULL, server->name, sizeof(server->name)))
 		return 0;
-	}
-
-	return ret;
-}
-
-static int read_indexed_server(void *data, FILE *file, const char *path)
-{
-	struct indexed_server *s = data;
-
-	if (!fgets(s->name, sizeof(s->name), file))
-		goto fail;
-	if (fgetc(file) != ' ')
-		goto fail;
-
-	if (!fgets(s->gametype, sizeof(s->gametype), file))
-		goto fail;
-	if (fgetc(file) != ' ')
-		goto fail;
-
-	if (!fgets(s->map, sizeof(s->map), file))
-		goto fail;
-	if (fgetc(file) != ' ')
-		goto fail;
-
-	if (fscanf(file, "%u", &s->nplayers) != 1)
-		goto fail;
-	if (fgetc(file) != ' ')
-		goto fail;
-
-	if (fscanf(file, "%u", &s->maxplayers) != 1)
-		goto fail;
-	if (fgetc(file) != '\n')
-		goto fail;
+	if (!json_write_string(jfile, NULL, server->gametype, sizeof(server->gametype)))
+		return 0;
+	if (!json_write_string(jfile, NULL, server->map, sizeof(server->map)))
+		return 0;
+	if (!json_write_unsigned(jfile, NULL, server->nplayers))
+		return 0;
+	if (!json_write_unsigned(jfile, NULL, server->maxplayers))
+		return 0;
 
 	return 1;
-fail:
-	if (ferror(file))
-		perror(path);
-	else
-		fprintf(stderr, "%s: Early end-of-file\n", path);
-	return 0;
+}
+
+static int read_indexed_server(struct jfile *jfile, void *data)
+{
+	struct indexed_server *server = data;
+
+	if (!json_read_string(jfile, NULL, server->name, sizeof(server->name)))
+		return 0;
+	if (!json_read_string(jfile, NULL, server->gametype, sizeof(server->gametype)))
+		return 0;
+	if (!json_read_string(jfile, NULL, server->map, sizeof(server->map)))
+		return 0;
+	if (!json_read_unsigned(jfile, NULL, &server->nplayers))
+		return 0;
+	if (!json_read_unsigned(jfile, NULL, &server->maxplayers))
+		return 0;
+
+	return 1;
 }
 
 const struct index_data_infos *INDEX_DATA_INFOS_SERVER = &(struct index_data_infos) {
 	"servers",
 	sizeof(struct indexed_server),
-	SERVERNAME_STRSIZE + GAMETYPE_STRSIZE + MAP_STRSIZE
-	+ UINT_STRSIZE + UINT_STRSIZE,
+	JSON_ARRAY_SIZE +
+	JSON_STRING_SIZE(SERVERNAME_STRSIZE) + /* Server name */
+	JSON_STRING_SIZE(GAMETYPE_STRSIZE) +   /* Gametype */
+	JSON_STRING_SIZE(MAP_STRSIZE) +        /* Map */
+	JSON_UINT_SIZE +                       /* Number of players */
+	JSON_UINT_SIZE,                        /* Max number of players */
 	create_indexed_server,
 	write_indexed_server,
 	read_indexed_server
@@ -420,10 +357,10 @@ void *index_foreach(struct index *index)
 int write_index(struct index *index, const char *filename)
 {
 	char path[PATH_MAX];
-	FILE *file = 0;
+	FILE *file = NULL;
+	struct jfile jfile;
 
 	unsigned i;
-	int ret;
 
 	if (!dbpath(path, PATH_MAX, "%s", filename))
 		goto fail;
@@ -433,27 +370,36 @@ int write_index(struct index *index, const char *filename)
 		goto fail;
 	}
 
-	/* Header */
-	ret = fprintf(file, "%u entries\n", index->ndata);
-	if (ret < 0) {
-		perror(path);
+	json_init(&jfile, file, path);
+
+	if (!json_write_object_start(&jfile, NULL))
 		goto fail;
+
+	/* Header */
+	if (!json_write_unsigned(&jfile, "nentries", index->ndata))
+		goto fail;
+
+	if (!json_write_indexable_array_start(&jfile, "entries", index->infos->entry_size))
+		goto fail;
+
+	/* Entries */
+	for (i = 0; i < index->ndata; i++) {
+		if (!json_write_array_start(&jfile, NULL))
+			goto fail;
+		if (!index->infos->write_data(&jfile, get(index, i)))
+			goto fail;
+		if (!json_write_array_end(&jfile))
+			goto fail;
 	}
 
-	/* Data */
-	for (i = 0; i < index->ndata; i++) {
-		ret = index->infos->write_data(get(index, i), file, path);
-		if (ret < 0) {
-			perror(path);
-			goto fail;
-		} else if (ret != index->infos->entry_size) {
-			fprintf(stderr, "%s: Bytes written (%d) do not match entry size (%u)\n",
-			        path, ret, (unsigned)index->infos->entry_size);
-			goto fail;
-		}
-	}
+	if (!json_write_indexable_array_end(&jfile))
+		goto fail;
+
+	if (!json_write_object_end(&jfile))
+		goto fail;
 
 	fclose(file);
+
 	return 1;
 
 fail:
@@ -475,9 +421,7 @@ int open_index_page(
 	struct index_page *ipage, const struct index_data_infos *infos,
 	unsigned pnum, unsigned plen)
 {
-	int ret;
 	unsigned ndata;
-
 
 	assert(ipage != NULL);
 	assert(infos != NULL);
@@ -493,16 +437,18 @@ int open_index_page(
 		goto fail;
 	}
 
-	/* First, read header */
-	errno = 0;
-	ret = fscanf(ipage->file, "%u entries%*1[\n]", &ndata);
-	if (ret == EOF && errno != 0) {
-		perror(ipage->path);
+	json_init(&ipage->jfile, ipage->file, ipage->path);
+
+	/*
+	 * First, skip header so that seeking the file does use the right
+	 * offset to begin with.
+	 */
+	if (!json_read_object_start(&ipage->jfile, NULL))
 		goto fail;
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Cannot match header\n", ipage->path);
+	if (!json_read_unsigned(&ipage->jfile, "nentries", &ndata))
 		goto fail;
-	}
+	if (!json_read_indexable_array_start(&ipage->jfile, "entries", infos->entry_size))
+		goto fail;
 
 	if (plen) {
 		ipage->npages = ndata / plen + 1;
@@ -516,16 +462,22 @@ int open_index_page(
 		goto not_found;
 	}
 
-	if (fseek(ipage->file, infos->entry_size * (pnum - 1) * plen, SEEK_CUR) == -1) {
-		perror(ipage->path);
+	if (!json_seek_indexable_array(&ipage->jfile, (pnum - 1) * plen))
 		goto fail;
-	}
 
 	ipage->infos = infos;
 	ipage->ndata = ndata;
 	ipage->pnum = pnum;
-	ipage->plen = plen;
 	ipage->i = 0;
+
+	/*
+	 * If it is the last page, page length may be lower than
+	 * standard page length.
+	 */
+	if (pnum == ipage->npages)
+		ipage->plen = ndata % plen;
+	else
+		ipage->plen = plen;
 
 	return PAGE_FOUND;
 
@@ -551,7 +503,12 @@ unsigned index_page_foreach(struct index_page *ipage, void *data)
 	}
 
 	ipage->i += 1;
-	if (ipage->infos->read_data(data, ipage->file, ipage->path) == 0)
+
+	if (!json_read_array_start(&ipage->jfile, NULL))
+		return 0;
+	if (ipage->infos->read_data(&ipage->jfile, data) == 0)
+		return 0;
+	if (!json_read_array_end(&ipage->jfile))
 		return 0;
 
 	return (ipage->pnum - 1) * ipage->plen + ipage->i;

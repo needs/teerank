@@ -280,7 +280,7 @@ size_t json_write_object_end(struct jfile *jfile)
 	return decrease_scope_level(jfile, 1);
 }
 
-int json_read_array_start(struct jfile *jfile, const char *fname)
+int json_read_array_start(struct jfile *jfile, const char *fname, size_t entry_size)
 {
 	if (!read_field_name(jfile, fname))
 		return 0;
@@ -288,6 +288,8 @@ int json_read_array_start(struct jfile *jfile, const char *fname)
 		return 0;
 	if (skip_space(jfile) != '[')
 		return error(jfile, "Expected '[' to start array");
+
+	jfile->scope->field_size = entry_size;
 
 	return 1;
 }
@@ -300,22 +302,7 @@ size_t json_read_array_end(struct jfile *jfile)
 	return decrease_scope_level(jfile, 0);
 }
 
-int json_read_indexable_array_start(struct jfile *jfile, const char *fname, size_t field_size)
-{
-	if (!json_read_array_start(jfile, fname))
-		return 0;
-
-	jfile->scope->field_size = field_size;
-
-	return 1;
-}
-
-size_t json_read_indexable_array_end(struct jfile *jfile)
-{
-	return json_read_array_end(jfile);
-}
-
-int json_write_array_start(struct jfile *jfile, const char *fname)
+int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_size)
 {
 	if (!write_field_name(jfile, fname))
 		return 0;
@@ -323,6 +310,8 @@ int json_write_array_start(struct jfile *jfile, const char *fname)
 		return 0;
 	if (fputc('[', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
+
+	jfile->scope->field_size = entry_size;
 
 	return 1;
 }
@@ -338,23 +327,7 @@ size_t json_write_array_end(struct jfile *jfile)
 	return decrease_scope_level(jfile, 1);
 }
 
-int json_write_indexable_array_start(
-	struct jfile *jfile, const char *fname, size_t field_size)
-{
-	if (!json_write_array_start(jfile, fname))
-		return 0;
-
-	jfile->scope->field_size = field_size;
-
-	return 1;
-}
-
-size_t json_write_indexable_array_end(struct jfile *jfile)
-{
-	return json_write_array_end(jfile);
-}
-
-int json_seek_indexable_array(struct jfile *jfile, unsigned n)
+int json_seek_array(struct jfile *jfile, unsigned n)
 {
 	off_t offset;
 

@@ -339,14 +339,14 @@ int write_index(struct index *index, const char *filename)
 	/* Header */
 	json_write_object_start(&jfile, NULL);
 	json_write_unsigned(&jfile, "nentries", index->ndata);
-	json_write_indexable_array_start(&jfile, "entries", index->infos->entry_size);
+	json_write_array_start(&jfile, "entries", index->infos->entry_size);
 
 	if (json_have_error(&jfile))
 		goto fail;
 
 	/* Entries */
 	for (i = 0; i < index->ndata; i++) {
-		json_write_array_start(&jfile, NULL);
+		json_write_array_start(&jfile, NULL, 0);
 		index->infos->write_data(&jfile, get(index, i));
 		json_write_array_end(&jfile);
 
@@ -356,7 +356,7 @@ int write_index(struct index *index, const char *filename)
 	}
 
 	/* Footer */
-	json_write_indexable_array_end(&jfile);
+	json_write_array_end(&jfile);
 	json_write_object_end(&jfile);
 
 	if (json_have_error(&jfile))
@@ -409,7 +409,7 @@ int open_index_page(
 	 */
 	json_read_object_start(&ipage->jfile, NULL);
 	json_read_unsigned(&ipage->jfile, "nentries", &ndata);
-	json_read_indexable_array_start(&ipage->jfile, "entries", infos->entry_size);
+	json_read_array_start(&ipage->jfile, "entries", infos->entry_size);
 
 	if (json_have_error(&ipage->jfile))
 		goto fail;
@@ -426,7 +426,7 @@ int open_index_page(
 		goto not_found;
 	}
 
-	if (!json_seek_indexable_array(&ipage->jfile, (pnum - 1) * plen))
+	if (!json_seek_array(&ipage->jfile, (pnum - 1) * plen))
 		goto fail;
 
 	ipage->infos = infos;
@@ -468,7 +468,7 @@ unsigned index_page_foreach(struct index_page *ipage, void *data)
 
 	ipage->i += 1;
 
-	json_read_array_start(&ipage->jfile, NULL);
+	json_read_array_start(&ipage->jfile, NULL, 0);
 	ipage->infos->read_data(&ipage->jfile, data);
 	json_read_array_end(&ipage->jfile);
 

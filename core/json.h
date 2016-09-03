@@ -106,7 +106,7 @@ size_t json_write_object_end(struct jfile *jfile);
 /**
  * Read headers of a JSON array
  */
-int json_read_array_start(struct jfile *jfile, const char *fname);
+int json_read_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
 
 /**
  * Read footer of a previously started JSON array
@@ -114,19 +114,9 @@ int json_read_array_start(struct jfile *jfile, const char *fname);
 size_t json_read_array_end(struct jfile *jfile);
 
 /**
- * Read headers of an indexable JSON array
- */
-int json_read_indexable_array_start(struct jfile *jfile, const char *fname, size_t field_size);
-
-/**
- * Read footer of a previously started indexable JSON array
- */
-size_t json_read_indexable_array_end(struct jfile *jfile);
-
-/**
  * Write headers of a JSON array
  */
-int json_write_array_start(struct jfile *jfile, const char *fname);
+int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
 
 /**
  * Write footer of a previsouly started JSON array
@@ -134,20 +124,9 @@ int json_write_array_start(struct jfile *jfile, const char *fname);
 size_t json_write_array_end(struct jfile *jfile);
 
 /**
- * Write headers of an indexable JSON array
+ * Go to a specific array cell, array's entries must have a fixed size
  */
-int json_write_indexable_array_start(
-	struct jfile *jfile, const char *fname, size_t entry_size);
-
-/**
- * Write footer of a previsouly started indexable JSON array
- */
-size_t json_write_indexable_array_end(struct jfile *jfile);
-
-/**
- * Go to a specific array cell
- */
-int json_seek_indexable_array(struct jfile *jfile, unsigned n);
+int json_seek_array(struct jfile *jfile, unsigned n);
 
 /**
  * Read a signed integer

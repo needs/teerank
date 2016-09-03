@@ -83,99 +83,50 @@ int json_print_error(struct jfile *jfile, const char *fmt, ...);
  */
 int json_have_error(struct jfile *jfile);
 
-/**
- * Read headers of a JSON object
+/*
+ * Objects
  */
-int json_read_object_start(struct jfile *jfile, const char *fname);
 
-/**
- * Read footer of a previsouly started JSON object
- */
+int json_read_object_start(struct jfile *jfile, const char *fname);
 size_t json_read_object_end(struct jfile *jfile);
 
-/**
- * Write headers of a JSON object
- */
 int json_write_object_start(struct jfile *jfile, const char *fname);
-
-/**
- * Write footer of a previsouly started JSON object
- */
 size_t json_write_object_end(struct jfile *jfile);
 
-/**
- * Read headers of a JSON array
+/*
+ * Arrays
  */
 int json_read_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
-
-/**
- * Read footer of a previously started JSON array
- */
 size_t json_read_array_end(struct jfile *jfile);
-
-/**
- * Write headers of a JSON array
- */
-int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
-
-/**
- * Write footer of a previsouly started JSON array
- */
-size_t json_write_array_end(struct jfile *jfile);
-
-/**
- * Go to a specific array cell, array's entries must have a fixed size
- */
 int json_seek_array(struct jfile *jfile, unsigned n);
 
-/**
- * Read a signed integer
+int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
+size_t json_write_array_end(struct jfile *jfile);
+
+/*
+ * (Unsigned) integer
  */
 int json_read_int(struct jfile *jfile, const char *fname, int *buf);
-
-/**
- * Write a signed integer
- */
 int json_write_int(struct jfile *jfile, const char *fname, int buf);
 
-/**
- * Read a unsigned integer
- */
 int json_read_unsigned(struct jfile *jfile, const char *fname, unsigned *buf);
-
-/**
- * Write a unsigned integer
- */
 int json_write_unsigned(struct jfile *jfile, const char *fname, unsigned buf);
 
-/**
- * Read a string of maximum size size (including terminating nul-char)
+/*
+ * Strings
  */
-int json_read_string(struct jfile *jfile, const char *fname, char *buf, size_t size);
 
-/**
- * Write a string
- */
+int json_read_string(struct jfile *jfile, const char *fname, char *buf, size_t size);
 int json_write_string(struct jfile *jfile, const char *fname, const char *buf, size_t size);
 
-/**
- * Read a RFC-3339 time, time_t
+/*
+ * Time
  */
-int json_read_time(struct jfile *jfile, const char *fname, time_t *t);
 
-/**
- * Write a RFC-3339 time, time_t
- */
+int json_read_time(struct jfile *jfile, const char *fname, time_t *t);
 int json_write_time(struct jfile *jfile, const char *fname, time_t t);
 
-/**
- * Read a RFC-3339 time, struct tm
- */
 int json_read_tm(struct jfile *jfile, const char *fname, struct tm *t);
-
-/**
- * Write a RFC-3339 time, struct tm
- */
 int json_write_tm(struct jfile *jfile, const char *fname, struct tm t);
 
 #endif /* JSON_H */

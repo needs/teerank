@@ -271,9 +271,6 @@ int json_write_object_start(struct jfile *jfile, const char *fname)
 
 size_t json_write_object_end(struct jfile *jfile)
 {
-	assert(jfile != NULL);
-	assert(jfile->scope_level > 0);
-
 	if (fputc('}', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
 
@@ -318,9 +315,6 @@ int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_
 
 size_t json_write_array_end(struct jfile *jfile)
 {
-	assert(jfile != NULL);
-	assert(jfile->scope_level > 0);
-
 	if (fputc(']', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
 

@@ -70,7 +70,10 @@ int page_clan_main(int argc, char **argv)
 	}
 
 	html_end_player_list();
-	html_footer();
+
+	char jsonurl[PATH_MAX];
+	get_url(jsonurl, sizeof(jsonurl), "/clans/%s.json.html", clan_name);
+	html_footer(NULL, jsonurl);
 
 	return EXIT_SUCCESS;
 }

@@ -300,7 +300,9 @@ int page_search_main(int argc, char **argv)
 		html_end_player_list();
 	}
 
-	html_footer();
+	char jsonurl[PATH_MAX];
+	get_url(jsonurl, sizeof(jsonurl), "/search.json.html?q=%s", argv[1]);
+	html_footer(NULL, jsonurl);
 
 	return EXIT_SUCCESS;
 }

@@ -56,7 +56,9 @@ int page_player_main(int argc, char **argv)
 	html("<object data=\"/players/%s/elo+rank.svg\" type=\"image/svg+xml\"></object>",
 	     player.name);
 
-	html_footer();
+	char jsonurl[PATH_MAX];
+	get_url(jsonurl, sizeof(jsonurl), "/players/%s.json.html", player.name);
+	html_footer(NULL, jsonurl);
 
 	return EXIT_SUCCESS;
 }

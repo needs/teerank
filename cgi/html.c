@@ -206,7 +206,7 @@ void html_header(const struct tab *active, char *title, char *search)
 	html("</form>");
 	html("</header>");
 	html("<main>");
-	html("<nav>");
+	html("<nav id=\"toptabs\">");
 
 	const struct tab **tabs = (const struct tab*[]){
 		&CTF_TAB, &CUSTOM_TAB, &ABOUT_TAB, NULL
@@ -235,9 +235,31 @@ void html_header(const struct tab *active, char *title, char *search)
 	html("<section>");
 }
 
-void html_footer(void)
+void html_footer(const char *htmlurl, const char *jsonurl)
 {
 	html("</section>");
+
+	if (htmlurl || jsonurl) {
+		unsigned i;
+		const struct {
+			const char *title, *url;
+		} urls[] = {
+			{ "JSON", jsonurl },
+			{ "HTML", htmlurl }
+		};
+
+		html("<nav id=\"bottabs\">");
+
+		for (i = 0; i < 2; i++) {
+			if (!urls[i].url)
+				html("<a class=\"active\">%s</a>", urls[i].title);
+			else
+				html("<a href=\"%s\">%s</a>", urls[i].url, urls[i].title);
+		}
+
+		html("</nav>");
+	}
+
 	html("</main>");
 
 	html("<footer>");

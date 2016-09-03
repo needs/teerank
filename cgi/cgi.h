@@ -26,4 +26,6 @@ int page_server_list_main(int argc, char **argv);
 int page_robots_main(int argc, char **argv);
 int page_sitemap_main(int argc, char **argv);
 
+char *get_url(char *buf, size_t size, const char *fmt, ...);
+
 #endif /* CGI_H */

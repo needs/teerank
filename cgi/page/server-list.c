@@ -117,7 +117,10 @@ int page_server_list_main(int argc, char **argv)
 
 	html_end_server_list();
 	print_page_nav("/servers/pages", &ipage);
-	html_footer();
+
+	char jsonurl[PATH_MAX];
+	get_url(jsonurl, sizeof(jsonurl), "/servers/pages/%u.json.html", pnum);
+	html_footer(NULL, jsonurl);
 
 	close_index_page(&ipage);
 

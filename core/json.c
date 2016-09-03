@@ -19,11 +19,13 @@ void json_init(struct jfile *jfile, FILE *file, const char *path)
 	jfile->scope = &jfile->scopes[0];
 }
 
-#define error(jfile, fmt...) json_error(jfile, fmt)
+#define error(jfile, fmt...) json_print_error(jfile, fmt)
 
-int json_error(struct jfile *jfile, const char *fmt, ...)
+int json_print_error(struct jfile *jfile, const char *fmt, ...)
 {
 	va_list ap;
+
+	jfile->have_error = 1;
 
 	/* Suppose file is a oneliner */
 	fprintf(stderr, "%s:1:%ld: ", jfile->path, ftell(jfile->file));
@@ -34,6 +36,11 @@ int json_error(struct jfile *jfile, const char *fmt, ...)
 
 	fputc('\n', stderr);
 	return 0;
+}
+
+int json_have_error(struct jfile *jfile)
+{
+	return jfile->have_error;
 }
 
 static char skip_space(struct jfile *jfile)
@@ -53,6 +60,9 @@ static int read_field_name(struct jfile *jfile, const char *fname)
 	int c;
 
 	assert(jfile->scope);
+
+	if (json_have_error(jfile))
+		return 0;
 
 	/* First should not be preceeded by a ','. */
 	if (jfile->scope->field_count > 0 && skip_space(jfile) != ',') {
@@ -216,6 +226,9 @@ static int write_string(struct jfile *jfile, const char *str)
 
 static int write_field_name(struct jfile *jfile, const char *fname)
 {
+	if (json_have_error(jfile))
+		return 0;
+
 	/*
 	 * The first field does not need to be preceeded by a coma.
 	 * However we need to add a space if the field must have a fixed

@@ -95,10 +95,11 @@ int read_clan(struct clan *clan, const char *cname)
 
 	json_init(&jfile, file, path);
 
-	if (!json_read_object_start(&jfile, NULL))
-		goto fail;
+	json_read_object_start(&jfile, NULL);
+	json_read_unsigned(    &jfile, "nmembers", &nmembers);
+	json_read_array_start( &jfile, "members");
 
-	if (!json_read_unsigned(&jfile, "nmembers", &nmembers))
+	if (json_have_error(&jfile))
 		goto fail;
 
 	/*
@@ -107,9 +108,6 @@ int read_clan(struct clan *clan, const char *cname)
 	 * all and make the whole process faster.
 	 */
 	if (!alloc_clan(clan, nmembers))
-		goto fail;
-
-	if (!json_read_array_start(&jfile, "members"))
 		goto fail;
 
 	for (i = 0; i < nmembers; i++) {
@@ -121,10 +119,10 @@ int read_clan(struct clan *clan, const char *cname)
 		add_member(clan, pname);
 	}
 
-	if (!json_read_array_end(&jfile))
-		goto fail;
+	json_read_array_end(&jfile);
+	json_read_object_end(&jfile);
 
-	if (!json_read_object_end(&jfile))
+	if (json_have_error(&jfile))
 		goto fail;
 
 	fclose(file);
@@ -160,13 +158,11 @@ int write_clan(const struct clan *clan)
 
 	json_init(&jfile, file, path);
 
-	if (!json_write_object_start(&jfile, NULL))
-		goto fail;
+	json_write_object_start(&jfile, NULL);
+	json_write_unsigned(&jfile, "nmembers", clan->nmembers);
+	json_write_array_start(&jfile, "members");
 
-	if (!json_write_unsigned(&jfile, "nmembers", clan->nmembers))
-		goto fail;
-
-	if (!json_write_array_start(&jfile, "members"))
+	if (json_have_error(&jfile))
 		goto fail;
 
 	for (i = 0; i < clan->nmembers; i++)
@@ -175,10 +171,10 @@ int write_clan(const struct clan *clan)
 			    sizeof(clan->members[i].name)))
 			goto fail;
 
-	if (!json_write_array_end(&jfile))
-		goto fail;
+	json_write_array_end(&jfile);
+	json_write_object_end(&jfile);
 
-	if (!json_write_object_end(&jfile))
+	if (json_have_error(&jfile))
 		goto fail;
 
 	fclose(file);

@@ -164,9 +164,7 @@ struct historic_info {
  * @param hs Historic info to fill
  * @param jfile Initialized JSON file
  * @param skip_data Function called to skip unused historic data
- *
- * @return 1 on success, 0 on failure
  */
-int read_historic_info(struct historic_info *hs, struct jfile *jfile);
+void read_historic_info(struct historic_info *hs, struct jfile *jfile);
 
 #endif /* HISTORIC_H */

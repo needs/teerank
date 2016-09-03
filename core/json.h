@@ -26,6 +26,7 @@ struct json_scope {
 struct jfile {
 	const char *path;
 	FILE *file;
+	int have_error;
 
 	unsigned scope_level;
 	struct json_scope scopes[MAX_SCOPE_LEVEL];
@@ -71,7 +72,16 @@ void json_init(struct jfile *jfile, FILE *file, const char *path);
 /**
  * Print an error with JSON parsing context
  */
-int json_error(struct jfile *jfile, const char *fmt, ...);
+int json_print_error(struct jfile *jfile, const char *fmt, ...);
+
+/**
+ * Return if wether or not an error occured in any previous calls to
+ * json_{read,write}_*().
+ *
+ * The idea is to batch calls to json functions and then check if an
+ * error occured, instead of checking each time for errors.
+ */
+int json_have_error(struct jfile *jfile);
 
 /**
  * Read headers of a JSON object

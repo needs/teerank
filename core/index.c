@@ -12,8 +12,8 @@
 #include "clan.h"
 
 typedef int (*create_index_data_func_t)(void *data, const char *name);
-typedef int (*write_index_data_func_t)(struct jfile *jfile, const void *data);
-typedef int (*read_index_data_func_t)(struct jfile *jfile, void *data);
+typedef void (*write_index_data_func_t)(struct jfile *jfile, const void *data);
+typedef void (*read_index_data_func_t)(struct jfile *jfile, void *data);
 
 struct index_data_infos {
 	const char *dirname;
@@ -50,40 +50,26 @@ static int create_indexed_player(void *data, const char *name)
 	return 1;
 }
 
-static int write_indexed_player(struct jfile *jfile, const void *data)
+static void write_indexed_player(struct jfile *jfile, const void *data)
 {
 	const struct indexed_player *player = data;
 
-	if (!json_write_string(jfile, NULL, player->name, sizeof(player->name)))
-		return 0;
-	if (!json_write_string(jfile, NULL, player->clan, sizeof(player->clan)))
-		return 0;
-	if (!json_write_int(jfile, NULL, player->elo))
-		return 0;
-	if (!json_write_unsigned(jfile, NULL, player->rank))
-		return 0;
-	if (!json_write_tm(jfile, NULL, player->last_seen))
-		return 0;
-
-	return 1;
+	json_write_string(  jfile, NULL, player->name, sizeof(player->name));
+	json_write_string(  jfile, NULL, player->clan, sizeof(player->clan));
+	json_write_int(     jfile, NULL, player->elo);
+	json_write_unsigned(jfile, NULL, player->rank);
+	json_write_tm(      jfile, NULL, player->last_seen);
 }
 
-static int read_indexed_player(struct jfile *jfile, void *data)
+static void read_indexed_player(struct jfile *jfile, void *data)
 {
 	struct indexed_player *player = data;
 
-	if (!json_read_string(jfile, NULL, player->name, sizeof(player->name)))
-		return 0;
-	if (!json_read_string(jfile, NULL, player->clan, sizeof(player->clan)))
-		return 0;
-	if (!json_read_int(jfile, NULL, &player->elo))
-		return 0;
-	if (!json_read_unsigned(jfile, NULL, &player->rank))
-		return 0;
-	if (!json_read_tm(jfile, NULL, &player->last_seen))
-		return 0;
-
-	return 1;
+	json_read_string(  jfile, NULL, player->name, sizeof(player->name));
+	json_read_string(  jfile, NULL, player->clan, sizeof(player->clan));
+	json_read_int(     jfile, NULL, &player->elo);
+	json_read_unsigned(jfile, NULL, &player->rank);
+	json_read_tm(      jfile, NULL, &player->last_seen);
 }
 
 const struct index_data_infos *INDEX_DATA_INFOS_PLAYER = &(struct index_data_infos) {
@@ -121,28 +107,20 @@ static int create_indexed_clan(void *data, const char *name)
 	return 1;
 }
 
-static int write_indexed_clan(struct jfile *jfile, const void *data)
+static void write_indexed_clan(struct jfile *jfile, const void *data)
 {
 	const struct indexed_clan *clan = data;
 
-	if (!json_write_string(jfile, NULL, clan->name, sizeof(clan->name)))
-		return 0;
-	if (!json_write_unsigned(jfile, NULL, clan->nmembers))
-		return 0;
-
-	return 1;
+	json_write_string(jfile, NULL, clan->name, sizeof(clan->name));
+	json_write_unsigned(jfile, NULL, clan->nmembers);
 }
 
-static int read_indexed_clan(struct jfile *jfile, void *data)
+static void read_indexed_clan(struct jfile *jfile, void *data)
 {
 	struct indexed_clan *clan = data;
 
-	if (!json_read_string(jfile, NULL, clan->name, sizeof(clan->name)))
-		return 0;
-	if (!json_read_unsigned(jfile, NULL, &clan->nmembers))
-		return 0;
-
-	return 1;
+	json_read_string(  jfile, NULL, clan->name, sizeof(clan->name));
+	json_read_unsigned(jfile, NULL, &clan->nmembers);
 }
 
 const struct index_data_infos *INDEX_DATA_INFOS_CLAN = &(struct index_data_infos) {
@@ -177,40 +155,26 @@ static int create_indexed_server(void *data, const char *name)
 	return 1;
 }
 
-static int write_indexed_server(struct jfile *jfile, const void *data)
+static void write_indexed_server(struct jfile *jfile, const void *data)
 {
 	const struct indexed_server *server = data;
 
-	if (!json_write_string(jfile, NULL, server->name, sizeof(server->name)))
-		return 0;
-	if (!json_write_string(jfile, NULL, server->gametype, sizeof(server->gametype)))
-		return 0;
-	if (!json_write_string(jfile, NULL, server->map, sizeof(server->map)))
-		return 0;
-	if (!json_write_unsigned(jfile, NULL, server->nplayers))
-		return 0;
-	if (!json_write_unsigned(jfile, NULL, server->maxplayers))
-		return 0;
-
-	return 1;
+	json_write_string(  jfile, NULL, server->name,     sizeof(server->name));
+	json_write_string(  jfile, NULL, server->gametype, sizeof(server->gametype));
+	json_write_string(  jfile, NULL, server->map,      sizeof(server->map));
+	json_write_unsigned(jfile, NULL, server->nplayers);
+	json_write_unsigned(jfile, NULL, server->maxplayers);
 }
 
-static int read_indexed_server(struct jfile *jfile, void *data)
+static void read_indexed_server(struct jfile *jfile, void *data)
 {
 	struct indexed_server *server = data;
 
-	if (!json_read_string(jfile, NULL, server->name, sizeof(server->name)))
-		return 0;
-	if (!json_read_string(jfile, NULL, server->gametype, sizeof(server->gametype)))
-		return 0;
-	if (!json_read_string(jfile, NULL, server->map, sizeof(server->map)))
-		return 0;
-	if (!json_read_unsigned(jfile, NULL, &server->nplayers))
-		return 0;
-	if (!json_read_unsigned(jfile, NULL, &server->maxplayers))
-		return 0;
-
-	return 1;
+	json_read_string(  jfile, NULL, server->name,     sizeof(server->name));
+	json_read_string(  jfile, NULL, server->gametype, sizeof(server->gametype));
+	json_read_string(  jfile, NULL, server->map,      sizeof(server->map));
+	json_read_unsigned(jfile, NULL, &server->nplayers);
+	json_read_unsigned(jfile, NULL, &server->maxplayers);
 }
 
 const struct index_data_infos *INDEX_DATA_INFOS_SERVER = &(struct index_data_infos) {
@@ -372,30 +336,30 @@ int write_index(struct index *index, const char *filename)
 
 	json_init(&jfile, file, path);
 
-	if (!json_write_object_start(&jfile, NULL))
-		goto fail;
-
 	/* Header */
-	if (!json_write_unsigned(&jfile, "nentries", index->ndata))
-		goto fail;
+	json_write_object_start(&jfile, NULL);
+	json_write_unsigned(&jfile, "nentries", index->ndata);
+	json_write_indexable_array_start(&jfile, "entries", index->infos->entry_size);
 
-	if (!json_write_indexable_array_start(&jfile, "entries", index->infos->entry_size))
+	if (json_have_error(&jfile))
 		goto fail;
 
 	/* Entries */
 	for (i = 0; i < index->ndata; i++) {
-		if (!json_write_array_start(&jfile, NULL))
+		json_write_array_start(&jfile, NULL);
+		index->infos->write_data(&jfile, get(index, i));
+		json_write_array_end(&jfile);
+
+		if (json_have_error(&jfile))
 			goto fail;
-		if (!index->infos->write_data(&jfile, get(index, i)))
-			goto fail;
-		if (!json_write_array_end(&jfile))
-			goto fail;
+
 	}
 
-	if (!json_write_indexable_array_end(&jfile))
-		goto fail;
+	/* Footer */
+	json_write_indexable_array_end(&jfile);
+	json_write_object_end(&jfile);
 
-	if (!json_write_object_end(&jfile))
+	if (json_have_error(&jfile))
 		goto fail;
 
 	fclose(file);
@@ -443,11 +407,11 @@ int open_index_page(
 	 * First, skip header so that seeking the file does use the right
 	 * offset to begin with.
 	 */
-	if (!json_read_object_start(&ipage->jfile, NULL))
-		goto fail;
-	if (!json_read_unsigned(&ipage->jfile, "nentries", &ndata))
-		goto fail;
-	if (!json_read_indexable_array_start(&ipage->jfile, "entries", infos->entry_size))
+	json_read_object_start(&ipage->jfile, NULL);
+	json_read_unsigned(&ipage->jfile, "nentries", &ndata);
+	json_read_indexable_array_start(&ipage->jfile, "entries", infos->entry_size);
+
+	if (json_have_error(&ipage->jfile))
 		goto fail;
 
 	if (plen) {
@@ -504,11 +468,11 @@ unsigned index_page_foreach(struct index_page *ipage, void *data)
 
 	ipage->i += 1;
 
-	if (!json_read_array_start(&ipage->jfile, NULL))
-		return 0;
-	if (ipage->infos->read_data(&ipage->jfile, data) == 0)
-		return 0;
-	if (!json_read_array_end(&ipage->jfile))
+	json_read_array_start(&ipage->jfile, NULL);
+	ipage->infos->read_data(&ipage->jfile, data);
+	json_read_array_end(&ipage->jfile);
+
+	if (json_have_error(&ipage->jfile))
 		return 0;
 
 	return (ipage->pnum - 1) * ipage->plen + ipage->i;

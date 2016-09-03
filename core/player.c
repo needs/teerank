@@ -130,26 +130,18 @@ static int read_player_record(struct jfile *jfile, void *buf)
 {
 	struct player_record *rec = buf;
 
-	if (!json_read_int(jfile, NULL, &rec->elo))
-		return 0;
-	if (!json_read_unsigned(jfile, NULL, &rec->rank))
-		return 0;
+	json_read_int(jfile, NULL, &rec->elo);
+	json_read_unsigned(jfile, NULL, &rec->rank);
 
-	return 1;
+	return !json_have_error(jfile);
 }
 
-static int read_player_header(struct jfile *jfile, struct player *player)
+static void read_player_header(struct jfile *jfile, struct player *player)
 {
-	if (!json_read_tm(jfile, "last_seen", &player->last_seen))
-		return 0;
-	if (!json_read_string(jfile, "clan", player->clan, sizeof(player->clan)))
-		return 0;
-	if (!json_read_int(jfile, "elo", &player->elo))
-		return 0;
-	if (!json_read_unsigned(jfile, "rank", &player->rank))
-		return 0;
-
-	return 1;
+	json_read_tm(      jfile, "last_seen", &player->last_seen);
+	json_read_string(  jfile, "clan"     , player->clan, sizeof(player->clan));
+	json_read_int(     jfile, "elo"      , &player->elo);
+	json_read_unsigned(jfile, "rank"     , &player->rank);
 }
 
 enum read_player_ret read_player(struct player *player, const char *name)
@@ -184,16 +176,17 @@ enum read_player_ret read_player(struct player *player, const char *name)
 
 	json_init(&jfile, file, path);
 
-	if (!json_read_object_start(&jfile, NULL))
-		return 0;
+	json_read_object_start(&jfile, NULL);
+	read_player_header(&jfile, player);
 
-	if (!read_player_header(&jfile, player))
+	if (json_have_error(&jfile))
 		goto fail;
+
 	if (!read_historic(&player->hist, &jfile, read_player_record))
 		goto fail;
 
 	if (!json_read_object_end(&jfile))
-		return 0;
+		goto fail;
 
 	fclose(file);
 
@@ -212,26 +205,18 @@ static int write_player_record(struct jfile *jfile, void *buf)
 {
 	struct player_record *rec = buf;
 
-	if (!json_write_int(jfile, NULL, rec->elo))
-		return 0;
-	if (!json_write_unsigned(jfile, NULL, rec->rank))
-		return 0;
+	json_write_int(     jfile, NULL, rec->elo);
+	json_write_unsigned(jfile, NULL, rec->rank);
 
-	return 1;
+	return !json_have_error(jfile);
 }
 
-static int write_player_header(struct jfile *jfile, struct player *player)
+static void write_player_header(struct jfile *jfile, struct player *player)
 {
-	if (!json_write_tm(jfile, "last_seen", player->last_seen))
-		return 0;
-	if (!json_write_string(jfile, "clan", player->clan, sizeof(player->clan)))
-		return 0;
-	if (!json_write_int(jfile, "elo", player->elo))
-		return 0;
-	if (!json_write_unsigned(jfile, "rank", player->rank))
-		return 0;
-
-	return 1;
+	json_write_tm(      jfile, "last_seen", player->last_seen);
+	json_write_string(  jfile, "clan"     , player->clan, sizeof(player->clan));
+	json_write_int(     jfile, "elo"      , player->elo);
+	json_write_unsigned(jfile, "rank"     , player->rank);
 }
 
 int write_player(struct player *player)
@@ -253,16 +238,17 @@ int write_player(struct player *player)
 
 	json_init(&jfile, file, path);
 
-	if (!json_write_object_start(&jfile, NULL))
-		return 0;
+	json_write_object_start(&jfile, NULL);
+	write_player_header(&jfile, player);
 
-	if (!write_player_header(&jfile, player))
+	if (json_have_error(&jfile))
 		goto fail;
+
 	if (!write_historic(&player->hist, &jfile, write_player_record))
 		goto fail;
 
-	if (!json_write_object_end(&jfile))
-		return 0;
+	if (json_write_object_end(&jfile))
+		goto fail;
 
 	fclose(file);
 	return 1;
@@ -327,19 +313,13 @@ static void init_player_info(struct player_info *ps)
 	ps->rank = UNRANKED;
 }
 
-static int read_player_info_header(
+static void read_player_info_header(
 	struct jfile *jfile, struct player_info *ps)
 {
-	if (!json_read_tm(jfile, "last_seen", &ps->last_seen))
-		return 0;
-	if (!json_read_string(jfile, "clan", ps->clan, sizeof(ps->clan)))
-		return 0;
-	if (!json_read_int(jfile, "elo", &ps->elo))
-		return 0;
-	if (!json_read_unsigned(jfile, "rank", &ps->rank))
-		return 0;
-
-	return 1;
+	json_read_tm(jfile, "last_seen", &ps->last_seen);
+	json_read_string(jfile, "clan", ps->clan, sizeof(ps->clan));
+	json_read_int(jfile, "elo", &ps->elo);
+	json_read_unsigned(jfile, "rank", &ps->rank);
 }
 
 enum read_player_ret read_player_info(struct player_info *ps, const char *name)
@@ -365,12 +345,11 @@ enum read_player_ret read_player_info(struct player_info *ps, const char *name)
 
 	json_init(&jfile, file, path);
 
-	if (!json_read_object_start(&jfile, NULL))
-		goto fail;
+	json_read_object_start(&jfile, NULL);
+	read_player_info_header(&jfile, ps);
+	read_historic_info(&ps->hist, &jfile);
 
-	if (!read_player_info_header(&jfile, ps))
-		goto fail;
-	if (!read_historic_info(&ps->hist, &jfile))
+	if (json_have_error(&jfile))
 		goto fail;
 
 	fclose(file);

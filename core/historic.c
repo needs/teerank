@@ -96,34 +96,20 @@ static int read_record(
 
 	assert(data != NULL);
 
-	if (!json_read_array_start(jfile, NULL))
-		return 0;
-	if (!json_read_unsigned(jfile, NULL, &delta))
-		return 0;
-	if (!read_data(jfile, data))
-		return 0;
-	if (!json_read_array_end(jfile))
+	json_read_array_start(jfile, NULL);
+	json_read_unsigned(jfile, NULL, &delta);
+	read_data(jfile, data);
+	json_read_array_end(jfile);
+
+	if (json_have_error(jfile))
 		return 0;
 
 	record->time = epoch + delta;
-	return 1;
-}
-
-static int read_historic_header(
-	struct jfile *jfile, unsigned *nrecords, time_t *epoch)
-{
-	assert(nrecords != NULL);
-	assert(epoch != NULL);
-
-	if (!json_read_unsigned(jfile, "length", nrecords))
-		return 0;
-	if (!json_read_time(jfile, "epoch", epoch))
-		return 0;
 
 	return 1;
 }
 
-/* Can never fail */
+/* Never fail */
 static struct record *new_record(struct historic *hist)
 {
 	assert(hist != NULL);
@@ -173,16 +159,17 @@ int read_historic(
 
 	reset_historic(hist);
 
-	if (!read_historic_header(jfile, &hist->nrecords, &hist->epoch))
+	json_read_unsigned(   jfile, "length", &hist->nrecords);
+	json_read_time(       jfile, "epoch" , &hist->epoch);
+	json_read_array_start(jfile, "records");
+
+	if (json_have_error(jfile))
 		return 0;
 
 	if (hist->nrecords == 0)
-		return json_error(jfile, "Empty historic forbidden");
+		return json_print_error(jfile, "Empty historic forbidden");
 
 	if (!alloc_historic(hist, hist->nrecords))
-		return 0;
-
-	if (!json_read_array_start(jfile, "records"))
 		return 0;
 
 	for (i = 0; i < hist->nrecords; i++) {
@@ -218,18 +205,14 @@ static int write_record(
 	struct jfile *jfile, struct historic *hist, struct record *record,
 	write_data_func_t write_data)
 {
-	if (!json_write_array_start(jfile, NULL))
-		return 0;
+	json_write_array_start(jfile, NULL);
 
-	if (!json_write_unsigned(jfile, NULL, record->time - hist->epoch))
-		return 0;
-	if (!write_data(jfile, record_data(hist, record)))
-		return 0;
+	json_write_unsigned(jfile, NULL, record->time - hist->epoch);
+	write_data(jfile, record_data(hist, record));
 
-	if (!json_write_array_end(jfile))
-		return 0;
+	json_write_array_end(jfile);
 
-	return 1;
+	return !json_have_error(jfile);
 }
 
 int write_historic(
@@ -242,22 +225,20 @@ int write_historic(
 	assert(jfile != NULL);
 	assert(write_data != NULL);
 
-	if (!json_write_unsigned(jfile, "length", hist->nrecords))
-		return 0;
-	if (!json_write_time(jfile, "epoch", hist->epoch))
-		return 0;
+	json_write_unsigned(jfile, "length", hist->nrecords);
+	json_write_time(jfile, "epoch", hist->epoch);
+	json_write_array_start(jfile, "records");
 
-	if (!json_write_array_start(jfile, "records"))
+	if (json_have_error(jfile))
 		return 0;
 
 	for (rec = hist->last; rec; rec = rec->prev)
 		if (!write_record(jfile, hist, rec, write_data))
 			return 0;
 
-	if (!json_write_array_end(jfile))
-		return 0;
+	json_write_array_end(jfile);
 
-	return 1;
+	return !json_have_error(jfile);
 }
 
 void *record_data(struct historic *hist, struct record *record)
@@ -277,13 +258,8 @@ void append_record(struct historic *hist, const void *data)
 	memcpy(record_data(hist, rec), data, hist->data_size);
 }
 
-int read_historic_info(struct historic_info *hs, struct jfile *jfile)
+void read_historic_info(struct historic_info *hs, struct jfile *jfile)
 {
-	if (read_historic_header(jfile, &hs->nrecords, &hs->epoch) == 0)
-		return 0;
-
-        if (hs->nrecords == 0)
-	        return 1;
-
-        return 1;
+	json_read_unsigned(   jfile, "length", &hs->nrecords);
+	json_read_time(       jfile, "epoch" , &hs->epoch);
 }

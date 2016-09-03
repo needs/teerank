@@ -11,25 +11,6 @@
 #include "config.h"
 #include "json.h"
 
-static int read_server_header(struct jfile *jfile, struct server_state *state)
-{
-	assert(jfile != NULL);
-	assert(state != NULL);
-
-	if (!json_read_string(jfile, "name", state->name, sizeof(state->name)))
-		return 0;
-	if (!json_read_string(jfile, "gametype", state->gametype, sizeof(state->gametype)))
-		return 0;
-	if (!json_read_string(jfile, "map", state->map, sizeof(state->map)))
-		return 0;
-	if (!json_read_unsigned(jfile, "last_seen", (unsigned*)&state->last_seen))
-		return 0;
-	if (!json_read_unsigned(jfile, "expire", (unsigned*)&state->expire))
-		return 0;
-
-	return 1;
-}
-
 int read_server_state(struct server_state *state, const char *sname)
 {
 	FILE *file = NULL;
@@ -50,41 +31,41 @@ int read_server_state(struct server_state *state, const char *sname)
 
 	json_init(&jfile, file, path);
 
-	if (!json_read_object_start(&jfile, NULL))
-		goto fail;
+	json_read_object_start(&jfile, NULL);
 
-	if (!read_server_header(&jfile, state))
-		goto fail;
+	json_read_string(  &jfile, "name"     , state->name,     sizeof(state->name));
+	json_read_string(  &jfile, "gametype" , state->gametype, sizeof(state->gametype));
+	json_read_string(  &jfile, "map"      , state->map,      sizeof(state->map));
+	json_read_unsigned(&jfile, "last_seen", (unsigned*)&state->last_seen);
+	json_read_unsigned(&jfile, "expire"   , (unsigned*)&state->expire);
 
-	if (!json_read_int(&jfile, "num_clients", &state->num_clients))
-		goto fail;
-	if (!json_read_int(&jfile, "max_clients", &state->max_clients))
-		goto fail;
+	json_read_int(&jfile, "num_clients", &state->num_clients);
+	json_read_int(&jfile, "max_clients", &state->max_clients);
 
-	if (!json_read_array_start(&jfile, "clients"))
+	json_read_array_start(&jfile, "clients");
+
+	if (json_have_error(&jfile))
 		goto fail;
 
 	for (i = 0; i < state->num_clients; i++) {
 		struct client *client = &state->clients[i];
 
-		if (!json_read_object_start(&jfile, NULL))
-			goto fail;
+		json_read_object_start(&jfile, NULL);
 
-		if (!json_read_string(&jfile, "name", client->name, sizeof(client->name)))
-			goto fail;
-		if (!json_read_string(&jfile, "clan", client->clan, sizeof(client->clan)))
-			goto fail;
-		if (!json_read_int(&jfile, "score", (int*)&client->score))
-			goto fail;
+		json_read_string(&jfile, "name" , client->name, sizeof(client->name));
+		json_read_string(&jfile, "clan" , client->clan, sizeof(client->clan));
+		json_read_int(   &jfile, "score", (int*)&client->score);
 
-		if (!json_read_object_end(&jfile))
+		json_read_object_end(&jfile);
+
+		if (json_have_error(&jfile))
 			goto fail;
 	}
 
-	if (!json_read_array_end(&jfile))
-		goto fail;
+	json_read_array_end(&jfile);
+	json_read_object_end(&jfile);
 
-	if (!json_read_object_end(&jfile))
+	if (json_have_error(&jfile))
 		goto fail;
 
 	fclose(file);
@@ -94,26 +75,6 @@ fail:
 	if (file)
 		fclose(file);
 	return 0;
-}
-
-static int write_server_header(struct jfile *jfile, struct server_state *state)
-{
-	assert(jfile != NULL);
-	assert(state != NULL);
-
-	if (!json_write_string(jfile, "name", state->name, sizeof(state->name)))
-		return 0;
-	if (!json_write_string(jfile, "gametype", state->gametype, sizeof(state->gametype)))
-		return 0;
-	if (!json_write_string(jfile, "map", state->map, sizeof(state->map)))
-		return 0;
-
-	if (!json_write_unsigned(jfile, "last_seen", state->last_seen))
-		return 0;
-	if (!json_write_unsigned(jfile, "expire", state->expire))
-		return 0;
-
-	return 1;
 }
 
 int write_server_state(struct server_state *state, const char *sname)
@@ -136,41 +97,41 @@ int write_server_state(struct server_state *state, const char *sname)
 
 	json_init(&jfile, file, path);
 
-	if (!json_write_object_start(&jfile, NULL))
-		goto fail;
+	json_write_object_start(&jfile, NULL);
 
-	if (!write_server_header(&jfile, state))
-		goto fail;
+	json_write_string(  &jfile, "name"     , state->name,     sizeof(state->name));
+	json_write_string(  &jfile, "gametype" , state->gametype, sizeof(state->gametype));
+	json_write_string(  &jfile, "map"      , state->map,      sizeof(state->map));
+	json_write_unsigned(&jfile, "last_seen", state->last_seen);
+	json_write_unsigned(&jfile, "expire"   , state->expire);
 
-	if (!json_write_unsigned(&jfile, "num_clients", state->num_clients))
-		goto fail;
-	if (!json_write_unsigned(&jfile, "max_clients", state->max_clients))
-		goto fail;
+	json_write_unsigned(&jfile, "num_clients", state->num_clients);
+	json_write_unsigned(&jfile, "max_clients", state->max_clients);
 
-	if (!json_write_array_start(&jfile, "clients"))
+	json_write_array_start(&jfile, "clients");
+
+	if (json_have_error(&jfile))
 		goto fail;
 
 	for (i = 0; i < state->num_clients; i++) {
 		struct client *client = &state->clients[i];
 
-		if (!json_write_object_start(&jfile, NULL))
-			goto fail;
+		json_write_object_start(&jfile, NULL);
 
-		if (!json_write_string(&jfile, "name", client->name, sizeof(client->name)))
-			goto fail;
-		if (!json_write_string(&jfile, "clan", client->clan, sizeof(client->clan)))
-			goto fail;
-		if (!json_write_int(&jfile, "score", client->score))
-			goto fail;
+		json_write_string(&jfile, "name" , client->name, sizeof(client->name));
+		json_write_string(&jfile, "clan" , client->clan, sizeof(client->clan));
+		json_write_int(   &jfile, "score", client->score);
 
-		if (!json_write_object_end(&jfile))
+		json_write_object_end(&jfile);
+
+		if (json_have_error(&jfile))
 			goto fail;
 	}
 
-	if (!json_write_array_end(&jfile))
-		goto fail;
+	json_write_array_end(&jfile);
+	json_write_object_end(&jfile);
 
-	if (!json_write_object_end(&jfile))
+	if (json_have_error(&jfile))
 		goto fail;
 
 	fclose(file);

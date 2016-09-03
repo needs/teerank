@@ -1,9 +1,76 @@
 #ifndef JSON_H
 #define JSON_H
 
+/*
+ * 		Overview
+ *
+ * The main reason to implement our own specialized JSON "parser" is
+ * because we need soem features that are not provided by any others.
+ * And also because json format is actually quite simple and flexible.
+ *
+ * First, we need a fast parsing process.  The actual trend is to split
+ * the parsing process in two steps: parsing the whole file at first,
+ * and then providing an in memory view of the file.
+ *
+ * 	json_parse("<path_to_file>", &ret);
+ *
+ * 	if (strcmp(ret.fields[0].name, "name") == 0)
+ * 		strcpy(name, ret.fields[0].data.string);
+ * 	if (strcmp(ret.fields[1].name, "age") == 0)
+ * 		age = ret.fields[1].data.integer;
+ *
+ * This approach is generic but is not really wanted in our case because
+ * we know what field we expect.  It means we can stop the parsing
+ * process as soon as we detect a mismatch between the expected field
+ * and the currently parsed field.
+ *
+ * What our JSON parser does it to directly encode file structure at
+ * parsing time, like so:
+ *
+ *	json_init(&jfile, file, path);
+ * 	json_read_string(&jfile, "name", name, sizeof(name));
+ * 	json_read_uint(&jfile, "age", &age);
+ *
+ *
+ *		Indexable arrays
+ *
+ * The other reason we want a custom parser is because we need a way to
+ * seek a json array at a specific entry.  For that purpose we need to
+ * pad every entry with spaces, so that they all have the same size, to
+ * then be able to compute entry's offset.  It also require to know at
+ * compile time the maximum size an entry can have.
+ *
+ *	size_t size = JSON_ARRAY_SIZE + JSON_STRING_SIZE(sizeof(name)) + JSON_UINT_SIZE;
+ *
+ * 	json_read_array_start(&jfile, "data", size);
+ * 	json_seek_array(&jfile, 3); // Seek 3rd entry
+ *
+ * 	json_read_string(&jfile, "name", name, sizeof(name));
+ * 	json_read_uint(&jfile, "age", &age);
+ *
+ *
+ *		Memory allocations
+ *
+ * Last but not least, we want to avoid memory allocations.  Every
+ * buffers of unknown size should be provided by the user, and the
+ * parser never allocate memory at any point.
+ *
+ *
+ *		Error handling
+ *
+ * Our json parser allow batching calls without any error checking, and
+ * check for errors at the end.  It makes the code easier to read and
+ * reduce the number of (probably untested) possible error path.
+ *
+ * 	json_read_string(&jfile, "name", name, sizeof(name));
+ * 	json_read_uint(&jfile, "age", &age);
+ *
+ * 	if (json_have_error(&jfile))
+ * 		return 0;
+ */
+
 #include <time.h>
 
-/* Maximum level of objects nesting supported */
 #define MAX_SCOPE_LEVEL 8
 
 /*
@@ -37,7 +104,7 @@ struct jfile {
  * Return the size of the decimal representation of the given number,
  * including terminating nul character.
  */
-#define _strsize(n) (int)sizeof(#n)
+#define _strsize(n) (size_t)sizeof(#n)
 
 /* Add one because we need to count coma between fields */
 #define _JSON_FIELD_SIZE(size) ((size) + 1)
@@ -54,8 +121,6 @@ struct jfile {
 
 /* Add one because negative intergers must be prefixed with '-' */
 #define JSON_INT_SIZE _JSON_FIELD_SIZE(_strsize(INTMAX) + 1)
-
-/* Add one because negative intergers must be prefixed with '-' */
 #define JSON_UINT_SIZE _JSON_FIELD_SIZE(_strsize(UINTMAX))
 
 /* Size of RFC-3339 date format */
@@ -64,17 +129,16 @@ struct jfile {
 /* Two brackets */
 #define JSON_ARRAY_SIZE 2
 
-/**
- * Initialize a jfile with an already opened file.
- */
+/* Initialize the json parser with an already opened file */
 void json_init(struct jfile *jfile, FILE *file, const char *path);
 
-/**
- * Print an error with JSON parsing context
+/*
+ * Print the given error message prefixed with filename and actual file
+ * position.  Also set error flag.
  */
 int json_print_error(struct jfile *jfile, const char *fmt, ...);
 
-/**
+/*
  * Return if wether or not an error occured in any previous calls to
  * json_{read,write}_*().
  *
@@ -96,6 +160,7 @@ size_t json_write_object_end(struct jfile *jfile);
 /*
  * Arrays
  */
+
 int json_read_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
 size_t json_read_array_end(struct jfile *jfile);
 int json_seek_array(struct jfile *jfile, unsigned n);
@@ -106,6 +171,7 @@ size_t json_write_array_end(struct jfile *jfile);
 /*
  * (Unsigned) integer
  */
+
 int json_read_int(struct jfile *jfile, const char *fname, int *buf);
 int json_write_int(struct jfile *jfile, const char *fname, int buf);
 

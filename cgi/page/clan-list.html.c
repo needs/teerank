@@ -114,9 +114,7 @@ int page_clan_list_html_main(int argc, char **argv)
 	html_end_clan_list();
 	print_page_nav("/clans/pages", &ipage);
 
-	char jsonurl[PATH_MAX];
-	get_url(jsonurl, sizeof(jsonurl), "/clans/pages/%u.json.html", pnum);
-	html_footer(NULL, jsonurl);
+	html_footer("clan-list");
 
 	close_index_page(&ipage);
 

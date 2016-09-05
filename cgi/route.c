@@ -129,8 +129,7 @@ struct url parse_url(char *uri, char *query)
 static void init_from_filename(
 	struct page *page, struct url *url,
 	struct page html_page,
-	struct page json_page,
-	struct page jsonhtml_page)
+	struct page json_page)
 {
 	char *arg1, *ext1, *ext2;
 
@@ -142,8 +141,6 @@ static void init_from_filename(
 		*page = html_page;
 	else if (strcmp(ext1, "json") == 0 && !ext2)
 		*page = json_page;
-	else if (strcmp(ext1, "json") == 0 && strcmp(ext2, "html") == 0)
-		*page = jsonhtml_page;
 	else
 		error(404, NULL);
 
@@ -155,8 +152,7 @@ static void init_page_player_list(struct page *page, struct url *url)
 	init_from_filename(
 		page, url,
 		(struct page) PAGE_HTML(NULL, player_list_html),
-		(struct page) PAGE_JSON(NULL, player_list_json),
-		(struct page) PAGE_HTML(NULL, player_list_json_html));
+		(struct page) PAGE_JSON(NULL, player_list_json));
 }
 
 static void init_page_clan_list(struct page *page, struct url *url)
@@ -164,8 +160,7 @@ static void init_page_clan_list(struct page *page, struct url *url)
 	init_from_filename(
 		page, url,
 		(struct page) PAGE_HTML(NULL, clan_list_html),
-		(struct page) PAGE_JSON(NULL, clan_list_json),
-		(struct page) PAGE_HTML(NULL, clan_list_json_html));
+		(struct page) PAGE_JSON(NULL, clan_list_json));
 }
 
 static void init_page_server_list(struct page *page, struct url *url)
@@ -173,8 +168,7 @@ static void init_page_server_list(struct page *page, struct url *url)
 	init_from_filename(
 		page, url,
 		(struct page) PAGE_HTML(NULL, server_list_html),
-		(struct page) PAGE_JSON(NULL, server_list_json),
-		(struct page) PAGE_HTML(NULL, server_list_json_html));
+		(struct page) PAGE_JSON(NULL, server_list_json));
 }
 
 static void init_page_clan(struct page *page, struct url *url)
@@ -182,8 +176,7 @@ static void init_page_clan(struct page *page, struct url *url)
 	init_from_filename(
 		page, url,
 		(struct page) PAGE_HTML(NULL, clan_html),
-		(struct page) PAGE_JSON(NULL, clan_json),
-		(struct page) PAGE_HTML(NULL, clan_json_html));
+		(struct page) PAGE_JSON(NULL, clan_json));
 }
 
 static void init_page_player(struct page *page, struct url *url)
@@ -191,8 +184,7 @@ static void init_page_player(struct page *page, struct url *url)
 	init_from_filename(
 		page, url,
 		(struct page) PAGE_HTML(NULL, player_html),
-		(struct page) PAGE_JSON(NULL, player_json),
-		(struct page) PAGE_HTML(NULL, player_json_html));
+		(struct page) PAGE_JSON(NULL, player_json));
 }
 
 static void init_page_graph(struct page *page, struct url *url)
@@ -224,6 +216,7 @@ struct directory {
 static struct directory root = {
 	"", (struct page[]) {
 		PAGE_HTML("about.html", about),
+		PAGE_HTML("about-json-api.html", about_json_api),
 		PAGE_TXT("robots.txt", robots),
 		PAGE_XML("sitemap.xml", sitemap),
 		DYNAMIC_PAGE("search", search),

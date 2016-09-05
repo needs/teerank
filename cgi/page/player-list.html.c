@@ -74,9 +74,7 @@ int page_player_list_html_main(int argc, char **argv)
 	html_end_player_list();
 	print_page_nav("/players/pages", &ipage);
 
-	char jsonurl[PATH_MAX];
-	get_url(jsonurl, sizeof(jsonurl), "/players/pages/%u.json.html", pnum);
-	html_footer(NULL, jsonurl);
+	html_footer("player-list");
 
 	close_index_page(&ipage);
 

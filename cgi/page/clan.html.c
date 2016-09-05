@@ -71,9 +71,7 @@ int page_clan_html_main(int argc, char **argv)
 
 	html_end_player_list();
 
-	char jsonurl[PATH_MAX];
-	get_url(jsonurl, sizeof(jsonurl), "/clans/%s.json.html", clan_name);
-	html_footer(NULL, jsonurl);
+	html_footer("clan");
 
 	return EXIT_SUCCESS;
 }

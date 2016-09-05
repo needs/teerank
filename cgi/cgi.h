@@ -19,6 +19,7 @@ extern struct cgi_config {
 
 int page_graph_main(int argc, char **argv);
 int page_about_main(int argc, char **argv);
+int page_about_json_api_main(int argc, char **argv);
 int page_search_main(int argc, char **argv);
 
 int page_player_html_main(int argc, char **argv);
@@ -43,7 +44,5 @@ int page_server_list_json_html_main(int argc, char **argv);
 
 int page_robots_main(int argc, char **argv);
 int page_sitemap_main(int argc, char **argv);
-
-char *get_url(char *buf, size_t size, const char *fmt, ...);
 
 #endif /* CGI_H */

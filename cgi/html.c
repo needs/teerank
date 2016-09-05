@@ -235,28 +235,14 @@ void html_header(const struct tab *active, char *title, char *search)
 	html("<section>");
 }
 
-void html_footer(const char *htmlurl, const char *jsonurl)
+void html_footer(const char *jsonanchor)
 {
 	html("</section>");
 
-	if (htmlurl || jsonurl) {
-		unsigned i;
-		const struct {
-			const char *title, *url;
-		} urls[] = {
-			{ "JSON", jsonurl },
-			{ "HTML", htmlurl }
-		};
-
+	if (jsonanchor) {
 		html("<nav id=\"bottabs\">");
-
-		for (i = 0; i < 2; i++) {
-			if (!urls[i].url)
-				html("<a class=\"active\">%s</a>", urls[i].title);
-			else
-				html("<a href=\"%s\">%s</a>", urls[i].url, urls[i].title);
-		}
-
+		html("<a href=\"/about-json-api.html#%s\">JSON</a>", jsonanchor);
+		html("<a class=\"active\">HTML</a>");
 		html("</nav>");
 	}
 

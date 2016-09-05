@@ -277,26 +277,3 @@ int main(int argc, char **argv)
 
 	return EXIT_SUCCESS;
 }
-
-char *get_url(char *buf, size_t size, const char *fmt, ...)
-{
-	va_list ap;
-	int ret;
-
-	va_start(ap, fmt);
-	ret = vsnprintf(buf, size, fmt, ap);
-	if (ret < 0) {
-		perror(fmt);
-		goto fail;
-	} else if (ret >= size) {
-		fprintf(stderr, "fmt: Too long\n");
-		goto fail;
-	}
-	va_end(ap);
-	return buf;
-
-fail:
-	buf[0] = '\0';
-	va_end(ap);
-	return NULL;
-}

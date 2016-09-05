@@ -6,7 +6,7 @@
 struct url;
 struct page;
 typedef	void (*init_func_t)(struct page *page, struct url *url);
-typedef	 int (*page_func_t)(int argc, char **argv);
+typedef	int (*page_func_t)(int argc, char **argv);
 
 struct page {
 	char *name;

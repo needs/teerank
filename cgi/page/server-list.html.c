@@ -83,7 +83,7 @@ static void html_server_list_entry(unsigned pos, struct indexed_server *server)
 
 static const unsigned SERVERS_PER_PAGE = 100;
 
-int page_server_list_main(int argc, char **argv)
+int page_server_list_html_main(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct indexed_server server;

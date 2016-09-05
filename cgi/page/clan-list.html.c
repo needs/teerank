@@ -79,7 +79,7 @@ static void html_clan_list_entry(
 
 static const unsigned CLANS_PER_PAGE = 100;
 
-int page_clan_list_main(int argc, char **argv)
+int page_clan_list_html_main(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct indexed_clan c;

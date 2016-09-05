@@ -101,44 +101,103 @@ struct url parse_url(char *uri, char *query)
 	return url;
 }
 
-struct directory {
-	char *name;
+/*
+ * Static pages are the simplest ones: they always have the same name
+ * and content type and they do not depends on user supplied arguments.
+ */
+#define PAGE(filename, pagename, ctype) {                               \
+	filename, { "teerank-page-" #pagename }, ctype,                 \
+	NULL, page_##pagename##_main                                    \
+}
 
-	struct page *pages;
-	struct directory *dirs;
-};
+#define PAGE_HTML(filename, pagename) PAGE(filename, pagename, "text/html")
+#define PAGE_JSON(filename, pagename) PAGE(filename, pagename, "text/json")
+#define PAGE_TXT(filename, pagename)  PAGE(filename, pagename, "text/plain")
+#define PAGE_XML(filename, pagename)  PAGE(filename, pagename, "text/xml")
+#define PAGE_SVG(filename, pagename)  PAGE(filename, pagename, "image/svg+xml")
 
-static void init_page_about(struct page *page, struct url *url)
+/*
+ * Dynamic page are more complex: their content type and main function
+ * depends on user supplied arguments.  Thus we attach a function that
+ * must initialize the page structure using user supplied arguments.
+ */
+#define DYNAMIC_PAGE(filename, pagename) {                              \
+	filename, { "teerank-page-" #pagename }, NULL,                  \
+	init_page_##pagename, NULL                                      \
+}
+
+static void init_from_filename(
+	struct page *page, struct url *url,
+	struct page html_page,
+	struct page json_page,
+	struct page jsonhtml_page)
 {
+	char *arg1, *ext1, *ext2;
+
+	arg1 = strtok(url->filename, ".");
+	ext1 = strtok(NULL, ".");
+	ext2 = strtok(NULL, ".");
+
+	if (strcmp(ext1, "html") == 0 && !ext2)
+		*page = html_page;
+	else if (strcmp(ext1, "json") == 0 && !ext2)
+		*page = json_page;
+	else if (strcmp(ext1, "json") == 0 && strcmp(ext2, "html") == 0)
+		*page = jsonhtml_page;
+	else
+		error(404, NULL);
+
+	page->args[1] = arg1;
 }
 
 static void init_page_player_list(struct page *page, struct url *url)
 {
-	page->args[1] = strtok(url->filename, ".");
+	init_from_filename(
+		page, url,
+		(struct page) PAGE_HTML(NULL, player_list_html),
+		(struct page) PAGE_JSON(NULL, player_list_json),
+		(struct page) PAGE_HTML(NULL, player_list_json_html));
 }
 
 static void init_page_clan_list(struct page *page, struct url *url)
 {
-	page->args[1] = strtok(url->filename, ".");
+	init_from_filename(
+		page, url,
+		(struct page) PAGE_HTML(NULL, clan_list_html),
+		(struct page) PAGE_JSON(NULL, clan_list_json),
+		(struct page) PAGE_HTML(NULL, clan_list_json_html));
 }
 
 static void init_page_server_list(struct page *page, struct url *url)
 {
-	page->args[1] = strtok(url->filename, ".");
+	init_from_filename(
+		page, url,
+		(struct page) PAGE_HTML(NULL, server_list_html),
+		(struct page) PAGE_JSON(NULL, server_list_json),
+		(struct page) PAGE_HTML(NULL, server_list_json_html));
 }
 
 static void init_page_clan(struct page *page, struct url *url)
 {
-	page->args[1] = strtok(url->filename, ".");
+	init_from_filename(
+		page, url,
+		(struct page) PAGE_HTML(NULL, clan_html),
+		(struct page) PAGE_JSON(NULL, clan_json),
+		(struct page) PAGE_HTML(NULL, clan_json_html));
 }
 
 static void init_page_player(struct page *page, struct url *url)
 {
-	page->args[1] = strtok(url->filename, ".");
+	init_from_filename(
+		page, url,
+		(struct page) PAGE_HTML(NULL, player_html),
+		(struct page) PAGE_JSON(NULL, player_json),
+		(struct page) PAGE_HTML(NULL, player_json_html));
 }
 
 static void init_page_graph(struct page *page, struct url *url)
 {
+	*page = (struct page) PAGE_SVG(NULL, graph);
 	page->args[1] = url->dirs[url->ndirs - 1];
 }
 
@@ -151,67 +210,50 @@ static void init_page_search(struct page *page, struct url *url)
 	if (!url->args[0].val)
 		url->args[0].val = "";
 
+	*page = (struct page) PAGE_HTML(NULL, search);
 	page->args[1] = url->args[0].val;
 }
 
-static void init_page_robots(struct page *page, struct url *url)
-{
-}
+struct directory {
+	char *name;
 
-static void init_page_sitemap(struct page *page, struct url *url)
-{
-}
+	struct page *pages;
+	struct directory *dirs;
+};
 
-#define PAGE_HTML(filename, pagename) {                                 \
-	filename, { "teerank-page-" #pagename }, "text/html",           \
-	init_page_##pagename, page_##pagename##_main                    \
-}
-#define PAGE_TXT(filename, pagename) {                                  \
-	filename, { "teerank-page-" #pagename }, "text/plain",          \
-	init_page_##pagename, page_##pagename##_main                    \
-}
-#define PAGE_XML(filename, pagename) {                                  \
-	filename, { "teerank-page-" #pagename }, "text/xml",            \
-	init_page_##pagename, page_##pagename##_main                    \
-}
-#define PAGE_SVG(filename, pagename) {                                  \
-	filename, { "teerank-page-" #pagename }, "image/svg+xml",       \
-	init_page_##pagename, page_##pagename##_main                    \
-}
-
-static const struct directory root = {
+static struct directory root = {
 	"", (struct page[]) {
 		PAGE_HTML("about.html", about),
-		PAGE_HTML("search", search),
 		PAGE_TXT("robots.txt", robots),
 		PAGE_XML("sitemap.xml", sitemap),
+		DYNAMIC_PAGE("search", search),
 		{ NULL }
 	}, (struct directory[]) {
 		{
 			"clans", (struct page[]) {
-				PAGE_HTML(NULL, clan),
+				DYNAMIC_PAGE(NULL, clan),
 				{ NULL }
 			}, (struct directory[]) {
 				{
 					"pages", (struct page[]) {
-						PAGE_HTML(NULL, clan_list),
+						DYNAMIC_PAGE(NULL, clan_list),
 						{ NULL }
 					}, NULL
 				}
 			}
 		}, {
 			"players", (struct page[]) {
-				PAGE_HTML(NULL, player),
+				DYNAMIC_PAGE(NULL, player),
 				{ NULL }
 			}, (struct directory[]) {
 				{
 					"pages", (struct page[]) {
-						PAGE_HTML(NULL, player_list),
+						DYNAMIC_PAGE(NULL, player_list),
 						{ NULL }
 					}, NULL
 				}, {
 					NULL, (struct page[]) {
-						PAGE_SVG("elo+rank.svg", graph),
+						DYNAMIC_PAGE("elo+rank.svg", graph),
 						{ NULL }
 					}, NULL
 				}
@@ -221,7 +263,7 @@ static const struct directory root = {
 			(struct directory[]) {
 				{
 					"pages", (struct page[]) {
-						PAGE_HTML(NULL, server_list),
+						DYNAMIC_PAGE(NULL, server_list),
 						{ NULL }
 					}, NULL
 				}

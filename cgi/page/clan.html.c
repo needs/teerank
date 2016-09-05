@@ -23,7 +23,7 @@ static int cmp_player(const void *p1, const void *p2)
 	return 0;
 }
 
-int page_clan_main(int argc, char **argv)
+int page_clan_html_main(int argc, char **argv)
 {
 	struct clan clan;
 	unsigned missing_members, i;

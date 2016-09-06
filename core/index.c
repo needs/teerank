@@ -478,6 +478,49 @@ unsigned index_page_foreach(struct index_page *ipage, void *data)
 	return (ipage->pnum - 1) * ipage->plen + ipage->i;
 }
 
+int index_page_dump_all(struct index_page *ipage)
+{
+	/*
+	 * We need to avoid printing any spaces except in strings.
+	 * Hence we need to check string boundaries and handle escaped
+	 * characters.
+	 */
+	int instring = 0, forcenext = 0;
+	size_t i;
+
+	/*
+	 * Since all entries have the same size we know in advance how
+	 * many characters we shall read.  "entry_size" only contains
+	 * the size of the entry itself, but does not count the
+	 * separating comas between fields.
+	 */
+	const size_t pagesize =
+		ipage->plen * JSON_FIELD_SIZE(ipage->infos->entry_size);
+
+	for (i = 0; i < pagesize; i++) {
+		int c = fgetc(ipage->file);
+
+		if (c == EOF)
+			return 0;
+
+		if (forcenext)
+			forcenext = 0;
+		else if (instring && c == '\\')
+			forcenext = 1;
+		else if (!instring && c == '\"')
+			instring = 1;
+		else if (instring && c == '\"')
+			instring = 0;
+		else if (c == ' ')
+			continue;
+
+		putchar(c);
+	}
+
+	/* Make sure we are not in a middle of a json object */
+	return !instring && !forcenext;
+}
+
 void close_index_page(struct index_page *ipage)
 {
 	assert(ipage != NULL);

@@ -107,21 +107,21 @@ struct jfile {
 #define _strsize(n) (size_t)sizeof(#n)
 
 /* Add one because we need to count coma between fields */
-#define _JSON_FIELD_SIZE(size) ((size) + 1)
+#define JSON_FIELD_SIZE(size) ((size) + 1)
 
 /*
  * The worst case is every characters of the string are escaped, thus
  * doubling string size.  We need to add an extra 2 byte for the opening
  * and closing double-quotes.
  */
-#define JSON_STRING_SIZE(size) _JSON_FIELD_SIZE((size) * 2 + 2)
+#define JSON_STRING_SIZE(size) JSON_FIELD_SIZE((size) * 2 + 2)
 
 /* Variant without any escaped characters */
-#define JSON_RAW_STRING_SIZE(size) _JSON_FIELD_SIZE((size) + 2)
+#define JSON_RAW_STRING_SIZE(size) JSON_FIELD_SIZE((size) + 2)
 
 /* Add one because negative intergers must be prefixed with '-' */
-#define JSON_INT_SIZE _JSON_FIELD_SIZE(_strsize(INTMAX) + 1)
-#define JSON_UINT_SIZE _JSON_FIELD_SIZE(_strsize(UINTMAX))
+#define JSON_INT_SIZE JSON_FIELD_SIZE(_strsize(INTMAX) + 1)
+#define JSON_UINT_SIZE JSON_FIELD_SIZE(_strsize(UINTMAX))
 
 /* Size of RFC-3339 date format */
 #define JSON_DATE_SIZE JSON_RAW_STRING_SIZE(sizeof("yyyy-mm-ddThh:mm:ssZ"))

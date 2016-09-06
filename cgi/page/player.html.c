@@ -8,7 +8,7 @@
 #include "html.h"
 #include "player.h"
 
-int page_player_main(int argc, char **argv)
+int page_player_html_main(int argc, char **argv)
 {
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
 	const char *hexname;
@@ -56,7 +56,7 @@ int page_player_main(int argc, char **argv)
 	html("<object data=\"/players/%s/elo+rank.svg\" type=\"image/svg+xml\"></object>",
 	     player.name);
 
-	html_footer();
+	html_footer("player");
 
 	return EXIT_SUCCESS;
 }

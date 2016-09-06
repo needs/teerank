@@ -34,9 +34,7 @@ static struct clan *new_clan(struct clan_list *list, char *name)
 	}
 
 	clan = &list->clans[list->length++];
-	strcpy(clan->name, name);
-	clan->length = 0;
-	clan->members = NULL;
+	create_clan(clan, name, 0);
 
 	return clan;
 }

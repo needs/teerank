@@ -11,7 +11,12 @@
 struct clan {
 	char name[HEXNAME_LENGTH];
 
-	unsigned length;
+	/*
+	 * Number of members is the number of members inside the array,
+	 * while max_nmembers is the maximum number of player the array
+	 * can hold, which _should_ be greater or equal to nmembers.
+	 */
+	unsigned nmembers, max_nmembers;
 	struct player_info *members;
 };
 
@@ -41,10 +46,14 @@ int read_clan(struct clan *clan, const char *name);
  * No entry in the database are created yet: write_clan() should be
  * called to save clan in the database.
  *
+ * nmembers Should be higher than zero, it doesn't make sen to create an
+ * empty clan.
+ *
  * @param clan Clan to be created
  * @param name Name of the new clan
+ * @param nmembers Number of members in the clan
  */
-void create_clan(struct clan *clan, const char *name);
+void create_clan(struct clan *clan, const char *name, unsigned nmembers);
 
 /**
  * Write the given clan on the disk.
@@ -119,20 +128,5 @@ unsigned load_members(struct clan *clan);
  * @return 1 if clans are the same, 0 otherwise
  */
 int clan_equal(const struct clan *c1, const struct clan *c2);
-
-/**
- * Add a member to the given clan without loading the full memberlist.
- *
- * Reading a clan using read_clan() does require a malloc() for the
- * member list.  In the case of adding a new player, the process can
- * be faster by just opening the file in "a" mode and appending the
- * new player name.
- *
- * @param clan Clan filename
- * @param player Name of the new player
- *
- * @return 1 on success, 0 on failure
- */
-int add_member_inline(char *clan, char *player);
 
 #endif /* CLAN_H */

@@ -23,7 +23,7 @@ static int cmp_player(const void *p1, const void *p2)
 	return 0;
 }
 
-int page_clan_main(int argc, char **argv)
+int page_clan_html_main(int argc, char **argv)
 {
 	struct clan clan;
 	unsigned missing_members, i;
@@ -49,28 +49,29 @@ int page_clan_main(int argc, char **argv)
 	missing_members = load_members(&clan);
 
 	/* Sort members */
-	qsort(clan.members, clan.length, sizeof(*clan.members), cmp_player);
+	qsort(clan.members, clan.nmembers, sizeof(*clan.members), cmp_player);
 
 	/* Eventually, print them */
 	hexname_to_name(clan.name, clan_name);
 	html_header(&CTF_TAB, clan_name, NULL);
-	html("<h2>%s</h2>", clan_name);
+	html("<h2>%s</h2>", escape(clan_name));
 
 	if (!missing_members)
-		html("<p>%u member(s)</p>", clan.length);
+		html("<p>%u member(s)</p>", clan.nmembers);
 	else
 		html("<p>%u member(s), %u could not be loaded</p>",
-		       clan.length + missing_members, missing_members);
+		       clan.nmembers + missing_members, missing_members);
 
 	html_start_player_list();
 
-	for (i = 0; i < clan.length; i++) {
+	for (i = 0; i < clan.nmembers; i++) {
 		struct player_info *p = &clan.members[i];
 		html_player_list_entry(p->name, p->clan, p->elo, p->rank, p->last_seen, 1);
 	}
 
 	html_end_player_list();
-	html_footer();
+
+	html_footer("clan");
 
 	return EXIT_SUCCESS;
 }

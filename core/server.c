@@ -5,55 +5,18 @@
 #include <limits.h>
 #include <errno.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "server.h"
 #include "config.h"
-
-static int read_server_header(FILE *file, const char *path, struct server_state *state)
-{
-	int ret;
-
-	assert(file != NULL);
-	assert(path != NULL);
-	assert(state != NULL);
-
-	errno = 0;
-	ret = fscanf(
-		file, "name: %s\ngametype: %s\nmap: %s\n"
-		"last seen: %ju\nexpire: %ju\n",
-		state->name, state->gametype, state->map,
-		&state->last_seen, &state->expire);
-
-	if (ret == EOF && errno != 0) {
-		perror(path);
-		return 0;
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Can't match 'name' field\n", path);
-		return 0;
-	} else if (ret == 1) {
-		fprintf(stderr, "%s: Can't match 'gametype' field\n", path);
-		return 0;
-	} else if (ret == 2) {
-		fprintf(stderr, "%s: Can't match 'map' field\n", path);
-		return 0;
-	} else if (ret == 3) {
-		fprintf(stderr, "%s: Can't match 'last seen' field\n", path);
-		return 0;
-	} else if (ret == 4) {
-		fprintf(stderr, "%s: Can't match 'expire' field\n", path);
-		return 0;
-	}
-
-	return 1;
-}
+#include "json.h"
 
 int read_server_state(struct server_state *state, const char *sname)
 {
 	FILE *file = NULL;
+	struct jfile jfile;
 	char path[PATH_MAX];
-
 	unsigned i;
-	int ret;
 
 	assert(state != NULL);
 	assert(sname != NULL);
@@ -61,44 +24,49 @@ int read_server_state(struct server_state *state, const char *sname)
 	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
 		goto fail;
 
-	if (!(file = fopen(path, "r"))) {
+	if ((file = fopen(path, "r")) == NULL) {
 		perror(path);
 		goto fail;
 	}
 
-	if (!read_server_header(file, path, state))
-		goto fail;
+	json_init(&jfile, file, path);
 
-	errno = 0;
-	ret = fscanf(file, " %d / %d", &state->num_clients, &state->max_clients);
+	json_read_object_start(&jfile, NULL);
 
-	if (ret == EOF && errno != 0) {
-		perror(path);
+	json_read_string(  &jfile, "name"     , state->name,     sizeof(state->name));
+	json_read_string(  &jfile, "gametype" , state->gametype, sizeof(state->gametype));
+	json_read_string(  &jfile, "map"      , state->map,      sizeof(state->map));
+	json_read_unsigned(&jfile, "last_seen", (unsigned*)&state->last_seen);
+	json_read_unsigned(&jfile, "expire"   , (unsigned*)&state->expire);
+
+	json_read_int(&jfile, "num_clients", &state->num_clients);
+	json_read_int(&jfile, "max_clients", &state->max_clients);
+
+	json_read_array_start(&jfile, "clients", 0);
+
+	if (json_have_error(&jfile))
 		goto fail;
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Cannot match clients number\n", path);
-		goto fail;
-	} else if (ret == 1) {
-		fprintf(stderr, "%s: Cannot match max clients number\n", path);
-		goto fail;
-	}
 
 	for (i = 0; i < state->num_clients; i++) {
 		struct client *client = &state->clients[i];
 
-		errno = 0;
-		ret = fscanf(file, " %s %s %ld",
-		             client->name, client->clan, &client->score);
+		json_read_object_start(&jfile, NULL);
 
-		if (ret == EOF && errno != 0) {
-			perror(path);
+		json_read_string(&jfile, "name" , client->name, sizeof(client->name));
+		json_read_string(&jfile, "clan" , client->clan, sizeof(client->clan));
+		json_read_int(   &jfile, "score", (int*)&client->score);
+
+		json_read_object_end(&jfile);
+
+		if (json_have_error(&jfile))
 			goto fail;
-		} else if (ret != 3) {
-			fprintf(stderr, "%s: Only %d over %d clients matched\n",
-			        path, ret, state->num_clients);
-			goto fail;
-		}
 	}
+
+	json_read_array_end(&jfile);
+	json_read_object_end(&jfile);
+
+	if (json_have_error(&jfile))
+		goto fail;
 
 	fclose(file);
 	return 1;
@@ -109,31 +77,10 @@ fail:
 	return 0;
 }
 
-static int write_server_header(FILE *file, const char *path, struct server_state *state)
-{
-	int ret;
-
-	assert(file != NULL);
-	assert(path != NULL);
-	assert(state != NULL);
-
-	ret = fprintf(
-		file, "name: %s\ngametype: %s\nmap: %s\n"
-		"last seen: %ju\nexpire: %ju\n",
-		state->name, state->gametype, state->map,
-		state->last_seen, state->expire);
-
-	if (ret < 0) {
-		perror(path);
-		return 0;
-	}
-
-	return 1;
-}
-
 int write_server_state(struct server_state *state, const char *sname)
 {
 	FILE *file = NULL;
+	struct jfile jfile;
 	char path[PATH_MAX];
 
 	unsigned i;
@@ -143,28 +90,49 @@ int write_server_state(struct server_state *state, const char *sname)
 	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
 		goto fail;
 
-	if (!(file = fopen(path, "w"))) {
+	if ((file = fopen(path, "w")) == NULL) {
 		perror(path);
 		goto fail;
 	}
 
-	if (!write_server_header(file, path, state))
-		goto fail;
+	json_init(&jfile, file, path);
 
-	if (fprintf(file, "%d / %d\n", state->num_clients, state->max_clients) <= 0) {
-		perror(path);
+	json_write_object_start(&jfile, NULL);
+
+	json_write_string(  &jfile, "name"     , state->name,     sizeof(state->name));
+	json_write_string(  &jfile, "gametype" , state->gametype, sizeof(state->gametype));
+	json_write_string(  &jfile, "map"      , state->map,      sizeof(state->map));
+	json_write_unsigned(&jfile, "last_seen", state->last_seen);
+	json_write_unsigned(&jfile, "expire"   , state->expire);
+
+	json_write_unsigned(&jfile, "num_clients", state->num_clients);
+	json_write_unsigned(&jfile, "max_clients", state->max_clients);
+
+	json_write_array_start(&jfile, "clients", 0);
+
+	if (json_have_error(&jfile))
 		goto fail;
-	}
 
 	for (i = 0; i < state->num_clients; i++) {
 		struct client *client = &state->clients[i];
 
-		if (fprintf(file, "%s %s %ld\n",
-		            client->name, client->clan, client->score) <= 0) {
-			perror(path);
+		json_write_object_start(&jfile, NULL);
+
+		json_write_string(&jfile, "name" , client->name, sizeof(client->name));
+		json_write_string(&jfile, "clan" , client->clan, sizeof(client->clan));
+		json_write_int(   &jfile, "score", client->score);
+
+		json_write_object_end(&jfile);
+
+		if (json_have_error(&jfile))
 			goto fail;
-		}
 	}
+
+	json_write_array_end(&jfile);
+	json_write_object_end(&jfile);
+
+	if (json_have_error(&jfile))
+		goto fail;
 
 	fclose(file);
 	return 1;
@@ -264,6 +232,10 @@ int create_server(const char *sname)
 {
 	static const struct server_state SERVER_STATE_ZERO;
 	struct server_state state = SERVER_STATE_ZERO;
+
+	strcpy(state.name, "???");
+	strcpy(state.gametype, "???");
+	strcpy(state.map, "???");
 
 	state.last_seen = time(NULL);
 

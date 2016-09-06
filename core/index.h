@@ -109,6 +109,7 @@ struct index_page {
 	char *tmpname;
 
 	FILE *file;
+	struct jfile jfile;
 	char path[PATH_MAX];
 
 	unsigned ndata, npages;
@@ -155,6 +156,15 @@ int open_index_page(
  *         an absolute entry number otherwise (a positive number)
  */
 unsigned index_page_foreach(struct index_page *ipage, void *data);
+
+/**
+ * Dump all entries on stdout, remove unecessary spaces.
+ *
+ * Since there is no parsing of json objects, this function is faster
+ * than index_page_foreach().  It is used when we need to dump json as
+ * it is.
+ */
+int index_page_dump_all(struct index_page *ipage);
 
 /**
  * Close the given index page

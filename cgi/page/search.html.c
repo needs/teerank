@@ -300,7 +300,7 @@ int page_search_main(int argc, char **argv)
 		html_end_player_list();
 	}
 
-	html_footer();
+	html_footer(NULL);
 
 	return EXIT_SUCCESS;
 }

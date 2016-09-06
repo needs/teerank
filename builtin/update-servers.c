@@ -57,7 +57,7 @@ static int can_unpack(struct unpacker *up, unsigned length)
 	return 0;
 }
 
-static char *unpack_string(struct unpacker *up)
+static char *unpack(struct unpacker *up)
 {
 	size_t old_offset;
 
@@ -77,6 +77,22 @@ static char *unpack_string(struct unpacker *up)
 	return (char*)&up->data->buffer[old_offset];
 }
 
+static void skip_field(struct unpacker *up)
+{
+	unpack(up);
+}
+
+/*
+ * It's a shame POSIX do not have a good enough function to copy strings
+ * with bound check.  We try to circumvent the lack of such function by
+ * using strncat().
+ */
+static void unpack_string(struct unpacker *up, char *buf, size_t size)
+{
+	*buf = '\0';
+	strncat(buf, unpack(up), size - 1);
+}
+
 static long int unpack_int(struct unpacker *up)
 {
 	long ret;
@@ -84,7 +100,7 @@ static long int unpack_int(struct unpacker *up)
 
 	assert(up != NULL);
 
-	str = unpack_string(up);
+	str = unpack(up);
 	errno = 0;
 	ret = strtol(str, &endptr, 10);
 
@@ -144,15 +160,15 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 	if (!can_unpack(&up, 10))
 		return 0;
 
-	unpack_string(&up);     /* Token */
-	unpack_string(&up);     /* Version */
-	strcpy(state->name, unpack_string(&up));     /* Name */
-	strcpy(state->map, unpack_string(&up));      /* Map */
-	strcpy(state->gametype, unpack_string(&up)); /* Gametype */
+	skip_field(&up);     /* Token */
+	skip_field(&up);     /* Version */
+	unpack_string(&up, state->name, sizeof(state->name)); /* Name */
+	unpack_string(&up, state->map, sizeof(state->map)); /* Map */
+	unpack_string(&up, state->gametype, sizeof(state->gametype)); /* Gametype */
 
-	unpack_string(&up);     /* Flags */
-	unpack_string(&up);     /* Player number */
-	unpack_string(&up);     /* Player max number */
+	skip_field(&up);     /* Flags */
+	skip_field(&up);     /* Player number */
+	skip_field(&up);     /* Player max number */
 	state->num_clients = unpack_int(&up); /* Client number */
 	state->max_clients = unpack_int(&up); /* Client max number */
 
@@ -161,9 +177,15 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 		if (!can_unpack(&up, 5))
 			return 0;
 
-		strcpy(state->clients[i].name, unpack_string(&up)); /* Name */
-		strcpy(state->clients[i].clan, unpack_string(&up)); /* Clan */
-		unpack_string(&up); /* Country */
+		/* Name */
+		unpack_string(
+			&up, state->clients[i].name,
+			sizeof(state->clients[i].name));
+		/* Clan */
+		unpack_string(
+			&up, state->clients[i].clan,
+			sizeof(state->clients[i].clan));
+		skip_field(&up); /* Country */
 		state->clients[i].score  = unpack_int(&up); /* Score */
 		state->clients[i].ingame = unpack_int(&up); /* Ingame? */
 	}
@@ -306,7 +328,7 @@ static int extract_ip_and_port(char *name, char *ip, char *port)
 
 static int add_server(struct server_list *list, struct server *server)
 {
-	static const unsigned OFFSET = 1024;
+	static const unsigned OFFSET = 4096;
 
 	if (list->length % OFFSET == 0) {
 		struct server *servers;

@@ -38,6 +38,11 @@ body > footer {
 	margin: 12px auto 12px auto;
 }
 
+body > footer a {
+	color: #ffffff;
+	text-shadow: 1px 1px 1px #383838;
+}
+
 /* Search */
 body > header > form {
 	display: flex;

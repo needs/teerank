@@ -179,6 +179,7 @@ int page_about_json_api_main(int argc, char **argv)
 	start_jsondesc_table();
 
 	jsondesc_row("{", NULL, NULL, NULL);
+	jsondesc_row("name", "hexstring", "\"00\"", "Clan name");
 	jsondesc_row("nmembers", "unsigned", "3", "Number of players in the clan");
 
 	jsondesc_row("members", "", "", "Array of <code>nmembers</code> players name");

@@ -31,7 +31,7 @@ int page_player_json_main(int argc, char **argv)
 		goto fail;
 	}
 
-	if (!dump_n_fields(file, 4))
+	if (!dump_n_fields(file, 5))
 		goto fail;
 	putchar('}');
 

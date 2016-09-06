@@ -138,10 +138,11 @@ static int read_player_record(struct jfile *jfile, void *buf)
 
 static void read_player_header(struct jfile *jfile, struct player *player)
 {
-	json_read_tm(      jfile, "last_seen", &player->last_seen);
+	json_read_string(  jfile, "name"     , player->name, sizeof(player->name));
 	json_read_string(  jfile, "clan"     , player->clan, sizeof(player->clan));
 	json_read_int(     jfile, "elo"      , &player->elo);
 	json_read_unsigned(jfile, "rank"     , &player->rank);
+	json_read_tm(      jfile, "last_seen", &player->last_seen);
 }
 
 enum read_player_ret read_player(struct player *player, const char *name)
@@ -213,10 +214,11 @@ static int write_player_record(struct jfile *jfile, void *buf)
 
 static void write_player_header(struct jfile *jfile, struct player *player)
 {
-	json_write_tm(      jfile, "last_seen", player->last_seen);
+	json_write_string(  jfile, "name"     , player->name, sizeof(player->name));
 	json_write_string(  jfile, "clan"     , player->clan, sizeof(player->clan));
 	json_write_int(     jfile, "elo"      , player->elo);
 	json_write_unsigned(jfile, "rank"     , player->rank);
+	json_write_tm(      jfile, "last_seen", player->last_seen);
 }
 
 int write_player(struct player *player)
@@ -316,10 +318,11 @@ static void init_player_info(struct player_info *ps)
 static void read_player_info_header(
 	struct jfile *jfile, struct player_info *ps)
 {
-	json_read_tm(jfile, "last_seen", &ps->last_seen);
-	json_read_string(jfile, "clan", ps->clan, sizeof(ps->clan));
-	json_read_int(jfile, "elo", &ps->elo);
+	json_read_string(  jfile, "name", ps->name, sizeof(ps->name));
+	json_read_string(  jfile, "clan", ps->clan, sizeof(ps->clan));
+	json_read_int(     jfile, "elo", &ps->elo);
 	json_read_unsigned(jfile, "rank", &ps->rank);
+	json_read_tm(      jfile, "last_seen", &ps->last_seen);
 }
 
 enum read_player_ret read_player_info(struct player_info *ps, const char *name)
@@ -329,8 +332,6 @@ enum read_player_ret read_player_info(struct player_info *ps, const char *name)
 	char path[PATH_MAX];
 
 	init_player_info(ps);
-	strcpy(ps->name, name);
-
 	reset_player_info(ps, name);
 
 	if (!dbpath(path, PATH_MAX, "players/%s", name))

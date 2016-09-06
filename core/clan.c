@@ -96,6 +96,7 @@ int read_clan(struct clan *clan, const char *cname)
 	json_init(&jfile, file, path);
 
 	json_read_object_start(&jfile, NULL);
+	json_read_string(      &jfile, "name", clan->name, sizeof(clan->name));
 	json_read_unsigned(    &jfile, "nmembers", &nmembers);
 	json_read_array_start( &jfile, "members", 0);
 
@@ -127,8 +128,6 @@ int read_clan(struct clan *clan, const char *cname)
 
 	fclose(file);
 
-	strcpy(clan->name, cname);
-
 	return CLAN_FOUND;
 
 fail:
@@ -159,6 +158,7 @@ int write_clan(const struct clan *clan)
 	json_init(&jfile, file, path);
 
 	json_write_object_start(&jfile, NULL);
+	json_write_string(&jfile, "name", clan->name, sizeof(clan->name));
 	json_write_unsigned(&jfile, "nmembers", clan->nmembers);
 	json_write_array_start(&jfile, "members", 0);
 

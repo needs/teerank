@@ -10,32 +10,7 @@
 #include "config.h"
 #include "html.h"
 #include "index.h"
-
-static int parse_pnum(const char *str, unsigned *pnum)
-{
-	long ret;
-
-	errno = 0;
-	ret = strtol(str, NULL, 10);
-	if (ret == 0 && errno != 0)
-		return perror(str), 0;
-
-	/*
-	 * Page numbers are unsigned but strtol() returns a long, so we
-	 * need to make sure our page number fit into an unsigned.
-	 */
-	if (ret < 1) {
-		fprintf(stderr, "%s: Must be positive\n", str);
-		return 0;
-	} else if (ret > UINT_MAX) {
-		fprintf(stderr, "%s: Must lower than %u\n", str, UINT_MAX);
-		return 0;
-	}
-
-	*pnum = ret;
-
-	return 1;
-}
+#include "page.h"
 
 static void html_start_clan_list(void)
 {
@@ -76,8 +51,6 @@ static void html_clan_list_entry(
 
 	html("</tr>");
 }
-
-static const unsigned CLANS_PER_PAGE = 100;
 
 int page_clan_list_html_main(int argc, char **argv)
 {

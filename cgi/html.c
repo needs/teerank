@@ -249,7 +249,8 @@ void html_footer(const char *jsonanchor)
 	html("</main>");
 
 	html("<footer>");
-	html("<p>Teerank %d.%d (%s)</p>", TEERANK_VERSION, TEERANK_SUBVERSION,
+	html("<p><a href=\"https://github.com/needs/teerank/tree/%s\">Teerank %d.%d</a> <a href=\"https://github.com/needs/teerank/commit/%s\">(%s)</a></p>",
+	     CURRENT_BRANCH, TEERANK_VERSION, TEERANK_SUBVERSION, CURRENT_COMMIT,
 	     STABLE_VERSION ? "stable" : "unstable");
 	html("</footer>");
 

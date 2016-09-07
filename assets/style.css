@@ -216,25 +216,13 @@ table th, table td {
 	padding: 0.5em 1em 0.5em 1em;
 }
 
-table thead tr th {
-	border-bottom: 1px solid #dbdbda;
-}
-
 table th {
+	border-bottom: 1px solid #dbdbda;
 	color: #970;
 	font-size: 1.2em;
 	font-weight: bold;
 	text-align: left;
 	white-space: nowrap;
-}
-
-table > * > tr > td:nth-child(2),
-table > * > tr > td:nth-child(3) {
-	width: 50%;
-}
-
-table > * > tr > td:last-child, table > * > tr > th:last-child {
-	text-align: right;
 }
 
 table a {
@@ -244,6 +232,54 @@ table a {
 
 table a:hover {
 	text-decoration: underline;
+}
+
+/* Player list */
+
+/* Name and clan */
+.playerlist td:nth-child(2),
+.playerlist td:nth-child(3) {
+	width: 50%;
+}
+
+/* Score */
+.playerlist td:nth-child(4),
+.playerlist th:nth-child(4) {
+	text-align: right;
+}
+
+/* Clan list */
+
+/* Name */
+.clanlist td:nth-child(2) {
+	width: 100%;
+}
+
+/* Number of members */
+.clanlist td:nth-child(3),
+.clanlist th:nth-child(3) {
+	text-align: right;
+}
+
+/* Server list */
+
+/* Name */
+.serverlist td:nth-child(2) {
+	max-width: 0;
+	width: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Gamtype, map, players */
+.serverlist td:nth-child(3),
+.serverlist th:nth-child(3),
+.serverlist td:nth-child(4),
+.serverlist th:nth-child(4),
+.serverlist td:nth-child(5),
+.serverlist th:nth-child(5) {
+	text-align: right;
 }
 
 /* Pages navigation */

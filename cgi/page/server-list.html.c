@@ -14,7 +14,7 @@
 
 static void html_start_server_list(void)
 {
-	html("<table>");
+	html("<table class=\"serverlist\">");
 	html("<thead>");
 	html("<tr>");
 	html("<th></th>");

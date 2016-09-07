@@ -289,7 +289,7 @@ const char *name_to_html(const char *name)
 
 void html_start_player_list(void)
 {
-	html("<table>");
+	html("<table class=\"playerlist\">");
 	html("<thead>");
 	html("<tr>");
 	html("<th></th>");

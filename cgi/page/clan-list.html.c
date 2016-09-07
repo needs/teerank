@@ -14,7 +14,7 @@
 
 static void html_start_clan_list(void)
 {
-	html("<table>");
+	html("<table class=\"clanlist\">");
 	html("<thead>");
 	html("<tr>");
 	html("<th></th>");

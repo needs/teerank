@@ -27,6 +27,8 @@ static int clan_move_player(char *src_clan, char *dest_clan, char *pname)
 	assert(pname != NULL);
 	assert(strcmp(src_clan, dest_clan));
 
+	verbose("%s moved from %s to %s\n", pname, src_clan, dest_clan);
+
 	/*
 	 * Add the player first to make sure the player is referenced by
 	 * at least one clan at any time.

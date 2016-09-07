@@ -137,9 +137,9 @@ static void init_from_filename(
 	ext1 = strtok(NULL, ".");
 	ext2 = strtok(NULL, ".");
 
-	if (strcmp(ext1, "html") == 0 && !ext2)
+	if (ext1 && strcmp(ext1, "html") == 0 && !ext2)
 		*page = html_page;
-	else if (strcmp(ext1, "json") == 0 && !ext2)
+	else if (ext1 && strcmp(ext1, "json") == 0 && !ext2)
 		*page = json_page;
 	else
 		error(404, NULL);

@@ -35,9 +35,13 @@ static int clan_move_player(char *src_clan, char *dest_clan, char *pname)
 	 */
 	if (strcmp(dest_clan, "00") != 0) {
 		struct clan clan = CLAN_ZERO;
+		int ret;
 
-		if (read_clan(&clan, dest_clan) == CLAN_ERROR)
+		ret = read_clan(&clan, dest_clan);
+		if (ret == CLAN_ERROR)
 			return 0;
+		else if (ret == CLAN_NOT_FOUND)
+			create_clan(&clan, dest_clan, 1);
 
 		add_member(&clan, pname);
 		ret = write_clan(&clan);

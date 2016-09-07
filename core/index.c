@@ -414,12 +414,10 @@ int open_index_page(
 	if (json_have_error(&ipage->jfile))
 		goto fail;
 
-	if (plen) {
+	if (plen)
 		ipage->npages = ndata / plen + 1;
-	} else {
+	else
 		ipage->npages = 1;
-		plen = ndata;
-	}
 
 	if (pnum > ipage->npages) {
 		fprintf(stderr, "Only %u pages available\n", ipage->npages);
@@ -438,7 +436,9 @@ int open_index_page(
 	 * If it is the last page, page length may be lower than
 	 * standard page length.
 	 */
-	if (pnum == ipage->npages)
+	if (!plen)
+		ipage->plen = ndata;
+	else if (pnum == ipage->npages)
 		ipage->plen = ndata % plen;
 	else
 		ipage->plen = plen;

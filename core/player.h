@@ -80,8 +80,8 @@ struct player {
 
 	struct player_delta *delta;
 
-	/* Keep tracks of changed fields to avoid unecessary write_player() */
-	unsigned short is_modified;
+	/* Used to notice update-clan when clan changed */
+	unsigned short clan_changed;
 
 	/* A marker used by elo rating system */
 	short is_rankable;
@@ -107,13 +107,6 @@ static const unsigned UNRANKED = 0;
  * Special time_t value used for player which has neveer been seen yet
  */
 static const time_t NEVER_SEEN = 0;
-
-enum {
-	IS_MODIFIED_CREATED = (1 << 0),
-	IS_MODIFIED_CLAN    = (1 << 1),
-	IS_MODIFIED_ELO     = (1 << 2),
-	IS_MODIFIED_RANK    = (1 << 3)
-};
 
 /**
  * Every struct layer must be initialized once for all, before any
@@ -195,6 +188,13 @@ void set_rank(struct player *player, unsigned rank);
  * @param rank New clan string for the given player
  */
 void set_clan(struct player *player, char *clan);
+
+/**
+ * Update last_seen date
+ *
+ * @param player Player to update last_seen date
+ */
+void set_last_seen(struct player *player);
 
 
 /**

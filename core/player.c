@@ -93,7 +93,7 @@ static void reset_player(struct player *player, const char *name)
 	player->elo = INVALID_ELO;
 	player->rank = UNRANKED;
 
-	player->is_modified = 0;
+	player->clan_changed = 0;
 	player->delta = NULL;
 }
 
@@ -123,7 +123,6 @@ void create_player(struct player *player, const char *name)
 	player->last_seen = *gmtime(&now);
 
 	player->is_rankable = 0;
-	player->is_modified = IS_MODIFIED_CREATED;
 }
 
 static int read_player_record(struct jfile *jfile, void *buf)
@@ -249,7 +248,7 @@ int write_player(struct player *player)
 	if (!write_historic(&player->hist, &jfile, write_player_record))
 		goto fail;
 
-	if (json_write_object_end(&jfile))
+	if (!json_write_object_end(&jfile))
 		goto fail;
 
 	fclose(file);
@@ -267,7 +266,6 @@ void set_elo(struct player *player, int elo)
 	assert(player != NULL);
 
 	player->elo = elo;
-	player->is_modified |= IS_MODIFIED_ELO;
 
 	if (player->hist.last)
 		last = record_data(&player->hist, player->hist.last);
@@ -291,7 +289,6 @@ void set_rank(struct player *player, unsigned rank)
 	assert(player != NULL);
 
 	player->rank = rank;
-	player->is_modified |= IS_MODIFIED_RANK;
 
 	rec = record_data(&player->hist, player->hist.last);
 	if (rec->rank == UNRANKED)
@@ -305,7 +302,16 @@ void set_clan(struct player *player, char *clan)
 	assert(is_valid_hexname(clan));
 
 	strcpy(player->clan, clan);
-	player->is_modified |= IS_MODIFIED_CLAN;
+	player->clan_changed = 1;
+}
+
+void set_last_seen(struct player *player)
+{
+	time_t now = time(NULL);
+
+	assert(player != NULL);
+
+	player->last_seen = *gmtime(&now);
 }
 
 static void init_player_info(struct player_info *ps)

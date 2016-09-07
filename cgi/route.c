@@ -232,7 +232,7 @@ static struct directory root = {
 						DYNAMIC_PAGE(NULL, clan_list),
 						{ NULL }
 					}, NULL
-				}
+				}, { NULL }
 			}
 		}, {
 			"players", (struct page[]) {
@@ -249,7 +249,7 @@ static struct directory root = {
 						DYNAMIC_PAGE("elo+rank.svg", graph),
 						{ NULL }
 					}, NULL
-				}
+				}, { NULL }
 			}
 		}, {
 			"servers", NULL,
@@ -259,9 +259,9 @@ static struct directory root = {
 						DYNAMIC_PAGE(NULL, server_list),
 						{ NULL }
 					}, NULL
-				}
+				}, { NULL }
 			}
-		}
+		}, { NULL }
 	}
 };
 

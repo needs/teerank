@@ -42,7 +42,7 @@ int page_player_list_html_main(int argc, char **argv)
 	html_start_player_list();
 
 	while (index_page_foreach(&ipage, &p))
-		html_player_list_entry(p.name, p.clan, p.elo, p.rank, p.last_seen, 0);
+		html_player_list_entry(p.name, p.clan, p.elo, p.rank, *gmtime(&p.last_seen), 0);
 
 	html_end_player_list();
 	print_page_nav("/players/pages", &ipage);

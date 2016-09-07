@@ -260,6 +260,6 @@ void append_record(struct historic *hist, const void *data)
 
 void read_historic_info(struct historic_info *hs, struct jfile *jfile)
 {
-	json_read_unsigned(   jfile, "length", &hs->nrecords);
-	json_read_time(       jfile, "epoch" , &hs->epoch);
+	json_read_unsigned(jfile, "length", &hs->nrecords);
+	json_read_time(    jfile, "epoch" , &hs->epoch);
 }

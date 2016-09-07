@@ -19,16 +19,21 @@
  * their rank.  Hence struct player_name_and_rank.
  *
  * You can retrieve part of the sorted list using index_page API.
- * Index info feeded to
  */
 
+/*
+ * There is 2 reasons to use time_t over struct tm for storing time in
+ * index entries.  The first reason is that it takes less space, the
+ * second is that comparing structs tm require converting them to time_t
+ * anyway.
+ */
 extern const struct index_data_infos *INDEX_DATA_INFOS_PLAYER;
 struct indexed_player {
 	char name[HEXNAME_LENGTH];
 	char clan[HEXNAME_LENGTH];
 	int elo;
 	unsigned rank;
-	struct tm last_seen;
+	time_t last_seen;
 };
 
 extern const struct index_data_infos *INDEX_DATA_INFOS_CLAN;

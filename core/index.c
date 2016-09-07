@@ -45,7 +45,7 @@ static int create_indexed_player(void *data, const char *name)
 	strcpy(ret->clan, player.clan);
 	ret->rank = player.rank;
 	ret->elo = player.elo;
-	ret->last_seen = player.last_seen;
+	ret->last_seen = mktime(&player.last_seen);
 
 	return 1;
 }
@@ -58,7 +58,7 @@ static void write_indexed_player(struct jfile *jfile, const void *data)
 	json_write_string(  jfile, NULL, player->clan, sizeof(player->clan));
 	json_write_int(     jfile, NULL, player->elo);
 	json_write_unsigned(jfile, NULL, player->rank);
-	json_write_tm(      jfile, NULL, player->last_seen);
+	json_write_time(    jfile, NULL, player->last_seen);
 }
 
 static void read_indexed_player(struct jfile *jfile, void *data)
@@ -69,7 +69,7 @@ static void read_indexed_player(struct jfile *jfile, void *data)
 	json_read_string(  jfile, NULL, player->clan, sizeof(player->clan));
 	json_read_int(     jfile, NULL, &player->elo);
 	json_read_unsigned(jfile, NULL, &player->rank);
-	json_read_tm(      jfile, NULL, &player->last_seen);
+	json_read_time(    jfile, NULL, &player->last_seen);
 }
 
 const struct index_data_infos *INDEX_DATA_INFOS_PLAYER = &(struct index_data_infos) {

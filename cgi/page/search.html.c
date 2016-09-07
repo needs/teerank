@@ -295,7 +295,7 @@ int page_search_main(int argc, char **argv)
 			struct indexed_player *p;
 
 			p = &result->player;
-			html_player_list_entry(p->name, p->clan, p->elo, p->rank, p->last_seen, 0);
+			html_player_list_entry(p->name, p->clan, p->elo, p->rank, *gmtime(&p->last_seen), 0);
 		}
 		html_end_player_list();
 	}

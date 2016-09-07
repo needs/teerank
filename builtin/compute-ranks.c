@@ -41,6 +41,24 @@ static int sort_by_elo(const void *pa, const void *pb)
 		return -1;
 }
 
+static int sort_by_last_seen(const void *pa, const void *pb)
+{
+	const struct indexed_player *a = pa, *b = pb;
+
+	if (a->last_seen < b->last_seen)
+		return 1;
+	else if (a->last_seen > b->last_seen)
+		return -1;
+
+	/* Fall back to elo if times are the same */
+	if (a->elo < b->elo)
+		return 1;
+	else if (a->elo == b->elo)
+		return 0;
+	else
+		return -1;
+}
+
 static int sort_by_nmembers(const void *pa, const void *pb)
 {
 	const struct indexed_clan *a = pa, *b = pb;
@@ -76,10 +94,16 @@ int main(int argc, char *argv[])
 	if (!create_index(&index, INDEX_DATA_INFOS_PLAYER))
 		return EXIT_FAILURE;
 
+	/* By elo */
 	sort_index(&index, sort_by_elo);
 	set_players_rank(&index);
 
 	if (!write_index(&index, "players_by_rank"))
+		return EXIT_FAILURE;
+
+	/* By last seen date */
+	sort_index(&index, sort_by_last_seen);
+	if (!write_index(&index, "players_by_last_seen"))
 		return EXIT_FAILURE;
 
 	close_index(&index);

@@ -248,6 +248,31 @@ table a:hover {
 	text-align: right;
 }
 
+td.online {
+	font-weight: bold;
+	color: #43a700;
+}
+
+td.minutes {
+	color: #56a721;
+}
+
+td.hours {
+	color: #7fa764;
+}
+
+td.days {
+	color: #a7a7a7;
+}
+
+td.months {
+	color: #c6c6c6;
+}
+
+td.years {
+	color: #d5d5d5;
+}
+
 /* Clan list */
 
 /* Name */

@@ -319,6 +319,7 @@ static void init_player_info(struct player_info *ps)
 	strcpy(ps->clan, "00");
 	ps->elo = INVALID_ELO;
 	ps->rank = UNRANKED;
+	ps->last_seen = (struct tm){ 0 };
 }
 
 static void read_player_info_header(

@@ -450,7 +450,7 @@ int json_write_string(struct jfile *jfile, const char *fname, const char *buf, s
 
 int json_read_time(struct jfile *jfile, const char *fname, time_t *t)
 {
-	struct tm tm;
+	struct tm tm = { 0 };
 
 	if (!json_read_tm(jfile, fname, &tm))
 		return 0;

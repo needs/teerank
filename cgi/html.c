@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 #include "html.h"
+#include "info.h"
 
 #ifdef NDEBUG
 void html(const char *fmt, ...)
@@ -395,29 +396,54 @@ void html_player_list_entry(
 	html("</tr>");
 }
 
+/*
+ * Only keep the two most significant digits
+ */
+static unsigned round(unsigned n)
+{
+	unsigned mod = 1;
+
+	while (mod < n)
+		mod *= 10;
+
+	return n - (n % (mod / 100));
+}
+
 void print_section_tabs(enum section_tab tab)
 {
 	unsigned i;
+	struct info info;
 
 	struct {
 		const char *title;
 		const char *url;
 		unsigned num;
 	} tabs[] = {
-		{ "Players", "/players/by-rank", 80000 },
-		{ "Clans", "/clans/by-nmembers", 12000 },
-		{ "Servers", "/servers/by-nplayers", 1000 },
+		{ "Players", "/players/by-rank", 0 },
+		{ "Clans", "/clans/by-nmembers", 0 },
+		{ "Servers", "/servers/by-nplayers", 0 },
 	};
+
+	if (read_info(&info)) {
+		tabs[0].num = round(info.nplayers);
+		tabs[1].num = round(info.nclans);
+		tabs[2].num = round(info.nservers);
+	}
 
 	html("<nav class=\"section_tabs\">");
 
 	for (i = 0; i < sizeof(tabs) / sizeof(*tabs); i++) {
+		const char *class = "";
+
 		if (i == tab)
-			html("<a class=\"enabled\">%s<small>%u</small></a>",
-			     tabs[i].title, tabs[i].num);
+			class = " class=\"enabled\"";
+
+		if (tabs[i].num)
+			html("<a%s href=\"%s\">%s<small>%u</small></a>",
+			     class, tabs[i].url, tabs[i].title, tabs[i].num);
 		else
-			html("<a href=\"%s\">%s<small>%u</small></a>",
-			     tabs[i].url, tabs[i].title, tabs[i].num);
+			html("<a%s href=\"%s\">%s</a>",
+			     class, tabs[i].url, tabs[i].title);
 	}
 
 	html("</nav>");

@@ -148,7 +148,8 @@ int page_about_json_api_main(int argc, char **argv)
 
 	html("<h1 id=\"player-list\">Player list</h1>");
 
-	jsonurl("players/pages/<em>page_number</em>.json");
+	jsonurl("players/by-rank.json?p=<em>page_number</em>");
+	jsonurl("players/by-lastseen.json?p=<em>page_number</em>");
 
 	start_jsondesc_table();
 
@@ -197,7 +198,7 @@ int page_about_json_api_main(int argc, char **argv)
 
 	html("<h1 id=\"clan-list\">Clan list</h1>");
 
-	jsonurl("clans/pages/<em>page_number</em>.json");
+	jsonurl("clans/by-nmembers.json?p=<em>page_number</em>");
 
 	start_jsondesc_table();
 
@@ -220,7 +221,7 @@ int page_about_json_api_main(int argc, char **argv)
 
 	html("<h1 id=\"server-list\">Server list</h1>");
 
-	jsonurl("servers/pages/<em>page_number</em>.json");
+	jsonurl("servers/by-nplayers.json?p=<em>page_number</em>");
 
 	start_jsondesc_table();
 

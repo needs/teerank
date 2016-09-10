@@ -404,9 +404,9 @@ void print_section_tabs(enum section_tab tab)
 		const char *url;
 		unsigned num;
 	} tabs[] = {
-		{ "Players", "/players/pages/1.html", 80000 },
-		{ "Clans", "/clans/pages/1.html", 12000 },
-		{ "Servers", "/servers/pages/1.html", 1000 },
+		{ "Players", "/players/by-rank", 80000 },
+		{ "Clans", "/clans/by-nmembers", 12000 },
+		{ "Servers", "/servers/by-nplayers", 1000 },
 	};
 
 	html("<nav class=\"section_tabs\">");
@@ -428,47 +428,53 @@ static unsigned min(unsigned a, unsigned b)
 	return a < b ? a : b;
 }
 
-void print_page_nav(const char *prefix, struct index_page *ipage)
+void print_page_nav(const char *url, struct index_page *ipage)
 {
 	/* Number of pages shown before and after the current page */
-	static const unsigned EXTRA_PAGES = 3;
+	static const unsigned extra = 3;
 	unsigned i;
 
 	unsigned pnum = ipage->pnum;
 	unsigned npages = ipage->npages;
 
+	assert(url != NULL);
+	assert(ipage != NULL);
+
 	html("<nav class=\"pages\">");
+
+	/* Previous button */
 	if (pnum == 1)
 		html("<a class=\"previous\">Previous</a>");
 	else
-		html("<a class=\"previous\" href=\"%s/%u.html\">Previous</a>",
-		     prefix, pnum - 1);
+		html("<a class=\"previous\" href=\"%s?p=%u\">Previous</a>", url, pnum - 1);
 
-	if (pnum > EXTRA_PAGES + 1)
-		html("<a href=\"/%s/1.html\">1</a>", prefix);
-	if (pnum > EXTRA_PAGES + 2)
+	/* Link to first page */
+	if (pnum > extra + 1)
+		html("<a href=\"%s?p=1\">1</a>", url);
+	if (pnum > extra + 2)
 		html("<span>...</span>");
 
-	for (i = min(EXTRA_PAGES, pnum - 1); i > 0; i--)
-		html("<a href=\"%s/%u.html\">%u</a>",
-		     prefix, pnum - i, pnum - i);
+	/* Extra pages before */
+	for (i = min(extra, pnum - 1); i > 0; i--)
+		html("<a href=\"%s?p=%u\">%u</a>", url, pnum - i, pnum - i);
 
 	html("<a class=\"current\">%u</a>", pnum);
 
-	for (i = 1; i <= min(EXTRA_PAGES, npages - pnum); i++)
-		html("<a href=\"%s/%u.html\">%u</a>",
-		     prefix, pnum + i, pnum + i);
+	/* Extra pages after */
+	for (i = 1; i <= min(extra, npages - pnum); i++)
+		html("<a href=\"%s?p=%u\">%u</a>", url, pnum + i, pnum + i);
 
-	if (pnum + EXTRA_PAGES + 1 < npages)
+	/* Link to last page */
+	if (pnum + extra + 1 < npages)
 		html("<span>...</span>");
-	if (pnum + EXTRA_PAGES < npages)
-		html("<a href=\"%s/%u.html\">%u</a>",
-		     prefix, npages, npages);
+	if (pnum + extra < npages)
+		html("<a href=\"%s?p=%u\">%u</a>", url, npages, npages);
 
+	/* Next button */
 	if (pnum == npages)
 		html("<a class=\"next\">Next</a>");
 	else
-		html("<a class=\"next\" href=\"%s/%u.html\">Next</a>",
-		     prefix, pnum + 1);
+		html("<a class=\"next\" href=\"%s?p=%u\">Next</a>", url, pnum + 1);
+
 	html("</nav>");
 }

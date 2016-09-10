@@ -35,6 +35,6 @@ enum section_tab {
 
 void print_section_tabs(enum section_tab tab);
 
-void print_page_nav(const char *prefix, struct index_page *ipage);
+void print_page_nav(const char *url, struct index_page *ipage);
 
 #endif /* HTML_H */

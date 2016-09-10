@@ -57,18 +57,26 @@ int page_clan_list_html_main(int argc, char **argv)
 	struct index_page ipage;
 	struct indexed_clan c;
 	unsigned pnum, pos;
+	const char *indexname;
 	int ret;
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <page_number>\n", argv[0]);
+	if (argc != 3) {
+		fprintf(stderr, "usage: %s <page_number> by-nmembers\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
 	if (!parse_pnum(argv[1], &pnum))
 		return EXIT_FAILURE;
 
+	if (strcmp(argv[2], "by-nmembers") == 0)
+		indexname = "clans_by_nmembers";
+	else {
+		fprintf(stderr, "%s: Should be \"by-nmembers\"\n", argv[1]);
+		return EXIT_FAILURE;
+	}
+
 	ret = open_index_page(
-		"clans_by_nmembers", &ipage, INDEX_DATA_INFOS_CLAN,
+		indexname, &ipage, INDEX_DATA_INFOS_CLAN,
 		pnum, CLANS_PER_PAGE);
 
 	if (ret == PAGE_NOT_FOUND)
@@ -85,7 +93,7 @@ int page_clan_list_html_main(int argc, char **argv)
 		html_clan_list_entry(pos, c.name, c.nmembers);
 
 	html_end_clan_list();
-	print_page_nav("/clans/pages", &ipage);
+	print_page_nav("/clans/by-nmembers", &ipage);
 
 	html_footer("clan-list");
 

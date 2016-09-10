@@ -108,6 +108,14 @@ page at [localhost:8000/test.html](http://localhost:8000/test.html):
 cd assets && python -m http.server &
 ```
 
+Previous teerank version used different urls layout, by default they
+route to the new ones.  If you don't want to support them at all, build
+with `DONT_ROUTE_OLD_URLS` defined.
+
+```bash
+CFLAGS="-DDONT_ROUTE_OLD_URLS" make -B
+```
+
 Contributing
 ============
 

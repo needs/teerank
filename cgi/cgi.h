@@ -7,6 +7,7 @@
 #define EXIT_NOT_FOUND 2
 
 void error(int code, char *fmt, ...);
+void redirect(const char *fmt, ...);
 
 #define MAX_DOMAIN_LENGTH 1024
 

@@ -25,6 +25,7 @@ static char *reason_phrase(int code)
 {
 	switch (code) {
 	case 200: return "OK";
+	case 301: return "Moved Permanently";
 	case 400: return "Bad Request";
 	case 404: return "Not Found";
 	case 414: return "Request-URI Too Long";
@@ -56,6 +57,26 @@ void error(int code, char *fmt, ...)
 	} else {
 		fprintf(stderr, "%d %s\n", code, reason_phrase(code));
 	}
+
+	exit(EXIT_FAILURE);
+}
+
+void redirect(const char *fmt, ...)
+{
+	va_list ap;
+
+	assert(fmt != NULL);
+	assert(fmt[0] == '/');
+
+	printf("Status: %d %s\n", 301, reason_phrase(301));
+	printf("Location: http://%s", cgi_config.domain);
+
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+
+	putchar('\n');
+	putchar('\n');
 
 	exit(EXIT_FAILURE);
 }

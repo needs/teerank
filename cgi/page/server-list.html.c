@@ -97,7 +97,7 @@ int page_server_list_html_main(int argc, char **argv)
 		html_server_list_entry(pos, &server);
 
 	html_end_server_list();
-	print_page_nav("/servers/pages", &ipage);
+	print_page_nav("/servers/by-nplayers", &ipage);
 
 	html_footer("server-list");
 

@@ -388,9 +388,13 @@ void html_player_list_entry(
 	if (mktime(&last_seen) == NEVER_SEEN) {
 		html("<td></td>");
 	} else {
-		char buf[64], *class;
+		char buf[64], strls[] = "00/00/1970 00h00", *class;
+
 		class = elapsed_time_since(&last_seen, buf);
-		html("<td class=\"%s\">%s</td>", class, buf);
+		if (strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", &last_seen))
+			html("<td class=\"%s\" title=\"%s\">%s</td>", class, strls, buf);
+		else
+			html("<td class=\"%s\">%s</td>", class, buf);
 	}
 
 	html("</tr>");

@@ -70,6 +70,8 @@
  */
 
 #include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #define MAX_SCOPE_LEVEL 8
 

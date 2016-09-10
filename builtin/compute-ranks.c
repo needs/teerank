@@ -9,6 +9,7 @@
 #include "config.h"
 #include "player.h"
 #include "index.h"
+#include "info.h"
 
 static void set_players_rank(struct index *index)
 {
@@ -86,6 +87,7 @@ static int sort_by_nplayers(const void *pa, const void *pb)
 int main(int argc, char *argv[])
 {
 	struct index index;
+	struct info info;
 
 	load_config(1);
 
@@ -93,6 +95,7 @@ int main(int argc, char *argv[])
 
 	if (!create_index(&index, INDEX_DATA_INFOS_PLAYER))
 		return EXIT_FAILURE;
+	info.nplayers = index.ndata;
 
 	/* By elo */
 	sort_index(&index, sort_by_elo);
@@ -112,6 +115,7 @@ int main(int argc, char *argv[])
 
 	if (!create_index(&index, INDEX_DATA_INFOS_CLAN))
 		return EXIT_FAILURE;
+	info.nclans = index.ndata;
 
 	sort_index(&index, sort_by_nmembers);
 
@@ -124,6 +128,7 @@ int main(int argc, char *argv[])
 
 	if (!create_index(&index, INDEX_DATA_INFOS_SERVER))
 		return EXIT_FAILURE;
+	info.nservers = index.ndata;
 
 	sort_index(&index, sort_by_nplayers);
 
@@ -131,6 +136,11 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 	close_index(&index);
+
+	/* Info */
+
+	if (!write_info(&info))
+		return EXIT_FAILURE;
 
 	return EXIT_SUCCESS;
 }

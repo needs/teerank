@@ -18,10 +18,13 @@ extern struct cgi_config {
 	char domain[MAX_DOMAIN_LENGTH];
 } cgi_config;
 
-int page_graph_main(int argc, char **argv);
-int page_about_main(int argc, char **argv);
+int page_about_html_main(int argc, char **argv);
+int page_about_json_main(int argc, char **argv);
+
 int page_about_json_api_main(int argc, char **argv);
 int page_search_main(int argc, char **argv);
+int page_graph_main(int argc, char **argv);
+
 
 int page_player_html_main(int argc, char **argv);
 int page_player_json_main(int argc, char **argv);

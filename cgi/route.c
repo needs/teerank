@@ -275,7 +275,8 @@ struct directory {
 
 static struct directory root = {
 	"", (struct page[]) {
-		PAGE_HTML("about.html", about),
+		PAGE_HTML("about.html", about_html),
+		PAGE_JSON("about.json", about_json),
 		PAGE_HTML("about-json-api.html", about_json_api),
 		PAGE_TXT("robots.txt", robots),
 		PAGE_XML("sitemap.xml", sitemap),

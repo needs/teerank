@@ -93,6 +93,7 @@ int page_about_json_api_main(int argc, char **argv)
 
 	html("</li>");
 
+	html("<li><a href=\"#info\">Info</a></li>");
 	html("<li><a href=\"#player\">Player</a></li>");
 	html("<li><a href=\"#player-list\">Player list</a></li>");
 	html("<li><a href=\"#clan\">Clan</a></li>");
@@ -121,6 +122,24 @@ int page_about_json_api_main(int argc, char **argv)
 	html("<p>Time are encoded using the standard <a href=\"https://www.ietf.org/rfc/rfc3339.txt\">RFC-3339</a>.  It provide numerous advantages: fixed length, human readable, and is supported on many platforms and libraries.  They looks like the following: <code>\"2016-01-19T22:42:31Z\"</code></p>");
 
 	html("<p>The lowest possible date is <code>\"1970-01-01T00:00:00Z\"</code>, or unix epoch.</p>");
+
+	/*
+	 * Info
+	 */
+
+	html("<h1 id=\"info\">Info</h1>");
+
+	jsonurl("info.json");
+
+	start_jsondesc_table();
+
+	jsondesc_row("{", NULL, NULL, NULL);
+	jsondesc_row("nplayers", "unsigned", "\"314\"", "Number of players in the database");
+	jsondesc_row("nclans", "unsigned", "\"271\"", "Number of clans in the database");
+	jsondesc_row("nservers", "unsigned", "\"1000\"", "Number of servers in the database");
+	jsondesc_row("}", NULL, NULL, NULL);
+
+	end_jsondesc_table();
 
 	/*
 	 * Player

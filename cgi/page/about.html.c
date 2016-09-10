@@ -4,7 +4,7 @@
 #include "config.h"
 #include "html.h"
 
-int page_about_main(int argc, char **argv)
+int page_about_html_main(int argc, char **argv)
 {
 	html_header(&ABOUT_TAB, "About", NULL);
 
@@ -19,7 +19,7 @@ int page_about_main(int argc, char **argv)
 	html("<p>Teerank works by polling CTF servers every 5 minutes.  Based on the score difference between two polls, it compute your score using a custom <a href=\"https://en.wikipedia.org/wiki/Elo_rating_system\">ELO rating system</a>.</p>");
 	html("<p>The system as it is cannot know the team you are playing on, it also do not handle any sort of player authentification, thus faking is easy.  That's why Teerank should not be taken too seriously, because it is built on a very naïve aproach.</p>");
 
-	html_footer(NULL);
+	html_footer("info");
 
 	return EXIT_SUCCESS;
 }

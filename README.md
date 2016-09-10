@@ -17,6 +17,13 @@ You may want to build a version opimized for your own server using:
 make -B release
 ```
 
+Also, you can specify additional `CFLAGS` and change compiler, to build
+statically linked binaries for instance:
+
+```bash
+CC="musl-gcc" CFLAGS="-static" make -B release
+```
+
 How to use
 ==========
 

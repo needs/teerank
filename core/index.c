@@ -380,18 +380,54 @@ void close_index(struct index *index)
 	free(index->data);
 }
 
+static int select_page(
+	struct index_page *ipage, unsigned pnum, unsigned plen)
+{
+	/*
+	 * If there is no page length, then we treats the whole index as
+	 * one single page.
+	 */
+	if (!plen)
+		ipage->npages = 1;
+	else
+		ipage->npages = ipage->ndata / plen + 1;
+
+	if (pnum > ipage->npages) {
+		fprintf(stderr, "Only %u pages available\n", ipage->npages);
+		return PAGE_NOT_FOUND;
+	}
+
+	if (!json_seek_array(&ipage->jfile, (pnum - 1) * plen))
+		return PAGE_ERROR;
+
+	/*
+	 * If it is the last page, page length may be lower than given
+	 * page length.
+	 */
+	if (!plen)
+		ipage->plen = ipage->ndata;
+	else if (pnum == ipage->npages)
+		ipage->plen = ipage->ndata % plen;
+	else
+		ipage->plen = plen;
+
+	ipage->pnum = pnum;
+	ipage->i = 0;
+
+	return PAGE_FOUND;
+}
+
 int open_index_page(
 	const char *filename,
 	struct index_page *ipage, const struct index_data_infos *infos,
 	unsigned pnum, unsigned plen)
 {
-	unsigned ndata;
-
 	assert(ipage != NULL);
 	assert(infos != NULL);
 	assert((plen == 0 && pnum == 1) || (plen > 0 && pnum > 0));
 
 	ipage->file = NULL;
+	ipage->infos = infos;
 
 	if (!dbpath(ipage->path, sizeof(ipage->path), "%s", filename))
 		goto fail;
@@ -404,44 +440,22 @@ int open_index_page(
 	json_init(&ipage->jfile, ipage->file, ipage->path);
 
 	/*
-	 * First, skip header so that seeking the file does use the right
-	 * offset to begin with.
+	 * First, skip header up to the array so that seeking the file
+	 * use the start of the array to begin with.
 	 */
 	json_read_object_start(&ipage->jfile, NULL);
-	json_read_unsigned(&ipage->jfile, "nentries", &ndata);
+	json_read_unsigned(&ipage->jfile, "nentries", &ipage->ndata);
 	json_read_array_start(&ipage->jfile, "entries", infos->entry_size);
 
 	if (json_have_error(&ipage->jfile))
 		goto fail;
 
-	if (plen)
-		ipage->npages = ndata / plen + 1;
-	else
-		ipage->npages = 1;
-
-	if (pnum > ipage->npages) {
-		fprintf(stderr, "Only %u pages available\n", ipage->npages);
+	switch (select_page(ipage, pnum, plen)) {
+	case PAGE_NOT_FOUND:
 		goto not_found;
-	}
-
-	if (!json_seek_array(&ipage->jfile, (pnum - 1) * plen))
+	case PAGE_ERROR:
 		goto fail;
-
-	ipage->infos = infos;
-	ipage->ndata = ndata;
-	ipage->pnum = pnum;
-	ipage->i = 0;
-
-	/*
-	 * If it is the last page, page length may be lower than
-	 * standard page length.
-	 */
-	if (!plen)
-		ipage->plen = ndata;
-	else if (pnum == ipage->npages)
-		ipage->plen = ndata % plen;
-	else
-		ipage->plen = plen;
+	}
 
 	return PAGE_FOUND;
 

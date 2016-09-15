@@ -23,7 +23,7 @@ void html_footer(const char *jsonanchor);
 
 const char *name_to_html(const char *name);
 
-void html_start_player_list(void);
+void html_start_player_list(int byrank, int bylastseen);
 void html_player_list_entry(
 	const char *hexname, const char *hexclan, int elo, unsigned rank, struct tm last_seen,
 	int no_clan_link);

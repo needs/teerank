@@ -288,16 +288,22 @@ const char *name_to_html(const char *name)
 	return str;
 }
 
-void html_start_player_list(void)
+void html_start_player_list(int byrank, int bylastseen)
 {
+	const char *selected = "<img src=\"/images/downarrow.png\"/>";
+
+	assert(byrank ^ bylastseen);
+
 	html("<table class=\"playerlist\">");
 	html("<thead>");
 	html("<tr>");
 	html("<th></th>");
 	html("<th>Name</th>");
 	html("<th>Clan</th>");
-	html("<th>Score</th>");
-	html("<th>Last seen</th>");
+
+	html("<th>Score%s</th>", byrank ? selected : "");
+	html("<th>Last seen%s</th>", bylastseen ? selected : "");
+
 	html("</tr>");
 	html("</thead>");
 	html("<tbody>");

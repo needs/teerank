@@ -294,6 +294,7 @@ const char *name_to_html(const char *name)
 void html_start_player_list(int byrank, int bylastseen)
 {
 	const char *selected = "<img src=\"/images/downarrow.png\"/>";
+	const char *unselected = "<img src=\"/images/dash.png\"/>";
 
 	assert(byrank ^ bylastseen);
 
@@ -304,8 +305,8 @@ void html_start_player_list(int byrank, int bylastseen)
 	html("<th>Name</th>");
 	html("<th>Clan</th>");
 
-	html("<th>Score%s</th>", byrank ? selected : "");
-	html("<th>Last seen%s</th>", bylastseen ? selected : "");
+	html("<th>Score%s</th>", byrank ? selected : unselected);
+	html("<th>Last seen%s</th>", bylastseen ? selected : unselected);
 
 	html("</tr>");
 	html("</thead>");

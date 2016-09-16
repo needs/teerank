@@ -80,7 +80,7 @@ int page_server_list_html_main(int argc, char **argv)
 	}
 
 	ret = open_index_page(
-		indexname, &ipage, INDEX_DATA_INFOS_SERVER,
+		indexname, &ipage, INDEX_DATA_INFO_SERVER,
 		pnum, SERVERS_PER_PAGE);
 
 	if (ret == PAGE_NOT_FOUND)

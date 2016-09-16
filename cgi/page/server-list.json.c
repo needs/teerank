@@ -18,7 +18,7 @@ int page_server_list_json_main(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 
 	ret = open_index_page(
-		"servers_by_nplayers", &ipage, INDEX_DATA_INFOS_SERVER,
+		"servers_by_nplayers", &ipage, INDEX_DATA_INFO_SERVER,
 		pnum, SERVERS_PER_PAGE);
 
 	if (ret == PAGE_NOT_FOUND)

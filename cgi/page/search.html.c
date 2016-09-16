@@ -244,7 +244,7 @@ static int search(char *query, struct list *list)
 	init_list(list);
 
 	ret = open_index_page(
-		"players_by_rank", &ipage, INDEX_DATA_INFOS_PLAYER, 1, 0);
+		"players_by_rank", &ipage, INDEX_DATA_INFO_PLAYER, 1, 0);
 	if (ret == PAGE_NOT_FOUND)
 		return EXIT_NOT_FOUND;
 	if (ret == PAGE_ERROR)

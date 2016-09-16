@@ -27,7 +27,7 @@
  * second is that comparing structs tm require converting them to time_t
  * anyway.
  */
-extern const struct index_data_infos *INDEX_DATA_INFOS_PLAYER;
+extern const struct index_data_info *INDEX_DATA_INFO_PLAYER;
 struct indexed_player {
 	char name[HEXNAME_LENGTH];
 	char clan[HEXNAME_LENGTH];
@@ -36,13 +36,13 @@ struct indexed_player {
 	time_t last_seen;
 };
 
-extern const struct index_data_infos *INDEX_DATA_INFOS_CLAN;
+extern const struct index_data_info *INDEX_DATA_INFO_CLAN;
 struct indexed_clan {
 	char name[HEXNAME_LENGTH];
 	unsigned nmembers;
 };
 
-extern const struct index_data_infos *INDEX_DATA_INFOS_SERVER;
+extern const struct index_data_info *INDEX_DATA_INFO_SERVER;
 struct indexed_server {
 	char name[SERVERNAME_STRSIZE];
 	char gametype[GAMETYPE_STRSIZE];
@@ -52,7 +52,7 @@ struct indexed_server {
 };
 
 struct index {
-	const struct index_data_infos *infos;
+	const struct index_data_info *infos;
 
 	unsigned ndata, bufsize;
 	void *data;
@@ -69,7 +69,7 @@ struct index {
  *
  * @return 1 on success, 0 on failure
  */
-int create_index(struct index *index, const struct index_data_infos *infos);
+int create_index(struct index *index, const struct index_data_info *infos);
 
 /**
  * Sort index entry using the given function
@@ -108,7 +108,7 @@ int write_index(struct index *index, const char *filename);
 void close_index(struct index *index);
 
 struct index_page {
-	const struct index_data_infos *infos;
+	const struct index_data_info *infos;
 
 	void *databuf;
 	char *tmpname;
@@ -144,7 +144,7 @@ enum {
  */
 int open_index_page(
 	const char *filename,
-	struct index_page *ipage, const struct index_data_infos *infos,
+	struct index_page *ipage, const struct index_data_info *infos,
 	unsigned pnum, unsigned plen);
 
 /**

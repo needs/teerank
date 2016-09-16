@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 
 	/* Player index */
 
-	if (!create_index(&index, INDEX_DATA_INFOS_PLAYER))
+	if (!create_index(&index, INDEX_DATA_INFO_PLAYER))
 		return EXIT_FAILURE;
 	info.nplayers = index.ndata;
 
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 
 	/* Clan index */
 
-	if (!create_index(&index, INDEX_DATA_INFOS_CLAN))
+	if (!create_index(&index, INDEX_DATA_INFO_CLAN))
 		return EXIT_FAILURE;
 	info.nclans = index.ndata;
 
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
 
 	/* Server index */
 
-	if (!create_index(&index, INDEX_DATA_INFOS_SERVER))
+	if (!create_index(&index, INDEX_DATA_INFO_SERVER))
 		return EXIT_FAILURE;
 	info.nservers = index.ndata;
 

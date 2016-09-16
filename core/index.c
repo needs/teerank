@@ -15,7 +15,7 @@ typedef int (*create_index_data_func_t)(void *data, const char *name);
 typedef void (*write_index_data_func_t)(struct jfile *jfile, const void *data);
 typedef void (*read_index_data_func_t)(struct jfile *jfile, void *data);
 
-struct index_data_infos {
+struct index_data_info {
 	const char *dirname;
 
 	size_t size;
@@ -27,7 +27,7 @@ struct index_data_infos {
 };
 
 /*
- * INDEX_DATA_INFOS_PLAYER
+ * INDEX_DATA_INFO_PLAYER
  */
 
 static int create_indexed_player(void *data, const char *name)
@@ -72,7 +72,7 @@ static void read_indexed_player(struct jfile *jfile, void *data)
 	json_read_time(    jfile, NULL, &player->last_seen);
 }
 
-const struct index_data_infos *INDEX_DATA_INFOS_PLAYER = &(struct index_data_infos) {
+const struct index_data_info *INDEX_DATA_INFO_PLAYER = &(struct index_data_info) {
 	"players",
 	sizeof(struct indexed_player),
 	JSON_ARRAY_SIZE +
@@ -87,7 +87,7 @@ const struct index_data_infos *INDEX_DATA_INFOS_PLAYER = &(struct index_data_inf
 };
 
 /*
- * INDEX_DATA_INFOS_CLAN
+ * INDEX_DATA_INFO_CLAN
  */
 
 static int create_indexed_clan(void *data, const char *name)
@@ -123,7 +123,7 @@ static void read_indexed_clan(struct jfile *jfile, void *data)
 	json_read_unsigned(jfile, NULL, &clan->nmembers);
 }
 
-const struct index_data_infos *INDEX_DATA_INFOS_CLAN = &(struct index_data_infos) {
+const struct index_data_info *INDEX_DATA_INFO_CLAN = &(struct index_data_info) {
 	"clans",
 	sizeof(struct indexed_clan),
 	JSON_ARRAY_SIZE +
@@ -135,7 +135,7 @@ const struct index_data_infos *INDEX_DATA_INFOS_CLAN = &(struct index_data_infos
 };
 
 /*
- * INDEX_DATA_INFOS_SERVER
+ * INDEX_DATA_INFO_SERVER
  */
 
 static int create_indexed_server(void *data, const char *name)
@@ -177,7 +177,7 @@ static void read_indexed_server(struct jfile *jfile, void *data)
 	json_read_unsigned(jfile, NULL, &server->maxplayers);
 }
 
-const struct index_data_infos *INDEX_DATA_INFOS_SERVER = &(struct index_data_infos) {
+const struct index_data_info *INDEX_DATA_INFO_SERVER = &(struct index_data_info) {
 	"servers",
 	sizeof(struct indexed_server),
 	JSON_ARRAY_SIZE +
@@ -254,7 +254,7 @@ static void free_last_data(struct index *index)
 	index->reuse_last = 1;
 }
 
-int create_index(struct index *index, const struct index_data_infos *infos)
+int create_index(struct index *index, const struct index_data_info *infos)
 {
 	static const struct index INDEX_ZERO;
 	static char path[PATH_MAX];
@@ -419,7 +419,7 @@ static int select_page(
 
 int open_index_page(
 	const char *filename,
-	struct index_page *ipage, const struct index_data_infos *infos,
+	struct index_page *ipage, const struct index_data_info *infos,
 	unsigned pnum, unsigned plen)
 {
 	assert(ipage != NULL);

@@ -33,7 +33,7 @@ static void create_players_by_rank_file(void)
 {
 	struct index index;
 
-	if (!create_index(&index, INDEX_DATA_INFOS_PLAYER))
+	if (!create_index(&index, INDEX_DATA_INFO_PLAYER))
 		exit(EXIT_FAILURE);
 
 	sort_index(&index, sort_by_elo);

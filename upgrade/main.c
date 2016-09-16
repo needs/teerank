@@ -12,6 +12,7 @@
 #include "server.h"
 #include "clan.h"
 
+#include "teerank5/core/config.h"
 #include "teerank5/core/player.h"
 #include "teerank5/core/server.h"
 #include "teerank5/core/clan.h"
@@ -215,6 +216,7 @@ static void upgrade_clans(void)
 int main(int argc, char *argv[])
 {
 	load_config(0);
+	teerank5_load_config(1);
 
 	remove_ranks_file();
 	upgrade_players();

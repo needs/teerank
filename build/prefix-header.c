@@ -195,6 +195,8 @@ static int is_ignored_symbol(struct symbol *s)
 		strcmp(s->name, "INET6_ADDRSTRLEN") == 0 ||
 		strcmp(s->name, "sockaddr_storage") == 0 ||
 		strcmp(s->name, "INT_MIN") == 0 ||
+		strcmp(s->name, "STRING") == 0 ||
+		strcmp(s->name, "BOOL") == 0 ||
 		strcmp(s->name, "pollfd") == 0;
 }
 
@@ -214,7 +216,8 @@ static int is_keyword(struct symbol *s)
 		strcmp(s->name, "#ifndef") == 0  ||
 		strcmp(s->name, "#endif") == 0   ||
 		strcmp(s->name, "static") == 0   ||
-		strcmp(s->name, "typedef") == 0   ||
+		strcmp(s->name, "extern") == 0   ||
+		strcmp(s->name, "typedef") == 0  ||
 		strcmp(s->name, "const") == 0;
 }
 

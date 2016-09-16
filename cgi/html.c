@@ -250,8 +250,8 @@ void html_footer(const char *jsonanchor)
 	html("</main>");
 
 	html("<footer>");
-	html("<p><a href=\"https://github.com/needs/teerank/tree/%s\">Teerank %d.%d</a> <a href=\"https://github.com/needs/teerank/commit/%s\">(%s)</a></p>",
-	     CURRENT_BRANCH, TEERANK_VERSION, TEERANK_SUBVERSION, CURRENT_COMMIT,
+	html("<p><a href=\"https://github.com/needs/teerank/commit/%s\">Teerank %d.%d</a> <a href=\"https://github.com/needs/teerank/tree/%s\">(%s)</a></p>",
+	     CURRENT_COMMIT, TEERANK_VERSION, TEERANK_SUBVERSION, CURRENT_BRANCH,
 	     STABLE_VERSION ? "stable" : "unstable");
 	html("</footer>");
 

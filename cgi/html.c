@@ -296,7 +296,10 @@ void html_start_player_list(int byrank, int bylastseen)
 	const char *selected = "<img src=\"/images/downarrow.png\"/>";
 	const char *unselected = "<img src=\"/images/dash.png\"/>";
 
-	assert(byrank ^ bylastseen);
+	assert(!(byrank && bylastseen));
+
+	if (!byrank && !bylastseen)
+		selected = unselected = "";
 
 	html("<table class=\"playerlist\">");
 	html("<thead>");

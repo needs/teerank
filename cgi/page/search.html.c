@@ -290,7 +290,7 @@ int page_search_main(int argc, char **argv)
 	} else {
 		struct result *result;
 
-		html_start_player_list(1, 0);
+		html_start_player_list(0, 0);
 		for (result = list.first; result; result = result->next) {
 			struct indexed_player *p;
 

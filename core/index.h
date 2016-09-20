@@ -11,15 +11,31 @@
  * them and write an index to quickly access part of the sorted list.
  *
  * To make sorting data faster, it only store data used for sorting in
- * the index.  Hence create index take an already parametred
- * index_type, and with this particular type comes a structure used
- * to iterate through sorted data if needed.
+ * the index, plus some extra data to avoid opening a file each time
+ * they are needed.
  *
- * For instance, sorting player by rank only requitre player's name and
- * their rank.  Hence struct player_name_and_rank.
+ * Hence indexes only differs from the type of data indexed.  The
+ * structure index_data_info provide everything necessary to manipulate
+ * such data.
  *
- * You can retrieve part of the sorted list using index_page API.
+ * Only a little part of an index can be extracted using the index page
+ * API.  It is used to paginate the whole index.
  */
+
+typedef int (*create_index_data_func_t)(void *data, const char *name);
+typedef void (*write_index_data_func_t)(struct jfile *jfile, const void *data);
+typedef void (*read_index_data_func_t)(struct jfile *jfile, void *data);
+
+struct index_data_info {
+	const char *dirname;
+
+	size_t size;
+	size_t entry_size;
+
+	create_index_data_func_t create_data;
+	write_index_data_func_t write_data;
+	read_index_data_func_t read_data;
+};
 
 /*
  * There is 2 reasons to use time_t over struct tm for storing time in
@@ -27,7 +43,7 @@
  * second is that comparing structs tm require converting them to time_t
  * anyway.
  */
-extern const struct index_data_info *INDEX_DATA_INFO_PLAYER;
+extern const struct index_data_info INDEX_DATA_INFO_PLAYER;
 struct indexed_player {
 	char name[HEXNAME_LENGTH];
 	char clan[HEXNAME_LENGTH];
@@ -36,13 +52,13 @@ struct indexed_player {
 	time_t last_seen;
 };
 
-extern const struct index_data_info *INDEX_DATA_INFO_CLAN;
+extern const struct index_data_info INDEX_DATA_INFO_CLAN;
 struct indexed_clan {
 	char name[HEXNAME_LENGTH];
 	unsigned nmembers;
 };
 
-extern const struct index_data_info *INDEX_DATA_INFO_SERVER;
+extern const struct index_data_info INDEX_DATA_INFO_SERVER;
 struct indexed_server {
 	char name[SERVERNAME_STRSIZE];
 	char gametype[GAMETYPE_STRSIZE];

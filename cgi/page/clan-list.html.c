@@ -76,7 +76,7 @@ int page_clan_list_html_main(int argc, char **argv)
 	}
 
 	ret = open_index_page(
-		indexname, &ipage, INDEX_DATA_INFO_CLAN,
+		indexname, &ipage, &INDEX_DATA_INFO_CLAN,
 		pnum, CLANS_PER_PAGE);
 
 	if (ret == PAGE_NOT_FOUND)

@@ -18,7 +18,7 @@ int page_clan_list_json_main(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 
 	ret = open_index_page(
-		"clans_by_nmembers", &ipage, INDEX_DATA_INFO_CLAN,
+		"clans_by_nmembers", &ipage, &INDEX_DATA_INFO_CLAN,
 		pnum, CLANS_PER_PAGE);
 
 	if (ret == PAGE_NOT_FOUND)

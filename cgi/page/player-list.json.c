@@ -34,7 +34,7 @@ int page_player_list_json_main(int argc, char **argv)
 	}
 
 	ret = open_index_page(
-		indexname, &ipage, INDEX_DATA_INFO_PLAYER,
+		indexname, &ipage, &INDEX_DATA_INFO_PLAYER,
 		pnum, PLAYERS_PER_PAGE);
 
 	if (ret == PAGE_NOT_FOUND)

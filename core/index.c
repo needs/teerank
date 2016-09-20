@@ -11,21 +11,6 @@
 #include "player.h"
 #include "clan.h"
 
-typedef int (*create_index_data_func_t)(void *data, const char *name);
-typedef void (*write_index_data_func_t)(struct jfile *jfile, const void *data);
-typedef void (*read_index_data_func_t)(struct jfile *jfile, void *data);
-
-struct index_data_info {
-	const char *dirname;
-
-	size_t size;
-	size_t entry_size;
-
-	create_index_data_func_t create_data;
-	write_index_data_func_t write_data;
-	read_index_data_func_t read_data;
-};
-
 /*
  * INDEX_DATA_INFO_PLAYER
  */
@@ -72,7 +57,7 @@ static void read_indexed_player(struct jfile *jfile, void *data)
 	json_read_time(    jfile, NULL, &player->last_seen);
 }
 
-const struct index_data_info *INDEX_DATA_INFO_PLAYER = &(struct index_data_info) {
+const struct index_data_info INDEX_DATA_INFO_PLAYER = {
 	"players",
 	sizeof(struct indexed_player),
 	JSON_ARRAY_SIZE +
@@ -123,7 +108,7 @@ static void read_indexed_clan(struct jfile *jfile, void *data)
 	json_read_unsigned(jfile, NULL, &clan->nmembers);
 }
 
-const struct index_data_info *INDEX_DATA_INFO_CLAN = &(struct index_data_info) {
+const struct index_data_info INDEX_DATA_INFO_CLAN = {
 	"clans",
 	sizeof(struct indexed_clan),
 	JSON_ARRAY_SIZE +
@@ -177,7 +162,7 @@ static void read_indexed_server(struct jfile *jfile, void *data)
 	json_read_unsigned(jfile, NULL, &server->maxplayers);
 }
 
-const struct index_data_info *INDEX_DATA_INFO_SERVER = &(struct index_data_info) {
+const struct index_data_info INDEX_DATA_INFO_SERVER = {
 	"servers",
 	sizeof(struct indexed_server),
 	JSON_ARRAY_SIZE +

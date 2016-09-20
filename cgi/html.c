@@ -413,6 +413,90 @@ void html_player_list_entry(
 	html("</tr>");
 }
 
+void html_start_clan_list(void)
+{
+	html("<table class=\"clanlist\">");
+	html("<thead>");
+	html("<tr>");
+	html("<th></th>");
+	html("<th>Name</th>");
+	html("<th>Members</th>");
+	html("</tr>");
+	html("</thead>");
+	html("<tbody>");
+}
+
+void html_end_clan_list(void)
+{
+	html("</tbody>");
+	html("</table>");
+}
+
+void html_clan_list_entry(
+	unsigned pos, const char *hexname, unsigned nmembers)
+{
+	char name[NAME_LENGTH];
+
+	assert(hexname != NULL);
+
+	html("<tr>");
+
+	html("<td>%u</td>", pos);
+
+	/* Name */
+	hexname_to_name(hexname, name);
+	html("<td><a href=\"/clans/%s.html\">%s</a></td>", hexname, escape(name));
+
+	/* Members */
+	html("<td>%u</td>", nmembers);
+
+	html("</tr>");
+}
+
+void html_start_server_list(void)
+{
+	html("<table class=\"serverlist\">");
+	html("<thead>");
+	html("<tr>");
+	html("<th></th>");
+	html("<th>Name</th>");
+	html("<th>Gametype</th>");
+	html("<th>Map</th>");
+	html("<th>Players</th>");
+	html("</tr>");
+	html("</thead>");
+	html("<tbody>");
+}
+
+void html_end_server_list(void)
+{
+	html("</tbody>");
+	html("</table>");
+}
+
+void html_server_list_entry(unsigned pos, struct indexed_server *server)
+{
+	assert(server != NULL);
+
+	html("<tr>");
+
+	html("<td>%u</td>", pos);
+
+	/* Name */
+	html("<td>%s</td>", server->name);
+
+	/* Gametype */
+	html("<td>%s</td>", server->gametype);
+
+	/* Map */
+	html("<td>%s</td>", server->map);
+
+	/* Players */
+	html("<td>%u / %u</td>", server->nplayers, server->maxplayers);
+
+	html("</tr>");
+}
+
 /*
  * Only keep the two most significant digits
  */

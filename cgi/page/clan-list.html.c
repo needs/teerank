@@ -12,46 +12,6 @@
 #include "index.h"
 #include "page.h"
 
-static void html_start_clan_list(void)
-{
-	html("<table class=\"clanlist\">");
-	html("<thead>");
-	html("<tr>");
-	html("<th></th>");
-	html("<th>Name</th>");
-	html("<th>Members</th>");
-	html("</tr>");
-	html("</thead>");
-	html("<tbody>");
-}
-
-static void html_end_clan_list(void)
-{
-	html("</tbody>");
-	html("</table>");
-}
-
-static void html_clan_list_entry(
-	unsigned pos, const char *hexname, unsigned nmembers)
-{
-	char name[NAME_LENGTH];
-
-	assert(hexname != NULL);
-
-	html("<tr>");
-
-	html("<td>%u</td>", pos);
-
-	/* Name */
-	hexname_to_name(hexname, name);
-	html("<td><a href=\"/clans/%s.html\">%s</a></td>", hexname, escape(name));
-
-	/* Members */
-	html("<td>%u</td>", nmembers);
-
-	html("</tr>");
-}
-
 int page_clan_list_html_main(int argc, char **argv)
 {
 	struct index_page ipage;

@@ -46,7 +46,7 @@ enum section_tab {
 	PLAYERS_TAB, CLANS_TAB, SERVERS_TAB
 };
 
-void print_section_tabs(enum section_tab tab);
+void print_section_tabs(enum section_tab tab, const char *squery, unsigned num);
 
 void print_page_nav(const char *url, struct index_page *ipage);
 

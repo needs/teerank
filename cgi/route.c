@@ -247,7 +247,12 @@ static void init_page_search(struct page *page, struct url *url)
 		error(400, "Missing 'q' parameter\n");
 
 	*page = (struct page) PAGE_HTML(NULL, search);
-	page->args[1] = q;
+
+	if (url->ndirs == 0)
+		page->args[1] = "players";
+	else
+		page->args[1] = url->dirs[0];
+	page->args[2] = q;
 }
 
 #ifndef DONT_ROUTE_OLD_URLS
@@ -285,6 +290,7 @@ static struct directory root = {
 	}, (struct directory[]) {
 		{
 			"players", (struct page[]) {
+				DYNAMIC_PAGE("search", search),
 				DYNAMIC_PAGE("by-rank", html_players_by_rank),
 				DYNAMIC_PAGE("by-rank.json", json_players_by_rank),
 				DYNAMIC_PAGE("by-lastseen", html_players_by_lastseen),
@@ -309,6 +315,7 @@ static struct directory root = {
 			}
 		}, {
 			"clans", (struct page[]) {
+				DYNAMIC_PAGE("search", search),
 				DYNAMIC_PAGE("by-nmembers", html_clans_by_nmembers),
 				DYNAMIC_PAGE("by-nmembers.json", json_clans_by_nmembers),
 				DYNAMIC_PAGE(NULL, clan),
@@ -316,6 +323,7 @@ static struct directory root = {
 			}, NULL
 		}, {
 			"servers", (struct page[]) {
+				DYNAMIC_PAGE("search", search),
 				DYNAMIC_PAGE("by-nplayers", html_servers_by_nplayers),
 				DYNAMIC_PAGE("by-nplayers.json", json_servers_by_nplayers),
 				{ NULL }

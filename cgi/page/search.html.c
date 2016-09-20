@@ -13,8 +13,8 @@
 #include "index.h"
 
 /*
- * Too much results is meanless, so by limiting the number of results we can
- * statically allocate the result array.
+ * Too much results is meaningless, and by limiting the number of
+ * results we can statically allocate the result array.
  */
 #define MAX_RESULTS 50
 
@@ -27,16 +27,21 @@
  */
 struct result {
 	unsigned relevance;
-	struct indexed_player player;
+
+	union {
+		struct indexed_player player;
+		struct indexed_clan clan;
+		struct indexed_server server;
+	} data;
 
 	struct result *next, *prev;
 };
 
 /*
- * The pool just act as a storage for the element of the linked-list. Results
+ * The pool just act as a storage for the element of the linked-list.  Results
  * are sorted by their relevance.
  *
- * The pool does contain one extra result to avoid an extra copy when adding
+ * The pool contain one extra result to avoid an extra copy when adding
  * a new result.  The adding process is as follow:
  *   - Get a temporary result (the extra result pointed by "free")
  *   - If it belongs to the list, just link it
@@ -69,17 +74,15 @@ static void to_lowercase(char *src, char *dst)
 }
 
 /*
- * The higher the relevance is, the better the name match the query. A relevance of
- * zero means the result will be ignored.
+ * The higher the relevance is, the better the name match the query. A
+ * relevance of zero means the result will be ignored.
  */
-static unsigned get_relevance(char *hex, char *query)
+static unsigned name_relevance(const char *query, char *name)
 {
 	unsigned relevance;
 	char *tmp;
-	char name[NAME_LENGTH];
 
 	/* Lowercase the name to have case insensitive search */
-	hexname_to_name(hex, name);
 	to_lowercase(name, name);
 
 	if (!(tmp = strstr(name, query)))
@@ -102,6 +105,30 @@ static unsigned get_relevance(char *hex, char *query)
 	return relevance;
 }
 
+static unsigned player_relevance(const char *query, void *data)
+{
+	struct indexed_player *player = data;
+	char name[NAME_LENGTH];
+
+	hexname_to_name(player->name, name);
+	return name_relevance(query, name);
+}
+
+static unsigned clan_relevance(const char *query, void *data)
+{
+	struct indexed_clan *clan = data;
+	char name[NAME_LENGTH];
+
+	hexname_to_name(clan->name, name);
+	return name_relevance(query, name);
+}
+
+static unsigned server_relevance(const char *query, void *data)
+{
+	struct indexed_server *server = data;
+	return name_relevance(query, server->name);
+}
+
 static void init_list(struct list *list)
 {
 	list->length = 0;
@@ -121,22 +148,18 @@ static int is_full(struct list *list)
 }
 
 /*
- * Just use list->free pointer and initialize it.
+ * List->free always point to a free, ready to be used result.
  */
-static struct result *new_result(
-	struct list *list, unsigned relevance, struct indexed_player *player)
+static struct result *new_result(struct list *list)
 {
-	struct result *ret = list->free;
-
-	ret->relevance = relevance;
-	ret->player = *player;
-
-	return ret;
+	return list->free;
 }
 
 /*
- * Insert 'result' before 'target'.  Remove the last result if the list is full.
- * If target is NULL, insert the result at the end of the list.
+ * Insert 'result' before 'target'.  Remove the last result if the list
+ * is full.  If target is NULL, insert the result at the end of the
+ * list.  Finally, make sure the "free" pointer still point to an
+ * unallocated result.
  */
 static void insert_before(struct list *list, struct result *target, struct result *result)
 {
@@ -182,79 +205,191 @@ static void insert_before(struct list *list, struct result *target, struct resul
 	}
 }
 
-static int cmp_results(struct result *a, struct result *b)
+typedef int (*cmp_func_t)(const void *pa, const void *pb);
+
+static int cmp_players(const void *pa, const void *pb)
+{
+	const struct indexed_player *a = pa, *b = pb;
+
+	if (a->rank > b->rank)
+		return -1;
+	else if (a->rank < b->rank)
+		return 1;
+
+	return 0;
+}
+
+static int cmp_clans(const void *pa, const void *pb)
+{
+	const struct indexed_clan *a = pa, *b = pb;
+
+	if (a->nmembers > b->nmembers)
+		return 1;
+	else if (a->nmembers < b->nmembers)
+		return -1;
+
+	return 0;
+}
+
+static int cmp_servers(const void *pa, const void *pb)
+{
+	const struct indexed_server *a = pa, *b = pb;
+
+	if (a->nplayers > b->nplayers)
+		return 1;
+	else if (a->nplayers < b->nplayers)
+		return -1;
+
+	return 0;
+}
+
+static int cmp_results(
+	const struct result *a, const struct result *b, cmp_func_t cmp)
 {
 	if (a->relevance < b->relevance)
 		return -1;
 	else if (a->relevance > b->relevance)
 		return 1;
 
-	if (a->player.rank > b->player.rank)
-		return -1;
-	else if (a->player.rank < b->player.rank)
-		return 1;
-
-	return 0;
+	return cmp(&a->data, &b->data);
 }
 
-static void try_add_result(struct list *list, unsigned relevance, struct indexed_player *player)
+static void try_add_result(
+	struct list *list, struct result *result, cmp_func_t cmp)
 {
-	struct result *result, *r;
+	struct result *r;
 
 	assert(list != NULL);
 
-	if (relevance == 0)
+	if (result->relevance == 0)
 		return;
-
-	result = new_result(list, relevance, player);
 
 	if (is_empty(list))
 		return insert_before(list, NULL, result);
 
 	/*
-	 * We know the list is not empty and therefor list->last is set.
-	 * If the list is not full just add the result at the end.
+	 * Before checking all available results, we compare our result
+	 * against the last one, that way it can already be ruled out
+	 * when it is of lower relevance.
 	 */
-	if (cmp_results(list->last, result) > 0) {
+	if (cmp_results(list->last, result, cmp) > 0) {
 		if (!is_full(list))
 			insert_before(list, NULL, result);
 		return;
 	}
 
 	/*
-	 * Insert the result in a sorted manner
+	 * From the last comparison, we know the result belongs to the
+	 * list, we just check all results to find where it has to be
+	 * inserted.
 	 */
 	for (r = list->first; r; r = r->next)
-		if (cmp_results(r, result) < 0)
+		if (cmp_results(r, result, cmp) < 0)
 			break;
 	insert_before(list, r, result);
 }
 
-static int search(char *query, struct list *list)
+static void start_player_list(void)
+{
+	html_start_player_list(0, 0);
+}
+
+static void print_player(unsigned pos, void *data)
+{
+	struct indexed_player *p = data;
+	html_player_list_entry(p->name, p->clan, p->elo, p->rank, *gmtime(&p->last_seen), 0);
+}
+static void print_clan(unsigned pos, void *data)
+{
+	struct indexed_clan *clan = data;
+	html_clan_list_entry(pos, clan->name, clan->nmembers);
+}
+static void print_server(unsigned pos, void *data)
+{
+	html_server_list_entry(pos, data);
+}
+
+const struct search_info {
+	void (*start_list)(void);
+	void (*end_list)(void);
+	void (*print_result)(unsigned pos, void *data);
+	unsigned (*relevance)(const char *query, void *data);
+	cmp_func_t compare;
+	const char *emptylist;
+
+	const struct index_data_info *datainfo;
+	const char *indexname;
+
+	enum section_tab tab;
+} PLAYER_SINFO = {
+	start_player_list,
+	html_end_player_list,
+	print_player,
+	player_relevance,
+	cmp_players,
+	"No players found",
+
+	&INDEX_DATA_INFO_PLAYER,
+	"players_by_rank",
+
+	PLAYERS_TAB
+}, CLAN_SINFO = {
+	html_start_clan_list,
+	html_end_clan_list,
+	print_clan,
+	clan_relevance,
+	cmp_clans,
+	"No clans found",
+
+	&INDEX_DATA_INFO_CLAN,
+	"clans_by_nmembers",
+
+	CLANS_TAB
+}, SERVER_SINFO = {
+	html_start_server_list,
+	html_end_server_list,
+	print_server,
+	server_relevance,
+	cmp_servers,
+	"No servers found",
+
+	&INDEX_DATA_INFO_SERVER,
+	"servers_by_nplayers",
+
+	SERVERS_TAB
+};
+
+static int search(
+	const struct search_info *sinfo, char *query, struct list *list)
 {
 	struct index_page ipage;
-	struct indexed_player player;
+	struct result *result;
 
-	char lowercase_query[NAME_LENGTH];
+	char lquery[NAME_LENGTH];
+	size_t length;
 	int ret;
 
-	assert(strlen(query) < NAME_LENGTH);
+	/* No need to search when the query is too long or empty */
+	length = strlen(query);
+	if (length == 0 || length >= NAME_LENGTH)
+		return EXIT_SUCCESS;
 
-	to_lowercase(query, lowercase_query);
+	to_lowercase(query, lquery);
 	init_list(list);
 
 	ret = open_index_page(
-		"players_by_rank", &ipage, INDEX_DATA_INFO_PLAYER, 1, 0);
+		sinfo->indexname, &ipage, sinfo->datainfo, 1, 0);
 	if (ret == PAGE_NOT_FOUND)
 		return EXIT_NOT_FOUND;
 	if (ret == PAGE_ERROR)
 		return EXIT_FAILURE;
 
-	while (index_page_foreach(&ipage, &player)) {
-		unsigned relevance;
-
-		relevance = get_relevance(player.name, lowercase_query);
-		try_add_result(list, relevance, &player);
+	goto start;
+	while (index_page_foreach(&ipage, &result->data)) {
+		result->relevance = sinfo->relevance(lquery, &result->data);
+		try_add_result(list, result, sinfo->compare);
+	start:
+		result = new_result(list);
 	}
 
 	return EXIT_SUCCESS;
@@ -264,40 +399,44 @@ static struct list LIST_ZERO;
 
 int page_search_main(int argc, char **argv)
 {
+	const struct search_info *sinfo;
 	struct list list = LIST_ZERO;
-	size_t length;
 	int ret;
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <query>\n", argv[0]);
+	if (argc != 3) {
+		fprintf(stderr, "usage: %s players|clans|servers <query>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	/* No need to search when the query is too long or empty */
-	length = strlen(argv[1]);
-	if (length > 0 && length < NAME_LENGTH) {
-		ret = search(argv[1], &list);
-		if (ret != EXIT_SUCCESS)
-			return ret;
+	if (strcmp(argv[1], "players") == 0)
+		sinfo = &PLAYER_SINFO;
+	else if (strcmp(argv[1], "clans") == 0)
+		sinfo = &CLAN_SINFO;
+	else if (strcmp(argv[1], "servers") == 0)
+		sinfo = &SERVER_SINFO;
+	else {
+		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", argv[1]);
+		return EXIT_FAILURE;
 	}
+
+	if ((ret = search(sinfo, argv[2], &list)) != EXIT_SUCCESS)
+		return ret;
 
 	CUSTOM_TAB.name = "Search results";
 	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, "Search results", argv[1]);
+	html_header(&CUSTOM_TAB, "Search results", argv[2]);
+	print_section_tabs(sinfo->tab, argv[2], list.length);
 
 	if (list.length == 0) {
-		html("No players found");
+		html("%s", sinfo->emptylist);
 	} else {
-		struct result *result;
+		struct result *r;
+		unsigned i;
 
-		html_start_player_list(0, 0);
-		for (result = list.first; result; result = result->next) {
-			struct indexed_player *p;
-
-			p = &result->player;
-			html_player_list_entry(p->name, p->clan, p->elo, p->rank, *gmtime(&p->last_seen), 0);
-		}
-		html_end_player_list();
+		sinfo->start_list();
+		for (r = list.first, i = 0; r; r = r->next, i++)
+			sinfo->print_result(i + 1, &r->data);
+		sinfo->end_list();
 	}
 
 	html_footer(NULL);

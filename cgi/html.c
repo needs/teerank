@@ -510,41 +510,55 @@ static unsigned round(unsigned n)
 	return n - (n % (mod / 100));
 }
 
-void print_section_tabs(enum section_tab tab)
+void print_section_tabs(enum section_tab tab, const char *squery, unsigned num)
 {
 	unsigned i;
-	struct info info;
 
 	struct {
 		const char *title;
 		const char *url;
 		unsigned num;
-	} tabs[] = {
+	} default_tabs[] = {
 		{ "Players", "/players/by-rank", 0 },
 		{ "Clans", "/clans/by-nmembers", 0 },
-		{ "Servers", "/servers/by-nplayers", 0 },
-	};
+		{ "Servers", "/servers/by-nplayers", 0 }
+	}, search_tabs[] = {
+		{ "Players", "/players/search", 0 },
+		{ "Clans", "/clans/search", 0 },
+		{ "Servers", "/servers/search", 0 }
+	}, *tabs;
 
-	if (read_info(&info)) {
-		tabs[0].num = round(info.nplayers);
-		tabs[1].num = round(info.nclans);
-		tabs[2].num = round(info.nservers);
+	const unsigned NTABS = 3;
+
+	if (squery) {
+		tabs = search_tabs;
+		tabs[tab].num = num;
+	} else {
+		struct info info;
+		tabs = default_tabs;
+
+		if (read_info(&info)) {
+			tabs[0].num = round(info.nplayers);
+			tabs[1].num = round(info.nclans);
+			tabs[2].num = round(info.nservers);
+		}
 	}
 
 	html("<nav class=\"section_tabs\">");
 
-	for (i = 0; i < sizeof(tabs) / sizeof(*tabs); i++) {
-		const char *class = "";
-
+	for (i = 0; i < NTABS; i++) {
 		if (i == tab)
-			class = " class=\"enabled\"";
+			html("<a class=\"enabled\">");
+		else
+			html("<a href=\"%s%s%s\">",
+			     tabs[i].url, squery ? "?q=" : "", squery ? squery : "");
+
+		html("%s", tabs[i].title);
 
 		if (tabs[i].num)
-			html("<a%s href=\"%s\">%s<small>%u</small></a>",
-			     class, tabs[i].url, tabs[i].title, tabs[i].num);
-		else
-			html("<a%s href=\"%s\">%s</a>",
-			     class, tabs[i].url, tabs[i].title);
+			html("<small>%u</small>", tabs[i].num);
+
+		html("</a>");
 	}
 
 	html("</nav>");

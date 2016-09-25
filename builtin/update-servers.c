@@ -174,20 +174,19 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 
 	/* Players */
 	for (i = 0; i < state->num_clients; i++) {
+		struct client *client = &state->clients[i];
+
 		if (!can_unpack(&up, 5))
 			return 0;
 
 		/* Name */
-		unpack_string(
-			&up, state->clients[i].name,
-			sizeof(state->clients[i].name));
+		unpack_string(&up, client->name, sizeof(client->name));
 		/* Clan */
-		unpack_string(
-			&up, state->clients[i].clan,
-			sizeof(state->clients[i].clan));
+		unpack_string(&up, client->clan, sizeof(client->clan));
+
 		skip_field(&up); /* Country */
-		state->clients[i].score  = unpack_int(&up); /* Score */
-		state->clients[i].ingame = unpack_int(&up); /* Ingame? */
+		client->score  = unpack_int(&up); /* Score */
+		client->ingame = unpack_int(&up); /* Ingame? */
 	}
 
 	if (!validate_clients_info(state))

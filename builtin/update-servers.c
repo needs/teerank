@@ -196,7 +196,7 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 	return 1;
 }
 
-struct server {
+struct netserver {
 	char filename[PATH_MAX];
 	struct sockaddr_storage addr;
 
@@ -205,9 +205,9 @@ struct server {
 	struct pool_entry entry;
 };
 
-struct server_list {
+struct netserver_list {
 	unsigned length;
-	struct server *servers;
+	struct netserver *netservers;
 };
 
 static void remove_spectators(struct server_state *state)
@@ -254,13 +254,13 @@ static int is_vanilla(struct server_state *state)
 	return 1;
 }
 
-static int handle_data(struct data *data, struct server *server)
+static int handle_data(struct data *data, struct netserver *ns)
 {
 	struct server_state new;
 	int rankable;
 
 	assert(data != NULL);
-	assert(server != NULL);
+	assert(ns != NULL);
 
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
 		return 0;
@@ -270,14 +270,14 @@ static int handle_data(struct data *data, struct server *server)
 	rankable = is_vanilla(&new) && strcmp(new.gametype, "CTF") == 0;
 
 	mark_server_online(&new, rankable);
-	write_server_state(&new, server->filename);
+	write_server_state(&new, ns->filename);
 
 	if (rankable) {
-		int elapsed = time(NULL) - server->state.last_seen;
+		int elapsed = time(NULL) - ns->state.last_seen;
 		struct delta delta;
 
 		remove_spectators(&new);
-		delta = delta_states(&server->state, &new, elapsed);
+		delta = delta_states(&ns->state, &new, elapsed);
 		print_delta(&delta);
 	}
 
@@ -326,23 +326,25 @@ static int extract_ip_and_port(char *name, char *ip, char *port)
 	return 1;
 }
 
-static int add_server(struct server_list *list, struct server *server)
+static int add_netserver(struct netserver_list *list, struct netserver *ns)
 {
 	static const unsigned OFFSET = 4096;
 
 	if (list->length % OFFSET == 0) {
-		struct server *servers;
-		servers = realloc(list->servers, sizeof(*servers) * (list->length + OFFSET));
-		if (!servers)
+		struct netserver *tmp;
+		size_t newsize = sizeof(*tmp) * (list->length + OFFSET);
+
+		if (!(tmp = realloc(list->netservers, newsize)))
 			return 0;
-		list->servers = servers;
+
+		list->netservers = tmp;
 	}
 
-	list->servers[list->length++] = *server;
+	list->netservers[list->length++] = *ns;
 	return 1;
 }
 
-static int fill_server_list(struct server_list *list)
+static int fill_netserver_list(struct netserver_list *list)
 {
 	DIR *dir;
 	struct dirent *dp;
@@ -363,24 +365,24 @@ static int fill_server_list(struct server_list *list)
 	/* Fill array (ignore server on error) */
 	while ((dp = readdir(dir))) {
 		char ip[IP_LENGTH + 1], port[PORT_LENGTH + 1];
-		struct server server;
+		struct netserver ns;
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
 			continue;
 
 		count++;
 
-		if (read_server_state(&server.state, dp->d_name) != SUCCESS)
+		if (read_server_state(&ns.state, dp->d_name) != SUCCESS)
 			continue;
-		if (!server_expired(&server.state))
+		if (!server_expired(&ns.state))
 			continue;
 
-		strcpy(server.filename, dp->d_name);
+		strcpy(ns.filename, dp->d_name);
 		if (!extract_ip_and_port(dp->d_name, ip, port))
 			continue;
-		if (!get_sockaddr(ip, port, &server.addr))
+		if (!get_sockaddr(ip, port, &ns.addr))
 			continue;
-		if (!add_server(list, &server))
+		if (!add_netserver(list, &ns))
 			continue;
 	}
 
@@ -392,13 +394,13 @@ static int fill_server_list(struct server_list *list)
 	return 1;
 }
 
-static struct server *get_server(struct pool_entry *entry)
+static struct netserver *get_netserver(struct pool_entry *entry)
 {
 	assert(entry != NULL);
-	return (struct server*)((char*)entry - offsetof(struct server, entry));
+	return (struct netserver*)((char*)entry - offsetof(struct netserver, entry));
 }
 
-static void poll_servers(struct server_list *list, struct sockets *sockets)
+static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 {
 	const struct data request = {
 		sizeof(MSG_GETINFO) + 1, {
@@ -417,28 +419,28 @@ static void poll_servers(struct server_list *list, struct sockets *sockets)
 
 	init_pool(&pool, sockets, &request);
 	for (i = 0; i < list->length; i++)
-		add_pool_entry(&pool, &list->servers[i].entry,
-		               &list->servers[i].addr);
+		add_pool_entry(&pool, &list->netservers[i].entry,
+		               &list->netservers[i].addr);
 
 	while ((entry = poll_pool(&pool, &answer)))
-		handle_data(&answer, get_server(entry));
+		handle_data(&answer, get_netserver(entry));
 
 	while ((entry = foreach_failed_poll(&pool))) {
-		struct server *server = get_server(entry);
-		mark_server_offline(&server->state);
-		write_server_state(&server->state, server->filename);
+		struct netserver *ns = get_netserver(entry);
+		mark_server_offline(&ns->state);
+		write_server_state(&ns->state, ns->filename);
 		failed_count++;
 	}
 
 	verbose("Polling failed for %u servers\n", failed_count);
 }
 
-static const struct server_list SERVER_LIST_ZERO;
+static const struct netserver_list NETSERVER_LIST_ZERO;
 
 int main(int argc, char **argv)
 {
 	struct sockets sockets;
-	struct server_list list = SERVER_LIST_ZERO;
+	struct netserver_list list = NETSERVER_LIST_ZERO;
 
 	load_config(1);
 	if (argc != 1) {
@@ -446,7 +448,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (!fill_server_list(&list))
+	if (!fill_netserver_list(&list))
 		return EXIT_FAILURE;
 
 	if (!init_sockets(&sockets))

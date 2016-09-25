@@ -78,8 +78,8 @@ static int is_ipv4(unsigned char *ip)
 }
 
 struct server_addr_raw {
-	unsigned char ip[16];
-	unsigned char port[2];
+	uint8_t ip[16];
+	uint8_t port[2];
 };
 
 static void raw_addr_to_addr(

@@ -40,11 +40,8 @@ int page_clan_html_main(int argc, char **argv)
 	if (!is_valid_hexname(argv[1]))
 		return EXIT_NOT_FOUND;
 
-	ret = read_clan(&clan, argv[1]);
-	if (ret == CLAN_NOT_FOUND)
-		return EXIT_NOT_FOUND;
-	if (ret == CLAN_ERROR)
-		return EXIT_FAILURE;
+	if ((ret = read_clan(&clan, argv[1])) != SUCCESS)
+		return ret;
 
 	missing_members = load_members(&clan);
 

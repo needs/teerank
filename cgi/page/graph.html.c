@@ -817,7 +817,7 @@ int page_graph_main(int argc, char **argv)
 	struct player player;
 	char *name;
 	struct graph graph;
-	enum read_player_ret ret;
+	int ret;
 
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s <player_name>\n", argv[0]);
@@ -833,11 +833,8 @@ int page_graph_main(int argc, char **argv)
 
 	init_player(&player);
 
-	ret = read_player(&player, name);
-	if (ret == PLAYER_NOT_FOUND)
-		return EXIT_NOT_FOUND;
-	else if (ret == PLAYER_ERROR)
-		return EXIT_FAILURE;
+	if ((ret = read_player(&player, name)) != SUCCESS)
+		return ret;
 
 	graph = init_graph(&player.hist);
 	add_curve(&graph, elo_to_long, 0, "#970", "#725800", "Elo");

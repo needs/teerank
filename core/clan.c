@@ -87,7 +87,7 @@ int read_clan(struct clan *clan, const char *cname)
 	if ((file = fopen(path, "r")) == NULL) {
 		if (errno == ENOENT) {
 			create_clan(clan, cname, 0);
-			return CLAN_NOT_FOUND;
+			return NOT_FOUND;
 		}
 		perror(path);
 		goto fail;
@@ -128,12 +128,12 @@ int read_clan(struct clan *clan, const char *cname)
 
 	fclose(file);
 
-	return CLAN_FOUND;
+	return SUCCESS;
 
 fail:
 	if (file)
 		fclose(file);
-	return CLAN_ERROR;
+	return FAILURE;
 }
 
 int write_clan(const struct clan *clan)
@@ -223,12 +223,12 @@ unsigned load_members(struct clan *clan)
 {
 	unsigned i;
 	unsigned removed = 0;
-	enum read_player_ret ret;
+	int ret;
 
 	for (i = 0; i < clan->nmembers; i++) {
 		ret = read_player_info(&clan->members[i], clan->members[i].name);
 
-		if (ret != PLAYER_FOUND) {
+		if (ret != SUCCESS) {
 			remove_member(clan, &clan->members[i]);
 			removed++;
 		}

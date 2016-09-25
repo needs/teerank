@@ -93,16 +93,16 @@ int main(int argc, char **argv)
 		for (i = 0; i < delta.length; i++) {
 			struct player *player;
 			const char *name;
-			enum read_player_ret ret;
+			int ret;
 
 			player = &players[length];
 			name = delta.players[i].name;
 
 			ret = read_player(player, name);
 
-			if (ret == PLAYER_ERROR)
+			if (ret == FAILURE)
 				continue;
-			else if (ret == PLAYER_NOT_FOUND)
+			else if (ret == NOT_FOUND)
 				create_player(player, name);
 
 			merge_delta(player, &delta.players[i]);

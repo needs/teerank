@@ -13,7 +13,7 @@ int page_player_html_main(int argc, char **argv)
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
 	const char *hexname;
 	struct player_info player;
-	enum read_player_ret ret;
+	int ret;
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <player_name>\n", argv[0]);
@@ -26,12 +26,8 @@ int page_player_html_main(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 	}
 
-	ret = read_player_info(&player, hexname);
-
-	if (ret == PLAYER_ERROR)
-		return EXIT_FAILURE;
-	if (ret == PLAYER_NOT_FOUND)
-		return EXIT_NOT_FOUND;
+	if ((ret = read_player_info(&player, hexname)) != SUCCESS)
+		return ret;
 
 	hexname_to_name(hexname, name);
 	CUSTOM_TAB.name = name;

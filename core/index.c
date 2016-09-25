@@ -23,7 +23,7 @@ static int create_indexed_player(void *data, const char *name)
 	if (!is_valid_hexname(name))
 		return 0;
 
-	if (read_player_info(&player, name) != PLAYER_FOUND)
+	if (read_player_info(&player, name) != SUCCESS)
 		return 0;
 
 	strcpy(ret->name, player.name);
@@ -83,7 +83,7 @@ static int create_indexed_clan(void *data, const char *name)
 	if (!is_valid_hexname(name))
 		return 0;
 
-	if (read_clan(&clan, name) != CLAN_FOUND)
+	if (read_clan(&clan, name) != SUCCESS)
 		return 0;
 
 	strcpy(ret->name, clan.name);

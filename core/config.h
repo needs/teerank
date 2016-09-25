@@ -11,6 +11,20 @@ struct config {
 #undef STRING
 };
 
+/*
+ * Used by many functions that search for a particular entity in the
+ * database.  It is needed to have diffreent code whenever the entity
+ * exist but cannot be loaded (FAILURE), and when the entity simply does
+ * not exist.
+ *
+ * I can be used directly as an exit status.
+ */
+enum {
+	SUCCESS,
+	FAILURE,
+	NOT_FOUND
+};
+
 extern struct config config;
 
 /**

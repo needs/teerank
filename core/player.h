@@ -116,12 +116,6 @@ static const time_t NEVER_SEEN = 0;
  */
 void init_player(struct player *player);
 
-enum read_player_ret {
-	PLAYER_FOUND,
-	PLAYER_NOT_FOUND,
-	PLAYER_ERROR
-};
-
 /**
  * Create a player with the given name.
  *
@@ -144,10 +138,10 @@ void create_player(struct player *player, const char *name);
  * @param player Player to read
  * @param name Name of the player to read
  *
- * @return PLAYER_FOUND on success, PLAYER_NOT_FOUND when player does
- *         not exist, PLAYER_ERROR when an error occured.
+ * @return SUCCESS on success, NOT_FOUND when player does not exist,
+ *         FAILURE when an error occured.
  */
-enum read_player_ret read_player(struct player *player, const char *name);
+int read_player(struct player *player, const char *name);
 
 /**
  * Write a player to the disk.
@@ -225,9 +219,9 @@ struct player_info {
  * @param ps Player info to be read
  * @param name Name of the player to read
  *
- * @return PLAYER_FOUND on success, PLAYER_NOT_FOUND when player does
- *         not exist, PLAYER_ERROR when an error occured.
+ * @return SUCCESS on success, NOT_FOUND when player does not exist,
+ *         FAILURE when an error occured.
  */
-enum read_player_ret read_player_info(struct player_info *ps, const char *name);
+int read_player_info(struct player_info *ps, const char *name);
 
 #endif /* PLAYER_H */

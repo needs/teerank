@@ -20,12 +20,6 @@ struct clan {
 	struct player_info *members;
 };
 
-enum {
-	CLAN_FOUND,
-	CLAN_NOT_FOUND,
-	CLAN_ERROR
-};
-
 /**
  * Read the given clan.
  *
@@ -35,8 +29,8 @@ enum {
  * @param clan Clan structure to contain readed data
  * @param name Clan name
  *
- * @return CLAN_FOUND on success, CLAN_NOT_FOUND when does not exist,
- *         CLAN_ERROR otherwise
+ * @return SUCCESS on success, NOT_FOUND when does not exist, FAILURE
+ *         otherwise.
  */
 int read_clan(struct clan *clan, const char *name);
 

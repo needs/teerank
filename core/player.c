@@ -144,7 +144,7 @@ static void read_player_header(struct jfile *jfile, struct player *player)
 	json_read_tm(      jfile, "last_seen", &player->last_seen);
 }
 
-enum read_player_ret read_player(struct player *player, const char *name)
+int read_player(struct player *player, const char *name)
 {
 	FILE *file = NULL;
 	struct jfile jfile;
@@ -168,7 +168,7 @@ enum read_player_ret read_player(struct player *player, const char *name)
 
 	if (!(file = fopen(path, "r"))) {
 		if (errno == ENOENT)
-			return PLAYER_NOT_FOUND;
+			return NOT_FOUND;
 
 		perror(path);
 		goto fail;
@@ -193,12 +193,12 @@ enum read_player_ret read_player(struct player *player, const char *name)
 	/* Historics cannot be empty */
 	assert(player->hist.nrecords > 0);
 
-	return PLAYER_FOUND;
+	return SUCCESS;
 
 fail:
 	if (file)
 		fclose(file);
-	return PLAYER_ERROR;
+	return FAILURE;
 }
 
 static int write_player_record(struct jfile *jfile, void *buf)
@@ -332,7 +332,7 @@ static void read_player_info_header(
 	json_read_tm(      jfile, "last_seen", &ps->last_seen);
 }
 
-enum read_player_ret read_player_info(struct player_info *ps, const char *name)
+int read_player_info(struct player_info *ps, const char *name)
 {
 	struct jfile jfile;
 	FILE *file = NULL;
@@ -346,7 +346,7 @@ enum read_player_ret read_player_info(struct player_info *ps, const char *name)
 
 	if (!(file = fopen(path, "r"))) {
 		if (errno == ENOENT)
-			return PLAYER_NOT_FOUND;
+			return NOT_FOUND;
 		perror(path);
 		goto fail;
 	}
@@ -361,10 +361,10 @@ enum read_player_ret read_player_info(struct player_info *ps, const char *name)
 		goto fail;
 
 	fclose(file);
-	return PLAYER_FOUND;
+	return SUCCESS;
 
 fail:
 	if (file)
 		fclose(file);
-	return PLAYER_ERROR;
+	return FAILURE;
 }

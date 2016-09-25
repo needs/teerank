@@ -20,7 +20,7 @@ static void set_players_rank(struct index *index)
 	init_player(&player);
 
 	while ((p = index_foreach(index))) {
-		if (read_player(&player, p->name) == PLAYER_FOUND) {
+		if (read_player(&player, p->name) == SUCCESS) {
 			set_rank(&player, rank);
 			write_player(&player);
 		}

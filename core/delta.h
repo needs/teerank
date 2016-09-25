@@ -10,7 +10,7 @@
 /**
  * @struct delta
  *
- * A delta between two server states.
+ * A delta between two servers
  */
 struct delta {
 	int elapsed;
@@ -40,17 +40,17 @@ int scan_delta(struct delta *delta);
 void print_delta(struct delta *delta);
 
 /**
- * Compare the given states and return a delta
+ * Compare the given servers and return a delta
  *
  * Delta is ready to printed with print_delta().
  *
- * @param old Old server state
- * @param new New server state
+ * @param old Old server
+ * @param new New server
  * @param elapsed Elapsed time between old and new
  *
  * @return Delta from old to new
  */
-struct delta delta_states(
-	struct server_state *old, struct server_state *new, int elapsed);
+struct delta delta_servers(
+	struct server *old, struct server *new, int elapsed);
 
 #endif /* DELTA_H */

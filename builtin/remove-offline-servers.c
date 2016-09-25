@@ -71,16 +71,16 @@ int main(int argc, char **argv)
 		return perror(path), EXIT_FAILURE;
 
 	while ((dp = readdir(dir))) {
-		struct server_state state;
+		struct server server;
 
 		if (strcmp(".", dp->d_name) == 0 || strcmp("..", dp->d_name) == 0)
 			continue;
 
 		/* Just ignore server on error */
-		if (read_server_state(&state, dp->d_name) != SUCCESS)
+		if (read_server(&server, dp->d_name) != SUCCESS)
 			continue;
 
-		if (days_offline(state.last_seen) >= days) {
+		if (days_offline(server.last_seen) >= days) {
 			if (dry_run) {
 				printf("'%s' would have been removed\n", dp->d_name);
 			} else {

@@ -135,46 +135,46 @@ static int validate_client_info(struct client *client)
 	return 1;
 }
 
-static int validate_clients_info(struct server_state *state)
+static int validate_clients_info(struct server *server)
 {
 	unsigned i;
 
-	assert(state != NULL);
+	assert(server != NULL);
 
-	for (i = 0; i < state->num_clients; i++)
-		if (!validate_client_info(&state->clients[i]))
+	for (i = 0; i < server->num_clients; i++)
+		if (!validate_client_info(&server->clients[i]))
 			return 0;
 	return 1;
 }
 
-static int unpack_server_state(struct data *data, struct server_state *state)
+static int unpack_packet_data(struct data *data, struct server *server)
 {
 	struct unpacker up;
 	unsigned i;
 
 	assert(data != NULL);
-	assert(state != NULL);
+	assert(server != NULL);
 
-	/* Unpack server state (ignore useless infos) */
 	init_unpacker(&up, data);
+
 	if (!can_unpack(&up, 10))
 		return 0;
 
 	skip_field(&up);     /* Token */
 	skip_field(&up);     /* Version */
-	unpack_string(&up, state->name, sizeof(state->name)); /* Name */
-	unpack_string(&up, state->map, sizeof(state->map)); /* Map */
-	unpack_string(&up, state->gametype, sizeof(state->gametype)); /* Gametype */
+	unpack_string(&up, server->name, sizeof(server->name)); /* Name */
+	unpack_string(&up, server->map, sizeof(server->map)); /* Map */
+	unpack_string(&up, server->gametype, sizeof(server->gametype)); /* Gametype */
 
 	skip_field(&up);     /* Flags */
 	skip_field(&up);     /* Player number */
 	skip_field(&up);     /* Player max number */
-	state->num_clients = unpack_int(&up); /* Client number */
-	state->max_clients = unpack_int(&up); /* Client max number */
+	server->num_clients = unpack_int(&up); /* Client number */
+	server->max_clients = unpack_int(&up); /* Client max number */
 
 	/* Players */
-	for (i = 0; i < state->num_clients; i++) {
-		struct client *client = &state->clients[i];
+	for (i = 0; i < server->num_clients; i++) {
+		struct client *client = &server->clients[i];
 
 		if (!can_unpack(&up, 5))
 			return 0;
@@ -189,7 +189,7 @@ static int unpack_server_state(struct data *data, struct server_state *state)
 		client->ingame = unpack_int(&up); /* Ingame? */
 	}
 
-	if (!validate_clients_info(state))
+	if (!validate_clients_info(server))
 		return 0;
 
 	return 1;
@@ -199,7 +199,7 @@ struct netserver {
 	char filename[PATH_MAX];
 	struct sockaddr_storage addr;
 
-	struct server_state state;
+	struct server server;
 
 	struct pool_entry entry;
 };
@@ -209,45 +209,45 @@ struct netserver_list {
 	struct netserver *netservers;
 };
 
-static void remove_spectators(struct server_state *state)
+static void remove_spectators(struct server *server)
 {
 	unsigned i;
 
-	assert(state != NULL);
+	assert(server != NULL);
 
-	for (i = 0; i < state->num_clients; i++) {
-		if (!state->clients[i].ingame) {
-			state->clients[i] = state->clients[--state->num_clients];
+	for (i = 0; i < server->num_clients; i++) {
+		if (!server->clients[i].ingame) {
+			server->clients[i] = server->clients[--server->num_clients];
 			i--;
 		}
 	}
 }
 
-static int is_vanilla(struct server_state *state)
+static int is_vanilla(struct server *server)
 {
-	if (strcmp(state->gametype, "CTF") != 0
-	    && strcmp(state->gametype, "DM") != 0
-	    && strcmp(state->gametype, "TDM") != 0)
+	if (strcmp(server->gametype, "CTF") != 0
+	    && strcmp(server->gametype, "DM") != 0
+	    && strcmp(server->gametype, "TDM") != 0)
 		return 0;
 
-	if (strcmp(state->map, "ctf1") != 0
-	    && strcmp(state->map, "ctf2") != 0
-	    && strcmp(state->map, "ctf3") != 0
-	    && strcmp(state->map, "ctf4") != 0
-	    && strcmp(state->map, "ctf5") != 0
-	    && strcmp(state->map, "ctf6") != 0
-	    && strcmp(state->map, "ctf7") != 0
-	    && strcmp(state->map, "dm1") != 0
-	    && strcmp(state->map, "dm2") != 0
-	    && strcmp(state->map, "dm6") != 0
-	    && strcmp(state->map, "dm7") != 0
-	    && strcmp(state->map, "dm8") != 0
-	    && strcmp(state->map, "dm9") != 0)
+	if (strcmp(server->map, "ctf1") != 0
+	    && strcmp(server->map, "ctf2") != 0
+	    && strcmp(server->map, "ctf3") != 0
+	    && strcmp(server->map, "ctf4") != 0
+	    && strcmp(server->map, "ctf5") != 0
+	    && strcmp(server->map, "ctf6") != 0
+	    && strcmp(server->map, "ctf7") != 0
+	    && strcmp(server->map, "dm1") != 0
+	    && strcmp(server->map, "dm2") != 0
+	    && strcmp(server->map, "dm6") != 0
+	    && strcmp(server->map, "dm7") != 0
+	    && strcmp(server->map, "dm8") != 0
+	    && strcmp(server->map, "dm9") != 0)
 		return 0;
 
-	if (state->num_clients > MAX_CLIENTS)
+	if (server->num_clients > MAX_CLIENTS)
 		return 0;
-	if (state->max_clients > MAX_CLIENTS)
+	if (server->max_clients > MAX_CLIENTS)
 		return 0;
 
 	return 1;
@@ -255,7 +255,7 @@ static int is_vanilla(struct server_state *state)
 
 static int handle_data(struct data *data, struct netserver *ns)
 {
-	struct server_state new;
+	struct server new;
 	int rankable;
 
 	assert(data != NULL);
@@ -263,20 +263,20 @@ static int handle_data(struct data *data, struct netserver *ns)
 
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
 		return 0;
-	if (!unpack_server_state(data, &new))
+	if (!unpack_packet_data(data, &new))
 		return 0;
 
 	rankable = is_vanilla(&new) && strcmp(new.gametype, "CTF") == 0;
 
 	mark_server_online(&new, rankable);
-	write_server_state(&new, ns->filename);
+	write_server(&new, ns->filename);
 
 	if (rankable) {
-		int elapsed = time(NULL) - ns->state.last_seen;
+		int elapsed = time(NULL) - ns->server.last_seen;
 		struct delta delta;
 
 		remove_spectators(&new);
-		delta = delta_states(&ns->state, &new, elapsed);
+		delta = delta_servers(&ns->server, &new, elapsed);
 		print_delta(&delta);
 	}
 
@@ -371,9 +371,9 @@ static int fill_netserver_list(struct netserver_list *list)
 
 		count++;
 
-		if (read_server_state(&ns.state, dp->d_name) != SUCCESS)
+		if (read_server(&ns.server, dp->d_name) != SUCCESS)
 			continue;
-		if (!server_expired(&ns.state))
+		if (!server_expired(&ns.server))
 			continue;
 
 		strcpy(ns.filename, dp->d_name);
@@ -426,8 +426,8 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 
 	while ((entry = foreach_failed_poll(&pool))) {
 		struct netserver *ns = get_netserver(entry);
-		mark_server_offline(&ns->state);
-		write_server_state(&ns->state, ns->filename);
+		mark_server_offline(&ns->server);
+		write_server(&ns->server, ns->filename);
 		failed_count++;
 	}
 

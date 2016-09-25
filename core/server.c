@@ -11,14 +11,14 @@
 #include "config.h"
 #include "json.h"
 
-int read_server_state(struct server_state *state, const char *sname)
+int read_server(struct server *server, const char *sname)
 {
 	FILE *file = NULL;
 	struct jfile jfile;
 	char path[PATH_MAX];
 	unsigned i;
 
-	assert(state != NULL);
+	assert(server != NULL);
 	assert(sname != NULL);
 
 	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
@@ -35,22 +35,22 @@ int read_server_state(struct server_state *state, const char *sname)
 
 	json_read_object_start(&jfile, NULL);
 
-	json_read_string(  &jfile, "name"     , state->name,     sizeof(state->name));
-	json_read_string(  &jfile, "gametype" , state->gametype, sizeof(state->gametype));
-	json_read_string(  &jfile, "map"      , state->map,      sizeof(state->map));
-	json_read_unsigned(&jfile, "last_seen", (unsigned*)&state->last_seen);
-	json_read_unsigned(&jfile, "expire"   , (unsigned*)&state->expire);
+	json_read_string(  &jfile, "name"     , server->name,     sizeof(server->name));
+	json_read_string(  &jfile, "gametype" , server->gametype, sizeof(server->gametype));
+	json_read_string(  &jfile, "map"      , server->map,      sizeof(server->map));
+	json_read_unsigned(&jfile, "last_seen", (unsigned*)&server->last_seen);
+	json_read_unsigned(&jfile, "expire"   , (unsigned*)&server->expire);
 
-	json_read_int(&jfile, "num_clients", &state->num_clients);
-	json_read_int(&jfile, "max_clients", &state->max_clients);
+	json_read_int(&jfile, "num_clients", &server->num_clients);
+	json_read_int(&jfile, "max_clients", &server->max_clients);
 
 	json_read_array_start(&jfile, "clients", 0);
 
 	if (json_have_error(&jfile))
 		goto fail;
 
-	for (i = 0; i < state->num_clients; i++) {
-		struct client *client = &state->clients[i];
+	for (i = 0; i < server->num_clients; i++) {
+		struct client *client = &server->clients[i];
 
 		json_read_object_start(&jfile, NULL);
 
@@ -79,7 +79,7 @@ fail:
 	return FAILURE;
 }
 
-int write_server_state(struct server_state *state, const char *sname)
+int write_server(struct server *server, const char *sname)
 {
 	FILE *file = NULL;
 	struct jfile jfile;
@@ -87,7 +87,7 @@ int write_server_state(struct server_state *state, const char *sname)
 
 	unsigned i;
 
-	assert(state != NULL);
+	assert(server != NULL);
 
 	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
 		goto fail;
@@ -101,22 +101,22 @@ int write_server_state(struct server_state *state, const char *sname)
 
 	json_write_object_start(&jfile, NULL);
 
-	json_write_string(  &jfile, "name"     , state->name,     sizeof(state->name));
-	json_write_string(  &jfile, "gametype" , state->gametype, sizeof(state->gametype));
-	json_write_string(  &jfile, "map"      , state->map,      sizeof(state->map));
-	json_write_unsigned(&jfile, "last_seen", state->last_seen);
-	json_write_unsigned(&jfile, "expire"   , state->expire);
+	json_write_string(  &jfile, "name"     , server->name,     sizeof(server->name));
+	json_write_string(  &jfile, "gametype" , server->gametype, sizeof(server->gametype));
+	json_write_string(  &jfile, "map"      , server->map,      sizeof(server->map));
+	json_write_unsigned(&jfile, "last_seen", server->last_seen);
+	json_write_unsigned(&jfile, "expire"   , server->expire);
 
-	json_write_unsigned(&jfile, "num_clients", state->num_clients);
-	json_write_unsigned(&jfile, "max_clients", state->max_clients);
+	json_write_unsigned(&jfile, "num_clients", server->num_clients);
+	json_write_unsigned(&jfile, "max_clients", server->max_clients);
 
 	json_write_array_start(&jfile, "clients", 0);
 
 	if (json_have_error(&jfile))
 		goto fail;
 
-	for (i = 0; i < state->num_clients; i++) {
-		struct client *client = &state->clients[i];
+	for (i = 0; i < server->num_clients; i++) {
+		struct client *client = &server->clients[i];
 
 		json_write_object_start(&jfile, NULL);
 
@@ -145,18 +145,18 @@ fail:
 	return 0;
 }
 
-int server_expired(struct server_state *state)
+int server_expired(struct server *server)
 {
 	time_t now;
 
-	assert(state != NULL);
+	assert(server != NULL);
 
 	now = time(NULL);
 
 	if (now == (time_t)-1)
 		return 1;
 
-	return now > state->expire;
+	return now > server->expire;
 }
 
 static unsigned min(unsigned a, unsigned b)
@@ -164,11 +164,11 @@ static unsigned min(unsigned a, unsigned b)
 	return a < b ? a : b;
 }
 
-void mark_server_offline(struct server_state *state)
+void mark_server_offline(struct server *server)
 {
 	time_t now;
 
-	assert(state != NULL);
+	assert(server != NULL);
 
 	/*
 	 * We won't want to check an offline server too often, because it will
@@ -178,7 +178,7 @@ void mark_server_offline(struct server_state *state)
 	 *
 	 * To meet the requirements above, we schedule the next poll to:
 	 *
-	 * 	now + min(now - state->last_seen, 2 hours)
+	 * 	now + min(now - server->last_seen, 2 hours)
 	 *
 	 * So for example if the server was seen 5 minutes ago, the next poll
 	 * will be schedule in 5 minutes.  If the server is still offline 5
@@ -187,21 +187,21 @@ void mark_server_offline(struct server_state *state)
 	 */
 
 	now = time(NULL);
-	state->expire = now + min(now - state->last_seen, 2 * 3600);
+	server->expire = now + min(now - server->last_seen, 2 * 3600);
 }
 
-void mark_server_online(struct server_state *state, int expire_now)
+void mark_server_online(struct server *server, int expire_now)
 {
 	time_t now;
 	static int initialized = 0;
 
-	assert(state != NULL);
+	assert(server != NULL);
 
 	now = time(NULL);
-	state->last_seen = now;
+	server->last_seen = now;
 
 	if (expire_now) {
-		state->expire = 0;
+		server->expire = 0;
 	} else {
 		/*
 		 * We just choose a random value between a half hour and
@@ -212,7 +212,7 @@ void mark_server_online(struct server_state *state, int expire_now)
 			initialized = 1;
 			srand(now);
 		}
-		state->expire = now + 1800 + 3600 * ((double)rand() / (double)RAND_MAX);
+		server->expire = now + 1800 + 3600 * ((double)rand() / (double)RAND_MAX);
 	}
 }
 
@@ -242,17 +242,17 @@ static int server_exist(const char *sname)
 
 int create_server(const char *sname)
 {
-	static const struct server_state SERVER_STATE_ZERO;
-	struct server_state state = SERVER_STATE_ZERO;
+	static const struct server SERVER_ZERO;
+	struct server server = SERVER_ZERO;
 
 	if (server_exist(sname))
 		return 0;
 
-	strcpy(state.name, "???");
-	strcpy(state.gametype, "???");
-	strcpy(state.map, "???");
+	strcpy(server.name, "???");
+	strcpy(server.gametype, "???");
+	strcpy(server.map, "???");
 
-	state.last_seen = time(NULL);
+	server.last_seen = time(NULL);
 
-	return write_server_state(&state, sname);
+	return write_server(&server, sname);
 }

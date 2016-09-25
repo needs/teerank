@@ -71,22 +71,22 @@ void print_delta(struct delta *delta)
 }
 
 static struct client *get_player(
-	struct server_state *state, struct client *client)
+	struct server *server, struct client *client)
 {
 	unsigned i;
 
-	assert(state != NULL);
+	assert(server != NULL);
 	assert(client != NULL);
 
-	for (i = 0; i < state->num_clients; i++)
-		if (!strcmp(state->clients[i].name, client->name))
-			return &state->clients[i];
+	for (i = 0; i < server->num_clients; i++)
+		if (!strcmp(server->clients[i].name, client->name))
+			return &server->clients[i];
 
 	return NULL;
 }
 
-struct delta delta_states(
-	struct server_state *old, struct server_state *new, int elapsed)
+struct delta delta_servers(
+	struct server *old, struct server *new, int elapsed)
 {
 	struct delta delta;
 	unsigned i;

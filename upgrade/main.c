@@ -122,7 +122,7 @@ static void upgrade_players(void)
 	closedir(dir);
 }
 
-static void upgrade_server(struct teerank5_server_state *old, struct server_state *new)
+static void upgrade_server(struct teerank5_server_state *old, struct server *new)
 {
 	unsigned i;
 
@@ -148,7 +148,7 @@ static void upgrade_server(struct teerank5_server_state *old, struct server_stat
 static void upgrade_servers(void)
 {
 	struct teerank5_server_state old;
-	struct server_state new;
+	struct server new;
 
 	char path[PATH_MAX];
 	struct dirent *dp;
@@ -168,7 +168,7 @@ static void upgrade_servers(void)
 
 		teerank5_read_server_state(&old, dp->d_name);
 		upgrade_server(&old, &new);
-		write_server_state(&new, dp->d_name);
+		write_server(&new, dp->d_name);
 	}
 
 	closedir(dir);

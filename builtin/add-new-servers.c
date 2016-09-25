@@ -86,6 +86,7 @@ static void raw_addr_to_addr(
 	struct server_addr_raw *raw, struct server_addr *addr)
 {
 	uint16_t port;
+	int ret;
 
 	assert(raw != NULL);
 	assert(addr != NULL);
@@ -93,11 +94,13 @@ static void raw_addr_to_addr(
 	/* Convert raw adress to either ipv4 or ipv6 string format */
 	if (is_ipv4(raw->ip)) {
 		addr->version = IPV4;
-		sprintf(addr->ip, "%u.%u.%u.%u",
-		        raw->ip[12], raw->ip[13], raw->ip[14], raw->ip[15]);
+		ret = snprintf(
+			addr->ip, sizeof(addr->ip), "%u.%u.%u.%u",
+			raw->ip[12], raw->ip[13], raw->ip[14], raw->ip[15]);
 	} else {
 		addr->version = IPV6;
-		sprintf(addr->ip,
+		ret = snprintf(
+			addr->ip, sizeof(addr->ip),
 		        "%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x",
 		        raw->ip[0], raw->ip[1], raw->ip[2], raw->ip[3],
 		        raw->ip[4], raw->ip[5], raw->ip[6], raw->ip[7],
@@ -105,9 +108,16 @@ static void raw_addr_to_addr(
 		        raw->ip[12], raw->ip[13], raw->ip[14], raw->ip[15]);
 	}
 
+	assert(ret > 0 && ret < sizeof(addr->ip));
+
 	/* Unpack port and then write it in a string */
 	port = (raw->port[0] << 8) | raw->port[1];
-	sprintf(addr->port, "%u", port);
+	ret = snprintf(addr->port, sizeof(addr->port), "%u", port);
+
+	assert(ret > 0 && ret < sizeof(addr->port));
+
+	/* Don't raise a warning when assertions are disabled */
+	(void)ret;
 }
 
 static void handle_data(struct data *data, struct server_list *list)

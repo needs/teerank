@@ -45,7 +45,8 @@ struct server_state {
  * @param state Pointer to a state structure were readed data are stored
  * @param server_name Server name
  *
- * @return 1 on success, 0 on failure
+ * @return SUCCESS on success, NOT_FOUND if the server does not exist,
+ *         FAILURE on failure.
  */
 int read_server_state(struct server_state *state, const char *sname);
 
@@ -60,23 +61,12 @@ int read_server_state(struct server_state *state, const char *sname);
 int write_server_state(struct server_state *state, const char *sname);
 
 /**
- * Check wether or not a server exist in the database.
+ * Create an empty server state in the database if it doesn't already
+ * exists.
  *
  * @param sname Server name
  *
- * @return 1 if server exist, 0 otherwise
- */
-int server_exist(const char *sname);
-
-/**
- * Create an empty server state in the database.
- *
- * Use server_exist() if you don't want to overide an already
- * existing server.
- *
- * @param sname Server name
- *
- * @return 1 on success, 0 on failure
+ * @return 1 on success, 0 on failure or when the server already exist.
  */
 int create_server(const char *sname);
 

@@ -228,11 +228,10 @@ int main(int argc, char **argv)
 	for (i = 0; i < list.length; i++) {
 		char *filename = addr_to_filename(&list.addrs[i]);
 
-		if (server_exist(filename))
-			continue;
-		verbose("New server: %s\n", filename);
-		if (create_server(filename))
+		if (create_server(filename)) {
+			verbose("New server: %s\n", filename);
 			count_new++;
+		}
 	}
 
 	close(fd);

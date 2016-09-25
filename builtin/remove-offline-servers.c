@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 			continue;
 
 		/* Just ignore server on error */
-		if (!read_server_state(&state, dp->d_name))
+		if (read_server_state(&state, dp->d_name) != SUCCESS)
 			continue;
 
 		if (days_offline(state.last_seen) >= days) {

@@ -25,6 +25,8 @@ int read_server_state(struct server_state *state, const char *sname)
 		goto fail;
 
 	if ((file = fopen(path, "r")) == NULL) {
+		if (errno == ENOENT)
+			return NOT_FOUND;
 		perror(path);
 		goto fail;
 	}
@@ -69,12 +71,12 @@ int read_server_state(struct server_state *state, const char *sname)
 		goto fail;
 
 	fclose(file);
-	return 1;
+	return SUCCESS;
 
 fail:
 	if (file)
 		fclose(file);
-	return 0;
+	return FAILURE;
 }
 
 int write_server_state(struct server_state *state, const char *sname)
@@ -228,10 +230,23 @@ void remove_server(const char *name)
 			perror(path);
 }
 
+static int server_exist(const char *sname)
+{
+	char path[PATH_MAX];
+
+	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
+		return 0;
+
+	return access(path, F_OK) == 0;
+}
+
 int create_server(const char *sname)
 {
 	static const struct server_state SERVER_STATE_ZERO;
 	struct server_state state = SERVER_STATE_ZERO;
+
+	if (server_exist(sname))
+		return 0;
 
 	strcpy(state.name, "???");
 	strcpy(state.gametype, "???");
@@ -240,14 +255,4 @@ int create_server(const char *sname)
 	state.last_seen = time(NULL);
 
 	return write_server_state(&state, sname);
-}
-
-int server_exist(const char *sname)
-{
-	char path[PATH_MAX];
-
-	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
-		return 0;
-
-	return access(path, F_OK) == 0;
 }

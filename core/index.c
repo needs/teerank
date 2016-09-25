@@ -128,7 +128,7 @@ static int create_indexed_server(void *data, const char *name)
 	struct server_state server;
 	struct indexed_server *ret = data;
 
-	if (!read_server_state(&server, name))
+	if (read_server_state(&server, name) != SUCCESS)
 		return 0;
 
 	strcpy(ret->name, server.name);

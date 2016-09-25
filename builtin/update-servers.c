@@ -370,7 +370,7 @@ static int fill_server_list(struct server_list *list)
 
 		count++;
 
-		if (!read_server_state(&server.state, dp->d_name))
+		if (read_server_state(&server.state, dp->d_name) != SUCCESS)
 			continue;
 		if (!server_expired(&server.state))
 			continue;

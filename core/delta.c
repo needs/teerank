@@ -79,7 +79,7 @@ static struct client *get_player(
 	assert(client != NULL);
 
 	for (i = 0; i < server->num_clients; i++)
-		if (!strcmp(server->clients[i].name, client->name))
+		if (strcmp(server->clients[i].name, client->name) == 0)
 			return &server->clients[i];
 
 	return NULL;

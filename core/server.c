@@ -35,11 +35,14 @@ int read_server(struct server *server, const char *sname)
 
 	json_read_object_start(&jfile, NULL);
 
-	json_read_string(  &jfile, "name"     , server->name,     sizeof(server->name));
+	json_read_string(  &jfile, "ip",   server->ip,   sizeof(server->ip));
+	json_read_string(  &jfile, "port", server->port, sizeof(server->port));
+
+	json_read_string(  &jfile, "name",      server->name,     sizeof(server->name));
 	json_read_string(  &jfile, "gametype" , server->gametype, sizeof(server->gametype));
-	json_read_string(  &jfile, "map"      , server->map,      sizeof(server->map));
+	json_read_string(  &jfile, "map",       server->map,      sizeof(server->map));
 	json_read_unsigned(&jfile, "last_seen", (unsigned*)&server->last_seen);
-	json_read_unsigned(&jfile, "expire"   , (unsigned*)&server->expire);
+	json_read_unsigned(&jfile, "expire",    (unsigned*)&server->expire);
 
 	json_read_int(&jfile, "num_clients", &server->num_clients);
 	json_read_int(&jfile, "max_clients", &server->max_clients);
@@ -100,6 +103,9 @@ int write_server(struct server *server, const char *sname)
 	json_init(&jfile, file, path);
 
 	json_write_object_start(&jfile, NULL);
+
+	json_write_string(  &jfile, "ip",   server->ip,   sizeof(server->ip));
+	json_write_string(  &jfile, "port", server->port, sizeof(server->port));
 
 	json_write_string(  &jfile, "name"     , server->name,     sizeof(server->name));
 	json_write_string(  &jfile, "gametype" , server->gametype, sizeof(server->gametype));
@@ -240,13 +246,23 @@ static int server_exist(const char *sname)
 	return access(path, F_OK) == 0;
 }
 
-int create_server(const char *sname)
+int create_server(const char *sname, const char *ip, const char *port)
 {
 	static const struct server SERVER_ZERO;
 	struct server server = SERVER_ZERO;
 
 	if (server_exist(sname))
 		return 0;
+
+	if (snprintf(server.ip, sizeof(server.ip), "%s", ip) >= sizeof(server.ip)) {
+		fprintf(stderr, "create_server: %s: IP too long\n", sname);
+		return 0;
+	}
+
+	if (snprintf(server.port, sizeof(server.port), "%s", port) >= sizeof(server.port)) {
+		fprintf(stderr, "create_server: %s: Port too long\n", sname);
+		return 0;
+	}
 
 	strcpy(server.name, "???");
 	strcpy(server.gametype, "???");

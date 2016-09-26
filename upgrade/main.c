@@ -122,9 +122,70 @@ static void upgrade_players(void)
 	closedir(dir);
 }
 
-static void upgrade_server(struct teerank5_server_state *old, struct server *new)
+static const char *strncpy_until(char *dst, const char *src, size_t maxsize, char sep)
+{
+	size_t size;
+
+	for (size = 0; *src && *src != sep && size < maxsize; src++, dst++, size++)
+		*dst = *src;
+
+	/* Make sure result string is always nul-terminated */
+	*dst = '\0';
+
+	if (*src && *src != sep)
+		return NULL;
+
+	return *src ? src + 1 : src;
+}
+
+static int deconstruct_server_filename(
+	const char *fn, char *ip, char *port)
+{
+	char sep;
+
+	if (fn[0] == 'v' && fn[1] == '4' && fn[2] == ' ') {
+		sep = '.';
+	} else if (fn[0] == 'v' && fn[1] == '6' && fn[2] == ' ') {
+		sep = ':';
+	} else {
+		fprintf(stderr, "%s: Should start by \"v4 \" or \"v6 \"\n", fn);
+		return 0;
+	}
+
+	if (!(fn = strncpy_until(ip, fn + 3, IP_STRSIZE, ' '))) {
+		fprintf(stderr, "%s: IP too long\n", fn);
+		return 0;
+	}
+
+	if (!(fn = strncpy_until(port, fn, PORT_STRSIZE, ' '))) {
+		fprintf(stderr, "%s: Port too long\n", fn);
+		return 0;
+	}
+
+	/* Make sure there is no garbage after server port */
+	if (*fn) {
+		fprintf(stderr, "%s: Extra data after IP and port\n", fn);
+		return 0;
+	}
+
+	/*
+	 * '.' or ':' in IP adress were replaced by '_' because ':' is
+	 * forbidden in filename.  Revert it.
+	 */
+	while ((ip = strchr(ip, '_')))
+		*ip = sep;
+
+	return 1;
+}
+
+static int upgrade_server(
+	const char *filename, struct teerank5_server_state *old, struct server *new)
 {
 	unsigned i;
+
+	/* Infer IP and port from server name */
+	if (!deconstruct_server_filename(filename, new->ip, new->port))
+		return 0;
 
 	/* When a field is new, fill it with "???" */
 	strcpy(new->name, "???");
@@ -143,6 +204,8 @@ static void upgrade_server(struct teerank5_server_state *old, struct server *new
 		new->clients[i].score = old->clients[i].score;
 		new->clients[i].ingame = old->clients[i].ingame;
 	}
+
+	return 1;
 }
 
 static void upgrade_servers(void)
@@ -167,8 +230,9 @@ static void upgrade_servers(void)
 			continue;
 
 		teerank5_read_server_state(&old, dp->d_name);
-		upgrade_server(&old, &new);
-		write_server(&new, dp->d_name);
+
+		if (upgrade_server(dp->d_name, &old, &new))
+			write_server(&new, dp->d_name);
 	}
 
 	closedir(dir);

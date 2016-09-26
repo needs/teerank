@@ -261,6 +261,8 @@ static int handle_data(struct data *data, struct netserver *ns)
 	assert(data != NULL);
 	assert(ns != NULL);
 
+	new = ns->server;
+
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
 		return 0;
 	if (!unpack_packet_data(data, &new))
@@ -277,51 +279,13 @@ static int handle_data(struct data *data, struct netserver *ns)
 
 		remove_spectators(&new);
 		delta = delta_servers(&ns->server, &new, elapsed);
+
+		if (delta.length)
+			verbose("\nServer: \"%s\"\n", ns->filename);
+
 		print_delta(&delta);
 	}
 
-	return 1;
-}
-
-#define _str(s) #s
-#define str(s) _str(s)
-
-static int extract_ip_and_port(char *name, char *ip, char *port)
-{
-	char c;
-	unsigned i, version;
-	int ret;
-
-	assert(ip != NULL);
-	assert(port != NULL);
-
-	errno = 0;
-	ret = sscanf(name, "v%u %" str(IP_LENGTH) "s %" str(PORT_LENGTH) "s",
-	             &version, ip, port);
-	if (ret == EOF && errno != 0)
-		return perror(name), 0;
-	else if (ret == EOF && errno == 0)
-		return fprintf(stderr, "%s: Cannot find IP version\n", name), 0;
-	else if (ret == 1)
-		return fprintf(stderr, "%s: Cannot find IP\n", name), 0;
-	else if (ret == 2)
-		return fprintf(stderr, "%s: Cannot find port\n", name), 0;
-
-	/* Replace '_' by '.' or ':' depending on IP version */
-	if (version == 4)
-		c = '.';
-	else if (version == 6)
-		c = ':';
-	else {
-		fprintf(stderr, "%s: IP version should be either 4 or 6\n", name);
-		return 0;
-	}
-
-	for (i = 0; i < strlen(ip); i++)
-		if (ip[i] == '_')
-			ip[i] = c;
-
-	/* IP and port are implicitely checked later in get_sockaddr() */
 	return 1;
 }
 
@@ -363,7 +327,6 @@ static int fill_netserver_list(struct netserver_list *list)
 
 	/* Fill array (ignore server on error) */
 	while ((dp = readdir(dir))) {
-		char ip[IP_LENGTH + 1], port[PORT_LENGTH + 1];
 		struct netserver ns;
 
 		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
@@ -377,9 +340,7 @@ static int fill_netserver_list(struct netserver_list *list)
 			continue;
 
 		strcpy(ns.filename, dp->d_name);
-		if (!extract_ip_and_port(dp->d_name, ip, port))
-			continue;
-		if (!get_sockaddr(ip, port, &ns.addr))
+		if (!get_sockaddr(ns.server.ip, ns.server.port, &ns.addr))
 			continue;
 		if (!add_netserver(list, &ns))
 			continue;

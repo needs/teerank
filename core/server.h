@@ -17,12 +17,18 @@
 #define GAMETYPE_STRSIZE 8
 #define MAP_STRSIZE 64
 
+#define IP_STRSIZE sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx")
+#define PORT_STRSIZE sizeof("00000")
+
 /**
  * @struct server
  *
  * Contains the state of a server at the time "last_seen".
  */
 struct server {
+	char ip[IP_STRSIZE];
+	char port[PORT_STRSIZE];
+
 	char name[SERVERNAME_STRSIZE];
 	char gametype[GAMETYPE_STRSIZE];
 	char map[MAP_STRSIZE];
@@ -64,10 +70,12 @@ int write_server(struct server *server, const char *sname);
  * Create an empty server in the database if it doesn't already exists.
  *
  * @param sname Server name
+ * @param ip Server IP
+ * @param port Server port
  *
  * @return 1 on success, 0 on failure or when the server already exist.
  */
-int create_server(const char *sname);
+int create_server(const char *sname, const char *ip, const char *port);
 
 /**
  * Delete a server from the database.

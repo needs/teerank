@@ -226,9 +226,10 @@ int main(int argc, char **argv)
 
 	fill_server_list(&list);
 	for (i = 0; i < list.length; i++) {
-		char *filename = addr_to_filename(&list.addrs[i]);
+		struct server_addr *addr = &list.addrs[i];
+		char *filename = addr_to_filename(addr);
 
-		if (create_server(filename)) {
+		if (create_server(filename, addr->ip, addr->port)) {
 			verbose("New server: %s\n", filename);
 			count_new++;
 		}

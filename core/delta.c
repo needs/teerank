@@ -26,7 +26,7 @@ int scan_delta(struct delta *delta)
 
 	for (i = 0; i < delta->length; i++) {
 		errno = 0;
-		ret = scanf(" %s %s %ld %ld",
+		ret = scanf(" %s %s %d %d",
 		            delta->players[i].name,
 		            delta->players[i].clan,
 		            &delta->players[i].score,
@@ -61,7 +61,7 @@ void print_delta(struct delta *delta)
 		printf("%u %d\n", delta->length, delta->elapsed);
 
 		for (i = 0; i < delta->length; i++) {
-			printf("%s %s %ld %ld\n",
+			printf("%s %s %d %d\n",
 			       delta->players[i].name,
 			       delta->players[i].clan,
 			       delta->players[i].score,

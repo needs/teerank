@@ -40,8 +40,8 @@ struct server {
 	int max_clients;
 	struct client {
 		char name[HEXNAME_LENGTH], clan[HEXNAME_LENGTH];
-		long score;
-		long ingame;
+		int score;
+		int ingame;
 	} clients[MAX_CLIENTS];
 };
 

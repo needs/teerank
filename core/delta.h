@@ -17,8 +17,8 @@ struct delta {
 	unsigned length;
 	struct player_delta {
 		char name[HEXNAME_LENGTH], clan[HEXNAME_LENGTH];
-		long delta;
-		long score;
+		int delta;
+		int score;
 		int elo;
 	} players[MAX_PLAYERS];
 };

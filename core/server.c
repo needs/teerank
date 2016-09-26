@@ -54,12 +54,14 @@ int read_server(struct server *server, const char *sname)
 
 	for (i = 0; i < server->num_clients; i++) {
 		struct client *client = &server->clients[i];
+		int score;
 
 		json_read_object_start(&jfile, NULL);
 
 		json_read_string(&jfile, "name" , client->name, sizeof(client->name));
 		json_read_string(&jfile, "clan" , client->clan, sizeof(client->clan));
-		json_read_int(   &jfile, "score", (int*)&client->score);
+		json_read_int(   &jfile, "score", &score);
+		client->score = score;
 
 		json_read_object_end(&jfile);
 

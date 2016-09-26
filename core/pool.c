@@ -239,9 +239,9 @@ struct pool_entry *foreach_failed_poll(struct pool *pool)
 	if (!pool->iter_failed)
 		pool->iter_failed = pool->entries;
 
-	for (iter = pool->iter_failed->next_entry; iter; iter = iter->next_entry) {
+	for (iter = pool->iter_failed; iter; iter = iter->next_entry) {
 		if (iter->status == FAILED) {
-			pool->iter_failed = iter;
+			pool->iter_failed = iter->next_entry;
 			return iter;
 		}
 	}

@@ -196,7 +196,6 @@ static int unpack_packet_data(struct data *data, struct server *server)
 }
 
 struct netserver {
-	char filename[PATH_MAX];
 	struct sockaddr_storage addr;
 
 	struct server server;
@@ -271,7 +270,7 @@ static int handle_data(struct data *data, struct netserver *ns)
 	rankable = is_vanilla(&new) && strcmp(new.gametype, "CTF") == 0;
 
 	mark_server_online(&new, rankable);
-	write_server(&new, ns->filename);
+	write_server(&new);
 
 	if (rankable) {
 		int elapsed = time(NULL) - ns->server.last_seen;
@@ -281,7 +280,7 @@ static int handle_data(struct data *data, struct netserver *ns)
 		delta = delta_servers(&ns->server, &new, elapsed);
 
 		if (delta.length)
-			verbose("\nServer: \"%s\"\n", ns->filename);
+			verbose("\nServer: %s %s\n", new.ip, new.port);
 
 		print_delta(&delta);
 	}
@@ -339,7 +338,6 @@ static int fill_netserver_list(struct netserver_list *list)
 		if (!server_expired(&ns.server))
 			continue;
 
-		strcpy(ns.filename, dp->d_name);
 		if (!get_sockaddr(ns.server.ip, ns.server.port, &ns.addr))
 			continue;
 		if (!add_netserver(list, &ns))
@@ -388,7 +386,7 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 	while ((entry = foreach_failed_poll(&pool))) {
 		struct netserver *ns = get_netserver(entry);
 		mark_server_offline(&ns->server);
-		write_server(&ns->server, ns->filename);
+		write_server(&ns->server);
 		failed_count++;
 	}
 

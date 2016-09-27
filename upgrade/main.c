@@ -232,7 +232,7 @@ static void upgrade_servers(void)
 		teerank5_read_server_state(&old, dp->d_name);
 
 		if (upgrade_server(dp->d_name, &old, &new))
-			write_server(&new, dp->d_name);
+			write_server(&new);
 	}
 
 	closedir(dir);

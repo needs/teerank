@@ -60,22 +60,20 @@ int read_server(struct server *server, const char *sname);
  * Write a server in the database.
  *
  * @param server Server structure to be written
- * @param server_name Server name
  *
  * @return 1 on success, 0 on failure
  */
-int write_server(struct server *server, const char *sname);
+int write_server(struct server *server);
 
 /**
  * Create an empty server in the database if it doesn't already exists.
  *
- * @param sname Server name
  * @param ip Server IP
  * @param port Server port
  *
  * @return 1 on success, 0 on failure or when the server already exist.
  */
-int create_server(const char *sname, const char *ip, const char *port);
+int create_server(const char *ip, const char *port);
 
 /**
  * Delete a server from the database.

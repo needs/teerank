@@ -82,17 +82,44 @@ fail:
 	return FAILURE;
 }
 
-int write_server(struct server *server, const char *sname)
+#define SERVER_FILENAME_STRSIZE \
+	sizeof("vX xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx 00000")
+
+char *server_filename(const char *ip, const char *port)
+{
+	static char buf[SERVER_FILENAME_STRSIZE];
+	char ipv, *c;
+	int ret;
+
+	if (ip[1] == '.' || ip[2] == '.' ||ip[3] == '.')
+		ipv = '4';
+	else
+		ipv = '6';
+
+	ret = snprintf(buf, sizeof(buf), "v%c %s %s", ipv, ip, port);
+	assert(ret < sizeof(buf)); (void)ret;
+
+	/* Replace '.' or ':' by '_' */
+	for (c = buf; *c; c++)
+		if (*c == '.' || *c == ':')
+			*c = '_';
+
+	return buf;
+}
+
+int write_server(struct server *server)
 {
 	FILE *file = NULL;
 	struct jfile jfile;
 	char path[PATH_MAX];
+	char *filename;
 
 	unsigned i;
 
 	assert(server != NULL);
 
-	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
+	filename = server_filename(server->ip, server->port);
+	if (!dbpath(path, PATH_MAX, "servers/%s", filename))
 		goto fail;
 
 	if ((file = fopen(path, "w")) == NULL) {
@@ -246,21 +273,23 @@ static int server_exist(const char *sname)
 	return access(path, F_OK) == 0;
 }
 
-int create_server(const char *sname, const char *ip, const char *port)
+int create_server(const char *ip, const char *port)
 {
 	static const struct server SERVER_ZERO;
 	struct server server = SERVER_ZERO;
+	char *filename;
 
-	if (server_exist(sname))
+	filename = server_filename(ip, port);
+	if (server_exist(filename))
 		return 0;
 
 	if (snprintf(server.ip, sizeof(server.ip), "%s", ip) >= sizeof(server.ip)) {
-		fprintf(stderr, "create_server: %s: IP too long\n", sname);
+		fprintf(stderr, "create_server: %s: IP too long\n", ip);
 		return 0;
 	}
 
 	if (snprintf(server.port, sizeof(server.port), "%s", port) >= sizeof(server.port)) {
-		fprintf(stderr, "create_server: %s: Port too long\n", sname);
+		fprintf(stderr, "create_server: %s: Port too long\n", port);
 		return 0;
 	}
 
@@ -270,5 +299,5 @@ int create_server(const char *sname, const char *ip, const char *port)
 
 	server.last_seen = time(NULL);
 
-	return write_server(&server, sname);
+	return write_server(&server);
 }

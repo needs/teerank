@@ -273,7 +273,7 @@ static int handle_data(struct data *data, struct netserver *ns)
 	write_server(&new);
 
 	if (rankable) {
-		int elapsed = time(NULL) - ns->server.last_seen;
+		int elapsed = time(NULL) - ns->server.lastseen;
 		struct delta delta;
 
 		remove_spectators(&new);

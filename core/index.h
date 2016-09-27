@@ -49,7 +49,7 @@ struct indexed_player {
 	char clan[HEXNAME_LENGTH];
 	int elo;
 	unsigned rank;
-	time_t last_seen;
+	time_t lastseen;
 };
 
 extern const struct index_data_info INDEX_DATA_INFO_CLAN;

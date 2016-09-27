@@ -86,8 +86,8 @@ static void upgrade_player(struct teerank5_player *old, struct player *new)
 	 */
 	upgrade_historic(&old->hist, &new->hist);
 
-	/* The only change is the added last_seen field */
-	new->last_seen = *gmtime(&NEVER_SEEN);
+	/* The only change is the added lastseen field */
+	new->lastseen = *gmtime(&NEVER_SEEN);
 }
 
 static void upgrade_players(void)
@@ -192,7 +192,7 @@ static int upgrade_server(
 	strcpy(new->gametype, "CTF");
 	strcpy(new->map, "???");
 
-	new->last_seen = old->last_seen;
+	new->lastseen = old->last_seen;
 	new->expire = old->expire;
 
 	new->num_clients = old->num_clients;

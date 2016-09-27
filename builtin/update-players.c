@@ -113,9 +113,9 @@ int main(int argc, char **argv)
 		if (make_sens_to_rank(delta.elapsed, players, length))
 			update_elos(players, length);
 
-		/* Update last_seen and write players */
+		/* Update lastseen and write players */
 		for (i = 0; i < length; i++) {
-			set_last_seen(&players[i]);
+			set_lastseen(&players[i]);
 
 			if (!write_player(&players[i]))
 				continue;

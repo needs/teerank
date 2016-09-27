@@ -40,7 +40,7 @@ int page_player_list_html_main(int argc, char **argv)
 		urlprefix = "/players/by-rank";
 		order = SORT_BY_RANK;
 	} else if (strcmp(argv[2], "by-lastseen") == 0) {
-		indexname = "players_by_last_seen";
+		indexname = "players_by_lastseen";
 		urlprefix = "/players/by-lastseen";
 		order = SORT_BY_LASTSEEN;
 	} else {
@@ -66,7 +66,7 @@ int page_player_list_html_main(int argc, char **argv)
 		html_start_player_list(0, 1);
 
 	while (index_page_foreach(&ipage, &p))
-		html_player_list_entry(p.name, p.clan, p.elo, p.rank, *gmtime(&p.last_seen), 0);
+		html_player_list_entry(p.name, p.clan, p.elo, p.rank, *gmtime(&p.lastseen), 0);
 
 	html_end_player_list();
 	print_page_nav(urlprefix, &ipage);

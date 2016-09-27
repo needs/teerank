@@ -156,7 +156,7 @@ int page_about_json_api_main(int argc, char **argv)
 	jsondesc_row("clan", "hexstring", "\"00\"", "Player clan");
 	jsondesc_row("elo", "integer", "1500", "Player elo points");
 	jsondesc_row("rank", "unsigned", "45678", "Player rank");
-	jsondesc_row("last_seen", "time", "\"1970-01-01T00:00:00Z\"", "Last time the player was connected");
+	jsondesc_row("lastseen", "time", "\"1970-01-01T00:00:00Z\"", "Last time the player was connected");
 	jsondesc_row("}", NULL, NULL, NULL);
 
 	end_jsondesc_table();
@@ -181,7 +181,7 @@ int page_about_json_api_main(int argc, char **argv)
 	jsondesc_row("clan", "hexstring", "\"00\"", "Player clan");
 	jsondesc_row("elo", "integer", "1500", "Player elo points");
 	jsondesc_row("rank", "unsigned", "45678", "Player rank");
-	jsondesc_row("last_seen", "time", "\"1970-01-01T00:00:00Z\"", "Last time the player was connected");
+	jsondesc_row("lastseen", "time", "\"1970-01-01T00:00:00Z\"", "Last time the player was connected");
 	jsondesc_row("]", NULL, NULL, NULL);
 
 	jsondesc_row("}", NULL, NULL, NULL);

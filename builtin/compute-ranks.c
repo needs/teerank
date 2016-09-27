@@ -42,13 +42,13 @@ static int sort_by_elo(const void *pa, const void *pb)
 		return -1;
 }
 
-static int sort_by_last_seen(const void *pa, const void *pb)
+static int sort_by_lastseen(const void *pa, const void *pb)
 {
 	const struct indexed_player *a = pa, *b = pb;
 
-	if (a->last_seen < b->last_seen)
+	if (a->lastseen < b->lastseen)
 		return 1;
-	else if (a->last_seen > b->last_seen)
+	else if (a->lastseen > b->lastseen)
 		return -1;
 
 	/* Fall back to elo if times are the same */
@@ -105,8 +105,8 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 	/* By last seen date */
-	sort_index(&index, sort_by_last_seen);
-	if (!write_index(&index, "players_by_last_seen"))
+	sort_index(&index, sort_by_lastseen);
+	if (!write_index(&index, "players_by_lastseen"))
 		return EXIT_FAILURE;
 
 	close_index(&index);

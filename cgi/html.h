@@ -28,7 +28,7 @@ void html_start_player_list(int byrank, int bylastseen);
 void html_end_player_list(void);
 void html_player_list_entry(
 	const char *hexname, const char *hexclan,
-	int elo, unsigned rank, struct tm last_seen,
+	int elo, unsigned rank, struct tm lastseen,
 	int no_clan_link);
 
 /* Clan list */

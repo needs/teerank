@@ -23,7 +23,7 @@
 /**
  * @struct server
  *
- * Contains the state of a server at the time "last_seen".
+ * Contains the state of a server at the time "lastseen".
  */
 struct server {
 	char ip[IP_STRSIZE];
@@ -33,7 +33,7 @@ struct server {
 	char gametype[GAMETYPE_STRSIZE];
 	char map[MAP_STRSIZE];
 
-	time_t last_seen;
+	time_t lastseen;
 	time_t expire;
 
 	int num_clients;

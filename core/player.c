@@ -120,7 +120,7 @@ void create_player(struct player *player, const char *name)
 	set_rank(player, UNRANKED);
 
 	now = time(NULL);
-	player->last_seen = *gmtime(&now);
+	player->lastseen = *gmtime(&now);
 
 	player->is_rankable = 0;
 }
@@ -137,11 +137,11 @@ static int read_player_record(struct jfile *jfile, void *buf)
 
 static void read_player_header(struct jfile *jfile, struct player *player)
 {
-	json_read_string(  jfile, "name"     , player->name, sizeof(player->name));
-	json_read_string(  jfile, "clan"     , player->clan, sizeof(player->clan));
-	json_read_int(     jfile, "elo"      , &player->elo);
-	json_read_unsigned(jfile, "rank"     , &player->rank);
-	json_read_tm(      jfile, "last_seen", &player->last_seen);
+	json_read_string(  jfile, "name"    , player->name, sizeof(player->name));
+	json_read_string(  jfile, "clan"    , player->clan, sizeof(player->clan));
+	json_read_int(     jfile, "elo"     , &player->elo);
+	json_read_unsigned(jfile, "rank"    , &player->rank);
+	json_read_tm(      jfile, "lastseen", &player->lastseen);
 }
 
 int read_player(struct player *player, const char *name)
@@ -213,11 +213,11 @@ static int write_player_record(struct jfile *jfile, void *buf)
 
 static void write_player_header(struct jfile *jfile, struct player *player)
 {
-	json_write_string(  jfile, "name"     , player->name, sizeof(player->name));
-	json_write_string(  jfile, "clan"     , player->clan, sizeof(player->clan));
-	json_write_int(     jfile, "elo"      , player->elo);
-	json_write_unsigned(jfile, "rank"     , player->rank);
-	json_write_tm(      jfile, "last_seen", player->last_seen);
+	json_write_string(  jfile, "name"    , player->name, sizeof(player->name));
+	json_write_string(  jfile, "clan"    , player->clan, sizeof(player->clan));
+	json_write_int(     jfile, "elo"     , player->elo);
+	json_write_unsigned(jfile, "rank"    , player->rank);
+	json_write_tm(      jfile, "lastseen", player->lastseen);
 }
 
 int write_player(struct player *player)
@@ -305,13 +305,13 @@ void set_clan(struct player *player, char *clan)
 	player->clan_changed = 1;
 }
 
-void set_last_seen(struct player *player)
+void set_lastseen(struct player *player)
 {
 	time_t now = time(NULL);
 
 	assert(player != NULL);
 
-	player->last_seen = *gmtime(&now);
+	player->lastseen = *gmtime(&now);
 }
 
 static void init_player_info(struct player_info *ps)
@@ -319,7 +319,7 @@ static void init_player_info(struct player_info *ps)
 	strcpy(ps->clan, "00");
 	ps->elo = INVALID_ELO;
 	ps->rank = UNRANKED;
-	ps->last_seen = (struct tm){ 0 };
+	ps->lastseen = (struct tm){ 0 };
 }
 
 static void read_player_info_header(
@@ -329,7 +329,7 @@ static void read_player_info_header(
 	json_read_string(  jfile, "clan", ps->clan, sizeof(ps->clan));
 	json_read_int(     jfile, "elo", &ps->elo);
 	json_read_unsigned(jfile, "rank", &ps->rank);
-	json_read_tm(      jfile, "last_seen", &ps->last_seen);
+	json_read_tm(      jfile, "lastseen", &ps->lastseen);
 }
 
 int read_player_info(struct player_info *ps, const char *name)

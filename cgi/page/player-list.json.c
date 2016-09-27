@@ -27,7 +27,7 @@ int page_player_list_json_main(int argc, char **argv)
 	if (strcmp(argv[2], "by-rank") == 0)
 		indexname = "players_by_rank";
 	else if (strcmp(argv[2], "by-lastseen") == 0)
-		indexname = "players_by_last_seen";
+		indexname = "players_by_lastseen";
 	else {
 		fprintf(stderr, "%s: Should be either \"by-rank\" or \"by-lastseen\"\n", argv[2]);
 		return EXIT_FAILURE;

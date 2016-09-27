@@ -74,7 +74,7 @@ struct player {
 	int elo;
 	unsigned rank;
 
-	struct tm last_seen;
+	struct tm lastseen;
 
 	struct historic hist;
 
@@ -184,11 +184,11 @@ void set_rank(struct player *player, unsigned rank);
 void set_clan(struct player *player, char *clan);
 
 /**
- * Update last_seen date
+ * Update lastseen date
  *
- * @param player Player to update last_seen date
+ * @param player Player to update lastseen date
  */
-void set_last_seen(struct player *player);
+void set_lastseen(struct player *player);
 
 
 /**
@@ -208,7 +208,7 @@ struct player_info {
 	int elo;
 	unsigned rank;
 
-	struct tm last_seen;
+	struct tm lastseen;
 
 	struct historic_info hist;
 };

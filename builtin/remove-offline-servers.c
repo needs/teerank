@@ -14,14 +14,14 @@
  * Cache the result of time() because the whole program wont run for
  * more than one second, so time() wont change.
  */
-static long days_offline(time_t last_seen)
+static long days_offline(time_t lastseen)
 {
 	static time_t now = (time_t)-1;
 
 	if (now == (time_t)-1)
 		now = time(NULL);
 
-	return (now - last_seen) / (3600 * 24);
+	return (now - lastseen) / (3600 * 24);
 }
 
 static int number_of_days(char *str)
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 		if (read_server(&server, dp->d_name) != SUCCESS)
 			continue;
 
-		if (days_offline(server.last_seen) >= days) {
+		if (days_offline(server.lastseen) >= days) {
 			if (dry_run) {
 				printf("'%s' would have been removed\n", dp->d_name);
 			} else {

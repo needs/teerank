@@ -39,9 +39,9 @@ int read_server(struct server *server, const char *sname)
 	json_read_string(  &jfile, "port", server->port, sizeof(server->port));
 
 	json_read_string(  &jfile, "name",      server->name,     sizeof(server->name));
-	json_read_string(  &jfile, "gametype" , server->gametype, sizeof(server->gametype));
+	json_read_string(  &jfile, "gametype",  server->gametype, sizeof(server->gametype));
 	json_read_string(  &jfile, "map",       server->map,      sizeof(server->map));
-	json_read_unsigned(&jfile, "last_seen", (unsigned*)&server->last_seen);
+	json_read_unsigned(&jfile, "lastseen",  (unsigned*)&server->lastseen);
 	json_read_unsigned(&jfile, "expire",    (unsigned*)&server->expire);
 
 	json_read_int(&jfile, "num_clients", &server->num_clients);
@@ -134,11 +134,11 @@ int write_server(struct server *server)
 	json_write_string(  &jfile, "ip",   server->ip,   sizeof(server->ip));
 	json_write_string(  &jfile, "port", server->port, sizeof(server->port));
 
-	json_write_string(  &jfile, "name"     , server->name,     sizeof(server->name));
-	json_write_string(  &jfile, "gametype" , server->gametype, sizeof(server->gametype));
-	json_write_string(  &jfile, "map"      , server->map,      sizeof(server->map));
-	json_write_unsigned(&jfile, "last_seen", server->last_seen);
-	json_write_unsigned(&jfile, "expire"   , server->expire);
+	json_write_string(  &jfile, "name"    , server->name,     sizeof(server->name));
+	json_write_string(  &jfile, "gametype", server->gametype, sizeof(server->gametype));
+	json_write_string(  &jfile, "map"     , server->map,      sizeof(server->map));
+	json_write_unsigned(&jfile, "lastseen", server->lastseen);
+	json_write_unsigned(&jfile, "expire"  , server->expire);
 
 	json_write_unsigned(&jfile, "num_clients", server->num_clients);
 	json_write_unsigned(&jfile, "max_clients", server->max_clients);
@@ -211,7 +211,7 @@ void mark_server_offline(struct server *server)
 	 *
 	 * To meet the requirements above, we schedule the next poll to:
 	 *
-	 * 	now + min(now - server->last_seen, 2 hours)
+	 * 	now + min(now - server->lastseen, 2 hours)
 	 *
 	 * So for example if the server was seen 5 minutes ago, the next poll
 	 * will be schedule in 5 minutes.  If the server is still offline 5
@@ -220,7 +220,7 @@ void mark_server_offline(struct server *server)
 	 */
 
 	now = time(NULL);
-	server->expire = now + min(now - server->last_seen, 2 * 3600);
+	server->expire = now + min(now - server->lastseen, 2 * 3600);
 }
 
 void mark_server_online(struct server *server, int expire_now)
@@ -231,7 +231,7 @@ void mark_server_online(struct server *server, int expire_now)
 	assert(server != NULL);
 
 	now = time(NULL);
-	server->last_seen = now;
+	server->lastseen = now;
 
 	if (expire_now) {
 		server->expire = 0;
@@ -297,7 +297,7 @@ int create_server(const char *ip, const char *port)
 	strcpy(server.gametype, "???");
 	strcpy(server.map, "???");
 
-	server.last_seen = time(NULL);
+	server.lastseen = time(NULL);
 
 	return write_server(&server);
 }

@@ -363,7 +363,7 @@ static char *elapsed_time_since(struct tm *tm, char *buf)
 }
 
 void html_player_list_entry(
-	const char *hexname, const char *hexclan, int elo, unsigned rank, struct tm last_seen,
+	const char *hexname, const char *hexclan, int elo, unsigned rank, struct tm lastseen,
 	int no_clan_link)
 {
 	char name[NAME_LENGTH], clan[NAME_LENGTH];
@@ -398,13 +398,13 @@ void html_player_list_entry(
 		html("<td>%d</td>", elo);
 
 	/* Last seen */
-	if (mktime(&last_seen) == NEVER_SEEN) {
+	if (mktime(&lastseen) == NEVER_SEEN) {
 		html("<td></td>");
 	} else {
 		char buf[64], strls[] = "00/00/1970 00h00", *class;
 
-		class = elapsed_time_since(&last_seen, buf);
-		if (strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", &last_seen))
+		class = elapsed_time_since(&lastseen, buf);
+		if (strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", &lastseen))
 			html("<td class=\"%s\" title=\"%s\">%s</td>", class, strls, buf);
 		else
 			html("<td class=\"%s\">%s</td>", class, buf);

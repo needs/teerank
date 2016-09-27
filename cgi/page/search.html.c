@@ -297,7 +297,7 @@ static void start_player_list(void)
 static void print_player(unsigned pos, void *data)
 {
 	struct indexed_player *p = data;
-	html_player_list_entry(p->name, p->clan, p->elo, p->rank, *gmtime(&p->last_seen), 0);
+	html_player_list_entry(p->name, p->clan, p->elo, p->rank, *gmtime(&p->lastseen), 0);
 }
 static void print_clan(unsigned pos, void *data)
 {

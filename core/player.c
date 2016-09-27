@@ -92,6 +92,7 @@ static void reset_player(struct player *player, const char *name)
 	strcpy(player->clan, "00");
 	player->elo = INVALID_ELO;
 	player->rank = UNRANKED;
+	player->lastseen = *gmtime(&NEVER_SEEN);
 
 	player->clan_changed = 0;
 	player->delta = NULL;
@@ -103,6 +104,7 @@ static void reset_player_info(struct player_info *player, const char *name)
 	strcpy(player->clan, "00");
 	player->elo = INVALID_ELO;
 	player->rank = UNRANKED;
+	player->lastseen = *gmtime(&NEVER_SEEN);
 }
 
 void create_player(struct player *player, const char *name)

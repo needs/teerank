@@ -46,6 +46,46 @@ struct server {
 };
 
 /**
+ * From an IP and a port, return a filename
+ *
+ * It returns a statically allocated buffer suitable for read_server().
+ * However it does not check if it actually match any file at all.  It
+ * also does not validate IP and port, so if they contain malicious
+ * filepath like ".." or "/", it may cause problems either.
+ *
+ * @param ip Server's IP
+ * @param port Server's port
+ *
+ * @return A statically allocated buffer with a filename
+ */
+char *server_filename(const char *ip, const char *port);
+
+/**
+ * Extract IP and port from a full address
+ *
+ * The given buffer is modified.  IP and port are checked for validity.
+ * An invalid IP or port will result in a failure.
+ *
+ * @param addr Server address
+ * @param ip extracted IP
+ * @param port extracted port
+ * @return 1 on success, 0 on failure
+ */
+int parse_addr(char *addr, char **ip, char **port);
+
+/**
+ * Construct an adress with the given ip and port
+ *
+ * Adress can be parsed back with parse_addr().  It returns a statically
+ * allocated buffer.
+ *
+ * @param ip Server IP
+ * @param port Server port
+ * @return A statically allocated string
+ */
+char *build_addr(const char *ip, const char *port);
+
+/**
  * Read a server from the database.
  *
  * @param server Pointer to a server structure were readed data are stored

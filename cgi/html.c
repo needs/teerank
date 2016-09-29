@@ -483,7 +483,8 @@ void html_server_list_entry(unsigned pos, struct indexed_server *server)
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td>%s</td>", server->name);
+	html("<td><a href=\"/servers/%s.html\">%s</a></td>",
+	     build_addr(server->ip, server->port), server->name);
 
 	/* Gametype */
 	html("<td>%s</td>", server->gametype);

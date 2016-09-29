@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "server.h"
 #include "config.h"
@@ -91,6 +92,9 @@ char *server_filename(const char *ip, const char *port)
 	char ipv, *c;
 	int ret;
 
+	assert(ip != NULL);
+	assert(port != NULL);
+
 	if (ip[1] == '.' || ip[2] == '.' ||ip[3] == '.')
 		ipv = '4';
 	else
@@ -103,6 +107,92 @@ char *server_filename(const char *ip, const char *port)
 	for (c = buf; *c; c++)
 		if (*c == '.' || *c == ':')
 			*c = '_';
+
+	return buf;
+}
+
+/* An IPv4 address starts by either "0." or "00." or "000." */
+static int is_ipv4(const char *ip)
+{
+	return ip[1] == '.' || ip[2] == '.' || ip[3] == '.';
+}
+
+/*
+ * IPv6 must have no shortcut, only full (with all digits) ips are
+ * valid.  Also there should be no extra data after.
+ */
+static int is_valid_ip(const char *ip)
+{
+	if (is_ipv4(ip)) {
+		unsigned short a, b, c, d;
+		char e;
+
+		if (sscanf(ip, "%3hu.%3hu.%3hu.%3hu%c", &a, &b, &c, &d, &e) != 4)
+			return 0;
+
+		return a < 256 && b < 256 && c < 256 && d < 256;
+	} else {
+		const char *pattern = "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx";
+
+		for (; *pattern && *ip; pattern++, ip++) {
+			if (*pattern == 'x' && !isxdigit(*ip))
+				return 0;
+			else if (*pattern == ':' && *ip != ':')
+				return 0;
+		}
+
+		return *ip == '\0';
+	}
+}
+
+static int is_valid_port(const char *port)
+{
+	long ret;
+	char *end;
+
+	ret = strtol(port, &end, 10);
+	return ret >= 0 && ret < 65535 && *port && !*end;
+}
+
+int parse_addr(char *addr, char **ip, char **port)
+{
+	assert(addr != NULL);
+	assert(ip != NULL);
+	assert(port != NULL);
+
+	if (addr[0] == '[')
+		*ip = strtok(addr + 1, "]");
+	else
+		*ip = strtok(addr, ":");
+
+	*port = strtok(NULL, "");
+
+	if (!*ip || !*port)
+		return 0;
+
+	if (**port == ':')
+		*port = *port + 1;
+
+	if (!is_valid_ip(*ip) || !is_valid_port(*port))
+		return 0;
+
+	return 1;
+}
+
+#define ADDR_STRSIZE sizeof("[xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx]:00000")
+
+char *build_addr(const char *ip, const char *port)
+{
+	static char buf[ADDR_STRSIZE];
+	int ret;
+
+	if (is_ipv4(ip))
+		ret = snprintf(buf, sizeof(buf), "%s:%s", ip, port);
+	else
+		ret = snprintf(buf, sizeof(buf), "[%s]:%s", ip, port);
+
+	if (ret >= sizeof(buf))
+		return NULL;
 
 	return buf;
 }

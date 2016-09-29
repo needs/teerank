@@ -196,20 +196,30 @@ static void init_from_filename(
 	struct page html_page,
 	struct page json_page)
 {
-	char *arg1, *ext1, *ext2;
+	char *ext;
 
-	arg1 = strtok(url->filename, ".");
-	ext1 = strtok(NULL, ".");
-	ext2 = strtok(NULL, ".");
+	if (!(ext = strrchr(url->filename, '.')))
+		error(404, NULL);
 
-	if (ext1 && strcmp(ext1, "html") == 0 && !ext2)
+	/* Split raw filename and its extension */
+	*ext++ = '\0';
+
+	if (strcmp(ext, "html") == 0)
 		*page = html_page;
-	else if (ext1 && strcmp(ext1, "json") == 0 && !ext2)
+	else if (strcmp(ext, "json") == 0)
 		*page = json_page;
 	else
 		error(404, NULL);
 
-	page->args[1] = arg1;
+	page->args[1] = url->filename;
+}
+
+static void init_page_player(struct page *page, struct url *url)
+{
+	init_from_filename(
+		page, url,
+		(struct page) PAGE_HTML(NULL, player_html),
+		(struct page) PAGE_JSON(NULL, player_json));
 }
 
 static void init_page_clan(struct page *page, struct url *url)
@@ -220,12 +230,12 @@ static void init_page_clan(struct page *page, struct url *url)
 		(struct page) PAGE_JSON(NULL, clan_json));
 }
 
-static void init_page_player(struct page *page, struct url *url)
+static void init_page_server(struct page *page, struct url *url)
 {
 	init_from_filename(
 		page, url,
-		(struct page) PAGE_HTML(NULL, player_html),
-		(struct page) PAGE_JSON(NULL, player_json));
+		(struct page) PAGE_HTML(NULL, server_html),
+		(struct page) PAGE_JSON(NULL, server_json));
 }
 
 static void init_page_graph(struct page *page, struct url *url)
@@ -326,6 +336,7 @@ static struct directory root = {
 				DYNAMIC_PAGE("search", search),
 				DYNAMIC_PAGE("by-nplayers", html_servers_by_nplayers),
 				DYNAMIC_PAGE("by-nplayers.json", json_servers_by_nplayers),
+				DYNAMIC_PAGE(NULL, server),
 				{ NULL }
 			}, NULL
 		}, { NULL }

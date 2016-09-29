@@ -34,6 +34,9 @@ int page_clan_html_main(int argc, char **argv);
 int page_clan_json_main(int argc, char **argv);
 int page_clan_json_html_main(int argc, char **argv);
 
+int page_server_html_main(int argc, char **argv);
+int page_server_json_main(int argc, char **argv);
+
 int page_player_list_html_main(int argc, char **argv);
 int page_player_list_json_main(int argc, char **argv);
 int page_player_list_json_html_main(int argc, char **argv);

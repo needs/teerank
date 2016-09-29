@@ -72,6 +72,24 @@ static int sort_by_nmembers(const void *pa, const void *pb)
 	return strcmp(a->name, b->name);
 }
 
+static int is_ctf_vanilla(const void *data)
+{
+	const struct indexed_server *s = data;
+
+	const char **maps = (const char*[]) {
+		"ctf1", "ctf2", "ctf3", "ctf4", "ctf5", "ctf6", "ctf7", NULL
+	};
+
+	if (strcmp(s->gametype, "CTF") != 0)
+		return 0;
+
+	for (; *maps; maps++)
+		if (strcmp(s->map, *maps) == 0)
+			return 1;
+
+	return 0;
+}
+
 static int sort_by_nplayers(const void *pa, const void *pb)
 {
 	const struct indexed_server *a = pa, *b = pb;
@@ -93,7 +111,7 @@ int main(int argc, char *argv[])
 
 	/* Player index */
 
-	if (!create_index(&index, &INDEX_DATA_INFO_PLAYER))
+	if (!create_index(&index, &INDEX_DATA_INFO_PLAYER, NULL))
 		return EXIT_FAILURE;
 	info.nplayers = index.ndata;
 
@@ -113,7 +131,7 @@ int main(int argc, char *argv[])
 
 	/* Clan index */
 
-	if (!create_index(&index, &INDEX_DATA_INFO_CLAN))
+	if (!create_index(&index, &INDEX_DATA_INFO_CLAN, NULL))
 		return EXIT_FAILURE;
 	info.nclans = index.ndata;
 
@@ -126,7 +144,7 @@ int main(int argc, char *argv[])
 
 	/* Server index */
 
-	if (!create_index(&index, &INDEX_DATA_INFO_SERVER))
+	if (!create_index(&index, &INDEX_DATA_INFO_SERVER, is_ctf_vanilla))
 		return EXIT_FAILURE;
 	info.nservers = index.ndata;
 

@@ -85,10 +85,13 @@ struct index {
  *
  * @param index Index to create
  * @param infos Infos about data the index should contain
+ * @param filter Function to filter index entries
  *
  * @return 1 on success, 0 on failure
  */
-int create_index(struct index *index, const struct index_data_info *infos);
+int create_index(
+	struct index *index, const struct index_data_info *infos,
+	int (*filter)(const void *));
 
 /**
  * Sort index entry using the given function

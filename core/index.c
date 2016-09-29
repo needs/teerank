@@ -250,7 +250,9 @@ static void free_last_data(struct index *index)
 	index->reuse_last = 1;
 }
 
-int create_index(struct index *index, const struct index_data_info *infos)
+int create_index(
+	struct index *index, const struct index_data_info *infos,
+	int (*filter)(const void *))
 {
 	static const struct index INDEX_ZERO;
 	static char path[PATH_MAX];
@@ -291,6 +293,11 @@ int create_index(struct index *index, const struct index_data_info *infos)
 			free_last_data(index);
 			continue;
 		}
+
+		if (filter && filter(data) == 0) {
+			free_last_data(index);
+			continue;
+		}
 	}
 
 	closedir(dir);
@@ -298,14 +305,24 @@ int create_index(struct index *index, const struct index_data_info *infos)
 	return 1;
 }
 
+/*
+ * If index_reuse_last is true, we need to ignore the last data:
+ * reuse_last means the data is counted within index->ndata but is
+ * actually a dummy entry.
+ */
+unsigned index_ndata(struct index *index)
+{
+	return index->ndata - index->reuse_last;
+}
+
 void sort_index(struct index *index, int (*compar)(const void *, const void *))
 {
-	qsort(index->data, index->ndata, index->infos->size, compar);
+	qsort(index->data, index_ndata(index), index->infos->size, compar);
 }
 
 void *index_foreach(struct index *index)
 {
-	if (index->i == index->ndata) {
+	if (index->i == index_ndata(index)) {
 		index->i = 0;
 		return NULL;
 	}
@@ -334,14 +351,14 @@ int write_index(struct index *index, const char *filename)
 
 	/* Header */
 	json_write_object_start(&jfile, NULL);
-	json_write_unsigned(&jfile, "nentries", index->ndata);
+	json_write_unsigned(&jfile, "nentries", index_ndata(index));
 	json_write_array_start(&jfile, "entries", index->infos->entry_size);
 
 	if (json_have_error(&jfile))
 		goto fail;
 
 	/* Entries */
-	for (i = 0; i < index->ndata; i++) {
+	for (i = 0; i < index_ndata(index); i++) {
 		json_write_array_start(&jfile, NULL, 0);
 		index->infos->write_data(&jfile, get(index, i));
 		json_write_array_end(&jfile);

@@ -67,7 +67,7 @@ int page_server_html_main(int argc, char **argv)
 
 			read_player_info(&player, client.name);
 			html_player_list_entry(
-				player.name, player.clan, player.elo, player.rank, player.lastseen, 1);
+				player.name, player.clan, player.elo, player.rank, player.lastseen, 0);
 		}
 
 		html_end_player_list();

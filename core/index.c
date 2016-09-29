@@ -131,6 +131,9 @@ static int create_indexed_server(void *data, const char *name)
 	if (read_server(&server, name) != SUCCESS)
 		return 0;
 
+	strcpy(ret->ip, server.ip);
+	strcpy(ret->port, server.port);
+
 	strcpy(ret->name, server.name);
 	strcpy(ret->gametype, server.gametype);
 	strcpy(ret->map, server.map);
@@ -144,6 +147,9 @@ static void write_indexed_server(struct jfile *jfile, const void *data)
 {
 	const struct indexed_server *server = data;
 
+	json_write_string(  jfile, NULL, server->ip,   sizeof(server->ip));
+	json_write_string(  jfile, NULL, server->port, sizeof(server->port));
+
 	json_write_string(  jfile, NULL, server->name,     sizeof(server->name));
 	json_write_string(  jfile, NULL, server->gametype, sizeof(server->gametype));
 	json_write_string(  jfile, NULL, server->map,      sizeof(server->map));
@@ -154,6 +160,9 @@ static void write_indexed_server(struct jfile *jfile, const void *data)
 static void read_indexed_server(struct jfile *jfile, void *data)
 {
 	struct indexed_server *server = data;
+
+	json_read_string(  jfile, NULL, server->ip,   sizeof(server->ip));
+	json_read_string(  jfile, NULL, server->port, sizeof(server->port));
 
 	json_read_string(  jfile, NULL, server->name,     sizeof(server->name));
 	json_read_string(  jfile, NULL, server->gametype, sizeof(server->gametype));
@@ -166,6 +175,8 @@ const struct index_data_info INDEX_DATA_INFO_SERVER = {
 	"servers",
 	sizeof(struct indexed_server),
 	JSON_ARRAY_SIZE +
+	JSON_STRING_SIZE(IP_STRSIZE) +         /* Server IP */
+	JSON_STRING_SIZE(PORT_STRSIZE) +       /* Server port */
 	JSON_STRING_SIZE(SERVERNAME_STRSIZE) + /* Server name */
 	JSON_STRING_SIZE(GAMETYPE_STRSIZE) +   /* Gametype */
 	JSON_STRING_SIZE(MAP_STRSIZE) +        /* Map */

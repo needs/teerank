@@ -60,6 +60,9 @@ struct indexed_clan {
 
 extern const struct index_data_info INDEX_DATA_INFO_SERVER;
 struct indexed_server {
+	char ip[IP_STRSIZE];
+	char port[PORT_STRSIZE];
+
 	char name[SERVERNAME_STRSIZE];
 	char gametype[GAMETYPE_STRSIZE];
 	char map[MAP_STRSIZE];

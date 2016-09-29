@@ -308,7 +308,7 @@ void html_start_player_list(int byrank, int bylastseen)
 	html("<th>Name</th>");
 	html("<th>Clan</th>");
 
-	html("<th>Score%s</th>", byrank ? selected : unselected);
+	html("<th>Elo%s</th>", byrank ? selected : unselected);
 	html("<th>Last seen%s</th>", bylastseen ? selected : unselected);
 
 	html("</tr>");

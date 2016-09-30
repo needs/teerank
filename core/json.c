@@ -120,7 +120,7 @@ static int increase_scope_level(struct jfile *jfile)
 	jfile->scope->field_count = 0;
 	jfile->scope->offset = ftello(jfile->file);
 
-	if (jfile->scope->offset == -1)
+	if (jfile->scope->offset == -1 && errno != ESPIPE)
 		return error(jfile, "%s", strerror(errno));
 
 	return 1;
@@ -154,12 +154,15 @@ static int fix_field_size(struct jfile *jfile, size_t field_size)
 static size_t scope_size(struct jfile *jfile)
 {
 	off_t offset;
+	size_t size;
 
 	offset = ftello(jfile->file);
-	if (offset == -1)
+	if (offset == -1 && errno != ESPIPE)
 		return error(jfile, "%s", strerror(errno));
 
-	return offset - jfile->scope->offset;
+	size = offset - jfile->scope->offset;
+
+	return size ? size : 1;
 }
 
 /*
@@ -299,6 +302,18 @@ size_t json_read_array_end(struct jfile *jfile)
 	return decrease_scope_level(jfile, 0);
 }
 
+size_t json_try_read_array_end(struct jfile *jfile)
+{
+	char c = skip_space(jfile);
+
+	if (c != ']') {
+		ungetc(c, jfile->file);
+		return 0;
+	}
+
+	return decrease_scope_level(jfile, 0);
+}
+
 int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_size)
 {
 	if (!write_field_name(jfile, fname))
@@ -396,6 +411,53 @@ int json_write_unsigned(struct jfile *jfile, const char *fname, unsigned buf)
 
 	ret = fprintf(jfile->file, "%u", buf);
 	if (ret < 0)
+		return error(jfile, "%s", strerror(errno));
+
+	return ret;
+}
+
+int json_read_bool(struct jfile *jfile, const char *fname, int *buf)
+{
+	int c;
+	const char *toscan;
+
+	if (!read_field_name(jfile, fname))
+		return 0;
+
+	c = fgetc(jfile->file);
+
+	if (c == 't') {
+		toscan = "rue";
+		*buf = 1;
+	} else if (c == 'f') {
+		toscan = "alse";
+		*buf = 0;
+	} else {
+		return error(jfile, "Expected boolean (true or false)");
+	}
+
+	while (*toscan && fgetc(jfile->file) == *toscan)
+		toscan++;
+
+	if (*toscan)
+		return error(jfile, "Ill-formed boolean value\n");
+
+	return 1;
+}
+
+int json_write_bool(struct jfile *jfile, const char *fname, int buf)
+{
+	int ret;
+
+	if (!write_field_name(jfile, fname))
+		return 0;
+
+	if (buf)
+		ret = fputs("true", jfile->file);
+	else
+		ret = fputs("false", jfile->file);
+
+	if (ret == EOF)
 		return error(jfile, "%s", strerror(errno));
 
 	return ret;

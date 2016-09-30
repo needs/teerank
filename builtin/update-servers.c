@@ -208,54 +208,11 @@ struct netserver_list {
 	struct netserver *netservers;
 };
 
-static void remove_spectators(struct server *server)
-{
-	unsigned i;
-
-	assert(server != NULL);
-
-	for (i = 0; i < server->num_clients; i++) {
-		if (!server->clients[i].ingame) {
-			server->clients[i] = server->clients[--server->num_clients];
-			i--;
-		}
-	}
-}
-
-static int is_vanilla(struct server *server)
-{
-	if (strcmp(server->gametype, "CTF") != 0
-	    && strcmp(server->gametype, "DM") != 0
-	    && strcmp(server->gametype, "TDM") != 0)
-		return 0;
-
-	if (strcmp(server->map, "ctf1") != 0
-	    && strcmp(server->map, "ctf2") != 0
-	    && strcmp(server->map, "ctf3") != 0
-	    && strcmp(server->map, "ctf4") != 0
-	    && strcmp(server->map, "ctf5") != 0
-	    && strcmp(server->map, "ctf6") != 0
-	    && strcmp(server->map, "ctf7") != 0
-	    && strcmp(server->map, "dm1") != 0
-	    && strcmp(server->map, "dm2") != 0
-	    && strcmp(server->map, "dm6") != 0
-	    && strcmp(server->map, "dm7") != 0
-	    && strcmp(server->map, "dm8") != 0
-	    && strcmp(server->map, "dm9") != 0)
-		return 0;
-
-	if (server->num_clients > MAX_CLIENTS)
-		return 0;
-	if (server->max_clients > MAX_CLIENTS)
-		return 0;
-
-	return 1;
-}
-
 static int handle_data(struct data *data, struct netserver *ns)
 {
 	struct server new;
-	int rankable;
+	int elapsed;
+	struct delta delta;
 
 	assert(data != NULL);
 	assert(ns != NULL);
@@ -267,25 +224,20 @@ static int handle_data(struct data *data, struct netserver *ns)
 	if (!unpack_packet_data(data, &new))
 		return 0;
 
-	rankable = is_vanilla(&new) && strcmp(new.gametype, "CTF") == 0;
-
-	mark_server_online(&new, rankable);
+	mark_server_online(&new);
 	write_server(&new);
 
-	if (rankable) {
-		int elapsed = time(NULL) - ns->server.lastseen;
-		struct delta delta;
+	/*
+	 * Let's note that even if a new server is rankable, everything
+	 * will still works as expected: a newly created server doesn't
+	 * have any clients by default, hence delta-ing will report
+	 * every players with NO_SCORE, wich will be seen by
+	 * update-player as new players on the server, as expected.
+	 */
 
-		remove_spectators(&new);
-		delta = delta_servers(&ns->server, &new, elapsed);
-
-		if (delta.length)
-			verbose("\nServer: %s %s\n", new.ip, new.port);
-
-		print_delta(&delta);
-	}
-
-	return 1;
+	elapsed = time(NULL) - ns->server.lastseen;
+	delta = delta_servers(&ns->server, &new, elapsed);
+	return print_delta(&delta);
 }
 
 static int add_netserver(struct netserver_list *list, struct netserver *ns)
@@ -380,8 +332,10 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 		add_pool_entry(&pool, &list->netservers[i].entry,
 		               &list->netservers[i].addr);
 
+	start_printing_delta();
 	while ((entry = poll_pool(&pool, &answer)))
 		handle_data(&answer, get_netserver(entry));
+	stop_printing_delta();
 
 	while ((entry = foreach_failed_poll(&pool))) {
 		struct netserver *ns = get_netserver(entry);

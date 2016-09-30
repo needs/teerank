@@ -1,11 +1,16 @@
 #ifndef DELTA_H
 #define DELTA_H
 
+#include <limits.h>
+
 #include "player.h"
 #include "server.h"
 
 /* Maximum player per delta */
 #define MAX_PLAYERS 16
+
+/* When the player is new one the server, he doesn't have an old score */
+#define NO_SCORE INT_MIN
 
 /**
  * @struct delta
@@ -13,12 +18,18 @@
  * A delta between two servers
  */
 struct delta {
+	char gametype[GAMETYPE_STRSIZE];
+	char map[MAP_STRSIZE];
+
+	int num_clients;
+	int max_clients;
+
 	int elapsed;
 	unsigned length;
 	struct player_delta {
 		char name[HEXNAME_LENGTH], clan[HEXNAME_LENGTH];
-		int delta;
-		int score;
+		int ingame;
+		int score, old_score;
 		int elo;
 	} players[MAX_PLAYERS];
 };
@@ -35,9 +46,15 @@ int scan_delta(struct delta *delta);
 /**
  * Print a struct delta on stdin
  *
+ * Any call to print delta must be surounded by start_printing_delta()
+ * and stop_printing_delta() at some point.
+ *
  * @param delta Delta struct to print
+ * @return 1 on success 0 on failure
  */
-void print_delta(struct delta *delta);
+int print_delta(struct delta *delta);
+void start_printing_delta(void);
+void stop_printing_delta(void);
 
 /**
  * Compare the given servers and return a delta

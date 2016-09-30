@@ -22,6 +22,7 @@ static double p(double delta)
 /* Classic Elo formula for two players */
 static int compute_elo_delta(struct player *player, struct player *opponent)
 {
+	int pdelta, odelta;
 	static const unsigned K = 25;
 	double W;
 
@@ -29,9 +30,12 @@ static int compute_elo_delta(struct player *player, struct player *opponent)
 	assert(opponent != NULL);
 	assert(player != opponent);
 
-	if (player->delta->delta < opponent->delta->delta)
+	pdelta = player->delta->score - player->delta->old_score;
+	odelta = opponent->delta->score - opponent->delta->old_score;
+
+	if (pdelta < odelta)
 		W = 0.0;
-	else if (player->delta->delta == opponent->delta->delta)
+	else if (pdelta == odelta)
 		W = 0.5;
 	else
 		W = 1.0;

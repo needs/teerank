@@ -165,6 +165,7 @@ size_t json_write_object_end(struct jfile *jfile);
 
 int json_read_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
 size_t json_read_array_end(struct jfile *jfile);
+size_t json_try_read_array_end(struct jfile *jfile);
 int json_seek_array(struct jfile *jfile, unsigned n);
 
 int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
@@ -179,6 +180,13 @@ int json_write_int(struct jfile *jfile, const char *fname, int buf);
 
 int json_read_unsigned(struct jfile *jfile, const char *fname, unsigned *buf);
 int json_write_unsigned(struct jfile *jfile, const char *fname, unsigned buf);
+
+/*
+ * Bool
+ */
+
+int json_read_bool(struct jfile *jfile, const char *fname, int *buf);
+int json_write_bool(struct jfile *jfile, const char *fname, int buf);
 
 /*
  * Strings

@@ -8,15 +8,15 @@
 
 #include "config.h"
 #include "player.h"
+#include "server.h"
 #include "delta.h"
 #include "elo.h"
 
 /*
- * Given a game it does return wether or not this game fills the requirements
- * to be ranked.
+ * Given a game it does return how many players are rankable.
  */
-static unsigned make_sens_to_rank(
-	int elapsed, struct player *players, unsigned length)
+static unsigned mark_rankable_players(
+	struct delta *delta, struct player *players, unsigned length)
 {
 	unsigned i, rankable = 0;
 
@@ -26,7 +26,7 @@ static unsigned make_sens_to_rank(
 	 * 30 minutes between each update is just too much and it increase
 	 * the chance of rating two different games.
 	 */
-	if (elapsed > 30 * 60) {
+	if (delta->elapsed > 30 * 60) {
 		verbose("A game with %u players is unrankable because too"
 		        " much time have passed between two updates\n",
 		        length);
@@ -34,12 +34,34 @@ static unsigned make_sens_to_rank(
 	}
 
 	/*
+	 * On the other hand, less than 1 minutes between updates is
+	 * also meaningless.
+	 */
+	if (delta->elapsed < 60) {
+		verbose("A game with %u players is unrankable because too"
+		        " little time have passed between two updates\n",
+		        length);
+		return 0;
+	}
+
+	if (!is_vanilla_ctf_server(
+		    delta->gametype, delta->map,
+		    delta->num_clients, delta->max_clients))
+		return 0;
+
+
+	/* Mark rankable players */
+	for (i = 0; i < length; i++) {
+		if (players[i].delta->ingame) {
+			players[i].is_rankable = 1;
+			rankable++;
+		}
+	}
+
+	/*
 	 * We don't rank games with less than 4 rankable players.  We believe
 	 * it is too much volatile to rank those kind of games.
 	 */
-	for (i = 0; i < length; i++)
-		if (players[i].is_rankable)
-			rankable++;
 	if (rankable < 4) {
 		verbose("A game with %u players is unrankable because only"
 		        " %u players can be ranked, 4 needed\n",
@@ -49,7 +71,8 @@ static unsigned make_sens_to_rank(
 
 	verbose("A game with %u rankable players over %u will be ranked\n",
 	        rankable, length);
-	return 1;
+
+	return rankable;
 }
 
 static void merge_delta(struct player *player, struct player_delta *delta)
@@ -59,16 +82,19 @@ static void merge_delta(struct player *player, struct player_delta *delta)
 
 	player->delta = delta;
 
+	/*
+	 * Store the old clan to be able to write a delta once
+	 * write_player() succeed.
+	 */
 	if (strcmp(player->clan, delta->clan) != 0) {
 		char tmp[HEXNAME_LENGTH];
-
 		/* Put the old clan in the delta so we can use it later */
 		strcpy(tmp, player->clan);
 		set_clan(player, delta->clan);
 		strcpy(delta->clan, tmp);
 	}
 
-	player->is_rankable = 1;
+	player->is_rankable = 0;
 }
 
 int main(int argc, char **argv)
@@ -110,7 +136,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Compute their new elos */
-		if (make_sens_to_rank(delta.elapsed, players, length))
+		if (mark_rankable_players(&delta, players, length))
 			update_elos(players, length);
 
 		/* Update lastseen and write players */

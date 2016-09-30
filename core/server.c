@@ -12,6 +12,30 @@
 #include "config.h"
 #include "json.h"
 
+int is_vanilla_ctf_server(
+	const char *gametype, const char *map, int num_clients, int max_clients)
+{
+	const char **maps = (const char*[]) {
+		"ctf1", "ctf2", "ctf3", "ctf4", "ctf5", "ctf6", "ctf7", NULL
+	};
+
+	if (strcmp(gametype, "CTF") != 0)
+		return 0;
+
+	if (num_clients > MAX_CLIENTS)
+		return 0;
+	if (max_clients > MAX_CLIENTS)
+		return 0;
+
+	while (*maps && strcmp(map, *maps) != 0)
+		maps++;
+
+	if (!*maps)
+		return 0;
+
+	return 1;
+}
+
 int read_server(struct server *server, const char *sname)
 {
 	FILE *file = NULL;
@@ -42,8 +66,8 @@ int read_server(struct server *server, const char *sname)
 	json_read_string(  &jfile, "name",      server->name,     sizeof(server->name));
 	json_read_string(  &jfile, "gametype",  server->gametype, sizeof(server->gametype));
 	json_read_string(  &jfile, "map",       server->map,      sizeof(server->map));
-	json_read_unsigned(&jfile, "lastseen",  (unsigned*)&server->lastseen);
-	json_read_unsigned(&jfile, "expire",    (unsigned*)&server->expire);
+	json_read_time(&jfile, "lastseen", &server->lastseen);
+	json_read_time(&jfile, "expire",   &server->expire);
 
 	json_read_int(&jfile, "num_clients", &server->num_clients);
 	json_read_int(&jfile, "max_clients", &server->max_clients);
@@ -221,14 +245,14 @@ int write_server(struct server *server)
 
 	json_write_object_start(&jfile, NULL);
 
-	json_write_string(  &jfile, "ip",   server->ip,   sizeof(server->ip));
-	json_write_string(  &jfile, "port", server->port, sizeof(server->port));
+	json_write_string(&jfile, "ip",   server->ip,   sizeof(server->ip));
+	json_write_string(&jfile, "port", server->port, sizeof(server->port));
 
-	json_write_string(  &jfile, "name"    , server->name,     sizeof(server->name));
-	json_write_string(  &jfile, "gametype", server->gametype, sizeof(server->gametype));
-	json_write_string(  &jfile, "map"     , server->map,      sizeof(server->map));
-	json_write_unsigned(&jfile, "lastseen", server->lastseen);
-	json_write_unsigned(&jfile, "expire"  , server->expire);
+	json_write_string(&jfile, "name"    , server->name,     sizeof(server->name));
+	json_write_string(&jfile, "gametype", server->gametype, sizeof(server->gametype));
+	json_write_string(&jfile, "map"     , server->map,      sizeof(server->map));
+	json_write_time(&jfile, "lastseen", server->lastseen);
+	json_write_time(&jfile, "expire"  , server->expire);
 
 	json_write_unsigned(&jfile, "num_clients", server->num_clients);
 	json_write_unsigned(&jfile, "max_clients", server->max_clients);
@@ -313,28 +337,41 @@ void mark_server_offline(struct server *server)
 	server->expire = now + min(now - server->lastseen, 2 * 3600);
 }
 
-void mark_server_online(struct server *server, int expire_now)
+/*
+ * An interesting server is a server that will be polled more often than
+ * the others.  In our case we want to poll regularly vanilla CTF
+ * servers because we only rank players of such servers.
+ */
+static int is_interesting_server(struct server *server)
+{
+	return is_vanilla_ctf_server(
+		server->gametype, server->map,
+		server->num_clients, server->max_clients);
+}
+
+void mark_server_online(struct server *server)
 {
 	time_t now;
-	static int initialized = 0;
+	static int initsrand = 1;
 
 	assert(server != NULL);
 
 	now = time(NULL);
 	server->lastseen = now;
 
-	if (expire_now) {
+	if (is_interesting_server(server)) {
 		server->expire = 0;
 	} else {
-		/*
-		 * We just choose a random value between a half hour and
-		 * one and a half hour, so that we do not have too much
-		 * servers to update at the same time.
-		 */
-		if (!initialized) {
-			initialized = 1;
+		if (initsrand) {
+			initsrand = 0;
 			srand(now);
 		}
+
+		/*
+		 * We just choose a random value between a half hour and
+		 * one and a half hour to spread server updates over
+		 * mutliple run of update-server.
+		 */
 		server->expire = now + 1800 + 3600 * ((double)rand() / (double)RAND_MAX);
 	}
 }

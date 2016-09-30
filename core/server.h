@@ -46,6 +46,12 @@ struct server {
 };
 
 /**
+ * Check if the given server infos describe a vanilla ctf server
+ */
+int is_vanilla_ctf_server(
+	const char *gametype, const char *map, int num_clients, int max_clients);
+
+/**
  * From an IP and a port, return a filename
  *
  * It returns a statically allocated buffer suitable for read_server().
@@ -132,13 +138,9 @@ void mark_server_offline(struct server *server);
 /**
  * Update last-seen date and expiration date
  *
- * If expire_now is true, server will be marked as already expired,
- * ready to be checked again.
- *
  * @param server Server to update
- * @param expire_now 1 to expire server now, 0 otherwise
  */
-void mark_server_online(struct server *server, int expire_now);
+void mark_server_online(struct server *server);
 
 /**
  * Check if the given server expired.

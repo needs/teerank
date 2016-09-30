@@ -61,9 +61,9 @@ int page_player_list_html_main(int argc, char **argv)
 	print_section_tabs(PLAYERS_TAB, NULL, 0);
 
 	if (order == SORT_BY_RANK)
-		html_start_player_list(1, 0);
+		html_start_player_list(1, 0, pnum);
 	else
-		html_start_player_list(0, 1);
+		html_start_player_list(0, 1, pnum);
 
 	while (index_page_foreach(&ipage, &p))
 		html_player_list_entry(p.name, p.clan, p.elo, p.rank, *gmtime(&p.lastseen), 0);

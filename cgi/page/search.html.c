@@ -291,7 +291,7 @@ static void try_add_result(
 
 static void start_player_list(void)
 {
-	html_start_player_list(0, 0);
+	html_start_player_list(1, 1, 0);
 }
 
 static void print_player(unsigned pos, void *data)

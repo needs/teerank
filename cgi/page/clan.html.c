@@ -59,7 +59,7 @@ int page_clan_html_main(int argc, char **argv)
 		html("<p>%u member(s), %u could not be loaded</p>",
 		       clan.nmembers + missing_members, missing_members);
 
-	html_start_player_list(0, 0);
+	html_start_player_list(1, 1, 0);
 
 	for (i = 0; i < clan.nmembers; i++) {
 		struct player_info *p = &clan.members[i];

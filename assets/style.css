@@ -225,6 +225,10 @@ table th {
 	white-space: nowrap;
 }
 
+table th a {
+	color: #970;
+}
+
 table th img {
 	display: inline-block;
 	margin-left: 0.4em;

@@ -59,7 +59,7 @@ int page_server_html_main(int argc, char **argv)
 	     server.num_clients, server.max_clients, playing, spectating);
 
 	if (server.num_clients) {
-		html_start_player_list(0, 0);
+		html_start_player_list(1, 1, 0);
 
 		for (i = 0; i < server.num_clients; i++) {
 			struct client client = server.clients[i];

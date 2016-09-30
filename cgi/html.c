@@ -291,14 +291,14 @@ const char *name_to_html(const char *name)
 	return str;
 }
 
-void html_start_player_list(int byrank, int bylastseen)
+void html_start_player_list(int byrank, int bylastseen, unsigned pnum)
 {
 	const char *selected = "<img src=\"/images/downarrow.png\"/>";
 	const char *unselected = "<img src=\"/images/dash.png\"/>";
 
-	assert(!(byrank && bylastseen));
+	assert(byrank || bylastseen);
 
-	if (!byrank && !bylastseen)
+	if (byrank && bylastseen)
 		selected = unselected = "";
 
 	html("<table class=\"playerlist\">");
@@ -308,8 +308,17 @@ void html_start_player_list(int byrank, int bylastseen)
 	html("<th>Name</th>");
 	html("<th>Clan</th>");
 
-	html("<th>Elo%s</th>", byrank ? selected : unselected);
-	html("<th>Last seen%s</th>", bylastseen ? selected : unselected);
+	if (byrank)
+		html("<th>Elo%s</th>", selected);
+	else
+		html("<th><a href=\"/players/by-rank?p=%u\">Elo%s</a></th>",
+		     pnum, unselected);
+
+	if (bylastseen)
+		html("<th>Last seen%s</th>", selected);
+	else
+		html("<th><a href=\"/players/by-lastseen?p=%u\">Last seen%s</a></th>",
+		     pnum, unselected);
 
 	html("</tr>");
 	html("</thead>");

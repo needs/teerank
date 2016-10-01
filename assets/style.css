@@ -257,6 +257,14 @@ table a:hover {
 	text-align: right;
 }
 
+tr.spectator, tr.spectator a {
+	color: #aaa;
+}
+
+tr.spectator td:nth-child(2) img {
+	margin-right: 10px;
+}
+
 td.online {
 	font-weight: bold;
 	color: #43a700;

@@ -16,7 +16,7 @@ static int cmp_client(const void *p1, const void *p2)
 
 	/* Ingame players comes first */
 	if (a->ingame != b->ingame)
-		return a->ingame ? 1 : -1;
+		return a->ingame ? -1 : 1;
 
 	/* We want player with the higher score first */
 	if (b->score > a->score)
@@ -55,22 +55,24 @@ int page_server_html_main(int argc, char **argv)
 	html_header(&CTF_TAB, server.name, NULL);
 	html("<h2>%s</h2>", escape(server.name));
 
-	html("<p>%u / %u clients, %u players, %u spectators</p>",
-	     server.num_clients, server.max_clients, playing, spectating);
+	html("<p>");
+	html("%u / %u clients, %u players", server.num_clients, server.max_clients, playing);
+	if (spectating)
+		html(" + %u spectators", spectating);
+	html("</p>");
 
 	if (server.num_clients) {
-		html_start_player_list(1, 1, 0);
+		html_start_online_player_list();
 
 		for (i = 0; i < server.num_clients; i++) {
 			struct client client = server.clients[i];
 			struct player_info player;
 
 			read_player_info(&player, client.name);
-			html_player_list_entry(
-				player.name, player.clan, player.elo, player.rank, player.lastseen, 0);
+			html_online_player_list_entry(&player, &client);
 		}
 
-		html_end_player_list();
+		html_end_online_player_list();
 	}
 
 	html_footer("server");

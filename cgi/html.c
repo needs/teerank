@@ -291,12 +291,13 @@ const char *name_to_html(const char *name)
 	return str;
 }
 
-void html_start_player_list(int byrank, int bylastseen, unsigned pnum)
+static void start_player_list(
+	int onlinelist, int byrank, int bylastseen, unsigned pnum)
 {
 	const char *selected = "<img src=\"/images/downarrow.png\"/>";
 	const char *unselected = "<img src=\"/images/dash.png\"/>";
 
-	assert(byrank || bylastseen);
+	assert(onlinelist || byrank || bylastseen);
 
 	if (byrank && bylastseen)
 		selected = unselected = "";
@@ -308,24 +309,52 @@ void html_start_player_list(int byrank, int bylastseen, unsigned pnum)
 	html("<th>Name</th>");
 	html("<th>Clan</th>");
 
-	if (byrank)
+	/* Online player also have a score */
+	if (onlinelist)
+		html("<th>Score</th>");
+
+	if (onlinelist)
+		html("<th>Elo</th>");
+	else if (byrank)
 		html("<th>Elo%s</th>", selected);
 	else
 		html("<th><a href=\"/players/by-rank?p=%u\">Elo%s</a></th>",
 		     pnum, unselected);
 
-	if (bylastseen)
-		html("<th>Last seen%s</th>", selected);
-	else
-		html("<th><a href=\"/players/by-lastseen?p=%u\">Last seen%s</a></th>",
-		     pnum, unselected);
+	/*
+	 * No need to display the last seen date if all players on the
+	 * list are expected to be online
+	 */
+	if (!onlinelist) {
+		if (bylastseen)
+			html("<th>Last seen%s</th>", selected);
+		else
+			html("<th><a href=\"/players/by-lastseen?p=%u\">Last seen%s</a></th>",
+			     pnum, unselected);
+	}
 
 	html("</tr>");
 	html("</thead>");
 	html("<tbody>");
 }
 
+void html_start_player_list(int byrank, int bylastseen, unsigned pnum)
+{
+	start_player_list(0, byrank, bylastseen, pnum);
+}
+
+void html_start_online_player_list(void)
+{
+	start_player_list(1, 0, 0, 0);
+}
+
 void html_end_player_list(void)
+{
+	html("</tbody>");
+	html("</table>");
+}
+
+void html_end_online_player_list(void)
 {
 	html("</tbody>");
 	html("</table>");
@@ -371,16 +400,25 @@ static char *elapsed_time_since(struct tm *tm, char *buf)
 	}
 }
 
-void html_player_list_entry(
-	const char *hexname, const char *hexclan, int elo, unsigned rank, struct tm lastseen,
-	int no_clan_link)
+static void player_list_entry(
+	int onlinelist,
+	const char *hexname, const char *hexclan,
+	int elo, unsigned rank, struct tm lastseen,
+	int score, int ingame, int no_clan_link)
 {
 	char name[NAME_LENGTH], clan[NAME_LENGTH];
+	const char *specimg = "<img src=\"/images/spectator.png\" title=\"Spectator\"/>";
+	int spectator;
 
 	assert(hexname != NULL);
 	assert(hexclan != NULL);
 
-	html("<tr>");
+	/* Spectators are less important */
+	spectator = onlinelist && !ingame;
+	if (spectator)
+		html("<tr class=\"spectator\">");
+	else
+		html("<tr>");
 
 	/* Rank */
 	if (rank == UNRANKED)
@@ -390,7 +428,8 @@ void html_player_list_entry(
 
 	/* Name */
 	hexname_to_name(hexname, name);
-	html("<td><a href=\"/players/%s.html\">%s</a></td>", hexname, escape(name));
+	html("<td>%s<a href=\"/players/%s.html\">%s</a></td>",
+	     spectator ? specimg : "", hexname, escape(name));
 
 	/* Clan */
 	hexname_to_name(hexclan, clan);
@@ -400,16 +439,20 @@ void html_player_list_entry(
 		html("<td><a href=\"/clans/%s.html\">%s</a></td>",
 		     hexclan, escape(clan));
 
+	/* Score (online-player-list only) */
+	if (onlinelist)
+		html("<td>%d</td>", score);
+
 	/* Elo */
 	if (elo == INVALID_ELO)
 		html("<td>?</td>");
 	else
 		html("<td>%d</td>", elo);
 
-	/* Last seen */
-	if (mktime(&lastseen) == NEVER_SEEN) {
+	/* Last seen (not online-player-list only) */
+	if (!onlinelist && mktime(&lastseen) == NEVER_SEEN) {
 		html("<td></td>");
-	} else {
+	} else if (!onlinelist) {
 		char buf[64], strls[] = "00/00/1970 00h00", *class;
 
 		class = elapsed_time_since(&lastseen, buf);
@@ -420,6 +463,24 @@ void html_player_list_entry(
 	}
 
 	html("</tr>");
+}
+
+void html_player_list_entry(
+	const char *hexname, const char *hexclan,
+	int elo, unsigned rank, struct tm lastseen,
+	int no_clan_link)
+{
+	player_list_entry(0, hexname, hexclan, elo, rank, lastseen, 0, 0, no_clan_link);
+}
+
+void html_online_player_list_entry(struct player_info *player, struct client *client)
+{
+	assert(player != NULL);
+	assert(client != NULL);
+
+	player_list_entry(
+		1, player->name, player->clan, player->elo, player->rank,
+		*gmtime(&NEVER_SEEN), client->score, client->ingame, 0);
 }
 
 void html_start_clan_list(void)

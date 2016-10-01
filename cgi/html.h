@@ -31,6 +31,11 @@ void html_player_list_entry(
 	int elo, unsigned rank, struct tm lastseen,
 	int no_clan_link);
 
+/* Online player list */
+void html_start_online_player_list(void);
+void html_end_online_player_list(void);
+void html_online_player_list_entry(struct player_info *player, struct client *client);
+
 /* Clan list */
 void html_start_clan_list(void);
 void html_end_clan_list(void);

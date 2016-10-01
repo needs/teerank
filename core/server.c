@@ -85,6 +85,7 @@ int read_server(struct server *server, const char *sname)
 		json_read_string(&jfile, "name" , client->name, sizeof(client->name));
 		json_read_string(&jfile, "clan" , client->clan, sizeof(client->clan));
 		json_read_int(   &jfile, "score", &client->score);
+		json_read_bool(  &jfile, "ingame", &client->ingame);
 
 		json_read_object_end(&jfile);
 
@@ -270,6 +271,7 @@ int write_server(struct server *server)
 		json_write_string(&jfile, "name" , client->name, sizeof(client->name));
 		json_write_string(&jfile, "clan" , client->clan, sizeof(client->clan));
 		json_write_int(   &jfile, "score", client->score);
+		json_write_bool(  &jfile, "ingame", client->ingame);
 
 		json_write_object_end(&jfile);
 

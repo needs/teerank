@@ -98,6 +98,7 @@ int page_about_json_api_main(int argc, char **argv)
 	html("<li><a href=\"#player-list\">Player list</a></li>");
 	html("<li><a href=\"#clan\">Clan</a></li>");
 	html("<li><a href=\"#clan-list\">Clan list</a></li>");
+	html("<li><a href=\"#server\">Server</a></li>");
 	html("<li><a href=\"#server-list\">Server list</a></li>");
 	html("</ul>");
 
@@ -228,6 +229,41 @@ int page_about_json_api_main(int argc, char **argv)
 	jsondesc_row("[", NULL, NULL, NULL);
 	jsondesc_row("name", "hexstring", "\"00\"", "Clan name");
 	jsondesc_row("nmembers", "unsigned", "2", "Number of members");
+	jsondesc_row("]", NULL, NULL, NULL);
+
+	jsondesc_row("}", NULL, NULL, NULL);
+
+	end_jsondesc_table();
+
+	/*
+	 * Server
+	 */
+
+	html("<h1 id=\"server\">Server</h1>");
+
+	jsonurl("servers/<em>server_addr</em>.json");
+
+	start_jsondesc_table();
+
+	jsondesc_row("{", NULL, NULL, NULL);
+	jsondesc_row("ip", "hexstring", "\"192.168.0.1\"", "Server IP (Either IPv4 or IPv6)");
+	jsondesc_row("port", "hexstring", "\"8300\"", "Server port");
+	jsondesc_row("name", "hexstring", "\"Vanilla CTF5\"", "Server name");
+	jsondesc_row("gametype", "hexstring", "\"CTF\"", "Server gametype");
+	jsondesc_row("map", "hexstring", "\"ctf5\"", "Server map");
+	jsondesc_row("lastseen", "time", "\"2016-10-01T19:33:01Z\"", "Last time the server was succesfully contacted");
+	jsondesc_row("expire", "time", "\"2016-10-01T19:33:60Z\"", "Next time the server will be contacted");
+	jsondesc_row("num_clients", "unsigned", "3", "Number of players in the server (including spectators)");
+	jsondesc_row("max_clients", "unsigned", "16", "Maximum number of players (including spectators)");
+
+	jsondesc_row("clients", "", "", "Array of <code>num_clients</code> players");
+	jsondesc_row("[", NULL, NULL, NULL);
+	jsondesc_row("{", NULL, NULL, NULL);
+	jsondesc_row("name", "hexstring", "\"6e616d656c6573732074656500\"", "Player name");
+	jsondesc_row("clan", "hexstring", "\"00\"", "Player clan");
+	jsondesc_row("score", "int", "5", "Actual player score (spectator also have a score)");
+	jsondesc_row("ingame", "bool", "true", "false if spectating, true if playing");
+	jsondesc_row("}", NULL, NULL, NULL);
 	jsondesc_row("]", NULL, NULL, NULL);
 
 	jsondesc_row("}", NULL, NULL, NULL);

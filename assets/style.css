@@ -489,6 +489,9 @@ object {
 .jsondesc td.i2 {
 	padding-left: 5em;
 }
+.jsondesc td.i3 {
+	padding-left: 7em;
+}
 
 .jsondesc tbody tr td:nth-child(2) {
 	font-style: italic;

@@ -25,29 +25,23 @@ int page_about_json_api_main(int argc, char **argv);
 int page_search_main(int argc, char **argv);
 int page_graph_main(int argc, char **argv);
 
-
 int page_player_html_main(int argc, char **argv);
 int page_player_json_main(int argc, char **argv);
-int page_player_json_html_main(int argc, char **argv);
 
 int page_clan_html_main(int argc, char **argv);
 int page_clan_json_main(int argc, char **argv);
-int page_clan_json_html_main(int argc, char **argv);
 
 int page_server_html_main(int argc, char **argv);
 int page_server_json_main(int argc, char **argv);
 
 int page_player_list_html_main(int argc, char **argv);
 int page_player_list_json_main(int argc, char **argv);
-int page_player_list_json_html_main(int argc, char **argv);
 
 int page_clan_list_html_main(int argc, char **argv);
 int page_clan_list_json_main(int argc, char **argv);
-int page_clan_list_json_html_main(int argc, char **argv);
 
 int page_server_list_html_main(int argc, char **argv);
 int page_server_list_json_main(int argc, char **argv);
-int page_server_list_json_html_main(int argc, char **argv);
 
 int page_robots_main(int argc, char **argv);
 int page_sitemap_main(int argc, char **argv);

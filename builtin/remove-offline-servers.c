@@ -18,6 +18,9 @@ static long days_offline(time_t lastseen)
 {
 	static time_t now = (time_t)-1;
 
+	if (lastseen == NEVER_SEEN)
+		return 0;
+
 	if (now == (time_t)-1)
 		now = time(NULL);
 

@@ -228,14 +228,16 @@ static int handle_data(struct data *data, struct netserver *ns)
 	write_server(&new);
 
 	/*
-	 * Let's note that even if a new server is rankable, everything
-	 * will still works as expected: a newly created server doesn't
-	 * have any clients by default, hence delta-ing will report
-	 * every players with NO_SCORE, wich will be seen by
-	 * update-player as new players on the server, as expected.
+	 * A new server have an elapsed time set to zero, so it wont be
+	 * ranked.  If somehow it still try to be ranked, every players
+	 * will have NO_SCORE in the "old_score" field of the delta,
+	 * hence, no players will be ranked anyway.
 	 */
+	if (ns->server.lastseen == NEVER_SEEN)
+		elapsed = 0;
+	else
+		elapsed = time(NULL) - ns->server.lastseen;
 
-	elapsed = time(NULL) - ns->server.lastseen;
 	delta = delta_servers(&ns->server, &new, elapsed);
 	return print_delta(&delta);
 }

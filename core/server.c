@@ -426,7 +426,8 @@ int create_server(const char *ip, const char *port)
 	strcpy(server.gametype, "???");
 	strcpy(server.map, "???");
 
-	server.lastseen = time(NULL);
+	server.lastseen = NEVER_SEEN;
+	server.expire = 0;
 
 	return write_server(&server);
 }

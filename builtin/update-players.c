@@ -23,6 +23,14 @@ static unsigned mark_rankable_players(
 	assert(players != NULL);
 
 	/*
+	 * New server will have an elapsed time equals to zero.  Make it
+	 * a special case so we don't print a verbose message, since
+	 * add-new-servers already printed one.
+	 */
+	if (delta->elapsed == 0)
+		return 0;
+
+	/*
 	 * 30 minutes between each update is just too much and it increase
 	 * the chance of rating two different games.
 	 */

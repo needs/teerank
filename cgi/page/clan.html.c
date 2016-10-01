@@ -50,7 +50,9 @@ int page_clan_html_main(int argc, char **argv)
 
 	/* Eventually, print them */
 	hexname_to_name(clan.name, clan_name);
-	html_header(&CTF_TAB, clan_name, NULL);
+	CUSTOM_TAB.name = escape(clan_name);
+	CUSTOM_TAB.href = "";
+	html_header(&CUSTOM_TAB, clan_name, NULL);
 	html("<h2>%s</h2>", escape(clan_name));
 
 	if (!missing_members)

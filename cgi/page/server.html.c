@@ -52,7 +52,9 @@ int page_server_html_main(int argc, char **argv)
 		server.clients[i].ingame ? playing++ : spectating++;
 
 	/* Eventually, print them */
-	html_header(&CTF_TAB, server.name, NULL);
+	CUSTOM_TAB.name = escape(server.name);
+	CUSTOM_TAB.href = "";
+	html_header(&CUSTOM_TAB, server.name, NULL);
 	html("<h2>%s</h2>", escape(server.name));
 
 	html("<p>");

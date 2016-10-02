@@ -542,3 +542,17 @@ p + code {
 p > code {
 	padding: 2px 4px;
 }
+
+#serverinfo {
+	display: flex;
+	flex-direction: row;
+	list-style: none;
+	padding: 0px;
+}
+#serverinfo li {
+	border-left: 1px solid #aaa;
+	padding: 0px 13px;
+}
+#serverinfo li:first-child {
+	border-left: none;
+}

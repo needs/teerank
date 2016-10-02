@@ -57,11 +57,16 @@ int page_server_html_main(int argc, char **argv)
 	html_header(&CUSTOM_TAB, server.name, NULL);
 	html("<h2>%s</h2>", escape(server.name));
 
-	html("<p>");
-	html("%u / %u clients, %u players", server.num_clients, server.max_clients, playing);
+	html("<ul id=\"serverinfo\">");
+	html("<li>%s</li><li>%s</li>", server.gametype, server.map);
+	html("<li>%u / %u clients</li>", server.num_clients, server.max_clients);
+
+	html("<li>");
+	html("%u players", playing);
 	if (spectating)
 		html(" + %u spectators", spectating);
-	html("</p>");
+	html("</li>");
+	html("</ul>");
 
 	if (server.num_clients) {
 		html_start_online_player_list();

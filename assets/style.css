@@ -543,7 +543,13 @@ p > code {
 	padding: 2px 4px;
 }
 
-#serverinfo {
+/* Server */
+#server_header {
+	display: flex;
+	flex-direction: row;
+}
+
+#serverinfo ul {
 	display: flex;
 	flex-direction: row;
 	list-style: none;
@@ -555,4 +561,33 @@ p > code {
 }
 #serverinfo li:first-child {
 	border-left: none;
+}
+
+#serveraddr {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	background-color: #fafafa;
+
+	margin-top: auto;
+	margin-bottom: auto;
+	margin-left: auto;
+}
+
+#serveraddr label {
+	text-align: center;
+	padding: 8px 20px;
+	border-bottom: 1px solid #ccc;
+	background: linear-gradient(white, #eaeaea);
+	border-radius: 5px 5px 0px 0px;
+}
+#serveraddr_input {
+	text-align: center;
+	border-radius: 5px;
+	padding: 8px 20px;
+	background: none;
+	border: none;
+	background: white;
+	color: #666;
 }

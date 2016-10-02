@@ -33,6 +33,7 @@ int page_server_html_main(int argc, char **argv)
 	unsigned i, playing = 0, spectating = 0;
 	int ret;
 	char *ip, *port;
+	const char *addr;
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <server_addr>\n", argv[0]);
@@ -55,9 +56,11 @@ int page_server_html_main(int argc, char **argv)
 	CUSTOM_TAB.name = escape(server.name);
 	CUSTOM_TAB.href = "";
 	html_header(&CUSTOM_TAB, server.name, NULL);
+	html("<header id=\"server_header\">");
+	html("<section id=\"serverinfo\">");
 	html("<h2>%s</h2>", escape(server.name));
 
-	html("<ul id=\"serverinfo\">");
+	html("<ul>");
 	html("<li>%s</li><li>%s</li>", server.gametype, server.map);
 	html("<li>%u / %u clients</li>", server.num_clients, server.max_clients);
 
@@ -67,6 +70,16 @@ int page_server_html_main(int argc, char **argv)
 		html(" + %u spectators", spectating);
 	html("</li>");
 	html("</ul>");
+	html("</section>");
+
+	html("<section id=\"serveraddr\">");
+	html("<label for=\"serveraddr_input\">Server address</label>");
+
+	addr = build_addr(server.ip, server.port);
+	html("<input type=\"text\" value=\"%s\" size=\"%u\" id=\"serveraddr_input\" readonly/>",
+	     addr, strlen(addr));
+	html("</section>");
+	html("</header>");
 
 	if (server.num_clients) {
 		html_start_online_player_list();

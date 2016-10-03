@@ -48,7 +48,7 @@ static char skip_space(struct jfile *jfile)
 	int c;
 
 	do
-		c = fgetc(jfile->file);
+		c = getc_unlocked(jfile->file);
 	while (c != EOF && isspace(c));
 
 	return c;
@@ -94,12 +94,12 @@ static int read_field_name(struct jfile *jfile, const char *fname)
 			return error(jfile, "Expected field name \"%s\"", fname_save);
 		fname++;
 	start:
-		c = fgetc(jfile->file);
+		c = getc_unlocked(jfile->file);
 	}
 
 	if (*fname != '\0')
 		return error(jfile, "Expected '\"' to end field name");
-	if (fgetc(jfile->file) != ':')
+	if (getc_unlocked(jfile->file) != ':')
 		return error(jfile, "Expected ':' after field name");
 
 	return 1;
@@ -424,7 +424,7 @@ int json_read_bool(struct jfile *jfile, const char *fname, int *buf)
 	if (!read_field_name(jfile, fname))
 		return 0;
 
-	c = fgetc(jfile->file);
+	c = getc_unlocked(jfile->file);
 
 	if (c == 't') {
 		toscan = "rue";
@@ -436,7 +436,7 @@ int json_read_bool(struct jfile *jfile, const char *fname, int *buf)
 		return error(jfile, "Expected boolean (true or false)");
 	}
 
-	while (*toscan && fgetc(jfile->file) == *toscan)
+	while (*toscan && getc_unlocked(jfile->file) == *toscan)
 		toscan++;
 
 	if (*toscan)
@@ -487,7 +487,7 @@ int json_read_string(struct jfile *jfile, const char *fname, char *buf, size_t s
 		buf++;
 		size--;
 	start:
-		c = fgetc(jfile->file);
+		c = getc_unlocked(jfile->file);
 	}
 
 	*buf = '\0';
@@ -544,7 +544,7 @@ int json_read_tm(struct jfile *jfile, const char *fname, struct tm *tm)
 			return error(jfile, "Cannot match RFC-3339 time string");
 	}
 
-	if (fgetc(jfile->file) != '\"')
+	if (getc_unlocked(jfile->file) != '\"')
 		return error(jfile, "Expected '\"' to end time string");
 
 	if (strptime(buf, "%Y-%m-%dT%H:%M:%SZ", tm) == NULL)

@@ -18,6 +18,7 @@
 
 #define IP_STRSIZE sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx")
 #define PORT_STRSIZE sizeof("00000")
+#define ADDR_STRSIZE sizeof("[xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx]:00000")
 
 #include "player.h"
 

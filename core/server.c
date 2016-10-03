@@ -204,8 +204,6 @@ int parse_addr(char *addr, char **ip, char **port)
 	return 1;
 }
 
-#define ADDR_STRSIZE sizeof("[xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx]:00000")
-
 char *build_addr(const char *ip, const char *port)
 {
 	static char buf[ADDR_STRSIZE];

@@ -126,7 +126,12 @@ static unsigned clan_relevance(const char *query, void *data)
 static unsigned server_relevance(const char *query, void *data)
 {
 	struct indexed_server *server = data;
-	return name_relevance(query, server->name);
+	unsigned relname, reladdr;
+
+	relname = name_relevance(query, server->name);
+	reladdr = name_relevance(query, build_addr(server->ip, server->port));
+
+	return relname > reladdr ? relname : reladdr;
 }
 
 static void init_list(struct list *list)
@@ -367,13 +372,13 @@ static int search(
 	struct index_page ipage;
 	struct result *result;
 
-	char lquery[NAME_LENGTH];
+	char lquery[ADDR_STRSIZE];
 	size_t length;
 	int ret;
 
 	/* No need to search when the query is too long or empty */
 	length = strlen(query);
-	if (length == 0 || length >= NAME_LENGTH)
+	if (length == 0 || length >= sizeof(lquery))
 		return EXIT_SUCCESS;
 
 	to_lowercase(query, lquery);

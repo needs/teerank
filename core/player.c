@@ -50,16 +50,43 @@ int is_valid_hexname(const char *hex)
 	return is_terminating_hexpair(hex);
 }
 
+static unsigned char hextodec(char c)
+{
+	switch (c) {
+	case '0': return 0;
+	case '1': return 1;
+	case '2': return 2;
+	case '3': return 3;
+	case '4': return 4;
+	case '5': return 5;
+	case '6': return 6;
+	case '7': return 7;
+	case '8': return 8;
+	case '9': return 9;
+	case 'A':
+	case 'a': return 10;
+	case 'B':
+	case 'b': return 11;
+	case 'C':
+	case 'c': return 12;
+	case 'D':
+	case 'd': return 13;
+	case 'E':
+	case 'e': return 14;
+	case 'F':
+	case 'f': return 15;
+	default: return 0;
+	}
+}
+
 void hexname_to_name(const char *hex, char *name)
 {
 	assert(hex != NULL);
 	assert(name != NULL);
 	assert(hex != name);
 
-	for (; hex[0] != '0' || hex[1] != '0'; hex += 2, name++) {
-		char tmp[3] = { hex[0], hex[1], '\0' };
-		*name = strtol(tmp, NULL, 16);
-	}
+	for (; hex[0] != '0' || hex[1] != '0'; hex += 2, name++)
+		*name = hextodec(hex[0]) * 16 + hextodec(hex[1]);
 
 	*name = '\0';
 }

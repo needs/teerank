@@ -123,6 +123,8 @@ void create_player(struct player *player, const char *name)
 
 	now = time(NULL);
 	player->lastseen = *gmtime(&now);
+	strcpy(player->server_ip, "");
+	strcpy(player->server_port, "");
 
 	player->is_rankable = 0;
 }
@@ -144,6 +146,8 @@ static void read_player_header(struct jfile *jfile, struct player *player)
 	json_read_int(     jfile, "elo"     , &player->elo);
 	json_read_unsigned(jfile, "rank"    , &player->rank);
 	json_read_tm(      jfile, "lastseen", &player->lastseen);
+	json_read_string(  jfile, "server_ip"  , player->server_ip, sizeof(player->server_ip));
+	json_read_string(  jfile, "server_port", player->server_port, sizeof(player->server_port));
 }
 
 int read_player(struct player *player, const char *name)
@@ -220,6 +224,8 @@ static void write_player_header(struct jfile *jfile, struct player *player)
 	json_write_int(     jfile, "elo"     , player->elo);
 	json_write_unsigned(jfile, "rank"    , player->rank);
 	json_write_tm(      jfile, "lastseen", player->lastseen);
+	json_write_string(  jfile, "server_ip"  , player->server_ip, sizeof(player->server_ip));
+	json_write_string(  jfile, "server_port", player->server_port, sizeof(player->server_port));
 }
 
 int write_player(struct player *player)
@@ -307,13 +313,15 @@ void set_clan(struct player *player, char *clan)
 	player->clan_changed = 1;
 }
 
-void set_lastseen(struct player *player)
+void set_lastseen(struct player *player, const char *ip, const char *port)
 {
 	time_t now = time(NULL);
 
 	assert(player != NULL);
 
 	player->lastseen = *gmtime(&now);
+	strcpy(player->server_ip, ip);
+	strcpy(player->server_port, port);
 }
 
 static void init_player_info(struct player_info *ps)
@@ -332,6 +340,8 @@ static void read_player_info_header(
 	json_read_int(     jfile, "elo", &ps->elo);
 	json_read_unsigned(jfile, "rank", &ps->rank);
 	json_read_tm(      jfile, "lastseen", &ps->lastseen);
+	json_read_string(  jfile, "server_ip", ps->server_ip, sizeof(ps->server_ip));
+	json_read_string(  jfile, "server_port", ps->server_port, sizeof(ps->server_port));
 }
 
 int read_player_info(struct player_info *ps, const char *name)

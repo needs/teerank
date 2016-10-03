@@ -66,7 +66,9 @@ int page_player_list_html_main(int argc, char **argv)
 		html_start_player_list(0, 1, pnum);
 
 	while (index_page_foreach(&ipage, &p))
-		html_player_list_entry(p.name, p.clan, p.elo, p.rank, *gmtime(&p.lastseen), 0);
+		html_player_list_entry(
+			p.name, p.clan, p.elo, p.rank, *gmtime(&p.lastseen),
+			build_addr(p.server_ip, p.server_port), 0);
 
 	html_end_player_list();
 	print_page_nav(urlprefix, &ipage);

@@ -50,6 +50,8 @@ struct indexed_player {
 	int elo;
 	unsigned rank;
 	time_t lastseen;
+	char server_ip[IP_STRSIZE];
+	char server_port[PORT_STRSIZE];
 };
 
 extern const struct index_data_info INDEX_DATA_INFO_CLAN;

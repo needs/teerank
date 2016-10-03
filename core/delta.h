@@ -18,6 +18,9 @@
  * A delta between two servers
  */
 struct delta {
+	char ip[IP_STRSIZE];
+	char port[PORT_STRSIZE];
+
 	char gametype[GAMETYPE_STRSIZE];
 	char map[MAP_STRSIZE];
 

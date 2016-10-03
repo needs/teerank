@@ -31,6 +31,8 @@ static int create_indexed_player(void *data, const char *name)
 	ret->rank = player.rank;
 	ret->elo = player.elo;
 	ret->lastseen = mktime(&player.lastseen);
+	strcpy(ret->server_ip, player.server_ip);
+	strcpy(ret->server_port, player.server_port);
 
 	return 1;
 }
@@ -44,6 +46,8 @@ static void write_indexed_player(struct jfile *jfile, const void *data)
 	json_write_int(     jfile, NULL, player->elo);
 	json_write_unsigned(jfile, NULL, player->rank);
 	json_write_time(    jfile, NULL, player->lastseen);
+	json_write_string(  jfile, NULL, player->server_ip,   sizeof(player->server_ip));
+	json_write_string(  jfile, NULL, player->server_port, sizeof(player->server_port));
 }
 
 static void read_indexed_player(struct jfile *jfile, void *data)
@@ -55,6 +59,8 @@ static void read_indexed_player(struct jfile *jfile, void *data)
 	json_read_int(     jfile, NULL, &player->elo);
 	json_read_unsigned(jfile, NULL, &player->rank);
 	json_read_time(    jfile, NULL, &player->lastseen);
+	json_read_string(  jfile, NULL, player->server_ip,   sizeof(player->server_ip));
+	json_read_string(  jfile, NULL, player->server_port, sizeof(player->server_port));
 }
 
 const struct index_data_info INDEX_DATA_INFO_PLAYER = {
@@ -65,7 +71,9 @@ const struct index_data_info INDEX_DATA_INFO_PLAYER = {
 	JSON_RAW_STRING_SIZE(HEXNAME_LENGTH) + /* Clan */
 	JSON_INT_SIZE +                        /* Elo */
 	JSON_UINT_SIZE +                       /* Rank */
-	JSON_DATE_SIZE,                        /* Last seen */
+	JSON_DATE_SIZE +                       /* Last seen */
+	JSON_RAW_STRING_SIZE(IP_STRSIZE) +     /* Server IP */
+	JSON_RAW_STRING_SIZE(PORT_STRSIZE),    /* Server port */
 	create_indexed_player,
 	write_indexed_player,
 	read_indexed_player

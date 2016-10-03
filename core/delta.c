@@ -26,6 +26,9 @@ int scan_delta(struct delta *delta)
 
 	json_read_object_start(&jfile, NULL);
 
+	json_read_string(&jfile, "ip", delta->ip, sizeof(delta->ip));
+	json_read_string(&jfile, "port", delta->port, sizeof(delta->port));
+
 	json_read_string(&jfile, "gametype", delta->gametype, sizeof(delta->gametype));
 	json_read_string(&jfile, "map", delta->map, sizeof(delta->map));
 	json_read_int(&jfile, "num_clients", &delta->num_clients);
@@ -88,6 +91,9 @@ int print_delta(struct delta *delta)
 
 	json_write_object_start(&jstdout, NULL);
 
+	json_write_string(&jstdout, "ip", delta->ip, sizeof(delta->ip));
+	json_write_string(&jstdout, "port", delta->port, sizeof(delta->port));
+
 	json_write_string(&jstdout, "gametype", delta->gametype, sizeof(delta->gametype));
 	json_write_string(&jstdout, "map", delta->map, sizeof(delta->map));
 	json_write_int(&jstdout, "num_clients", delta->num_clients);
@@ -139,6 +145,9 @@ struct delta delta_servers(
 
 	assert(old != NULL);
 	assert(new != NULL);
+
+	strcpy(delta.ip, new->ip);
+	strcpy(delta.port, new->port);
 
 	strcpy(delta.gametype, new->gametype);
 	strcpy(delta.map, new->map);

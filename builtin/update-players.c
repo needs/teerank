@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
 		/* Update lastseen and write players */
 		for (i = 0; i < length; i++) {
-			set_lastseen(&players[i]);
+			set_lastseen(&players[i], delta.ip, delta.port);
 
 			if (!write_player(&players[i]))
 				continue;

@@ -30,6 +30,8 @@
  */
 #define HEXNAME_LENGTH 33
 
+#include "server.h"
+
 /**
  * Check wether or not the supplied string is a valid hexadecimal string
  *
@@ -75,6 +77,7 @@ struct player {
 	unsigned rank;
 
 	struct tm lastseen;
+	char server_ip[IP_STRSIZE], server_port[PORT_STRSIZE];
 
 	struct historic hist;
 
@@ -184,11 +187,13 @@ void set_rank(struct player *player, unsigned rank);
 void set_clan(struct player *player, char *clan);
 
 /**
- * Update lastseen date
+ * Update lastseen date and set server port and IP
  *
  * @param player Player to update lastseen date
+ * @param ip IP of the server player is actually playing on
+ * @param port Port of the server player is actually playing on
  */
-void set_lastseen(struct player *player);
+void set_lastseen(struct player *player, const char *ip, const char *port);
 
 
 /**
@@ -209,6 +214,7 @@ struct player_info {
 	unsigned rank;
 
 	struct tm lastseen;
+	char server_ip[IP_STRSIZE], server_port[PORT_STRSIZE];
 
 	struct historic_info hist;
 };

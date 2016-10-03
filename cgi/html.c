@@ -362,9 +362,9 @@ void html_end_online_player_list(void)
 
 /*
  * Compute the number of minutes, hours, days, months and years from the
- * given date to now.
+ * given date to now.  Return 1 if the player is online.
  */
-static char *elapsed_time_since(struct tm *tm, char *buf)
+static int elapsed_time_since(struct tm *tm, char *text, char **class)
 {
 	time_t now = time(NULL), ts;
 	time_t elapsed_seconds;
@@ -380,23 +380,29 @@ static char *elapsed_time_since(struct tm *tm, char *buf)
 	elapsed = *gmtime(&elapsed_seconds);
 
 	if (elapsed.tm_year - 70) {
-		sprintf(buf, "%d years", elapsed.tm_year - 70);
-		return "years";
+		sprintf(text, "%d years", elapsed.tm_year - 70);
+		*class = "years";
+		return 0;
 	} else if (elapsed.tm_mon) {
-		sprintf(buf, "%d months", elapsed.tm_mon);
-		return "months";
+		sprintf(text, "%d months", elapsed.tm_mon);
+		*class = "months";
+		return 0;
 	} else if (elapsed.tm_mday - 1) {
-		sprintf(buf, "%d days", elapsed.tm_mday - 1);
-		return "days";
+		sprintf(text, "%d days", elapsed.tm_mday - 1);
+		*class = "days";
+		return 0;
 	} else if (elapsed.tm_hour) {
-		sprintf(buf, "%d hours", elapsed.tm_hour);
-		return "hours";
+		sprintf(text, "%d hours", elapsed.tm_hour);
+		*class = "hours";
+		return 0;
 	} else if (elapsed.tm_min >= 10) {
-		sprintf(buf, "%d minutes", elapsed.tm_min - (elapsed.tm_min % 5));
-		return "minutes";
+		sprintf(text, "%d minutes", elapsed.tm_min - (elapsed.tm_min % 5));
+		*class = "minutes";
+		return 0;
 	} else {
-		sprintf(buf, "Online");
-		return "online";
+		sprintf(text, "Online");
+		*class = "online";
+		return 1;
 	}
 }
 
@@ -404,7 +410,7 @@ static void player_list_entry(
 	int onlinelist,
 	const char *hexname, const char *hexclan,
 	int elo, unsigned rank, struct tm lastseen,
-	int score, int ingame, int no_clan_link)
+	int score, int ingame, const char *addr, int no_clan_link)
 {
 	char name[NAME_LENGTH], clan[NAME_LENGTH];
 	const char *specimg = "<img src=\"/images/spectator.png\" title=\"Spectator\"/>";
@@ -453,13 +459,21 @@ static void player_list_entry(
 	if (!onlinelist && mktime(&lastseen) == NEVER_SEEN) {
 		html("<td></td>");
 	} else if (!onlinelist) {
-		char buf[64], strls[] = "00/00/1970 00h00", *class;
+		char text[64], strls[] = "00/00/1970 00h00", *class;
+		int online;
 
-		class = elapsed_time_since(&lastseen, buf);
+		online = elapsed_time_since(&lastseen, text, &class);
 		if (strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", &lastseen))
-			html("<td class=\"%s\" title=\"%s\">%s</td>", class, strls, buf);
+			html("<td class=\"%s\" title=\"%s\">", class, strls);
 		else
-			html("<td class=\"%s\">%s</td>", class, buf);
+			html("<td class=\"%s\">", class);
+
+		if (online)
+			html("<a href=\"/servers/%s.html\">%s</a>", addr, text);
+		else
+			html("%s", text);
+
+		html("</td>");
 	}
 
 	html("</tr>");
@@ -468,9 +482,9 @@ static void player_list_entry(
 void html_player_list_entry(
 	const char *hexname, const char *hexclan,
 	int elo, unsigned rank, struct tm lastseen,
-	int no_clan_link)
+	const char *addr, int no_clan_link)
 {
-	player_list_entry(0, hexname, hexclan, elo, rank, lastseen, 0, 0, no_clan_link);
+	player_list_entry(0, hexname, hexclan, elo, rank, lastseen, 0, 0, addr, no_clan_link);
 }
 
 void html_online_player_list_entry(struct player_info *player, struct client *client)
@@ -480,7 +494,8 @@ void html_online_player_list_entry(struct player_info *player, struct client *cl
 
 	player_list_entry(
 		1, player->name, player->clan, player->elo, player->rank,
-		*gmtime(&NEVER_SEEN), client->score, client->ingame, 0);
+		*gmtime(&NEVER_SEEN), client->score, client->ingame,
+		NULL, 0);
 }
 
 void html_start_clan_list(void)

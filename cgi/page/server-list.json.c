@@ -10,6 +10,8 @@
 int page_server_list_json_main(int argc, char **argv)
 {
 	struct index_page ipage;
+	struct jfile jfile;
+	struct indexed_server s;
 
 	unsigned pnum;
 	int ret;
@@ -26,12 +28,27 @@ int page_server_list_json_main(int argc, char **argv)
 	if (ret == PAGE_ERROR)
 		return EXIT_FAILURE;
 
-	printf("{\"length\":%u,\"servers\":[", ipage.plen);
+	json_init(&jfile, stdout, "<stdout>");
 
-	if (!index_page_dump_all(&ipage))
-		return EXIT_FAILURE;
+	json_write_object_start(&jfile, NULL);
+	json_write_unsigned(&jfile, "length", ipage.plen);
+	json_write_array_start(&jfile, "servers");
 
-	printf("]}");
+	while (index_page_foreach(&ipage, &s)) {
+		json_write_object_start(&jfile, NULL);
+
+		json_write_string(&jfile, "name", s.name, sizeof(s.name));
+		json_write_string(&jfile, "gametype", s.gametype, sizeof(s.gametype));
+		json_write_string(&jfile, "map", s.map, sizeof(s.map));
+
+		json_write_unsigned(&jfile, "nplayers", s.nplayers);
+		json_write_unsigned(&jfile, "maxplayers", s.maxplayers);
+
+		json_write_object_end(&jfile);
+	}
+
+	json_write_object_end(&jfile);
+	json_write_array_end(&jfile);
 
 	close_index_page(&ipage);
 

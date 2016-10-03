@@ -28,13 +28,8 @@ typedef void (*read_index_data_func_t)(struct jfile *jfile, void *data);
 
 struct index_data_info {
 	const char *dirname;
-
-	size_t size;
-	size_t entry_size;
-
+	size_t datasize;
 	create_index_data_func_t create_data;
-	write_index_data_func_t write_data;
-	read_index_data_func_t read_data;
 };
 
 /*
@@ -137,8 +132,7 @@ struct index_page {
 	void *databuf;
 	char *tmpname;
 
-	FILE *file;
-	struct jfile jfile;
+	int fd;
 	char path[PATH_MAX];
 
 	unsigned ndata, npages;
@@ -185,15 +179,6 @@ int open_index_page(
  *         an absolute entry number otherwise (a positive number)
  */
 unsigned index_page_foreach(struct index_page *ipage, void *data);
-
-/**
- * Dump all entries on stdout, remove unecessary spaces.
- *
- * Since there is no parsing of json objects, this function is faster
- * than index_page_foreach().  It is used when we need to dump json as
- * it is.
- */
-int index_page_dump_all(struct index_page *ipage);
 
 /**
  * Close the given index page

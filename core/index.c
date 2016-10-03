@@ -4,6 +4,9 @@
 #include <assert.h>
 #include <string.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include "server.h"
 #include "index.h"
@@ -37,46 +40,10 @@ static int create_indexed_player(void *data, const char *name)
 	return 1;
 }
 
-static void write_indexed_player(struct jfile *jfile, const void *data)
-{
-	const struct indexed_player *player = data;
-
-	json_write_string(  jfile, NULL, player->name, sizeof(player->name));
-	json_write_string(  jfile, NULL, player->clan, sizeof(player->clan));
-	json_write_int(     jfile, NULL, player->elo);
-	json_write_unsigned(jfile, NULL, player->rank);
-	json_write_time(    jfile, NULL, player->lastseen);
-	json_write_string(  jfile, NULL, player->server_ip,   sizeof(player->server_ip));
-	json_write_string(  jfile, NULL, player->server_port, sizeof(player->server_port));
-}
-
-static void read_indexed_player(struct jfile *jfile, void *data)
-{
-	struct indexed_player *player = data;
-
-	json_read_string(  jfile, NULL, player->name, sizeof(player->name));
-	json_read_string(  jfile, NULL, player->clan, sizeof(player->clan));
-	json_read_int(     jfile, NULL, &player->elo);
-	json_read_unsigned(jfile, NULL, &player->rank);
-	json_read_time(    jfile, NULL, &player->lastseen);
-	json_read_string(  jfile, NULL, player->server_ip,   sizeof(player->server_ip));
-	json_read_string(  jfile, NULL, player->server_port, sizeof(player->server_port));
-}
-
 const struct index_data_info INDEX_DATA_INFO_PLAYER = {
 	"players",
 	sizeof(struct indexed_player),
-	JSON_ARRAY_SIZE +
-	JSON_RAW_STRING_SIZE(HEXNAME_LENGTH) + /* Name */
-	JSON_RAW_STRING_SIZE(HEXNAME_LENGTH) + /* Clan */
-	JSON_INT_SIZE +                        /* Elo */
-	JSON_UINT_SIZE +                       /* Rank */
-	JSON_DATE_SIZE +                       /* Last seen */
-	JSON_RAW_STRING_SIZE(IP_STRSIZE) +     /* Server IP */
-	JSON_RAW_STRING_SIZE(PORT_STRSIZE),    /* Server port */
-	create_indexed_player,
-	write_indexed_player,
-	read_indexed_player
+	create_indexed_player
 };
 
 /*
@@ -100,31 +67,10 @@ static int create_indexed_clan(void *data, const char *name)
 	return 1;
 }
 
-static void write_indexed_clan(struct jfile *jfile, const void *data)
-{
-	const struct indexed_clan *clan = data;
-
-	json_write_string(jfile, NULL, clan->name, sizeof(clan->name));
-	json_write_unsigned(jfile, NULL, clan->nmembers);
-}
-
-static void read_indexed_clan(struct jfile *jfile, void *data)
-{
-	struct indexed_clan *clan = data;
-
-	json_read_string(  jfile, NULL, clan->name, sizeof(clan->name));
-	json_read_unsigned(jfile, NULL, &clan->nmembers);
-}
-
 const struct index_data_info INDEX_DATA_INFO_CLAN = {
 	"clans",
 	sizeof(struct indexed_clan),
-	JSON_ARRAY_SIZE +
-	JSON_RAW_STRING_SIZE(HEXNAME_LENGTH) + /* Name */
-	JSON_UINT_SIZE,                        /* Number of members */
-	create_indexed_clan,
-	write_indexed_clan,
-	read_indexed_clan
+	create_indexed_clan
 };
 
 /*
@@ -151,48 +97,10 @@ static int create_indexed_server(void *data, const char *name)
 	return 1;
 }
 
-static void write_indexed_server(struct jfile *jfile, const void *data)
-{
-	const struct indexed_server *server = data;
-
-	json_write_string(  jfile, NULL, server->ip,   sizeof(server->ip));
-	json_write_string(  jfile, NULL, server->port, sizeof(server->port));
-
-	json_write_string(  jfile, NULL, server->name,     sizeof(server->name));
-	json_write_string(  jfile, NULL, server->gametype, sizeof(server->gametype));
-	json_write_string(  jfile, NULL, server->map,      sizeof(server->map));
-	json_write_unsigned(jfile, NULL, server->nplayers);
-	json_write_unsigned(jfile, NULL, server->maxplayers);
-}
-
-static void read_indexed_server(struct jfile *jfile, void *data)
-{
-	struct indexed_server *server = data;
-
-	json_read_string(  jfile, NULL, server->ip,   sizeof(server->ip));
-	json_read_string(  jfile, NULL, server->port, sizeof(server->port));
-
-	json_read_string(  jfile, NULL, server->name,     sizeof(server->name));
-	json_read_string(  jfile, NULL, server->gametype, sizeof(server->gametype));
-	json_read_string(  jfile, NULL, server->map,      sizeof(server->map));
-	json_read_unsigned(jfile, NULL, &server->nplayers);
-	json_read_unsigned(jfile, NULL, &server->maxplayers);
-}
-
 const struct index_data_info INDEX_DATA_INFO_SERVER = {
 	"servers",
 	sizeof(struct indexed_server),
-	JSON_ARRAY_SIZE +
-	JSON_STRING_SIZE(IP_STRSIZE) +         /* Server IP */
-	JSON_STRING_SIZE(PORT_STRSIZE) +       /* Server port */
-	JSON_STRING_SIZE(SERVERNAME_STRSIZE) + /* Server name */
-	JSON_STRING_SIZE(GAMETYPE_STRSIZE) +   /* Gametype */
-	JSON_STRING_SIZE(MAP_STRSIZE) +        /* Map */
-	JSON_UINT_SIZE +                       /* Number of players */
-	JSON_UINT_SIZE,                        /* Max number of players */
-	create_indexed_server,
-	write_indexed_server,
-	read_indexed_server
+	create_indexed_server
 };
 
 /*
@@ -204,7 +112,7 @@ static void *get(struct index *index, unsigned i)
 	assert(index != NULL);
 	assert(i < index->ndata);
 
-	return (char*)index->data + (index->infos->size * i);
+	return (char*)index->data + (index->infos->datasize * i);
 }
 
 static void *new_data(struct index *index)
@@ -230,7 +138,7 @@ static void *new_data(struct index *index)
 	if (index->ndata % STEP == 0) {
 		void *tmp;
 
-		tmp = realloc(index->data, (index->ndata + STEP) * index->infos->size);
+		tmp = realloc(index->data, (index->ndata + STEP) * index->infos->datasize);
 		if (!tmp) {
 			fprintf(stderr, "realloc(%u): %s\n",
 			        index->ndata, strerror(errno));
@@ -273,7 +181,9 @@ int create_index(
 	*index = INDEX_ZERO;
 	index->infos = infos;
 
-	sprintf(path, "%s/%s", config.root, infos->dirname);
+	if (!dbpath(path, PATH_MAX, "%s", infos->dirname))
+		return 0;
+
 	if (!(dir = opendir(path))) {
 		perror(path);
 		return 0;
@@ -325,7 +235,7 @@ unsigned index_ndata(struct index *index)
 
 void sort_index(struct index *index, int (*compar)(const void *, const void *))
 {
-	qsort(index->data, index_ndata(index), index->infos->size, compar);
+	qsort(index->data, index_ndata(index), index->infos->datasize, compar);
 }
 
 void *index_foreach(struct index *index)
@@ -342,54 +252,50 @@ void *index_foreach(struct index *index)
 int write_index(struct index *index, const char *filename)
 {
 	char path[PATH_MAX];
-	FILE *file = NULL;
-	struct jfile jfile;
-
-	unsigned i;
+	int fd = -1;
+	ssize_t ret;
+	unsigned ndata;
+	size_t totalsize;
 
 	if (!dbpath(path, PATH_MAX, "%s", filename))
 		goto fail;
 
-	if (!(file = fopen(path, "w"))) {
+	if ((fd = open(path, O_WRONLY)) == -1) {
 		perror(path);
 		goto fail;
 	}
 
-	json_init(&jfile, file, path);
+	/* ndata */
+	ndata = index_ndata(index);
+	ret = write(fd, &ndata, sizeof(ndata));
 
-	/* Header */
-	json_write_object_start(&jfile, NULL);
-	json_write_unsigned(&jfile, "nentries", index_ndata(index));
-	json_write_array_start(&jfile, "entries", index->infos->entry_size);
-
-	if (json_have_error(&jfile))
+	if (ret == -1) {
+		perror(path);
 		goto fail;
-
-	/* Entries */
-	for (i = 0; i < index_ndata(index); i++) {
-		json_write_array_start(&jfile, NULL, 0);
-		index->infos->write_data(&jfile, get(index, i));
-		json_write_array_end(&jfile);
-
-		if (json_have_error(&jfile))
-			goto fail;
-
+	} else if (ret < sizeof(index->ndata)) {
+		fprintf(stderr, "%s: write(): Header truncated\n", path);
+		goto fail;
 	}
 
-	/* Footer */
-	json_write_array_end(&jfile);
-	json_write_object_end(&jfile);
+	/* Entries */
+	totalsize = index->infos->datasize * ndata;
+	ret = write(fd, index->data, totalsize);
 
-	if (json_have_error(&jfile))
+	if (ret == -1) {
+		perror(path);
 		goto fail;
+	} else if (ret < totalsize) {
+		fprintf(stderr, "%s: write(): Entries truncated\n", path);
+		goto fail;
+	}
 
-	fclose(file);
+	close(fd);
 
 	return 1;
 
 fail:
-	if (file)
-		fclose(file);
+	if (fd >= 0)
+		close(fd);
 	return 0;
 }
 
@@ -418,8 +324,10 @@ static int select_page(
 		return PAGE_NOT_FOUND;
 	}
 
-	if (!json_seek_array(&ipage->jfile, (pnum - 1) * plen))
+	if (lseek(ipage->fd, (pnum - 1) * plen * ipage->infos->datasize, SEEK_CUR) == -1) {
+		perror(ipage->path);
 		return PAGE_ERROR;
+	}
 
 	/*
 	 * If it is the last page, page length may be lower than given
@@ -443,33 +351,36 @@ int open_index_page(
 	struct index_page *ipage, const struct index_data_info *infos,
 	unsigned pnum, unsigned plen)
 {
+	ssize_t ret;
+
 	assert(ipage != NULL);
 	assert(infos != NULL);
 	assert((plen == 0 && pnum == 1) || (plen > 0 && pnum > 0));
 
-	ipage->file = NULL;
+	ipage->fd = -1;
 	ipage->infos = infos;
 
 	if (!dbpath(ipage->path, sizeof(ipage->path), "%s", filename))
 		goto fail;
 
-	if (!(ipage->file = fopen(ipage->path, "r"))) {
+	if (!(ipage->fd = open(ipage->path, O_RDONLY))) {
 		perror(ipage->path);
 		goto fail;
 	}
-
-	json_init(&ipage->jfile, ipage->file, ipage->path);
 
 	/*
 	 * First, skip header up to the array so that seeking the file
 	 * use the start of the array to begin with.
 	 */
-	json_read_object_start(&ipage->jfile, NULL);
-	json_read_unsigned(&ipage->jfile, "nentries", &ipage->ndata);
-	json_read_array_start(&ipage->jfile, "entries", infos->entry_size);
+	ret = read(ipage->fd, &ipage->ndata, sizeof(ipage->ndata));
 
-	if (json_have_error(&ipage->jfile))
+	if (ret == -1) {
+		perror(ipage->path);
 		goto fail;
+	} else if (ret < sizeof(ipage->ndata)) {
+		fprintf(stderr, "%s: read(): Header truncated\n", ipage->path);
+		goto fail;
+	}
 
 	switch (select_page(ipage, pnum, plen)) {
 	case PAGE_NOT_FOUND:
@@ -481,19 +392,21 @@ int open_index_page(
 	return PAGE_FOUND;
 
 fail:
-	if (ipage->file)
-		fclose(ipage->file);
+	if (ipage->fd >= 0)
+		close(ipage->fd);
 	return PAGE_ERROR;
 
 not_found:
-	fclose(ipage->file);
+	close(ipage->fd);
 	return PAGE_NOT_FOUND;
 }
 
 unsigned index_page_foreach(struct index_page *ipage, void *data)
 {
+	ssize_t ret;
+
 	assert(ipage != NULL);
-	assert(ipage->file != NULL);
+	assert(ipage->fd != -1);
 	assert(ipage->i <= ipage->plen);
 
 	if (ipage->i == ipage->plen) {
@@ -503,63 +416,23 @@ unsigned index_page_foreach(struct index_page *ipage, void *data)
 
 	ipage->i += 1;
 
-	json_read_array_start(&ipage->jfile, NULL, 0);
-	ipage->infos->read_data(&ipage->jfile, data);
-	json_read_array_end(&ipage->jfile);
+	ret = read(ipage->fd, data, ipage->infos->datasize);
 
-	if (json_have_error(&ipage->jfile))
+	if (ret == -1) {
+		perror(ipage->path);
 		return 0;
-
-	return (ipage->pnum - 1) * ipage->plen + ipage->i;
-}
-
-int index_page_dump_all(struct index_page *ipage)
-{
-	/*
-	 * We need to avoid printing any spaces except in strings.
-	 * Hence we need to check string boundaries and handle escaped
-	 * characters.
-	 */
-	int instring = 0, forcenext = 0;
-	size_t i;
-
-	/*
-	 * Since all entries have the same size we know in advance how
-	 * many characters we shall read.  "entry_size" only contains
-	 * the size of the entry itself, but does not count the
-	 * separating comas between fields.
-	 */
-	const size_t pagesize =
-		ipage->plen * JSON_FIELD_SIZE(ipage->infos->entry_size);
-
-	for (i = 0; i < pagesize; i++) {
-		int c = fgetc(ipage->file);
-
-		if (c == EOF)
-			return 0;
-
-		if (forcenext)
-			forcenext = 0;
-		else if (instring && c == '\\')
-			forcenext = 1;
-		else if (!instring && c == '\"')
-			instring = 1;
-		else if (instring && c == '\"')
-			instring = 0;
-		else if (c == ' ')
-			continue;
-
-		putchar(c);
+	} else if (ret < ipage->infos->datasize) {
+		fprintf(stderr, "%s: read(): Entry %u truncated\n", ipage->path, ipage->i);
+		return 0;
 	}
 
-	/* Make sure we are not in a middle of a json object */
-	return !instring && !forcenext;
+	return (ipage->pnum - 1) * ipage->plen + ipage->i;
 }
 
 void close_index_page(struct index_page *ipage)
 {
 	assert(ipage != NULL);
-	assert(ipage->file != NULL);
+	assert(ipage->fd != -1);
 
-	fclose(ipage->file);
+	close(ipage->fd);
 }

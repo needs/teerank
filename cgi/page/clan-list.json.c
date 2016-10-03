@@ -10,6 +10,8 @@
 int page_clan_list_json_main(int argc, char **argv)
 {
 	struct index_page ipage;
+	struct jfile jfile;
+	struct indexed_clan c;
 
 	unsigned pnum;
 	int ret;
@@ -26,12 +28,23 @@ int page_clan_list_json_main(int argc, char **argv)
 	if (ret == PAGE_ERROR)
 		return EXIT_FAILURE;
 
-	printf("{\"length\":%u,\"clans\":[", ipage.plen);
+	json_init(&jfile, stdout, "<stdout>");
 
-	if (!index_page_dump_all(&ipage))
-		return EXIT_FAILURE;
+	json_write_object_start(&jfile, NULL);
+	json_write_unsigned(&jfile, "length", ipage.plen);
+	json_write_array_start(&jfile, "clans");
 
-	printf("]}");
+	while (index_page_foreach(&ipage, &c)) {
+		json_write_object_start(&jfile, NULL);
+
+		json_write_string(&jfile, "name", c.name, sizeof(c.name));
+		json_write_unsigned(&jfile, "nmembers", c.nmembers);
+
+		json_write_object_end(&jfile);
+	}
+
+	json_write_object_end(&jfile);
+	json_write_array_end(&jfile);
 
 	close_index_page(&ipage);
 

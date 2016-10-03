@@ -72,7 +72,7 @@ int read_server(struct server *server, const char *sname)
 	json_read_int(&jfile, "num_clients", &server->num_clients);
 	json_read_int(&jfile, "max_clients", &server->max_clients);
 
-	json_read_array_start(&jfile, "clients", 0);
+	json_read_array_start(&jfile, "clients");
 
 	if (json_have_error(&jfile))
 		goto fail;
@@ -256,7 +256,7 @@ int write_server(struct server *server)
 	json_write_unsigned(&jfile, "num_clients", server->num_clients);
 	json_write_unsigned(&jfile, "max_clients", server->max_clients);
 
-	json_write_array_start(&jfile, "clients", 0);
+	json_write_array_start(&jfile, "clients");
 
 	if (json_have_error(&jfile))
 		goto fail;

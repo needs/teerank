@@ -17,7 +17,7 @@ int scan_delta(struct delta *delta)
 
 	if (firstcall) {
 		json_init(&jfile, stdin, "<stdin>");
-		json_read_array_start(&jfile, NULL, 0);
+		json_read_array_start(&jfile, NULL);
 		firstcall = 0;
 	}
 
@@ -36,7 +36,7 @@ int scan_delta(struct delta *delta)
 	json_read_unsigned(&jfile, "length", &delta->length);
 	json_read_int(&jfile, "elapsed", &delta->elapsed);
 
-	json_read_array_start(&jfile, "players", 0);
+	json_read_array_start(&jfile, "players");
 
 	if (json_have_error(&jfile))
 		return 0;
@@ -74,7 +74,7 @@ static struct jfile jstdout;
 void start_printing_delta(void)
 {
 	json_init(&jstdout, stdout, "<stdout>");
-	json_write_array_start(&jstdout, NULL, 0);
+	json_write_array_start(&jstdout, NULL);
 }
 
 void stop_printing_delta(void)
@@ -101,7 +101,7 @@ int print_delta(struct delta *delta)
 	json_write_unsigned(&jstdout, "length", delta->length);
 	json_write_int(&jstdout, "elapsed", delta->elapsed);
 
-	json_write_array_start(&jstdout, "players", 0);
+	json_write_array_start(&jstdout, "players");
 
 	for (i = 0; i < delta->length; i++) {
 		struct player_delta *player = &delta->players[i];

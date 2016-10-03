@@ -96,7 +96,7 @@ static int read_record(
 
 	assert(data != NULL);
 
-	json_read_array_start(jfile, NULL, 0);
+	json_read_array_start(jfile, NULL);
 	json_read_unsigned(jfile, NULL, &delta);
 	read_data(jfile, data);
 	json_read_array_end(jfile);
@@ -161,7 +161,7 @@ int read_historic(
 
 	json_read_unsigned(   jfile, "length", &hist->nrecords);
 	json_read_time(       jfile, "epoch" , &hist->epoch);
-	json_read_array_start(jfile, "records", 0);
+	json_read_array_start(jfile, "records");
 
 	if (json_have_error(jfile))
 		return 0;
@@ -205,7 +205,7 @@ static int write_record(
 	struct jfile *jfile, struct historic *hist, struct record *record,
 	write_data_func_t write_data)
 {
-	json_write_array_start(jfile, NULL, 0);
+	json_write_array_start(jfile, NULL);
 
 	json_write_unsigned(jfile, NULL, record->time - hist->epoch);
 	write_data(jfile, record_data(hist, record));
@@ -227,7 +227,7 @@ int write_historic(
 
 	json_write_unsigned(jfile, "length", hist->nrecords);
 	json_write_time(jfile, "epoch", hist->epoch);
-	json_write_array_start(jfile, "records", 0);
+	json_write_array_start(jfile, "records");
 
 	if (json_have_error(jfile))
 		return 0;

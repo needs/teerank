@@ -126,31 +126,6 @@ static int increase_scope_level(struct jfile *jfile)
 	return 1;
 }
 
-static int fix_field_size(struct jfile *jfile, size_t field_size)
-{
-	size_t i, remain;
-
-	if (jfile->scope->field_size == 0)
-		return 1;
-
-	/*
-	 * Write the necessary amount of spaces to have a field with a
-	 * size exactly equals to jfile->scope->field_size.
-	 */
-
-	if (field_size > jfile->scope->field_size)
-		return error(jfile, "Actual field size exceeded the given maximum (%zu / %zu)",
-		             field_size, jfile->scope->field_size);
-
-	remain = jfile->scope->field_size - field_size;
-
-	for (i = 0; i < remain; i++)
-		if (fputc(' ', jfile->file) == EOF)
-			return error(jfile, "%s", strerror(errno));
-
-	return 1;
-}
-
 static size_t scope_size(struct jfile *jfile)
 {
 	off_t offset;
@@ -169,7 +144,7 @@ static size_t scope_size(struct jfile *jfile)
  * Set scope pointer to the previous scope, compute and return object
  * size.
  */
-static size_t decrease_scope_level(struct jfile *jfile, int do_fix_field_size)
+static size_t decrease_scope_level(struct jfile *jfile)
 {
 	size_t size;
 
@@ -180,16 +155,6 @@ static size_t decrease_scope_level(struct jfile *jfile, int do_fix_field_size)
 
 	jfile->scope_level--;
 	jfile->scope = &jfile->scopes[jfile->scope_level];
-
-	if (do_fix_field_size) {
-		/*
-		 * Fix field size now so that every fields, including
-		 * the last field will be padded.  It is important for
-		 * the last field to be padded to know the total size of
-		 * the array given the number of elements.
-		 */
-		fix_field_size(jfile, size);
-	}
 
 	return size;
 }
@@ -211,7 +176,7 @@ size_t json_read_object_end(struct jfile *jfile)
 	if (skip_space(jfile) != '}')
 		return error(jfile, "Expected '}' to end object");
 
-	return decrease_scope_level(jfile, 0);
+	return decrease_scope_level(jfile);
 }
 
 /* Doesn't escape special characters */
@@ -232,17 +197,9 @@ static int write_field_name(struct jfile *jfile, const char *fname)
 	if (json_have_error(jfile))
 		return 0;
 
-	/*
-	 * The first field does not need to be preceeded by a coma.
-	 * However we need to add a space if the field must have a fixed
-	 * size, so that it have the same size as fields with a
-	 * preceeding coma.
-	 */
+	/* The first field does not need to be preceeded by a coma */
 	if (jfile->scope->field_count > 0) {
 		if (fputc(',', jfile->file) == EOF)
-			return error(jfile, "%s", strerror(errno));
-	} else if (jfile->scope->field_size) {
-		if (fputc(' ', jfile->file) == EOF)
 			return error(jfile, "%s", strerror(errno));
 	}
 
@@ -277,10 +234,10 @@ size_t json_write_object_end(struct jfile *jfile)
 	if (fputc('}', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
 
-	return decrease_scope_level(jfile, 1);
+	return decrease_scope_level(jfile);
 }
 
-int json_read_array_start(struct jfile *jfile, const char *fname, size_t entry_size)
+int json_read_array_start(struct jfile *jfile, const char *fname)
 {
 	if (!read_field_name(jfile, fname))
 		return 0;
@@ -288,8 +245,6 @@ int json_read_array_start(struct jfile *jfile, const char *fname, size_t entry_s
 		return 0;
 	if (skip_space(jfile) != '[')
 		return error(jfile, "Expected '[' to start array");
-
-	jfile->scope->field_size = entry_size;
 
 	return 1;
 }
@@ -299,7 +254,7 @@ size_t json_read_array_end(struct jfile *jfile)
 	if (skip_space(jfile) != ']')
 		return error(jfile, "Expected ']' to end array");
 
-	return decrease_scope_level(jfile, 0);
+	return decrease_scope_level(jfile);
 }
 
 size_t json_try_read_array_end(struct jfile *jfile)
@@ -311,10 +266,10 @@ size_t json_try_read_array_end(struct jfile *jfile)
 		return 0;
 	}
 
-	return decrease_scope_level(jfile, 0);
+	return decrease_scope_level(jfile);
 }
 
-int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_size)
+int json_write_array_start(struct jfile *jfile, const char *fname)
 {
 	if (!write_field_name(jfile, fname))
 		return 0;
@@ -322,8 +277,6 @@ int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_
 		return 0;
 	if (fputc('[', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
-
-	jfile->scope->field_size = entry_size;
 
 	return 1;
 }
@@ -333,25 +286,7 @@ size_t json_write_array_end(struct jfile *jfile)
 	if (fputc(']', jfile->file) == EOF)
 		return error(jfile, "%s", strerror(errno));
 
-	return decrease_scope_level(jfile, 1);
-}
-
-int json_seek_array(struct jfile *jfile, unsigned n)
-{
-	off_t offset;
-
-	assert(jfile != NULL);
-	assert(jfile->scope != NULL);
-	assert(jfile->scope->field_size);
-
-	/* Add 1 to count coma */
-	offset = n * (jfile->scope->field_size + 1);
-
-	if (fseek(jfile->file, offset, SEEK_CUR) == -1)
-		return error(jfile, "%s", strerror(errno));
-
-	jfile->scope->field_count = n;
-	return 1;
+	return decrease_scope_level(jfile);
 }
 
 int json_read_int(struct jfile *jfile, const char *fname, int *buf)

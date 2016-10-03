@@ -98,7 +98,7 @@ int read_clan(struct clan *clan, const char *cname)
 	json_read_object_start(&jfile, NULL);
 	json_read_string(      &jfile, "name", clan->name, sizeof(clan->name));
 	json_read_unsigned(    &jfile, "nmembers", &nmembers);
-	json_read_array_start( &jfile, "members", 0);
+	json_read_array_start( &jfile, "members");
 
 	if (json_have_error(&jfile))
 		goto fail;
@@ -160,7 +160,7 @@ int write_clan(const struct clan *clan)
 	json_write_object_start(&jfile, NULL);
 	json_write_string(&jfile, "name", clan->name, sizeof(clan->name));
 	json_write_unsigned(&jfile, "nmembers", clan->nmembers);
-	json_write_array_start(&jfile, "members", 0);
+	json_write_array_start(&jfile, "members");
 
 	if (json_have_error(&jfile))
 		goto fail;

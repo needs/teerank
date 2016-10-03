@@ -32,23 +32,6 @@
  * 	json_read_uint(&jfile, "age", &age);
  *
  *
- *		Indexable arrays
- *
- * The other reason we want a custom parser is because we need a way to
- * seek a json array at a specific entry.  For that purpose we need to
- * pad every entry with spaces, so that they all have the same size, to
- * then be able to compute entry's offset.  It also require to know at
- * compile time the maximum size an entry can have.
- *
- *	size_t size = JSON_ARRAY_SIZE + JSON_STRING_SIZE(sizeof(name)) + JSON_UINT_SIZE;
- *
- * 	json_read_array_start(&jfile, "data", size);
- * 	json_seek_array(&jfile, 3); // Seek 3rd entry
- *
- * 	json_read_string(&jfile, "name", name, sizeof(name));
- * 	json_read_uint(&jfile, "age", &age);
- *
- *
  *		Memory allocations
  *
  * Last but not least, we want to avoid memory allocations.  Every
@@ -89,7 +72,6 @@
 struct json_scope {
 	unsigned field_count;
 	off_t offset;
-	size_t field_size;
 };
 
 struct jfile {
@@ -107,29 +89,6 @@ struct jfile {
  * including terminating nul character.
  */
 #define _strsize(n) (size_t)sizeof(#n)
-
-/* Add one because we need to count coma between fields */
-#define JSON_FIELD_SIZE(size) ((size) + 1)
-
-/*
- * The worst case is every characters of the string are escaped, thus
- * doubling string size.  We need to add an extra 2 byte for the opening
- * and closing double-quotes.
- */
-#define JSON_STRING_SIZE(size) JSON_FIELD_SIZE((size) * 2 + 2)
-
-/* Variant without any escaped characters */
-#define JSON_RAW_STRING_SIZE(size) JSON_FIELD_SIZE((size) + 2)
-
-/* Add one because negative intergers must be prefixed with '-' */
-#define JSON_INT_SIZE JSON_FIELD_SIZE(_strsize(INTMAX) + 1)
-#define JSON_UINT_SIZE JSON_FIELD_SIZE(_strsize(UINTMAX))
-
-/* Size of RFC-3339 date format */
-#define JSON_DATE_SIZE JSON_RAW_STRING_SIZE(sizeof("yyyy-mm-ddThh:mm:ssZ"))
-
-/* Two brackets */
-#define JSON_ARRAY_SIZE 2
 
 /* Initialize the json parser with an already opened file */
 void json_init(struct jfile *jfile, FILE *file, const char *path);
@@ -163,12 +122,11 @@ size_t json_write_object_end(struct jfile *jfile);
  * Arrays
  */
 
-int json_read_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
+int json_read_array_start(struct jfile *jfile, const char *fname);
 size_t json_read_array_end(struct jfile *jfile);
 size_t json_try_read_array_end(struct jfile *jfile);
-int json_seek_array(struct jfile *jfile, unsigned n);
 
-int json_write_array_start(struct jfile *jfile, const char *fname, size_t entry_size);
+int json_write_array_start(struct jfile *jfile, const char *fname);
 size_t json_write_array_end(struct jfile *jfile);
 
 /*

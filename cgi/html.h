@@ -18,7 +18,9 @@ struct tab {
 };
 extern const struct tab CTF_TAB, ABOUT_TAB;
 extern struct tab CUSTOM_TAB;
-void html_header(const struct tab *active, char *title, char *search);
+void html_header(
+	const struct tab *active, const char *title,
+	const char *sprefix, const char *query);
 void html_footer(const char *jsonanchor);
 
 const char *name_to_html(const char *name);

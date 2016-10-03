@@ -402,6 +402,7 @@ static struct list LIST_ZERO;
 int page_search_main(int argc, char **argv)
 {
 	const struct search_info *sinfo;
+	const char *sprefix;
 	struct list list = LIST_ZERO;
 	int ret;
 
@@ -410,13 +411,16 @@ int page_search_main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (strcmp(argv[1], "players") == 0)
+	if (strcmp(argv[1], "players") == 0) {
 		sinfo = &PLAYER_SINFO;
-	else if (strcmp(argv[1], "clans") == 0)
+		sprefix = "/players";
+	} else if (strcmp(argv[1], "clans") == 0) {
 		sinfo = &CLAN_SINFO;
-	else if (strcmp(argv[1], "servers") == 0)
+		sprefix = "/clans";
+	} else if (strcmp(argv[1], "servers") == 0) {
 		sinfo = &SERVER_SINFO;
-	else {
+		sprefix = "/servers";
+	} else {
 		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", argv[1]);
 		return EXIT_FAILURE;
 	}
@@ -426,7 +430,7 @@ int page_search_main(int argc, char **argv)
 
 	CUSTOM_TAB.name = "Search results";
 	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, "Search results", argv[2]);
+	html_header(&CUSTOM_TAB, "Search results", sprefix, argv[2]);
 	print_section_tabs(sinfo->tab, argv[2], list.length);
 
 	if (list.length == 0) {

@@ -76,7 +76,7 @@ int page_about_json_api_main(int argc, char **argv)
 {
 	CUSTOM_TAB.name = "JSON API Overview";
 	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, "JSON API Overview", NULL);
+	html_header(&CUSTOM_TAB, "JSON API Overview", "", NULL);
 
 	/* Index */
 

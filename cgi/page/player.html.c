@@ -32,7 +32,7 @@ int page_player_html_main(int argc, char **argv)
 	hexname_to_name(hexname, name);
 	CUSTOM_TAB.name = name;
 	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, name, NULL);
+	html_header(&CUSTOM_TAB, name, "/players", NULL);
 
 	/* Print player logo, name, clan, rank and elo */
 	hexname_to_name(player.clan, clan);

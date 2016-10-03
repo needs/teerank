@@ -55,7 +55,7 @@ int page_server_html_main(int argc, char **argv)
 	/* Eventually, print them */
 	CUSTOM_TAB.name = escape(server.name);
 	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, server.name, NULL);
+	html_header(&CUSTOM_TAB, server.name, "/servers", NULL);
 	html("<header id=\"server_header\">");
 	html("<section id=\"serverinfo\">");
 	html("<h2>%s</h2>", escape(server.name));

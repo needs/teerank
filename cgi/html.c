@@ -175,7 +175,9 @@ char *escape(const char *str)
 	return buf;
 }
 
-void html_header(const struct tab *active, char *title, char *search)
+void html_header(
+	const struct tab *active, const char *title,
+	const char *sprefix, const char *query)
 {
 	assert(active != NULL);
 	assert(title != NULL);
@@ -197,11 +199,11 @@ void html_header(const struct tab *active, char *title, char *search)
 	html("<body>");
 	html("<header>");
 	html("<a href=\"/\"><img src=\"/images/logo.png\" alt=\"Logo\"/></a>");
-	html("<form action=\"/search\">");
+	html("<form action=\"%s/search\">", sprefix);
 	html("<input name=\"q\" type=\"text\" placeholder=\"Search\"%s%s%s/>",
-	     search ? " value=\"" : "",
-	     search ? escape(search) : "",
-	     search ? "\"" : "");
+	     query ? " value=\"" : "",
+	     query ? escape(query) : "",
+	     query ? "\"" : "");
 
 	html("<input type=\"submit\" value=\"\"/>");
 	html("</form>");

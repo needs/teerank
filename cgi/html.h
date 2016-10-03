@@ -50,10 +50,10 @@ void html_end_server_list(void);
 void html_server_list_entry(unsigned pos, struct indexed_server *server);
 
 enum section_tab {
-	PLAYERS_TAB, CLANS_TAB, SERVERS_TAB
+	PLAYERS_TAB, CLANS_TAB, SERVERS_TAB, SECTION_TABS_COUNT
 };
 
-void print_section_tabs(enum section_tab tab, const char *squery, unsigned num);
+void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabvals);
 
 void print_page_nav(const char *url, struct index_page *ipage);
 

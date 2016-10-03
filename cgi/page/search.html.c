@@ -260,7 +260,7 @@ static int cmp_results(
 }
 
 static void try_add_result(
-	struct list *list, struct result *result, cmp_func_t cmp)
+	struct list *list, struct result *result, cmp_func_t cmp, int onlycount)
 {
 	struct result *r;
 
@@ -268,6 +268,11 @@ static void try_add_result(
 
 	if (result->relevance == 0)
 		return;
+
+	if (onlycount) {
+		list->length++;
+		return;
+	}
 
 	if (is_empty(list))
 		return insert_before(list, NULL, result);
@@ -328,6 +333,7 @@ const struct search_info {
 	const char *indexname;
 
 	enum section_tab tab;
+	const char *sprefix;
 } PLAYER_SINFO = {
 	start_player_list,
 	html_end_player_list,
@@ -339,7 +345,8 @@ const struct search_info {
 	&INDEX_DATA_INFO_PLAYER,
 	"players_by_rank",
 
-	PLAYERS_TAB
+	PLAYERS_TAB,
+	"/players"
 }, CLAN_SINFO = {
 	html_start_clan_list,
 	html_end_clan_list,
@@ -351,7 +358,8 @@ const struct search_info {
 	&INDEX_DATA_INFO_CLAN,
 	"clans_by_nmembers",
 
-	CLANS_TAB
+	CLANS_TAB,
+	"/clans"
 }, SERVER_SINFO = {
 	html_start_server_list,
 	html_end_server_list,
@@ -363,11 +371,13 @@ const struct search_info {
 	&INDEX_DATA_INFO_SERVER,
 	"servers_by_nplayers",
 
-	SERVERS_TAB
+	SERVERS_TAB,
+	"/servers"
 };
 
 static int search(
-	const struct search_info *sinfo, char *query, struct list *list)
+	const struct search_info *sinfo, char *query, struct list *list,
+	int onlycount)
 {
 	struct index_page ipage;
 	struct result *result;
@@ -394,7 +404,7 @@ static int search(
 	goto start;
 	while (index_page_foreach(&ipage, &result->data)) {
 		result->relevance = sinfo->relevance(lquery, &result->data);
-		try_add_result(list, result, sinfo->compare);
+		try_add_result(list, result, sinfo->compare, onlycount);
 	start:
 		result = new_result(list);
 	}
@@ -406,37 +416,53 @@ static struct list LIST_ZERO;
 
 int page_search_main(int argc, char **argv)
 {
-	const struct search_info *sinfo;
-	const char *sprefix;
+	const struct search_info *sinfo, **sinfos = (const struct search_info*[]) {
+		&PLAYER_SINFO, &CLAN_SINFO, &SERVER_SINFO, NULL
+	};
 	struct list list = LIST_ZERO;
 	int ret;
+	unsigned tabvals[SECTION_TABS_COUNT];
 
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s players|clans|servers <query>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	if (strcmp(argv[1], "players") == 0) {
+	if (strcmp(argv[1], "players") == 0)
 		sinfo = &PLAYER_SINFO;
-		sprefix = "/players";
-	} else if (strcmp(argv[1], "clans") == 0) {
+	else if (strcmp(argv[1], "clans") == 0)
 		sinfo = &CLAN_SINFO;
-		sprefix = "/clans";
-	} else if (strcmp(argv[1], "servers") == 0) {
+	else if (strcmp(argv[1], "servers") == 0)
 		sinfo = &SERVER_SINFO;
-		sprefix = "/servers";
-	} else {
+	else {
 		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", argv[1]);
 		return EXIT_FAILURE;
 	}
 
-	if ((ret = search(sinfo, argv[2], &list)) != EXIT_SUCCESS)
+	/*
+	 * Search in every data, but only keep results for data pointed
+	 * by sinfo.
+	 */
+
+	if ((ret = search(sinfo, argv[2], &list, 0)) != EXIT_SUCCESS)
 		return ret;
+
+	while (*sinfos) {
+		if (*sinfos != sinfo) {
+			struct list tmp = LIST_ZERO;
+
+			if (search(*sinfos, argv[2], &tmp, 1) == EXIT_SUCCESS)
+				tabvals[(*sinfos)->tab] = tmp.length;
+		} else {
+			tabvals[(*sinfos)->tab] = list.length;
+		}
+		sinfos++;
+	}
 
 	CUSTOM_TAB.name = "Search results";
 	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, "Search results", sprefix, argv[2]);
-	print_section_tabs(sinfo->tab, argv[2], list.length);
+	html_header(&CUSTOM_TAB, "Search results", sinfo->sprefix, argv[2]);
+	print_section_tabs(sinfo->tab, argv[2], tabvals);
 
 	if (list.length == 0) {
 		html("%s", sinfo->emptylist);

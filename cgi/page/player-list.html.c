@@ -58,7 +58,7 @@ int page_player_list_html_main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	html_header(&CTF_TAB, "CTF", "/players", NULL);
-	print_section_tabs(PLAYERS_TAB, NULL, 0);
+	print_section_tabs(PLAYERS_TAB, NULL, NULL);
 
 	if (order == SORT_BY_RANK)
 		html_start_player_list(1, 0, pnum);

@@ -45,7 +45,7 @@ int page_clan_list_html_main(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	html_header(&CTF_TAB, "CTF", "/clans", NULL);
-	print_section_tabs(CLANS_TAB, NULL, 0);
+	print_section_tabs(CLANS_TAB, NULL, NULL);
 
 	html_start_clan_list();
 

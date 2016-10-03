@@ -598,7 +598,7 @@ static unsigned round(unsigned n)
 	return n - (n % (mod / 100));
 }
 
-void print_section_tabs(enum section_tab tab, const char *squery, unsigned num)
+void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabvals)
 {
 	unsigned i;
 
@@ -616,14 +616,17 @@ void print_section_tabs(enum section_tab tab, const char *squery, unsigned num)
 		{ "Servers", "/servers/search", 0 }
 	}, *tabs;
 
-	const unsigned NTABS = 3;
-
-	if (squery) {
+	if (squery)
 		tabs = search_tabs;
-		tabs[tab].num = num;
+	else
+		tabs = default_tabs;
+
+	if (tabvals) {
+		tabs[0].num = tabvals[0];
+		tabs[1].num = tabvals[1];
+		tabs[2].num = tabvals[2];
 	} else {
 		struct info info;
-		tabs = default_tabs;
 
 		if (read_info(&info)) {
 			tabs[0].num = round(info.nplayers);
@@ -634,7 +637,7 @@ void print_section_tabs(enum section_tab tab, const char *squery, unsigned num)
 
 	html("<nav class=\"section_tabs\">");
 
-	for (i = 0; i < NTABS; i++) {
+	for (i = 0; i < SECTION_TABS_COUNT; i++) {
 		if (i == tab)
 			html("<a class=\"enabled\">");
 		else

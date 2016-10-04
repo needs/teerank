@@ -93,7 +93,7 @@ int page_about_json_api_main(int argc, char **argv)
 
 	html("</li>");
 
-	html("<li><a href=\"#info\">Info</a></li>");
+	html("<li><a href=\"#about\">About</a></li>");
 	html("<li><a href=\"#player\">Player</a></li>");
 	html("<li><a href=\"#player-list\">Player list</a></li>");
 	html("<li><a href=\"#clan\">Clan</a></li>");
@@ -125,12 +125,12 @@ int page_about_json_api_main(int argc, char **argv)
 	html("<p>The lowest possible date is <code>\"1970-01-01T00:00:00Z\"</code>, or unix epoch.</p>");
 
 	/*
-	 * Info
+	 * About
 	 */
 
-	html("<h1 id=\"info\">Info</h1>");
+	html("<h1 id=\"about\">About</h1>");
 
-	jsonurl("info.json");
+	jsonurl("about.json");
 
 	start_jsondesc_table();
 

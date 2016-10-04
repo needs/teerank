@@ -389,17 +389,15 @@ static int search(
 	/* No need to search when the query is too long or empty */
 	length = strlen(query);
 	if (length == 0 || length >= sizeof(lquery))
-		return EXIT_SUCCESS;
+		return SUCCESS;
 
 	to_lowercase(query, lquery);
 	init_list(list);
 
 	ret = open_index_page(
 		sinfo->indexname, &list->ipage, sinfo->datainfo, 1, 0);
-	if (ret == PAGE_NOT_FOUND)
-		return EXIT_NOT_FOUND;
-	if (ret == PAGE_ERROR)
-		return EXIT_FAILURE;
+	if (ret != SUCCESS)
+		return ret;
 
 	goto start;
 	while ((result->data = index_page_foreach(&list->ipage, NULL))) {
@@ -409,7 +407,7 @@ static int search(
 		result = new_result(list);
 	}
 
-	return EXIT_SUCCESS;
+	return SUCCESS;
 }
 
 static struct list LIST_ZERO;
@@ -444,14 +442,14 @@ int page_search_main(int argc, char **argv)
 	 * by sinfo.
 	 */
 
-	if ((ret = search(sinfo, argv[2], &list, 0)) != EXIT_SUCCESS)
+	if ((ret = search(sinfo, argv[2], &list, 0)) != SUCCESS)
 		return ret;
 
 	while (*sinfos) {
 		if (*sinfos != sinfo) {
 			struct list tmp = LIST_ZERO;
 
-			if (search(*sinfos, argv[2], &tmp, 1) == EXIT_SUCCESS)
+			if (search(*sinfos, argv[2], &tmp, 1) == SUCCESS)
 				tabvals[(*sinfos)->tab] = tmp.length;
 
 			free_list(&tmp);

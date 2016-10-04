@@ -141,12 +141,6 @@ struct index_page {
 	unsigned pnum, plen, i;
 };
 
-enum {
-	PAGE_FOUND,
-	PAGE_NOT_FOUND,
-	PAGE_ERROR,
-};
-
 /**
  * Load a page of an index
  *
@@ -159,8 +153,8 @@ enum {
  * @param pnum Page number, starts from 1
  * @param plen Pages length
  *
- * @return PAGE_FOUND when page does exist, PAGE_NOT_FOUND when it
- *         doesn't exist, PAGE_ERROR otherwise.
+ * @return SUCCESS when page does exist, NOT_FOUND when it doesn't
+ *         exist, FAILURE otherwise.
  */
 int open_index_page(
 	const char *filename,

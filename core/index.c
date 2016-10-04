@@ -324,7 +324,7 @@ static int select_page(
 
 	if (pnum > ipage->npages) {
 		fprintf(stderr, "Only %u pages available\n", ipage->npages);
-		return PAGE_NOT_FOUND;
+		return NOT_FOUND;
 	}
 
 	entryoffset = (pnum - 1) * plen * ipage->infos->datasize;
@@ -344,7 +344,7 @@ static int select_page(
 	ipage->pnum = pnum;
 	ipage->i = 0;
 
-	return PAGE_FOUND;
+	return SUCCESS;
 }
 
 int open_index_page(
@@ -399,24 +399,24 @@ int open_index_page(
 	}
 
 	switch (select_page(ipage, pnum, plen)) {
-	case PAGE_NOT_FOUND:
+	case NOT_FOUND:
 		goto not_found;
-	case PAGE_ERROR:
+	case FAILURE:
 		goto fail;
 	}
 
-	return PAGE_FOUND;
+	return SUCCESS;
 
 fail:
 	if (ipage->fd >= 0)
 		close(ipage->fd);
 	if (ipage->mmapbuf == MAP_FAILED)
 		munmap(ipage->mmapbuf, ipage->filesize);
-	return PAGE_ERROR;
+	return FAILURE;
 
 not_found:
 	close(ipage->fd);
-	return PAGE_NOT_FOUND;
+	return NOT_FOUND;
 }
 
 void *index_page_foreach(struct index_page *ipage, unsigned *i)

@@ -175,10 +175,63 @@ char *escape(const char *str)
 	return buf;
 }
 
+/*
+ * Compute the number of minutes, hours, days, months and years from the
+ * given date to now.  Return 1 if the player is online.
+ */
+static int elapsed_time_since(struct tm *tm, char *text, char **class)
+{
+	time_t now = time(NULL), ts;
+	time_t elapsed_seconds;
+	struct tm elapsed;
+	char *dummy;
+
+	if (!class)
+		class = &dummy;
+
+	/* Make sure elapsed time is positive */
+	ts = mktime(tm);
+	if (now < ts)
+		elapsed_seconds = ts - now;
+	else
+		elapsed_seconds = now - ts;
+
+	elapsed = *gmtime(&elapsed_seconds);
+
+	if (elapsed.tm_year - 70) {
+		sprintf(text, "%d years", elapsed.tm_year - 70);
+		*class = "years";
+		return 0;
+	} else if (elapsed.tm_mon) {
+		sprintf(text, "%d months", elapsed.tm_mon);
+		*class = "months";
+		return 0;
+	} else if (elapsed.tm_mday - 1) {
+		sprintf(text, "%d days", elapsed.tm_mday - 1);
+		*class = "days";
+		return 0;
+	} else if (elapsed.tm_hour) {
+		sprintf(text, "%d hours", elapsed.tm_hour);
+		*class = "hours";
+		return 0;
+	} else if (elapsed.tm_min >= 10) {
+		sprintf(text, "%d minutes", elapsed.tm_min - (elapsed.tm_min % 5));
+		*class = "minutes";
+		return 0;
+	} else {
+		sprintf(text, "Online");
+		*class = "online";
+		return 1;
+	}
+}
+
 void html_header(
 	const struct tab *active, const char *title,
 	const char *sprefix, const char *query)
 {
+	struct info info;
+	char text[64];
+
 	assert(active != NULL);
 	assert(title != NULL);
 
@@ -198,8 +251,18 @@ void html_header(
 	html("</head>");
 	html("<body>");
 	html("<header>");
-	html("<a href=\"/\"><img src=\"/images/logo.png\" alt=\"Logo\"/></a>");
-	html("<form action=\"%s/search\">", sprefix);
+	html("<a id=\"logo\" href=\"/\"><img src=\"/images/logo.png\" alt=\"Logo\"/></a>");
+
+	html("<section>");
+
+	/*
+	 * Show a warning banner if the database has not been updated
+	 * since 10 minutes.
+	 */
+	if (read_info(&info) && !elapsed_time_since(&info.last_update, text, NULL))
+		html("<mark id=\"alert\">Not updated since %s</mark>", text);
+
+	html("<form action=\"%s/search\" id=\"searchform\">", sprefix);
 	html("<input name=\"q\" type=\"text\" placeholder=\"Search\"%s%s%s/>",
 	     query ? " value=\"" : "",
 	     query ? escape(query) : "",
@@ -207,6 +270,8 @@ void html_header(
 
 	html("<input type=\"submit\" value=\"\"/>");
 	html("</form>");
+	html("</section>");
+
 	html("</header>");
 	html("<main>");
 	html("<nav id=\"toptabs\">");
@@ -334,52 +399,6 @@ void html_end_online_player_list(void)
 {
 	html("</tbody>");
 	html("</table>");
-}
-
-/*
- * Compute the number of minutes, hours, days, months and years from the
- * given date to now.  Return 1 if the player is online.
- */
-static int elapsed_time_since(struct tm *tm, char *text, char **class)
-{
-	time_t now = time(NULL), ts;
-	time_t elapsed_seconds;
-	struct tm elapsed;
-
-	/* Make sure elapsed time is positive */
-	ts = mktime(tm);
-	if (now < ts)
-		elapsed_seconds = ts - now;
-	else
-		elapsed_seconds = now - ts;
-
-	elapsed = *gmtime(&elapsed_seconds);
-
-	if (elapsed.tm_year - 70) {
-		sprintf(text, "%d years", elapsed.tm_year - 70);
-		*class = "years";
-		return 0;
-	} else if (elapsed.tm_mon) {
-		sprintf(text, "%d months", elapsed.tm_mon);
-		*class = "months";
-		return 0;
-	} else if (elapsed.tm_mday - 1) {
-		sprintf(text, "%d days", elapsed.tm_mday - 1);
-		*class = "days";
-		return 0;
-	} else if (elapsed.tm_hour) {
-		sprintf(text, "%d hours", elapsed.tm_hour);
-		*class = "hours";
-		return 0;
-	} else if (elapsed.tm_min >= 10) {
-		sprintf(text, "%d minutes", elapsed.tm_min - (elapsed.tm_min % 5));
-		*class = "minutes";
-		return 0;
-	} else {
-		sprintf(text, "Online");
-		*class = "online";
-		return 1;
-	}
 }
 
 static void player_list_entry(

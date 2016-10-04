@@ -6,7 +6,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	color: #666;
-
+	margin: 0px;
 	font-family: Verdana,Arial,Helvetica,sans-serif;
 }
 
@@ -27,9 +27,35 @@ body > * {
 	max-width: 1100px;
 }
 
+#logo {
+	margin-top: 1em;
+	margin-bottom: 1em;
+}
+
+#alert {
+	box-sizing: border-box;
+	width: auto;
+	min-width: 0px;
+	background: linear-gradient(#ffc466, #ff9d00);
+	border: 1px solid #8a5500;
+	border-top: none;
+	border-radius: 0px 0px 8px 8px;
+	color: #7e4d00;
+	margin: 0px 0px 0px auto;
+	padding: 10px 40px;
+	box-shadow: 0px 0px 5px #999;
+	text-shadow: 0px 0px 2px #dddddd;
+}
+
 body > header {
 	display: flex;
-	margin-bottom: 1em;
+	flex-direction: row;
+}
+
+body > header > section {
+	margin-left: auto;
+	display: flex;
+	flex-direction: column;
 }
 
 body > footer {
@@ -44,7 +70,7 @@ body > footer a {
 }
 
 /* Search */
-body > header > form {
+#searchform {
 	display: flex;
 	margin-top: auto;
 	margin-bottom: auto;
@@ -52,26 +78,26 @@ body > header > form {
 	margin-right: 10px;
 }
 
-body > header > form > * {
+#searchform > * {
 	background-color: white;
 	border: 1px solid #bbb;
 	font-size: 1.1em;
 }
 
-body > header > form > label {
+#searchform > label {
 	width: 2em;
 	border-left: 0px;
 	border-radius: 0.3em 0 0 0.3em;
 }
 
-body > header > form > input[type="text"] {
+#searchform > input[type="text"] {
 	padding: 0.5em 1em 0.5em 1em;
 	border-right: 0px;
 	border-radius: 0.3em 0 0 0.3em;
 	width: 12em;
 }
 
-body > header > form > input[type="submit"] {
+#searchform > input[type="submit"] {
 	width: 2.5em;
 
 	padding: 0 0.5em 0 0.5em;

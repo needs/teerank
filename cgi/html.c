@@ -264,35 +264,6 @@ void html_footer(const char *jsonanchor)
 	html("</html>");
 }
 
-/*
- * chars can size at most 6 bytes, so out string can size at most:
- * NAME_LENGTH * 6 + 1 bytes.
- */
-const char *name_to_html(const char *name)
-{
-	static char str[NAME_LENGTH * 6 + 1];
-	char *it = str;
-
-	assert(name != NULL);
-
-	for (; *name; name++) {
-		switch (*name) {
-		case '<':
-			it = stpcpy(it, "&lt;"); break;
-		case '>':
-			it = stpcpy(it, "&gt;"); break;
-		case '&':
-			it = stpcpy(it, "&amp;"); break;
-		case '"':
-			it = stpcpy(it, "&quot;"); break;
-		default:
-			*it++ = *name;
-		}
-	}
-
-	return str;
-}
-
 static void start_player_list(
 	int onlinelist, int byrank, int bylastseen, unsigned pnum)
 {

@@ -23,8 +23,6 @@ void html_header(
 	const char *sprefix, const char *query);
 void html_footer(const char *jsonanchor);
 
-const char *name_to_html(const char *name);
-
 /* Player list */
 void html_start_player_list(int byrank, int bylastseen, unsigned pnum);
 void html_end_player_list(void);

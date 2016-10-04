@@ -178,11 +178,15 @@ int page_about_json_api_main(int argc, char **argv)
 
 	jsondesc_row("players", "", "", "Array of <code>length</code> players");
 	jsondesc_row("[", NULL, NULL, NULL);
+	jsondesc_row("{", NULL, NULL, NULL);
 	jsondesc_row("name", "hexstring", "\"6e616d656c6573732074656500\"", "Player name");
 	jsondesc_row("clan", "hexstring", "\"00\"", "Player clan");
 	jsondesc_row("elo", "integer", "1500", "Player elo points");
 	jsondesc_row("rank", "unsigned", "45678", "Player rank");
 	jsondesc_row("lastseen", "time", "\"1970-01-01T00:00:00Z\"", "Last time the player was connected");
+	jsondesc_row("server_ip", "string", "\"1.2.3.4\"", "IP of the last server the player was playing on (can be empty)");
+	jsondesc_row("server_port", "string", "\"8300\"", "Port of the last server the player was playing on (can be empty)");
+	jsondesc_row("}", NULL, NULL, NULL);
 	jsondesc_row("]", NULL, NULL, NULL);
 
 	jsondesc_row("}", NULL, NULL, NULL);
@@ -227,8 +231,10 @@ int page_about_json_api_main(int argc, char **argv)
 
 	jsondesc_row("clans", "", "", "Array of <code>length</code> clan names");
 	jsondesc_row("[", NULL, NULL, NULL);
+	jsondesc_row("{", NULL, NULL, NULL);
 	jsondesc_row("name", "hexstring", "\"00\"", "Clan name");
 	jsondesc_row("nmembers", "unsigned", "2", "Number of members");
+	jsondesc_row("}", NULL, NULL, NULL);
 	jsondesc_row("]", NULL, NULL, NULL);
 
 	jsondesc_row("}", NULL, NULL, NULL);

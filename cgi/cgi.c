@@ -21,6 +21,35 @@ struct cgi_config cgi_config = {
 	"teerank.com", "80"
 };
 
+char *relurl(const char *fmt, ...)
+{
+	static char url[PATH_MAX];
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsnprintf(url, sizeof(url), fmt, ap);
+	va_end(ap);
+
+	return url;
+}
+
+char *absurl(const char *fmt, ...)
+{
+	static char url[PATH_MAX];
+	int ret;
+
+	ret = snprintf(url, sizeof(url), "http://%s", cgi_config.domain);
+
+	if (ret < sizeof(url)) {
+		va_list ap;
+		va_start(ap, fmt);
+		vsnprintf(url + ret, sizeof(url) - ret, fmt, ap);
+		va_end(ap);
+	}
+
+	return url;
+}
+
 static char *reason_phrase(int code)
 {
 	switch (code) {

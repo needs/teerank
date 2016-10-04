@@ -18,6 +18,9 @@ extern struct cgi_config {
 	char domain[MAX_DOMAIN_LENGTH];
 } cgi_config;
 
+char *relurl(const char *fmt, ...);
+char *absurl(const char *fmt, ...);
+
 int page_about_html_main(int argc, char **argv);
 int page_about_json_main(int argc, char **argv);
 

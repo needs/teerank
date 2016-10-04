@@ -371,8 +371,9 @@ int open_index_page(
 	}
 
 	/*
-	 * First, skip header up to the array so that seeking the file
-	 * use the start of the array to begin with.
+	 * First, get the number of data, so that the filesize can be
+	 * computed.  Reading before mapping is no problem, it is two
+	 * independant operations.
 	 */
 	ret = read(ipage->fd, &ipage->ndata, sizeof(ipage->ndata));
 
@@ -384,6 +385,11 @@ int open_index_page(
 		goto fail;
 	}
 
+	/*
+	 * Map the file in memory.  Using PROT_READ | PROT_WRITE with
+	 * MAP_PRIVATE works even if the file has been previously
+	 * openened with O_RDONLY.
+	 */
 	ipage->filesize = sizeof(ipage->ndata) + ipage->ndata * ipage->infos->datasize;
 	ipage->mmapbuf = mmap(0, ipage->filesize, PROT_READ | PROT_WRITE, MAP_PRIVATE, ipage->fd, 0);
 

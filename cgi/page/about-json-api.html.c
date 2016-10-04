@@ -296,7 +296,7 @@ int page_about_json_api_main(int argc, char **argv)
 
 	end_jsondesc_table();
 
-	html_footer(NULL);
+	html_footer(NULL, NULL);
 
 	return EXIT_SUCCESS;
 }

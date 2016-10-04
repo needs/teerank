@@ -95,7 +95,7 @@ int page_server_html_main(int argc, char **argv)
 		html_end_online_player_list();
 	}
 
-	html_footer("server");
+	html_footer("server", relurl("/server/%s.json", addr));
 
 	return EXIT_SUCCESS;
 }

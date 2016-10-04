@@ -238,13 +238,16 @@ void html_header(
 	html("<section>");
 }
 
-void html_footer(const char *jsonanchor)
+void html_footer(const char *jsonanchor, const char *jsonurl)
 {
+	assert((jsonanchor && jsonurl) || (!jsonanchor && !jsonurl));
+
 	html("</section>");
 
-	if (jsonanchor) {
+	if (jsonanchor && jsonurl) {
 		html("<nav id=\"bottabs\">");
-		html("<a href=\"/about-json-api.html#%s\">JSON</a>", jsonanchor);
+		html("<a href=\"%s\">JSON</a>", jsonurl);
+		html("<a href=\"/about-json-api.html#%s\">JSON Doc</a>", jsonanchor);
 		html("<a class=\"active\">HTML</a>");
 		html("</nav>");
 	}

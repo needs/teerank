@@ -52,7 +52,7 @@ int page_server_list_html_main(int argc, char **argv)
 	html_end_server_list();
 	print_page_nav("/servers/by-nplayers", &ipage);
 
-	html_footer("server-list");
+	html_footer("server-list", relurl("/servers/%s.json?p=%u", argv[2], pnum));
 
 	close_index_page(&ipage);
 

@@ -21,7 +21,7 @@ extern struct tab CUSTOM_TAB;
 void html_header(
 	const struct tab *active, const char *title,
 	const char *sprefix, const char *query);
-void html_footer(const char *jsonanchor);
+void html_footer(const char *jsonanchor, const char *jsonurl);
 
 /* Player list */
 void html_start_player_list(int byrank, int bylastseen, unsigned pnum);

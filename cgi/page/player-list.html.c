@@ -70,7 +70,7 @@ int page_player_list_html_main(int argc, char **argv)
 	html_end_player_list();
 	print_page_nav(urlprefix, &ipage);
 
-	html_footer("player-list");
+	html_footer("player-list", relurl("/players/%s.json?p=%u", argv[2], pnum));
 
 	close_index_page(&ipage);
 

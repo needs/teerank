@@ -52,7 +52,7 @@ int page_clan_list_html_main(int argc, char **argv)
 	html_end_clan_list();
 	print_page_nav("/clans/by-nmembers", &ipage);
 
-	html_footer("clan-list");
+	html_footer("clan-list", relurl("/clans/%s.json?p=%u", argv[2], pnum));
 
 	close_index_page(&ipage);
 

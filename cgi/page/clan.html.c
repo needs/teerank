@@ -72,7 +72,7 @@ int page_clan_html_main(int argc, char **argv)
 
 	html_end_player_list();
 
-	html_footer("clan");
+	html_footer("clan", relurl("/clans/%s.json", clan.name));
 
 	return EXIT_SUCCESS;
 }

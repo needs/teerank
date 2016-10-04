@@ -52,7 +52,7 @@ int page_player_html_main(int argc, char **argv)
 	html("<object data=\"/players/%s/elo+rank.svg\" type=\"image/svg+xml\"></object>",
 	     player.name);
 
-	html_footer("player");
+	html_footer("player", relurl("/players/%s.json", player.name));
 
 	return EXIT_SUCCESS;
 }

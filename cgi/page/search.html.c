@@ -476,7 +476,7 @@ int page_search_main(int argc, char **argv)
 		sinfo->end_list();
 	}
 
-	html_footer(NULL);
+	html_footer(NULL, NULL);
 
 	free_list(&list);
 

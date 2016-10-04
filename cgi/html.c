@@ -175,6 +175,8 @@ char *escape(const char *str)
 	return buf;
 }
 
+#define plural(n) (n), (n) > 1 ? "s" : ""
+
 /*
  * Compute the number of minutes, hours, days, months and years from the
  * given date to now.  Return 1 if the player is online.
@@ -199,23 +201,23 @@ static int elapsed_time_since(struct tm *tm, char *text, char **class)
 	elapsed = *gmtime(&elapsed_seconds);
 
 	if (elapsed.tm_year - 70) {
-		sprintf(text, "%d years", elapsed.tm_year - 70);
+		sprintf(text, "%d year%s", plural(elapsed.tm_year - 70));
 		*class = "years";
 		return 0;
 	} else if (elapsed.tm_mon) {
-		sprintf(text, "%d months", elapsed.tm_mon);
+		sprintf(text, "%d month%s", plural(elapsed.tm_mon));
 		*class = "months";
 		return 0;
 	} else if (elapsed.tm_mday - 1) {
-		sprintf(text, "%d days", elapsed.tm_mday - 1);
+		sprintf(text, "%d day%s", plural(elapsed.tm_mday - 1));
 		*class = "days";
 		return 0;
 	} else if (elapsed.tm_hour) {
-		sprintf(text, "%d hours", elapsed.tm_hour);
+		sprintf(text, "%d hour%s", plural(elapsed.tm_hour));
 		*class = "hours";
 		return 0;
 	} else if (elapsed.tm_min >= 10) {
-		sprintf(text, "%d minutes", elapsed.tm_min - (elapsed.tm_min % 5));
+		sprintf(text, "%d minute%s", plural(elapsed.tm_min - (elapsed.tm_min % 5)));
 		*class = "minutes";
 		return 0;
 	} else {

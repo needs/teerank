@@ -133,7 +133,9 @@ struct index_page {
 	char *tmpname;
 
 	int fd;
+	size_t filesize;
 	char path[PATH_MAX];
+	void *mmapbuf, *data;
 
 	unsigned ndata, npages;
 	unsigned pnum, plen, i;
@@ -173,12 +175,11 @@ int open_index_page(
  * random values.
  *
  * @param ipage Index page to loop on
- * @param data A valid buffer to store the next index entry
+ * @param i Entry pos in the whole index
  *
- * @return 0 if every entries in the page has been iterated through,
- *         an absolute entry number otherwise (a positive number)
+ * @return The next entry, or NULL if every entries have been iterated
  */
-unsigned index_page_foreach(struct index_page *ipage, void *data);
+void *index_page_foreach(struct index_page *ipage, unsigned *i);
 
 /**
  * Close the given index page

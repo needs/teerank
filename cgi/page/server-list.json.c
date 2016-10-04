@@ -11,7 +11,7 @@ int page_server_list_json_main(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct jfile jfile;
-	struct indexed_server s;
+	struct indexed_server *s;
 
 	unsigned pnum;
 	int ret;
@@ -34,15 +34,15 @@ int page_server_list_json_main(int argc, char **argv)
 	json_write_unsigned(&jfile, "length", ipage.plen);
 	json_write_array_start(&jfile, "servers");
 
-	while (index_page_foreach(&ipage, &s)) {
+	while ((s = index_page_foreach(&ipage, NULL))) {
 		json_write_object_start(&jfile, NULL);
 
-		json_write_string(&jfile, "name", s.name, sizeof(s.name));
-		json_write_string(&jfile, "gametype", s.gametype, sizeof(s.gametype));
-		json_write_string(&jfile, "map", s.map, sizeof(s.map));
+		json_write_string(&jfile, "name", s->name, sizeof(s->name));
+		json_write_string(&jfile, "gametype", s->gametype, sizeof(s->gametype));
+		json_write_string(&jfile, "map", s->map, sizeof(s->map));
 
-		json_write_unsigned(&jfile, "nplayers", s.nplayers);
-		json_write_unsigned(&jfile, "maxplayers", s.maxplayers);
+		json_write_unsigned(&jfile, "nplayers", s->nplayers);
+		json_write_unsigned(&jfile, "maxplayers", s->maxplayers);
 
 		json_write_object_end(&jfile);
 	}

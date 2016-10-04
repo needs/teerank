@@ -20,7 +20,7 @@ enum sort_order {
 int page_player_list_html_main(int argc, char **argv)
 {
 	struct index_page ipage;
-	struct indexed_player p;
+	struct indexed_player *p;
 	unsigned pnum;
 	const char *indexname;
 	const char *urlprefix;
@@ -65,10 +65,10 @@ int page_player_list_html_main(int argc, char **argv)
 	else
 		html_start_player_list(0, 1, pnum);
 
-	while (index_page_foreach(&ipage, &p))
+	while ((p = index_page_foreach(&ipage, NULL)))
 		html_player_list_entry(
-			p.name, p.clan, p.elo, p.rank, *gmtime(&p.lastseen),
-			build_addr(p.server_ip, p.server_port), 0);
+			p->name, p->clan, p->elo, p->rank, *gmtime(&p->lastseen),
+			build_addr(p->server_ip, p->server_port), 0);
 
 	html_end_player_list();
 	print_page_nav(urlprefix, &ipage);

@@ -15,7 +15,7 @@
 int page_clan_list_html_main(int argc, char **argv)
 {
 	struct index_page ipage;
-	struct indexed_clan c;
+	struct indexed_clan *c;
 	unsigned pnum, pos;
 	const char *indexname;
 	int ret;
@@ -49,8 +49,8 @@ int page_clan_list_html_main(int argc, char **argv)
 
 	html_start_clan_list();
 
-	while ((pos = index_page_foreach(&ipage, &c)))
-		html_clan_list_entry(pos, c.name, c.nmembers);
+	while ((c = index_page_foreach(&ipage, &pos)))
+		html_clan_list_entry(pos, c->name, c->nmembers);
 
 	html_end_clan_list();
 	print_page_nav("/clans/by-nmembers", &ipage);

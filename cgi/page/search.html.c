@@ -27,13 +27,7 @@
  */
 struct result {
 	unsigned relevance;
-
-	union {
-		struct indexed_player player;
-		struct indexed_clan clan;
-		struct indexed_server server;
-	} data;
-
+	void *data;
 	struct result *next, *prev;
 };
 
@@ -53,6 +47,8 @@ struct result {
  * last one.
  */
 struct list {
+	struct index_page ipage;
+
 	unsigned length;
 	struct result pool[MAX_RESULTS + 1];
 	struct result *free;
@@ -60,6 +56,11 @@ struct list {
 	struct result *first;
 	struct result *last;
 };
+
+static void free_list(struct list *list)
+{
+	close_index_page(&list->ipage);
+}
 
 static void to_lowercase(char *src, char *dst)
 {
@@ -379,7 +380,6 @@ static int search(
 	const struct search_info *sinfo, char *query, struct list *list,
 	int onlycount)
 {
-	struct index_page ipage;
 	struct result *result;
 
 	char lquery[ADDR_STRSIZE];
@@ -395,15 +395,15 @@ static int search(
 	init_list(list);
 
 	ret = open_index_page(
-		sinfo->indexname, &ipage, sinfo->datainfo, 1, 0);
+		sinfo->indexname, &list->ipage, sinfo->datainfo, 1, 0);
 	if (ret == PAGE_NOT_FOUND)
 		return EXIT_NOT_FOUND;
 	if (ret == PAGE_ERROR)
 		return EXIT_FAILURE;
 
 	goto start;
-	while (index_page_foreach(&ipage, &result->data)) {
-		result->relevance = sinfo->relevance(lquery, &result->data);
+	while ((result->data = index_page_foreach(&list->ipage, NULL))) {
+		result->relevance = sinfo->relevance(lquery, result->data);
 		try_add_result(list, result, sinfo->compare, onlycount);
 	start:
 		result = new_result(list);
@@ -453,6 +453,8 @@ int page_search_main(int argc, char **argv)
 
 			if (search(*sinfos, argv[2], &tmp, 1) == EXIT_SUCCESS)
 				tabvals[(*sinfos)->tab] = tmp.length;
+
+			free_list(&tmp);
 		} else {
 			tabvals[(*sinfos)->tab] = list.length;
 		}
@@ -472,11 +474,13 @@ int page_search_main(int argc, char **argv)
 
 		sinfo->start_list();
 		for (r = list.first, i = 0; r; r = r->next, i++)
-			sinfo->print_result(i + 1, &r->data);
+			sinfo->print_result(i + 1, r->data);
 		sinfo->end_list();
 	}
 
 	html_footer(NULL);
+
+	free_list(&list);
 
 	return EXIT_SUCCESS;
 }

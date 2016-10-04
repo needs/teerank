@@ -15,7 +15,7 @@
 int page_server_list_html_main(int argc, char **argv)
 {
 	struct index_page ipage;
-	struct indexed_server server;
+	struct indexed_server *server;
 	unsigned pnum, pos;
 	const char *indexname;
 	int ret;
@@ -49,8 +49,8 @@ int page_server_list_html_main(int argc, char **argv)
 
 	html_start_server_list();
 
-	while ((pos = index_page_foreach(&ipage, &server)))
-		html_server_list_entry(pos, &server);
+	while ((server = index_page_foreach(&ipage, &pos)))
+		html_server_list_entry(pos, server);
 
 	html_end_server_list();
 	print_page_nav("/servers/by-nplayers", &ipage);

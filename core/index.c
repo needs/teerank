@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 
 #include "server.h"
 #include "index.h"
@@ -310,6 +311,8 @@ void close_index(struct index *index)
 static int select_page(
 	struct index_page *ipage, unsigned pnum, unsigned plen)
 {
+	size_t entryoffset;
+
 	/*
 	 * If there is no page length, then we treats the whole index as
 	 * one single page.
@@ -324,10 +327,8 @@ static int select_page(
 		return PAGE_NOT_FOUND;
 	}
 
-	if (lseek(ipage->fd, (pnum - 1) * plen * ipage->infos->datasize, SEEK_CUR) == -1) {
-		perror(ipage->path);
-		return PAGE_ERROR;
-	}
+	entryoffset = (pnum - 1) * plen * ipage->infos->datasize;
+	ipage->data = ipage->mmapbuf + sizeof(ipage->ndata) + entryoffset;
 
 	/*
 	 * If it is the last page, page length may be lower than given
@@ -358,6 +359,7 @@ int open_index_page(
 	assert((plen == 0 && pnum == 1) || (plen > 0 && pnum > 0));
 
 	ipage->fd = -1;
+	ipage->mmapbuf = MAP_FAILED;
 	ipage->infos = infos;
 
 	if (!dbpath(ipage->path, sizeof(ipage->path), "%s", filename))
@@ -382,6 +384,14 @@ int open_index_page(
 		goto fail;
 	}
 
+	ipage->filesize = sizeof(ipage->ndata) + ipage->ndata * ipage->infos->datasize;
+	ipage->mmapbuf = mmap(0, ipage->filesize, PROT_READ | PROT_WRITE, MAP_PRIVATE, ipage->fd, 0);
+
+	if (ipage->mmapbuf == MAP_FAILED) {
+		perror(ipage->path);
+		goto fail;
+	}
+
 	switch (select_page(ipage, pnum, plen)) {
 	case PAGE_NOT_FOUND:
 		goto not_found;
@@ -394,6 +404,8 @@ int open_index_page(
 fail:
 	if (ipage->fd >= 0)
 		close(ipage->fd);
+	if (ipage->mmapbuf == MAP_FAILED)
+		munmap(ipage->mmapbuf, ipage->filesize);
 	return PAGE_ERROR;
 
 not_found:
@@ -401,32 +413,21 @@ not_found:
 	return PAGE_NOT_FOUND;
 }
 
-unsigned index_page_foreach(struct index_page *ipage, void *data)
+void *index_page_foreach(struct index_page *ipage, unsigned *i)
 {
-	ssize_t ret;
-
 	assert(ipage != NULL);
 	assert(ipage->fd != -1);
 	assert(ipage->i <= ipage->plen);
 
 	if (ipage->i == ipage->plen) {
 		ipage->i = 0;
-		return 0;
+		return NULL;
 	}
 
-	ipage->i += 1;
+	if (i)
+		*i = (ipage->pnum - 1) * ipage->plen + ipage->i + 1;
 
-	ret = read(ipage->fd, data, ipage->infos->datasize);
-
-	if (ret == -1) {
-		perror(ipage->path);
-		return 0;
-	} else if (ret < ipage->infos->datasize) {
-		fprintf(stderr, "%s: read(): Entry %u truncated\n", ipage->path, ipage->i);
-		return 0;
-	}
-
-	return (ipage->pnum - 1) * ipage->plen + ipage->i;
+	return ipage->data + (ipage->i++ * ipage->infos->datasize);
 }
 
 void close_index_page(struct index_page *ipage)
@@ -434,5 +435,6 @@ void close_index_page(struct index_page *ipage)
 	assert(ipage != NULL);
 	assert(ipage->fd != -1);
 
+	munmap(ipage->mmapbuf, ipage->filesize);
 	close(ipage->fd);
 }

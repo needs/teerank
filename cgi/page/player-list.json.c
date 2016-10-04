@@ -12,7 +12,7 @@ int page_player_list_json_main(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct jfile jfile;
-	struct indexed_player p;
+	struct indexed_player *p;
 
 	const char *indexname;
 	unsigned pnum;
@@ -50,17 +50,17 @@ int page_player_list_json_main(int argc, char **argv)
 	json_write_unsigned(&jfile, "length", ipage.plen);
 	json_write_array_start(&jfile, "players");
 
-	while (index_page_foreach(&ipage, &p)) {
+	while ((p = index_page_foreach(&ipage, NULL))) {
 		json_write_object_start(&jfile, NULL);
 
-		json_write_string(&jfile, "name", p.name, sizeof(p.name));
-		json_write_string(&jfile, "clan", p.clan, sizeof(p.clan));
-		json_write_int(&jfile, "elo", p.elo);
-		json_write_unsigned(&jfile, "rank", p.rank);
-		json_write_time(&jfile, "lastseen", p.lastseen);
+		json_write_string(&jfile, "name", p->name, sizeof(p->name));
+		json_write_string(&jfile, "clan", p->clan, sizeof(p->clan));
+		json_write_int(&jfile, "elo", p->elo);
+		json_write_unsigned(&jfile, "rank", p->rank);
+		json_write_time(&jfile, "lastseen", p->lastseen);
 
-		json_write_string(&jfile, "server_ip", p.server_ip, sizeof(p.server_ip));
-		json_write_string(&jfile, "server_port", p.server_port, sizeof(p.server_port));
+		json_write_string(&jfile, "server_ip", p->server_ip, sizeof(p->server_ip));
+		json_write_string(&jfile, "server_port", p->server_port, sizeof(p->server_port));
 
 		json_write_object_end(&jfile);
 	}

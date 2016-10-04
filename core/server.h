@@ -48,7 +48,7 @@ struct server {
 };
 
 /**
- * Check if the given server infos describe a vanilla ctf server
+ * Check if the given server info describe a vanilla ctf server
  */
 int is_vanilla_ctf_server(
 	const char *gametype, const char *map, int num_clients, int max_clients);

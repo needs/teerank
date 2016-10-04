@@ -68,7 +68,7 @@ struct indexed_server {
 };
 
 struct index {
-	const struct index_data_info *infos;
+	const struct index_data_info *info;
 
 	unsigned ndata, bufsize;
 	void *data;
@@ -81,13 +81,13 @@ struct index {
  * Create an index for the given data
  *
  * @param index Index to create
- * @param infos Infos about data the index should contain
+ * @param info Info about data the index should contain
  * @param filter Function to filter index entries
  *
  * @return 1 on success, 0 on failure
  */
 int create_index(
-	struct index *index, const struct index_data_info *infos,
+	struct index *index, const struct index_data_info *info,
 	int (*filter)(const void *));
 
 /**
@@ -127,7 +127,7 @@ int write_index(struct index *index, const char *filename);
 void close_index(struct index *index);
 
 struct index_page {
-	const struct index_data_info *infos;
+	const struct index_data_info *info;
 
 	void *databuf;
 	char *tmpname;
@@ -149,7 +149,7 @@ struct index_page {
  *
  * @param filename Filename of the index file in the database
  * @param ipage Index page
- * @param infos Index data infos
+ * @param info Index data info
  * @param pnum Page number, starts from 1
  * @param plen Pages length
  *
@@ -158,7 +158,7 @@ struct index_page {
  */
 int open_index_page(
 	const char *filename,
-	struct index_page *ipage, const struct index_data_info *infos,
+	struct index_page *ipage, const struct index_data_info *info,
 	unsigned pnum, unsigned plen);
 
 /**

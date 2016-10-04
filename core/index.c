@@ -113,7 +113,7 @@ static void *get(struct index *index, unsigned i)
 	assert(index != NULL);
 	assert(i < index->ndata);
 
-	return (char*)index->data + (index->infos->datasize * i);
+	return (char*)index->data + (index->info->datasize * i);
 }
 
 static void *new_data(struct index *index)
@@ -139,7 +139,7 @@ static void *new_data(struct index *index)
 	if (index->ndata % STEP == 0) {
 		void *tmp;
 
-		tmp = realloc(index->data, (index->ndata + STEP) * index->infos->datasize);
+		tmp = realloc(index->data, (index->ndata + STEP) * index->info->datasize);
 		if (!tmp) {
 			fprintf(stderr, "realloc(%u): %s\n",
 			        index->ndata, strerror(errno));
@@ -168,7 +168,7 @@ static void free_last_data(struct index *index)
 }
 
 int create_index(
-	struct index *index, const struct index_data_info *infos,
+	struct index *index, const struct index_data_info *info,
 	int (*filter)(const void *))
 {
 	static const struct index INDEX_ZERO;
@@ -177,12 +177,12 @@ int create_index(
 	DIR *dir;
 
 	assert(index != NULL);
-	assert(infos != NULL);
+	assert(info != NULL);
 
 	*index = INDEX_ZERO;
-	index->infos = infos;
+	index->info = info;
 
-	if (!dbpath(path, PATH_MAX, "%s", infos->dirname))
+	if (!dbpath(path, PATH_MAX, "%s", info->dirname))
 		return 0;
 
 	if (!(dir = opendir(path))) {
@@ -208,7 +208,7 @@ int create_index(
 			return 0;
 		}
 
-		if (!infos->create_data(data, dp->d_name)) {
+		if (!info->create_data(data, dp->d_name)) {
 			free_last_data(index);
 			continue;
 		}
@@ -236,7 +236,7 @@ unsigned index_ndata(struct index *index)
 
 void sort_index(struct index *index, int (*compar)(const void *, const void *))
 {
-	qsort(index->data, index_ndata(index), index->infos->datasize, compar);
+	qsort(index->data, index_ndata(index), index->info->datasize, compar);
 }
 
 void *index_foreach(struct index *index)
@@ -279,7 +279,7 @@ int write_index(struct index *index, const char *filename)
 	}
 
 	/* Entries */
-	totalsize = index->infos->datasize * ndata;
+	totalsize = index->info->datasize * ndata;
 	ret = write(fd, index->data, totalsize);
 
 	if (ret == -1) {
@@ -327,7 +327,7 @@ static int select_page(
 		return NOT_FOUND;
 	}
 
-	entryoffset = (pnum - 1) * plen * ipage->infos->datasize;
+	entryoffset = (pnum - 1) * plen * ipage->info->datasize;
 	ipage->data = ipage->mmapbuf + sizeof(ipage->ndata) + entryoffset;
 
 	/*
@@ -349,18 +349,18 @@ static int select_page(
 
 int open_index_page(
 	const char *filename,
-	struct index_page *ipage, const struct index_data_info *infos,
+	struct index_page *ipage, const struct index_data_info *info,
 	unsigned pnum, unsigned plen)
 {
 	ssize_t ret;
 
 	assert(ipage != NULL);
-	assert(infos != NULL);
+	assert(info != NULL);
 	assert((plen == 0 && pnum == 1) || (plen > 0 && pnum > 0));
 
 	ipage->fd = -1;
 	ipage->mmapbuf = MAP_FAILED;
-	ipage->infos = infos;
+	ipage->info = info;
 
 	if (!dbpath(ipage->path, sizeof(ipage->path), "%s", filename))
 		goto fail;
@@ -390,7 +390,7 @@ int open_index_page(
 	 * MAP_PRIVATE works even if the file has been previously
 	 * openened with O_RDONLY.
 	 */
-	ipage->filesize = sizeof(ipage->ndata) + ipage->ndata * ipage->infos->datasize;
+	ipage->filesize = sizeof(ipage->ndata) + ipage->ndata * ipage->info->datasize;
 	ipage->mmapbuf = mmap(0, ipage->filesize, PROT_READ | PROT_WRITE, MAP_PRIVATE, ipage->fd, 0);
 
 	if (ipage->mmapbuf == MAP_FAILED) {
@@ -433,7 +433,7 @@ void *index_page_foreach(struct index_page *ipage, unsigned *i)
 	if (i)
 		*i = (ipage->pnum - 1) * ipage->plen + ipage->i + 1;
 
-	return ipage->data + (ipage->i++ * ipage->infos->datasize);
+	return ipage->data + (ipage->i++ * ipage->info->datasize);
 }
 
 void close_index_page(struct index_page *ipage)

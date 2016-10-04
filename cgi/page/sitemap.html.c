@@ -13,27 +13,27 @@ int page_sitemap_main(int argc, char **argv)
 	xml(" xsi:schemaLocation=\"http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd\">");
 
 	xml("<url>");
-	xml("<loc>http://%s/players/pages/1.html</loc>", cgi_config.domain);
+	xml("<loc>http://%s/players/by-rank</loc>", cgi_config.domain);
 	xml("<priority>1.00</priority>");
-	xml("<changefreq>monthly</changefreq>");
+	xml("<changefreq>hourly</changefreq>");
 	xml("</url>");
 
 	xml("<url>");
-	xml("<loc>http://%s/clans/pages/1.html</loc>", cgi_config.domain);
+	xml("<loc>http://%s/clans/by-nmembers</loc>", cgi_config.domain);
 	xml("<priority>1.00</priority>");
-	xml("<changefreq>monthly</changefreq>");
+	xml("<changefreq>hourly</changefreq>");
 	xml("</url>");
 
 	xml("<url>");
-	xml("<loc>http://%s/servers/pages/1.html</loc>", cgi_config.domain);
+	xml("<loc>http://%s/servers/by-nplayers</loc>", cgi_config.domain);
 	xml("<priority>1.00</priority>");
-	xml("<changefreq>monthly</changefreq>");
+	xml("<changefreq>hourly</changefreq>");
 	xml("</url>");
 
 	xml("<url>");
 	xml("<loc>http://%s/about.html</loc>", cgi_config.domain);
 	xml("<priority>1.00</priority>");
-	xml("<changefreq>monthly</changefreq>");
+	xml("<changefreq>hourly</changefreq>");
 	xml("</url>");
 
 	xml("</urlset>");

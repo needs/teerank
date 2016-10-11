@@ -295,6 +295,7 @@ static struct directory root = {
 		PAGE_HTML("about-json-api.html", about_json_api),
 		PAGE_TXT("robots.txt", robots),
 		PAGE_XML("sitemap.xml", sitemap),
+		PAGE_HTML("status.html", status_html),
 		DYNAMIC_PAGE("search", search),
 		{ NULL }
 	}, (struct directory[]) {

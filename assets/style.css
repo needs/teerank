@@ -47,6 +47,11 @@ body > * {
 	text-shadow: 0px 0px 2px #dddddd;
 }
 
+#alert:hover {
+	background: linear-gradient(#ff9d00, #ffc466);
+	text-decoration: none;
+}
+
 body > header {
 	display: flex;
 	flex-direction: row;
@@ -58,15 +63,28 @@ body > header > section {
 	flex-direction: column;
 }
 
-body > footer {
+#footer {
 	font-size: 0.8em;
 	text-align: center;
 	margin: 12px auto 12px auto;
+	text-shadow: 1px 1px 1px #383838;
 }
 
-body > footer a {
+#footer ul {
+	justify-content: center;
+	display: flex;
+	flex-direction: row;
+	list-style: none;
+	padding: 0px;
+}
+
+#footer li {
+	margin-left: 10px;
+	margin-right: 10px;
+}
+
+#footer a {
 	color: #ffffff;
-	text-shadow: 1px 1px 1px #383838;
 }
 
 /* Search */
@@ -616,4 +634,53 @@ p > code {
 	border: none;
 	background: white;
 	color: #666;
+}
+
+/*
+ * Status widget
+ */
+
+.status {
+	display: flex;
+	padding: 10px 20px;
+	border-top: 1px solid #ddd;
+}
+
+h2 + .status {
+	border-top: none;
+}
+
+.status span {
+	display: block;
+}
+
+.status span:first-child {
+	margin-right: auto;
+}
+
+.status span.comment {
+	border-right: 1px solid #bbb;
+	margin-right: 20px;
+	padding-right: 20px;
+}
+
+.status span:last-child {
+	font-weight: bold;
+}
+
+.status_ok span:last-child {
+	color: #5a8d39;
+}
+
+.status_down span:last-child {
+	color: #b05656;
+}
+
+.status_stopped span:last-child {
+	color: #c18800;
+}
+
+.status_disabled, .status_unknown {
+	background-color: #f4f4f4;
+	color: #999999;
 }

@@ -262,7 +262,7 @@ void html_header(
 	 * since 10 minutes.
 	 */
 	if (read_info(&info) && !elapsed_time_since(&info.last_update, text, NULL))
-		html("<mark id=\"alert\">Not updated since %s</mark>", text);
+		html("<a id=\"alert\" href=\"/status.html\">Not updated since %s</a>", text);
 
 	html("<form action=\"%s/search\" id=\"searchform\">", sprefix);
 	html("<input name=\"q\" type=\"text\" placeholder=\"Search\"%s%s%s/>",
@@ -321,13 +321,17 @@ void html_footer(const char *jsonanchor, const char *jsonurl)
 
 	html("</main>");
 
-	html("<footer>");
-	html("<p>");
+	html("<footer id=\"footer\">");
+	html("<ul>");
+	html("<li>");
 	html("<a href=\"https://github.com/needs/teerank/commit/%s\">Teerank %d.%d</a>",
 	     CURRENT_COMMIT, TEERANK_VERSION, TEERANK_SUBVERSION);
 	html("<a href=\"https://github.com/needs/teerank/tree/%s\">(%s)</a>",
 	     CURRENT_BRANCH, STABLE_VERSION ? "stable" : "unstable");
-	html("</p>");
+	html("</li>");
+	html("<li><a href=\"/status.html\">Status</a></li>");
+	html("<li><a href=\"/about.html\">About</a></li>");
+	html("</ul>");
 	html("</footer>");
 
 	html("</body>");

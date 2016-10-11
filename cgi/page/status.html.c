@@ -5,6 +5,7 @@
 #include "cgi.h"
 #include "config.h"
 #include "html.h"
+#include "info.h"
 
 enum {
 	STATUS_OK,
@@ -62,6 +63,9 @@ static void print_status(const char *title, const char *comment, int status)
 
 int page_status_html_main(int argc, char **argv)
 {
+	char buf[16], comment[64];
+	struct info info;
+
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
@@ -73,7 +77,17 @@ int page_status_html_main(int argc, char **argv)
 	html_header(&CUSTOM_TAB, "Status", NULL, NULL);
 
 	html("<h2>Teerank</h2>");
-	print_status("Teerank", "Not updated since 6 days", STATUS_STOPPED);
+
+	/* Teerank status */
+	if (!read_info(&info)) {
+		print_status("Teerank", "Can't read last update date", STATUS_UNKNOWN);
+	} else if (!elapsed_time_since(&info.last_update, NULL, buf, sizeof(buf))) {
+		snprintf(comment, sizeof(comment), "Not updated since %s", buf);
+		print_status("Teerank", comment, STATUS_STOPPED);
+	} else {
+		print_status("Teerank", NULL, STATUS_OK);
+	}
+
 	print_status("JSON API", NULL, STATUS_DISABLED);
 
 	html("<h2>Teeworlds</h2>");

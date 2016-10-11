@@ -13,6 +13,12 @@ void css(const char *fmt, ...);
 
 char *escape(const char *str);
 
+/*
+ * Compute the number of minutes, hours, days, months and years from the
+ * given date to now.  Return 1 if elapsed time is less than 10 minutes.
+ */
+int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize);
+
 struct tab {
 	char *name, *href;
 };

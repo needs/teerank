@@ -179,9 +179,9 @@ char *escape(const char *str)
 
 /*
  * Compute the number of minutes, hours, days, months and years from the
- * given date to now.  Return 1 if the player is online.
+ * given date to now.  Return 1 if elapsed time is less than 10 minutes.
  */
-static int elapsed_time_since(struct tm *tm, char *text, char **class)
+int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize)
 {
 	time_t now = time(NULL), ts;
 	time_t elapsed_seconds;
@@ -201,27 +201,27 @@ static int elapsed_time_since(struct tm *tm, char *text, char **class)
 	elapsed = *gmtime(&elapsed_seconds);
 
 	if (elapsed.tm_year - 70) {
-		sprintf(text, "%d year%s", plural(elapsed.tm_year - 70));
+		snprintf(text, textsize, "%d year%s", plural(elapsed.tm_year - 70));
 		*class = "years";
 		return 0;
 	} else if (elapsed.tm_mon) {
-		sprintf(text, "%d month%s", plural(elapsed.tm_mon));
+		snprintf(text, textsize, "%d month%s", plural(elapsed.tm_mon));
 		*class = "months";
 		return 0;
 	} else if (elapsed.tm_mday - 1) {
-		sprintf(text, "%d day%s", plural(elapsed.tm_mday - 1));
+		snprintf(text, textsize, "%d day%s", plural(elapsed.tm_mday - 1));
 		*class = "days";
 		return 0;
 	} else if (elapsed.tm_hour) {
-		sprintf(text, "%d hour%s", plural(elapsed.tm_hour));
+		snprintf(text, textsize, "%d hour%s", plural(elapsed.tm_hour));
 		*class = "hours";
 		return 0;
 	} else if (elapsed.tm_min >= 10) {
-		sprintf(text, "%d minute%s", plural(elapsed.tm_min - (elapsed.tm_min % 5)));
+		snprintf(text, textsize, "%d minute%s", plural(elapsed.tm_min - (elapsed.tm_min % 5)));
 		*class = "minutes";
 		return 0;
 	} else {
-		sprintf(text, "Online");
+		snprintf(text, textsize, "Online");
 		*class = "online";
 		return 1;
 	}
@@ -261,7 +261,7 @@ void html_header(
 	 * Show a warning banner if the database has not been updated
 	 * since 10 minutes.
 	 */
-	if (read_info(&info) && !elapsed_time_since(&info.last_update, text, NULL))
+	if (read_info(&info) && !elapsed_time_since(&info.last_update, NULL, text, sizeof(text)))
 		html("<a id=\"alert\" href=\"/status.html\">Not updated since %s</a>", text);
 
 	html("<form action=\"%s/search\" id=\"searchform\">", sprefix);
@@ -463,7 +463,7 @@ static void player_list_entry(
 		char text[64], strls[] = "00/00/1970 00h00", *class;
 		int online;
 
-		online = elapsed_time_since(&lastseen, text, &class);
+		online = elapsed_time_since(&lastseen, &class, text, sizeof(text));
 		if (strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", &lastseen))
 			html("<td class=\"%s\" title=\"%s\">", class, strls);
 		else

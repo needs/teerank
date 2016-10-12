@@ -59,10 +59,15 @@ static void add_pending_entry(struct pool *pool, struct pool_entry *entry)
 
 	if (!send_data(pool->sockets, pool->request, entry->addr))
 		return;
+
 	entry->start_time = times(NULL);
 	entry->status = PENDING;
 
+	/* Insert before list head */
+	entry->prev_pending = NULL;
 	entry->next_pending = pool->pending;
+	if (pool->pending)
+		pool->pending->prev_pending = entry;
 	pool->pending = entry;
 	pool->pending_count++;
 }
@@ -107,24 +112,35 @@ static void fill_pending_list(struct pool *pool)
 	}
 }
 
+/*
+ * Remove the given pool entry from the pending list, but keep the given
+ * entry pointers set, so that removing while looping still works.
+ */
 static void remove_pending_entry(
-	struct pool *pool, struct pool_entry *entry, struct pool_entry *prev)
+	struct pool *pool, struct pool_entry *entry)
 {
 	assert(pool != NULL);
 	assert(entry != NULL);
-	assert(prev != NULL || entry == pool->pending);
+	assert(entry->prev_pending != NULL || entry == pool->pending);
 
-	if (prev)
-		prev->next_pending = entry->next_pending;
-	else if (entry == pool->pending)
+	if (entry->next_pending)
+		entry->next_pending->prev_pending = entry->prev_pending;
+	if (entry->prev_pending)
+		entry->prev_pending->next_pending = entry->next_pending;
+
+	if (entry == pool->pending) {
 		pool->pending = entry->next_pending;
+		if (pool->pending)
+			pool->pending->prev_pending = NULL;
+	}
+
 	pool->pending_count--;
 }
 
 static void clean_old_pending_entries(struct pool *pool)
 {
 	static long ticks_per_second = -1;
-	struct pool_entry *entry, *prev = NULL;
+	struct pool_entry *entry;
 	clock_t now;
 
 	assert(pool != NULL);
@@ -141,14 +157,14 @@ static void clean_old_pending_entries(struct pool *pool)
 		float elapsed = (now - entry->start_time) / ticks_per_second;
 
 		if (elapsed >= MAX_PING / 1000.0f) {
-			entry->failure_count++;
-			remove_pending_entry(pool, entry, prev);
-			if (entry->failure_count > MAX_FAILURE)
+			remove_pending_entry(pool, entry);
+
+			if (entry->failure_count == MAX_FAILURE)
 				entry->status = FAILED;
 			else
 				entry->status = IDLE;
-		} else {
-			prev = entry;
+
+			entry->failure_count++;
 		}
 	}
 }
@@ -189,19 +205,18 @@ static int is_same_addr(
 static struct pool_entry *extract_pending_entry(
 	struct pool *pool, struct sockaddr_storage *addr)
 {
-	struct pool_entry *entry, *prev = NULL;
+	struct pool_entry *entry;
 
 	assert(pool != NULL);
 	assert(addr != NULL);
+	assert(pool->pending_count > 0);
 
 	for (entry = pool->pending; entry; entry = entry->next_pending) {
 		if (is_same_addr(addr, entry->addr)) {
-			remove_pending_entry(pool, entry, prev);
+			remove_pending_entry(pool, entry);
 			entry->status = POLLED;
 			return entry;
 		}
-
-		prev = entry;
 	}
 
 	return NULL;

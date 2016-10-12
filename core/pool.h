@@ -34,7 +34,7 @@ struct pool_entry {
 	clock_t start_time;
 
 	struct pool_entry *next_entry;
-	struct pool_entry *next_pending;
+	struct pool_entry *next_pending, *prev_pending;
 };
 
 /**

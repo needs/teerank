@@ -19,15 +19,14 @@ enum poll_status {
 void init_pool(
 	struct pool *pool, struct sockets *sockets, const struct data *request)
 {
+	static const struct pool POOL_ZERO;
+
 	assert(pool != NULL);
 	assert(sockets != NULL);
 	assert(request != NULL);
 
-	pool->entries = NULL;
-	pool->pending = NULL;
-	pool->pending_count = 0;
-	pool->iter = NULL;
-	pool->iter_failed = NULL;
+	*pool = POOL_ZERO;
+
 	pool->sockets = sockets;
 	pool->request = request;
 }
@@ -36,9 +35,13 @@ void add_pool_entry(
 	struct pool *pool, struct pool_entry *entry,
 	struct sockaddr_storage *addr)
 {
+	static const struct pool_entry POOL_ENTRY_ZERO;
+
 	assert(pool != NULL);
 	assert(entry != NULL);
 	assert(addr != NULL);
+
+	*entry = POOL_ENTRY_ZERO;
 
 	entry->addr = addr;
 	entry->status = IDLE;

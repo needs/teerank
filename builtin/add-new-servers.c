@@ -123,16 +123,27 @@ static void raw_addr_to_addr(
 	(void)ret;
 }
 
-static void handle_data(struct data *data, struct server_list *list)
+/*
+ * Dividing maximum packet size by the size of a server address yield
+ * 77, but for some reasons masters only send a maximum of 75 packets.
+ */
+#define MAX_SERVER_ADDRS_PER_PACKET 75
+
+/*
+ * Return 1 if we believe no more packets will be received from the
+ * master server.
+ */
+static int handle_data(struct data *data, struct server_list *list)
 {
 	unsigned char *buf;
+	unsigned added = 0;
 	int size;
 
 	assert(data != NULL);
 	assert(list != NULL);
 
 	if (!skip_header(data, MSG_LIST, sizeof(MSG_LIST)))
-		return;
+		return 0;
 
 	size = data->size;
 	buf = data->buffer;
@@ -146,12 +157,17 @@ static void handle_data(struct data *data, struct server_list *list)
 
 		buf += sizeof(*raw);
 		size -= sizeof(*raw);
+
+		added++;
 	}
+
+	return added < MAX_SERVER_ADDRS_PER_PACKET;
 }
 
 static void fill_server_list(struct server_list *list)
 {
 	struct pool pool;
+	struct pool_entry *entry;
 	struct sockets sockets;
 	struct data data;
 	struct master *m;
@@ -175,8 +191,9 @@ static void fill_server_list(struct server_list *list)
 		add_pool_entry(&pool, &m->pentry, &m->addr);
 	}
 
-	while (poll_pool(&pool, &data))
-		handle_data(&data, list);
+	while ((entry = poll_pool(&pool, &data)))
+		if (handle_data(&data, list))
+			remove_pool_entry(&pool, entry);
 
 	close_sockets(&sockets);
 }

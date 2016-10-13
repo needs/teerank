@@ -18,18 +18,21 @@
 #include "config.h"
 #include "network.h"
 #include "server.h"
+#include "pool.h"
 
 struct master {
 	char *node, *service;
+	struct pool_entry pentry;
+	struct sockaddr_storage addr;
 };
 
-const struct master MASTERS[] = {
+struct master masters[] = {
 	{ "master1.teeworlds.com", "8300" },
 	{ "master2.teeworlds.com", "8300" },
 	{ "master3.teeworlds.com", "8300" },
-	{ "master4.teeworlds.com", "8300" }
+	{ "master4.teeworlds.com", "8300" },
+	{ NULL }
 };
-const unsigned MASTERS_LENGTH = sizeof(MASTERS) / sizeof(*MASTERS);
 
 static const uint8_t MSG_GETLIST[] = {
 	255, 255, 255, 255, 'r', 'e', 'q', '2'
@@ -148,9 +151,10 @@ static void handle_data(struct data *data, struct server_list *list)
 
 static void fill_server_list(struct server_list *list)
 {
+	struct pool pool;
 	struct sockets sockets;
 	struct data data;
-	int i;
+	struct master *m;
 
 	assert(list != NULL);
 
@@ -160,18 +164,18 @@ static void fill_server_list(struct server_list *list)
 	if (!init_sockets(&sockets))
 		exit(EXIT_FAILURE);
 
-	for (i = 0; i < MASTERS_LENGTH; i++) {
-		struct sockaddr_storage addr;
+	data.size = sizeof(MSG_GETLIST);
+	memcpy(data.buffer, MSG_GETLIST, data.size);
+	init_pool(&pool, &sockets, &data, 0);
 
-		if (!get_sockaddr(MASTERS[i].node, MASTERS[i].service, &addr))
+	for (m = masters; m->node; m++) {
+		if (!get_sockaddr(m->node, m->service, &m->addr))
 			continue;
 
-		data.size = sizeof(MSG_GETLIST);
-		memcpy(data.buffer, MSG_GETLIST, data.size);
-		send_data(&sockets, &data, &addr);
+		add_pool_entry(&pool, &m->pentry, &m->addr);
 	}
 
-	while (recv_data(&sockets, &data, NULL) == 1)
+	while (poll_pool(&pool, &data))
 		handle_data(&data, list);
 
 	close_sockets(&sockets);

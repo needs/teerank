@@ -17,7 +17,8 @@ enum poll_status {
 };
 
 void init_pool(
-	struct pool *pool, struct sockets *sockets, const struct data *request)
+	struct pool *pool, struct sockets *sockets, const struct data *request,
+	short resend_on_failure)
 {
 	static const struct pool POOL_ZERO;
 
@@ -27,6 +28,7 @@ void init_pool(
 
 	*pool = POOL_ZERO;
 
+	pool->resend_on_failure = resend_on_failure;
 	pool->sockets = sockets;
 	pool->request = request;
 }
@@ -51,15 +53,24 @@ void add_pool_entry(
 	pool->entries = entry;
 }
 
+static int entry_send_data(struct pool *pool, struct pool_entry *pentry)
+{
+	if (!pool->resend_on_failure && pentry->data_sent)
+		return 1;
+
+	return send_data(pool->sockets, pool->request, pentry->addr);
+}
+
 static void add_pending_entry(struct pool *pool, struct pool_entry *entry)
 {
 	assert(pool != NULL);
 	assert(entry != NULL);
 	assert(pool->pending_count < MAX_PENDING);
 
-	if (!send_data(pool->sockets, pool->request, entry->addr))
+	if (!entry_send_data(pool, entry))
 		return;
 
+	entry->data_sent = 1;
 	entry->start_time = times(NULL);
 	entry->status = PENDING;
 
@@ -137,6 +148,15 @@ static void remove_pending_entry(
 	pool->pending_count--;
 }
 
+void remove_pool_entry(struct pool *pool, struct pool_entry *pentry)
+{
+	if (pentry->status == PENDING)
+		remove_pending_entry(pool, pentry);
+
+	/* TODO: Remove it from the pool as well */
+	pentry->status = POLLED;
+}
+
 static void clean_old_pending_entries(struct pool *pool)
 {
 	static long ticks_per_second = -1;
@@ -202,7 +222,7 @@ static int is_same_addr(
 	return 1;
 }
 
-static struct pool_entry *extract_pending_entry(
+static struct pool_entry *get_pending_entry(
 	struct pool *pool, struct sockaddr_storage *addr)
 {
 	struct pool_entry *entry;
@@ -211,13 +231,9 @@ static struct pool_entry *extract_pending_entry(
 	assert(addr != NULL);
 	assert(pool->pending_count > 0);
 
-	for (entry = pool->pending; entry; entry = entry->next_pending) {
-		if (is_same_addr(addr, entry->addr)) {
-			remove_pending_entry(pool, entry);
-			entry->status = POLLED;
+	for (entry = pool->pending; entry; entry = entry->next_pending)
+		if (is_same_addr(addr, entry->addr))
 			return entry;
-		}
-	}
 
 	return NULL;
 }
@@ -233,9 +249,14 @@ struct pool_entry *poll_pool(struct pool *pool, struct data *answer)
 	goto start;
 	while (pool->pending_count > 0) {
 		if (recv_data(pool->sockets, answer, &addr))
-			entry = extract_pending_entry(pool, &addr);
+			entry = get_pending_entry(pool, &addr);
 		else
 			entry = NULL;
+
+		if (entry) {
+			remove_pending_entry(pool, entry);
+			entry->status = IDLE;
+		}
 
 	start:
 		clean_old_pending_entries(pool);

@@ -329,14 +329,19 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 	assert(list != NULL);
 	assert(sockets != NULL);
 
-	init_pool(&pool, sockets, &request);
+	init_pool(&pool, sockets, &request, 1);
 	for (i = 0; i < list->length; i++)
 		add_pool_entry(&pool, &list->netservers[i].entry,
 		               &list->netservers[i].addr);
 
 	start_printing_delta();
-	while ((entry = poll_pool(&pool, &answer)))
+
+	while ((entry = poll_pool(&pool, &answer))) {
+		/* In any cases, we expect only one answer */
+		remove_pool_entry(&pool, entry);
 		handle_data(&answer, get_netserver(entry));
+	}
+
 	stop_printing_delta();
 
 	while ((entry = foreach_failed_poll(&pool))) {

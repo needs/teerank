@@ -109,6 +109,8 @@ int main(int argc, char *argv[])
 
 	load_config(1);
 
+	read_info(&info);
+
 	/* Player index */
 
 	if (!create_index(&index, &INDEX_DATA_INFO_PLAYER, NULL))

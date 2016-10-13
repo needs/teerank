@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
@@ -19,14 +20,18 @@
 #include "network.h"
 #include "server.h"
 #include "pool.h"
+#include "info.h"
 
 struct master {
 	char *node, *service;
+	unsigned nservers;
+	short is_online;
+
 	struct pool_entry pentry;
 	struct sockaddr_storage addr;
 };
 
-struct master masters[] = {
+static struct master masters[] = {
 	{ "master1.teeworlds.com", "8300" },
 	{ "master2.teeworlds.com", "8300" },
 	{ "master3.teeworlds.com", "8300" },
@@ -133,7 +138,7 @@ static void raw_addr_to_addr(
  * Return 1 if we believe no more packets will be received from the
  * master server.
  */
-static int handle_data(struct data *data, struct server_list *list)
+static int handle_data(struct data *data, struct server_list *list, struct master *master)
 {
 	unsigned char *buf;
 	unsigned added = 0;
@@ -141,6 +146,7 @@ static int handle_data(struct data *data, struct server_list *list)
 
 	assert(data != NULL);
 	assert(list != NULL);
+	assert(master != NULL);
 
 	if (!skip_header(data, MSG_LIST, sizeof(MSG_LIST)))
 		return 0;
@@ -161,7 +167,16 @@ static int handle_data(struct data *data, struct server_list *list)
 		added++;
 	}
 
+	master->nservers += added;
+	master->is_online = 1;
+
 	return added < MAX_SERVER_ADDRS_PER_PACKET;
+}
+
+static struct master *get_master(struct pool_entry *entry)
+{
+	assert(entry != NULL);
+	return (struct master*)((char*)entry - offsetof(struct master, pentry));
 }
 
 static void fill_server_list(struct server_list *list)
@@ -192,7 +207,7 @@ static void fill_server_list(struct server_list *list)
 	}
 
 	while ((entry = poll_pool(&pool, &data)))
-		if (handle_data(&data, list))
+		if (handle_data(&data, list, get_master(entry)))
 			remove_pool_entry(&pool, entry);
 
 	close_sockets(&sockets);
@@ -224,6 +239,43 @@ static char *addr_to_filename(struct server_addr *addr)
 	return ret;
 }
 
+static void update_masters_info(void)
+{
+	struct info info;
+	struct master *m;
+	time_t now;
+
+	read_info(&info);
+
+	now = time(NULL);
+
+	/* Assume masters are sorted */
+	for (m = masters; m->node; m++) {
+		struct master_info *minfo;
+
+		if (m - masters == MAX_MASTERS)
+			break;
+
+		minfo = &info.masters[m - masters];
+
+		if (m - masters >= info.nmasters) {
+			/* New master */
+			snprintf(minfo->node, sizeof(minfo->node), "%s", m->node);
+			snprintf(minfo->service, sizeof(minfo->service), "%s", m->service);
+			minfo->lastseen = NEVER_SEEN;
+			minfo->nservers = m->nservers;
+		}
+
+		if (m->is_online) {
+			minfo->lastseen = now;
+			minfo->nservers = m->nservers;
+		}
+	}
+
+	info.nmasters = m - masters;
+	write_info(&info);
+}
+
 int main(int argc, char **argv)
 {
 	struct server_list list;
@@ -246,6 +298,8 @@ int main(int argc, char **argv)
 	}
 
 	fill_server_list(&list);
+	update_masters_info();
+
 	for (i = 0; i < list.length; i++) {
 		struct server_addr *addr = &list.addrs[i];
 		char *filename = addr_to_filename(addr);

@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <errno.h>
 
 #include "info.h"
 #include "json.h"
@@ -18,6 +19,8 @@ int read_info(struct info *info)
 		return 0;
 
 	if (!(file = fopen(path, "r"))) {
+		if (errno == ENOENT)
+			return 1;
 		perror(path);
 		return 0;
 	}

@@ -4,7 +4,7 @@
 #include "config.h"
 #include "html.h"
 
-int page_about_html_main(int argc, char **argv)
+int main_html_about(int argc, char **argv)
 {
 	html_header(&ABOUT_TAB, "About", "", NULL);
 

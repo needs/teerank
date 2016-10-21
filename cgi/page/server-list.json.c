@@ -8,7 +8,7 @@
 #include "page.h"
 #include "config.h"
 
-int page_server_list_json_main(int argc, char **argv)
+int main_json_server_list(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct jfile jfile;

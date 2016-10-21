@@ -4,20 +4,18 @@
 #define MAX_ARGS 8
 
 struct url;
-struct page;
-typedef	void (*init_func_t)(struct page *page, struct url *url);
-typedef	int (*page_func_t)(int argc, char **argv);
+struct route;
+struct route {
+	const char *const name;
+	const char *const content_type;
+	void (*const setup)(struct route *this, struct url *url);
 
-struct page {
-	char *name;
+	int (*const main)(int argc, char **argv);
 	char *args[MAX_ARGS];
 
-	const char *content_type;
-
-	init_func_t init;
-	page_func_t main;
+	struct route *const routes;
 };
 
-struct page *do_route(char *uri, char *query);
+struct route *do_route(char *uri, char *query);
 
 #endif /* ROUTE_H */

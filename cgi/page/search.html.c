@@ -412,7 +412,7 @@ static int search(
 
 static struct list LIST_ZERO;
 
-int page_search_main(int argc, char **argv)
+int main_html_search(int argc, char **argv)
 {
 	const struct search_info *sinfo, **sinfos = (const struct search_info*[]) {
 		&PLAYER_SINFO, &CLAN_SINFO, &SERVER_SINFO, NULL

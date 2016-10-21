@@ -61,7 +61,7 @@ static void print_status(const char *title, const char *comment, int status)
 	html("</section>");
 }
 
-int page_status_html_main(int argc, char **argv)
+int main_html_status(int argc, char **argv)
 {
 	char buf[16], comment[64];
 	struct info info;

@@ -9,7 +9,7 @@
 #include "index.h"
 #include "page.h"
 
-int page_player_list_json_main(int argc, char **argv)
+int main_json_player_list(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct jfile jfile;

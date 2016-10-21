@@ -22,8 +22,6 @@ struct url {
 	unsigned ndirs;
 	char *dirs[MAX_DIRS];
 
-	char *filename;
-
 	unsigned nargs;
 	struct arg args[MAX_ARGS];
 };
@@ -66,13 +64,6 @@ struct url parse_url(char *uri, char *query)
 	} while ((dir = strtok(NULL, "/")));
 
 	/*
-	 * The last directory parsed is considered as a file
-	 */
-
-	url.filename = url.dirs[url.ndirs - 1];
-	url.ndirs--;
-
-	/*
 	 * Load arg 'name' and 'val' in two steps to not mix up strtok()
 	 * instances.
 	 */
@@ -102,37 +93,12 @@ struct url parse_url(char *uri, char *query)
 }
 
 /*
- * Static pages are the simplest ones: they always have the same name
- * and content type and they do not depends on user supplied arguments.
- */
-#define PAGE(filename, pagename, ctype) {                               \
-	filename, { "teerank-page-" #pagename }, ctype,                 \
-	NULL, page_##pagename##_main                                    \
-}
-
-#define PAGE_HTML(filename, pagename) PAGE(filename, pagename, "text/html")
-#define PAGE_JSON(filename, pagename) PAGE(filename, pagename, "text/json")
-#define PAGE_TXT(filename, pagename)  PAGE(filename, pagename, "text/plain")
-#define PAGE_XML(filename, pagename)  PAGE(filename, pagename, "text/xml")
-#define PAGE_SVG(filename, pagename)  PAGE(filename, pagename, "image/svg+xml")
-
-/*
- * Dynamic page are more complex: their content type and main function
- * depends on user supplied arguments.  Thus we attach a function that
- * must initialize the page structure using user supplied arguments.
- */
-#define DYNAMIC_PAGE(filename, pagename) {                              \
-	filename, { "teerank-page-" #pagename }, NULL,                  \
-	init_page_##pagename, NULL                                      \
-}
-
-/*
  * Parse url arguments to get page number, and set page arguments with
- * the given sort order and page number.  Player list, clan list and
+ * the found sort order and page number.  Player list, clan list and
  * server list share this pattern.
  */
 static void set_pagelist_args(
-	struct page *page, struct url *url, char *order)
+	struct route *this, struct url *url)
 {
 	char *p = "1";
 	unsigned i;
@@ -141,110 +107,66 @@ static void set_pagelist_args(
 		if (strcmp(url->args[i].name, "p") == 0 && url->args[i].val)
 			p = url->args[i].val;
 
-	page->args[1] = p;
-	page->args[2] = order;
+	this->args[1] = p;
+	this->args[2] = url->dirs[1];
 }
 
-static void init_page_html_players_by_rank(struct page *page, struct url *url)
+static void setup_html_player_list(struct route *this, struct url *url)
 {
-	*page = (struct page)PAGE_HTML(NULL, player_list_html);
-	set_pagelist_args(page, url, "by-rank");
+	set_pagelist_args(this, url);
 }
-static void init_page_json_players_by_rank(struct page *page, struct url *url)
+static void setup_json_player_list(struct route *this, struct url *url)
 {
-	*page = (struct page)PAGE_JSON(NULL, player_list_json);
-	set_pagelist_args(page, url, "by-rank");
+	set_pagelist_args(this, url);
 }
-static void init_page_html_players_by_lastseen(struct page *page, struct url *url)
+static void setup_html_clan_list(struct route *this, struct url *url)
 {
-	*page = (struct page)PAGE_HTML(NULL, player_list_html);
-	set_pagelist_args(page, url, "by-lastseen");
+	set_pagelist_args(this, url);
 }
-static void init_page_json_players_by_lastseen(struct page *page, struct url *url)
+static void setup_json_clan_list(struct route *this, struct url *url)
 {
-	*page = (struct page)PAGE_JSON(NULL, player_list_json);
-	set_pagelist_args(page, url, "by-lastseen");
+	set_pagelist_args(this, url);
 }
-static void init_page_html_clans_by_nmembers(struct page *page, struct url *url)
+static void setup_html_server_list(struct route *this, struct url *url)
 {
-	*page = (struct page)PAGE_HTML(NULL, clan_list_html);
-	set_pagelist_args(page, url, "by-nmembers");
+	set_pagelist_args(this, url);
 }
-static void init_page_json_clans_by_nmembers(struct page *page, struct url *url)
+static void setup_json_server_list(struct route *this, struct url *url)
 {
-	*page = (struct page)PAGE_JSON(NULL, clan_list_json);
-	set_pagelist_args(page, url, "by-nmembers");
-}
-static void init_page_html_servers_by_nplayers(struct page *page, struct url *url)
-{
-	*page = (struct page)PAGE_HTML(NULL, server_list_html);
-	set_pagelist_args(page, url, "by-nplayers");
-}
-static void init_page_json_servers_by_nplayers(struct page *page, struct url *url)
-{
-	*page = (struct page)PAGE_JSON(NULL, server_list_json);
-	set_pagelist_args(page, url, "by-nplayers");
+	set_pagelist_args(this, url);
 }
 
-/*
- * Use file extension to set page type.  Then set filename without
- * extension as the first page argument.  Player page and clan page
- * share this pattern.
- */
-static void init_from_filename(
-	struct page *page, struct url *url,
-	struct page html_page,
-	struct page json_page)
+static void setup_html_player(struct route *this, struct url *url)
 {
-	char *ext;
-
-	if (!(ext = strrchr(url->filename, '.')))
-		error(404, NULL);
-
-	/* Split raw filename and its extension */
-	*ext++ = '\0';
-
-	if (strcmp(ext, "html") == 0)
-		*page = html_page;
-	else if (strcmp(ext, "json") == 0)
-		*page = json_page;
-	else
-		error(404, NULL);
-
-	page->args[1] = url->filename;
+	this->args[1] = url->dirs[url->ndirs - 1];
+}
+static void setup_json_player(struct route *this, struct url *url)
+{
+	this->args[1] = url->dirs[url->ndirs - 1];
+}
+static void setup_html_clan(struct route *this, struct url *url)
+{
+	this->args[1] = url->dirs[url->ndirs - 1];
+}
+static void setup_json_clan(struct route *this, struct url *url)
+{
+	this->args[1] = url->dirs[url->ndirs - 1];
+}
+static void setup_html_server(struct route *this, struct url *url)
+{
+	this->args[1] = url->dirs[url->ndirs - 1];
+}
+static void setup_json_server(struct route *this, struct url *url)
+{
+	this->args[1] = url->dirs[url->ndirs - 1];
 }
 
-static void init_page_player(struct page *page, struct url *url)
+static void setup_svg_graph(struct route *this, struct url *url)
 {
-	init_from_filename(
-		page, url,
-		(struct page) PAGE_HTML(NULL, player_html),
-		(struct page) PAGE_JSON(NULL, player_json));
+	this->args[1] = url->dirs[url->ndirs - 2];
 }
 
-static void init_page_clan(struct page *page, struct url *url)
-{
-	init_from_filename(
-		page, url,
-		(struct page) PAGE_HTML(NULL, clan_html),
-		(struct page) PAGE_JSON(NULL, clan_json));
-}
-
-static void init_page_server(struct page *page, struct url *url)
-{
-	init_from_filename(
-		page, url,
-		(struct page) PAGE_HTML(NULL, server_html),
-		(struct page) PAGE_JSON(NULL, server_json));
-}
-
-static void init_page_graph(struct page *page, struct url *url)
-{
-	*page = (struct page) PAGE_SVG(NULL, graph);
-	page->args[1] = url->dirs[url->ndirs - 1];
-}
-
-static void init_page_search(struct page *page, struct url *url)
+static void setup_html_search(struct route *this, struct url *url)
 {
 	char *q = NULL;
 	unsigned i;
@@ -256,153 +178,124 @@ static void init_page_search(struct page *page, struct url *url)
 	if (!q)
 		error(400, "Missing 'q' parameter\n");
 
-	*page = (struct page) PAGE_HTML(NULL, search);
-
-	if (url->ndirs == 0)
-		page->args[1] = "players";
+	if (url->ndirs == 1)
+		this->args[1] = "players";
 	else
-		page->args[1] = url->dirs[0];
-	page->args[2] = q;
+		this->args[1] = url->dirs[0];
+	this->args[2] = q;
 }
 
-#ifndef DONT_ROUTE_OLD_URLS
-/* Old URLs for player list looked like "/players/<pnum>.html" */
-static void init_page_html_old_player_list(struct page *page, struct url *url)
+#if ROUTE_V2_URLS
+/* URLs for player list looked like "/players/<pnum>.html" */
+static void setup_html_teerank2_player(struct route *this, struct url *url)
 {
-	char *pnum, *ext;
-
-	pnum = strtok(url->filename, ".");
-	ext = strtok(NULL, ".");
-
-	if (!pnum || !ext || strtok(NULL, ".") || strcmp(ext, "html") != 0)
-		error(404, NULL);
-
-	redirect("/players/by-rank?p=%s", pnum);
+	redirect("/players/by-rank?p=%s", url->dirs[url->ndirs - 1]);
+}
+static int main_html_teerank2_player(int argc, char **argv)
+{
+	return main_html_player_list(argc, argv);
 }
 #endif
 
-struct directory {
-	char *name;
+/* Empty setup handlers */
+static void setup_html_about_json_api(struct route *this, struct url *url) {};
+static void setup_html_about(struct route *this, struct url *url) {};
+static void setup_json_about(struct route *this, struct url *url) {};
+static void setup_html_status(struct route *this, struct url *url) {};
+static void setup_txt_robots(struct route *this, struct url *url) {};
+static void setup_xml_sitemap(struct route *this, struct url *url) {};
 
-	struct page *pages;
-	struct directory *dirs;
-};
+/*
+ * Build the root tree given data in "routes.def".
+ */
 
-static struct directory root = {
-	"", (struct page[]) {
-		PAGE_HTML("about.html", about_html),
-		PAGE_JSON("about.json", about_json),
-		PAGE_HTML("about-json-api.html", about_json_api),
-		PAGE_TXT("robots.txt", robots),
-		PAGE_XML("sitemap.xml", sitemap),
-		PAGE_HTML("status.html", status_html),
-		DYNAMIC_PAGE("search", search),
-		{ NULL }
-	}, (struct directory[]) {
-		{
-			"players", (struct page[]) {
-				DYNAMIC_PAGE("search", search),
-				DYNAMIC_PAGE("by-rank", html_players_by_rank),
-				DYNAMIC_PAGE("by-rank.json", json_players_by_rank),
-				DYNAMIC_PAGE("by-lastseen", html_players_by_lastseen),
-				DYNAMIC_PAGE("by-lastseen.json", json_players_by_lastseen),
-				DYNAMIC_PAGE(NULL, player),
-				{ NULL }
-			}, (struct directory[]) {
-#ifndef DONT_ROUTE_OLD_URLS
-				{
-					"pages", (struct page[]) {
-						DYNAMIC_PAGE(NULL, html_old_player_list),
-						{ NULL }
-					}, NULL
-				},
-#endif
-				{
-					NULL, (struct page[]) {
-						DYNAMIC_PAGE("elo+rank.svg", graph),
-						{ NULL }
-					}, NULL
-				}, { NULL }
-			}
-		}, {
-			"clans", (struct page[]) {
-				DYNAMIC_PAGE("search", search),
-				DYNAMIC_PAGE("by-nmembers", html_clans_by_nmembers),
-				DYNAMIC_PAGE("by-nmembers.json", json_clans_by_nmembers),
-				DYNAMIC_PAGE(NULL, clan),
-				{ NULL }
-			}, NULL
-		}, {
-			"servers", (struct page[]) {
-				DYNAMIC_PAGE("search", search),
-				DYNAMIC_PAGE("by-nplayers", html_servers_by_nplayers),
-				DYNAMIC_PAGE("by-nplayers.json", json_servers_by_nplayers),
-				DYNAMIC_PAGE(NULL, server),
-				{ NULL }
-			}, NULL
-		}, { NULL }
+#define DIR(name) { name, NULL, NULL, NULL, { NULL }, (struct route[]) {
+#define END() } },
+
+#define HTML(name, func) \
+	{ name ".html", "text/html", setup_html_##func, main_html_##func, { #func } }, \
+	{ name, "text/html", setup_html_##func, main_html_##func, { #func } },
+#define JSON(name, func) \
+	{ name ".json", "text/json", setup_json_##func, main_json_##func, { #func } },
+#define TXT(name, func) \
+	{ name ".txt", "text/plain", setup_txt_##func, main_txt_##func, { #func } },
+#define XML(name, func) \
+	{ name ".xml", "text/xml", setup_xml_##func, main_xml_##func, { #func } },
+#define SVG(name, func) \
+	{ name ".svg", "image/svg+xml", setup_svg_##func, main_svg_##func, { #func } },
+
+static struct route root = DIR("")
+#include "routes.def"
+}};
+
+static int route_match(struct route *route, char *name)
+{
+	const char *routename = route->name;
+	int cut = 0;
+
+	/*
+	 * Jokers "*" in route ignore characters until the character
+	 * following the joker itself, starting from the end of the
+	 * name.  Hence route "*.html" will match "192.168.0.1.html".
+	 */
+	if (routename[0] == '*') {
+		name = strrchr(name, *++routename);
+		cut = 1;
 	}
-};
 
-static struct directory *find_directory(const struct directory *parent, char *name)
+	if (name && strcmp(name, routename) == 0) {
+		if (cut)
+			*name = '\0';
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+/*
+ * Find the first child route matching the given name.
+ */
+static struct route *find_child_route(
+	struct route *route, char *name, int onlyleaf)
 {
-	struct directory *dir;
+	struct route *r;
 
-	assert(parent != NULL);
-	assert(name != NULL);
-
-	if (parent->dirs) {
-		for (dir = parent->dirs; dir->name; dir++)
-			if (strcmp(name, dir->name) == 0)
-				return dir;
-
-		/* Fallback on default directory, if any */
-		if (dir->pages)
-			return dir;
+	for (r = route->routes; r->name; r++) {
+		if (onlyleaf && r->routes)
+			continue;
+		if (route_match(r, name))
+			return r;
 	}
 
 	return NULL;
 }
 
-static struct page *find_page(const struct directory *dir, char *name)
+/*
+ * Find a leaf route (if any) matching the given URL.
+ */
+static struct route *find_route(struct url *url)
 {
-	struct page *page;
-
-	assert(dir != NULL);
-	assert(name != NULL);
-
-	if (!dir->pages)
-		return NULL;
-
-	for (page = dir->pages; page->name; page++)
-		if (strcmp(page->name, name) == 0)
-			return page;
-
-	/* Fallback on default page, if any */
-	if (page->args[0])
-		return page;
-
-	return NULL;
-}
-
-struct page *do_route(char *uri, char *query)
-{
-	const struct directory *dir = &root;
-	struct page *page = NULL;
-	struct url url;
+	struct route *route = &root;
 	unsigned i;
 
+	for (i = 0; i < url->ndirs && route; i++)
+		route = find_child_route(route, url->dirs[i], i == url->ndirs - 1);
+
+	return route;
+}
+
+struct route *do_route(char *uri, char *query)
+{
+	struct route *route;
+	struct url url;
+
 	url = parse_url(uri, query);
+	route = find_route(&url);
 
-	for (i = 0; i < url.ndirs; i++)
-		if (!(dir = find_directory(dir, url.dirs[i])))
-			error(404, NULL);
-
-	if (!(page = find_page(dir, url.filename)))
+	if (!route)
 		error(404, NULL);
 
-	if (page->init)
-		page->init(page, &url);
+	route->setup(route, &url);
 
-	return page;
+	return route;
 }

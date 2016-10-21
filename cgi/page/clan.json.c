@@ -26,7 +26,7 @@ static int dump(const char *path)
 	return EXIT_SUCCESS;
 }
 
-int page_clan_json_main(int argc, char **argv)
+int main_json_clan(int argc, char **argv)
 {
 	char path[PATH_MAX];
 

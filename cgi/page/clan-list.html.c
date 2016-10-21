@@ -12,7 +12,7 @@
 #include "index.h"
 #include "page.h"
 
-int page_clan_list_html_main(int argc, char **argv)
+int main_html_clan_list(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct indexed_clan *c;

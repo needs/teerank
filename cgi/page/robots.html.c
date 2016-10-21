@@ -3,7 +3,7 @@
 
 #include "cgi.h"
 
-int page_robots_main(int argc, char **argv)
+int main_txt_robots(int argc, char **argv)
 {
 	printf("Sitemap: http://%s/sitemap.xml\n", cgi_config.domain);
 	return EXIT_SUCCESS;

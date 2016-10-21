@@ -159,25 +159,25 @@ static void raw_dump(int fd, FILE *dst)
 	close(fd);
 }
 
-static int page_argc(struct page *page)
+static int route_argc(struct route *route)
 {
-	unsigned i;
+	int i;
 
-	for (i = 0; i < MAX_ARGS && page->args[i]; i++)
+	for (i = 0; i < MAX_ARGS && route->args[i]; i++)
 		;
 
 	return i;
 }
 
-static int generate(struct page *page)
+static int generate(struct route *route)
 {
 	int out[2], err[2];
 	int stdout_save, stderr_save;
 	int ret;
 
-	assert(page != NULL);
+	assert(route != NULL);
 
-	verbose("Generating data with '%s'\n", page->args[0]);
+	verbose("Generating data with '%s'\n", route->args[0]);
 
 	/*
 	 * Create a pipe to redirect stdout and stderr to.  It is
@@ -193,7 +193,7 @@ static int generate(struct page *page)
 	/*
 	 * Duplicate stdout and stderr so we can replace them with our
 	 * previsouly created pipes, and then restore them to their
-	 * actual value once page genaration is done.
+	 * actual value once route generation is done.
 	 */
 
 	stdout_save = dup(STDOUT_FILENO);
@@ -212,8 +212,8 @@ static int generate(struct page *page)
 	close(out[1]);
 	close(err[1]);
 
-	/* Run page generation */
-	ret = page->main(page_argc(page), page->args);
+	/* Run route generation */
+	ret = route->main(route_argc(route), route->args);
 
 	/*
 	 * Some data may not be written yet to the pipe.  Dumping data
@@ -224,7 +224,7 @@ static int generate(struct page *page)
 	fflush(stderr);
 
 	/*
-	 * Then, restore stdout and stderr, page output is waiting at
+	 * Then, restore stdout and stderr, route output is waiting at
 	 * the read-end of the pipe "out[0]", and any error are waiting
 	 * at the read-end of the pipe "err[0]".
 	 */
@@ -237,7 +237,7 @@ static int generate(struct page *page)
 
 	if (ret == EXIT_SUCCESS) {
 		raw_dump(err[0], stderr);
-		return dump(200, page->content_type, out[0], NULL);
+		return dump(200, route->content_type, out[0], NULL);
 	}
 	if (ret == EXIT_FAILURE)
 		return dump(500, NULL, err[0], stderr);
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 	load_config(1);
 
 	/*
-	 * A lot of page doesn't use cgi_config structure.  We still
+	 * A lot of route doesn't use cgi_config structure.  We still
 	 * load it because that way a mis-configuration are catched as
 	 * soon as possible.
 	 */

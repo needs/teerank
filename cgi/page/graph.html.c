@@ -9,21 +9,20 @@
 #include "html.h"
 
 /*
- * Graph works with numbers, however numbers can be signed or
- * unsigned.  For instance elo points are signed but rank are
- * unsigned.  Having separate cases for both signed un unsigned
- * numbers would make the code highly redundant.  Instead we just
- * choose to use "long" as the only accepted number, and data need to
- * be converted to fit in a long.
+ * Graph works with numbers, however numbers can be signed or unsigned.
+ * For instance elo points are signed but rank are unsigned.  Having
+ * separate cases for both signed un unsigned numbers would make the
+ * code highly redundant.  Instead we just choose to use "long" as the
+ * only accepted number, and data need to be converted to fit in a long.
  *
  * This may have some issue because domain(int) <= domain(long), hence
  * LONG_MAX < UINT_MAX, so some overflow checking must be done when
  * dealing with unsigned numbers, sadly.
  *
- * I wich there was some nice way to handle signed and unsigned
- * numbers.  One way could be to use pointers to functions but it
- * would not be enough because printf() format string as to be adapted
- * too.  So just forcing "long" for data seems to be the best compromise...
+ * I wish there was some nice way to handle signed and unsigned numbers.
+ * One way could be to use pointers to functions but it would not be
+ * enough because printf() format string as to be adapted too.  So just
+ * forcing "long" for data seems to be the best choice...
  */
 
 typedef long (*to_long_t)(const void *data);
@@ -812,7 +811,7 @@ end:
 	svg("</svg>");
 }
 
-int page_graph_main(int argc, char **argv)
+int main_svg_graph(int argc, char **argv)
 {
 	struct player player;
 	char *name;

@@ -8,7 +8,7 @@
 #include "player.h"
 #include "page.h"
 
-int page_player_json_main(int argc, char **argv)
+int main_json_player(int argc, char **argv)
 {
 	FILE *file = NULL;
 	char path[PATH_MAX];

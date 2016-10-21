@@ -17,7 +17,7 @@ enum sort_order {
 	SORT_BY_LASTSEEN
 };
 
-int page_player_list_html_main(int argc, char **argv)
+int main_html_player_list(int argc, char **argv)
 {
 	struct index_page ipage;
 	struct indexed_player *p;

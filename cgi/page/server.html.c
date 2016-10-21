@@ -27,7 +27,7 @@ static int cmp_client(const void *p1, const void *p2)
 	return 0;
 }
 
-int page_server_html_main(int argc, char **argv)
+int main_html_server(int argc, char **argv)
 {
 	struct server server;
 	unsigned i, playing = 0, spectating = 0;

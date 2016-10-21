@@ -26,7 +26,7 @@ static int dump(const char *path)
 	return EXIT_SUCCESS;
 }
 
-int page_server_json_main(int argc, char **argv)
+int main_json_server(int argc, char **argv)
 {
 	char path[PATH_MAX];
 	char *ip, *port;

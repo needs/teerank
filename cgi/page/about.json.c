@@ -23,7 +23,7 @@ static int dump(const char *path)
 	return EXIT_SUCCESS;
 }
 
-int page_about_json_main(int argc, char **argv)
+int main_json_about(int argc, char **argv)
 {
 	char path[PATH_MAX];
 

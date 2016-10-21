@@ -8,7 +8,7 @@
 #include "html.h"
 #include "player.h"
 
-int page_player_html_main(int argc, char **argv)
+int main_html_player(int argc, char **argv)
 {
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
 	const char *hexname;

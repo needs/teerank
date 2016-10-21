@@ -1,0 +1,57 @@
+/*
+ * Used to route URLs and to build a sitemap, this file is used as data
+ * for X-macros.
+ */
+
+HTML("about-json-api", about_json_api)
+HTML("status", status)
+HTML("about", about)
+JSON("about", about)
+TXT("robots", robots)
+XML("sitemap", sitemap)
+HTML("search", search)
+
+DIR("players")
+	HTML("search", search)
+	HTML("by-rank", player_list)
+	JSON("by-rank", player_list)
+	HTML("by-lastseen", player_list)
+	JSON("by-lastseen", player_list)
+
+#if ROUTE_V2_URLS
+	DIR("pages")
+		HTML("*", teerank2_player)
+	END()
+#endif
+
+	DIR("*")
+		SVG("elo+rank", graph)
+	END()
+
+	JSON("*", player)
+	HTML("*", player)
+END()
+
+DIR("clans")
+	HTML("search", search)
+	HTML("by-nmembers", clan_list)
+	JSON("by-nmembers", clan_list)
+	JSON("*", clan)
+	HTML("*", clan)
+END()
+
+DIR("servers")
+	HTML("search", search)
+	HTML("by-nplayers", server_list)
+	JSON("by-nplayers", server_list)
+	JSON("*", server)
+	HTML("*", server)
+END()
+
+#undef DIR
+#undef END
+#undef HTML
+#undef JSON
+#undef TXT
+#undef XML
+#undef SVG

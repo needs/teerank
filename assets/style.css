@@ -309,28 +309,28 @@ tr.spectator td:nth-child(2) img {
 	margin-right: 10px;
 }
 
-td.online, td.online a {
+.online, .online a {
 	font-weight: bold;
 	color: #43a700;
 }
 
-td.minutes {
+.minutes {
 	color: #56a721;
 }
 
-td.hours {
+.hours {
 	color: #7fa764;
 }
 
-td.days {
+.days {
 	color: #a7a7a7;
 }
 
-td.months {
+.months {
 	color: #c6c6c6;
 }
 
-td.years {
+.years {
 	color: #d5d5d5;
 }
 
@@ -447,34 +447,45 @@ nav.pages a:nth-last-child(2) {
 #player_header > img {
 	width: 100px;
 	height: 100px;
+	margin-right: 20px;
 }
 
-#player_header > section {
-	margin-left: 20px;
+#player_header > div {
+	display: flex;
+	flex-direction: column;
 	margin-top: auto;
 	margin-bottom: auto;
 }
+#player_header > div:last-child {
+	margin-left: auto;
+}
 
-#player_header > section > h1 {
-	display: block;
-	margin: 0px;
+#player_name, #player_rank {
+	margin-top: auto;
 	margin-bottom: 5px;
+}
+
+#player_clan, #player_lastseen {
+	margin-top: 5px;
+	margin-bottom: auto;
+}
+
+#player_name {
 	font-size: 1.5em;
 }
-#player_header > section > p {
-	margin-top: 5px;
+#player_clan {
 }
-#player_header > section > p > a {
+#player_clan a {
 	color: #666;
 }
 
-#player_header > p {
-	margin-left: auto;
-	margin-top: auto;
-	margin-bottom: auto;
-
+#player_rank {
+	text-align: right;
 	font-weight: bold;
 	font-size: 1.2em;
+}
+#player_lastseen {
+	text-align: right;
 }
 
 object {

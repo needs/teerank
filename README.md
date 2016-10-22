@@ -1,15 +1,53 @@
 Teerank
 =======
 
-Teerank is a simple and fast ranking system for teeworlds.  You can
+Teerank is a simple and fast ranking system for Teeworlds.  You can
 test the lastest stable version at [teerank.com](http://teerank.com/).
 
-How to build
-============
+How to use
+==========
+
+Build it:
 
 ```bash
 make
 ```
+
+Then update database at least once:
+
+```
+./teerank-update
+```
+
+Finally configure your webserver.  Root path must point to `assets`, so
+that `/style.css` can be resolved.  Database and CGI are located in the
+parent directory by default, hence `$document_root/../` to access them.
+Here is an example for Nginx:
+
+```
+http {
+	server {
+		listen       8000;
+		server_name  teerank.com;
+		root         /home/foo/teerank/assets;
+
+		try_files $uri @teerank;
+		location @teerank {
+			include       fastcgi_params;
+
+			fastcgi_param TEERANK_ROOT    $document_root/../.teerank;
+			fastcgi_param SCRIPT_FILENAME $document_root/../teerank.cgi;
+			fastcgi_pass  unix:/run/fcgiwrap.sock;
+		}
+	}
+}
+```
+
+Once that's done, check `localhost:8000` or whatever location you
+choosed and you should be good to go.
+
+Advanced use
+============
 
 You may want to build a version opimized for your own server using:
 
@@ -24,97 +62,35 @@ statically linked binaries for instance:
 CC="musl-gcc" CFLAGS="-static" make -B release
 ```
 
-How to use
-==========
-
-Teerank is split in two parts: a set of program to populate a database,
-and a CGI as a user interface for the database.
-
-To populate the database, use `teerank-update`.
+You may not want to support deprecated URLs, disable them by setting
+`ROUTE_V2_URLS` to `0`.
 
 ```bash
-./teerank-update
+ROUTE_V2_URLS=0 make
 ```
 
-Call it within regular intervals so that you can rank players over time:
-
-```bash
-while true; do ./teerank-update & sleep 300; done
-```
-
-By default, database is generated in `.teerank`, you can overide this
-setting using `$TEERANK_ROOT`.  You can also enable verbose mode which
-should give more insight on what's going on.
-
-```bash
-TEERANK_ROOT=/var/lib/teerank TEERANK_VERBOSE=1 ./teerank-update
-```
-
-Setting up CGI
-==============
-
-First off, it is recommended to install teerank system-wide using:
-
-```bash
-make install
-```
-
-Then configure your webserver to use installed cgi (by default in
-`/usr/share/webapps/teerank`).  here is an example for Nginx, assuming
-database is located at `/var/lib/teerank`.
-
-```
-http {
-	server {
-		listen       80;
-		server_name  teerank.com;
-		root         /usr/share/webapps/teerank;
-
-		rewrite ^/$ /pages/1.html redirect;
-		try_files $uri @teerank;
-		location @teerank {
-			include       fastcgi_params;
-
-			fastcgi_param TEERANK_ROOT       /var/lib/teerank;
-
-			fastcgi_param SCRIPT_FILENAME $document_root/teerank.cgi;
-			fastcgi_pass  unix:/run/fcgiwrap.sock;
-		}
-	}
-}
-```
-
-Tips
-====
-
-On archlinux, you can use pacman to actually install teerank
-system-wide:
-
-```bash
-makepkg -i BUILDDIR=/tmp/makepkg
-```
+When running `teerank-update`, set `TEERANK_ROOT` to change database
+location, and `TEERANK_VERBOSE` to `1` to enable verbose mode.
 
 Setting up a CGI for developpement may be cumbursome, you can actually
-simulate CGI environement with the command line, like so:
+simulate CGI environment with the command line, like so:
 
 ```bash
-DOCUMENT_URI="/search" QUERY_STRING="q=Nameless" ./teerank.cgi >assets/test.html
+DOCUMENT_URI="/search" QUERY_STRING="q=Nameless" ./teerank.cgi
 ```
 
-Launch a lightweight server in `assets/` to then access the generated
-page at [localhost:8000/test.html](http://localhost:8000/test.html):
+Upgrading from a previous version
+=================================
 
-```bash
-cd assets && python -m http.server &
+Database from the previous stable version can be upgraded using:
+
+```
+./teerank-upgrade
 ```
 
-Previous teerank version used different urls layout, by default they
-route to the new ones.  If you don't want to support them at all, build
-with `DONT_ROUTE_OLD_URLS` defined.
-
-```bash
-CFLAGS="-DDONT_ROUTE_OLD_URLS" make -B
-```
+Keep in mind that upgrades are only supported between stable version of
+teerank.  It means that database created or upgraded while being on an
+unstable version will likely not be upgradable to the next stable teerank.
 
 Contributing
 ============

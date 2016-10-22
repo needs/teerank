@@ -236,6 +236,7 @@ void html_header(
 
 	assert(active != NULL);
 	assert(title != NULL);
+	assert(sprefix != NULL);
 
 	if (active == &CUSTOM_TAB) {
 		assert(active->name != NULL);

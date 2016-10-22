@@ -261,20 +261,20 @@ static void setup_xml_sitemap(struct route *this, struct url *url) {};
  * Build the root tree given data in "routes.def".
  */
 
-#define DIR(name) { name, NULL, NULL, NULL, { NULL }, (struct route[]) {
+#define DIR(name) { name, "", NULL, NULL, NULL, { NULL }, (struct route[]) {
 #define END() } },
 
 #define HTML(name, func) \
-	{ name ".html", "text/html", setup_html_##func, main_html_##func, { #func } }, \
-	{ name, "text/html", setup_html_##func, main_html_##func, { #func } },
+	{ name, ".html", "text/html", setup_html_##func, main_html_##func, { #func } }, \
+	{ name, "", "text/html", setup_html_##func, main_html_##func, { #func } },
 #define JSON(name, func) \
-	{ name ".json", "text/json", setup_json_##func, main_json_##func, { #func } },
+	{ name, ".json", "text/json", setup_json_##func, main_json_##func, { #func } },
 #define TXT(name, func) \
-	{ name ".txt", "text/plain", setup_txt_##func, main_txt_##func, { #func } },
+	{ name, ".txt", "text/plain", setup_txt_##func, main_txt_##func, { #func } },
 #define XML(name, func) \
-	{ name ".xml", "text/xml", setup_xml_##func, main_xml_##func, { #func } },
+	{ name, ".xml", "text/xml", setup_xml_##func, main_xml_##func, { #func } },
 #define SVG(name, func) \
-	{ name ".svg", "image/svg+xml", setup_svg_##func, main_svg_##func, { #func } },
+	{ name, ".svg", "image/svg+xml", setup_svg_##func, main_svg_##func, { #func } },
 
 static struct route root = DIR("")
 #include "routes.def"
@@ -282,26 +282,28 @@ static struct route root = DIR("")
 
 static int route_match(struct route *route, char *name)
 {
-	const char *routename = route->name;
-	int cut = 0;
+	char *ext;
+
+	/* First, check for extension */
+	if (!(ext = strrchr(name, route->ext[0])))
+		return 0;
+	if (strcmp(ext, route->ext) != 0)
+		return 0;
 
 	/*
-	 * Jokers "*" in route ignore characters until the character
-	 * following the joker itself, starting from the end of the
-	 * name.  Hence route "*.html" will match "192.168.0.1.html".
+	 * Then check for raw filename, since file extension is already
+	 * tested, cut it.
 	 */
-	if (routename[0] == '*') {
-		name = strrchr(name, *++routename);
-		cut = 1;
-	}
+	*ext = '\0';
 
-	if (name && strcmp(name, routename) == 0) {
-		if (cut)
-			*name = '\0';
+	if (strcmp(route->name, "*") == 0)
 		return 1;
-	} else {
-		return 0;
-	}
+	if (strcmp(route->name, name) == 0)
+		return 1;
+
+	/* Somehow route doesn't match, uncut file extension. */
+	*ext = route->ext[0];
+	return 0;
 }
 
 /*

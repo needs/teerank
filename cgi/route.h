@@ -6,7 +6,7 @@
 struct url;
 struct route;
 struct route {
-	const char *const name;
+	const char *const name, *const ext;
 	const char *const content_type;
 	void (*const setup)(struct route *this, struct url *url);
 

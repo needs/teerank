@@ -130,9 +130,8 @@ static void *new_data(struct index *index)
 	 * realloc() stuff: we can just reuse the last data.
 	 */
 	if (index->reuse_last) {
-		assert(index->ndata > 0);
-
 		index->reuse_last = 0;
+		index->ndata++;
 		return get(index, index->ndata - 1);
 	}
 
@@ -160,11 +159,10 @@ static void free_last_data(struct index *index)
 
 	/*
 	 * Freeing is just marking the last allocated data as reusable
-	 * so we don't have to reallocate it.  Decreasing index->ndata
-	 * will not work because it breaks the assumption that the index
-	 * is always growing.
+	 * so we don't have to reallocate it.
 	 */
 	index->reuse_last = 1;
+	index->ndata--;
 }
 
 int create_index(
@@ -224,24 +222,14 @@ int create_index(
 	return 1;
 }
 
-/*
- * If index_reuse_last is true, we need to ignore the last data:
- * reuse_last means the data is counted within index->ndata but is
- * actually a dummy entry.
- */
-unsigned index_ndata(struct index *index)
-{
-	return index->ndata - index->reuse_last;
-}
-
 void sort_index(struct index *index, int (*compar)(const void *, const void *))
 {
-	qsort(index->data, index_ndata(index), index->info->datasize, compar);
+	qsort(index->data, index->ndata, index->info->datasize, compar);
 }
 
 void *index_foreach(struct index *index)
 {
-	if (index->i == index_ndata(index)) {
+	if (index->i == index->ndata) {
 		index->i = 0;
 		return NULL;
 	}
@@ -255,7 +243,6 @@ int write_index(struct index *index, const char *filename)
 	char path[PATH_MAX];
 	int fd = -1;
 	ssize_t ret;
-	unsigned ndata;
 	size_t totalsize;
 
 	if (!dbpath(path, PATH_MAX, "%s", filename))
@@ -266,9 +253,7 @@ int write_index(struct index *index, const char *filename)
 		goto fail;
 	}
 
-	/* ndata */
-	ndata = index_ndata(index);
-	ret = write(fd, &ndata, sizeof(ndata));
+	ret = write(fd, &index->ndata, sizeof(index->ndata));
 
 	if (ret == -1) {
 		perror(path);
@@ -279,7 +264,7 @@ int write_index(struct index *index, const char *filename)
 	}
 
 	/* Entries */
-	totalsize = index->info->datasize * ndata;
+	totalsize = index->info->datasize * index->ndata;
 	ret = write(fd, index->data, totalsize);
 
 	if (ret == -1) {

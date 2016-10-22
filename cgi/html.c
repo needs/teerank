@@ -595,7 +595,12 @@ static unsigned round(unsigned n)
 	while (mod < n)
 		mod *= 10;
 
-	return n - (n % (mod / 100));
+	mod /= 100;
+
+	if (mod == 0)
+		return n;
+
+	return n - (n % mod);
 }
 
 void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabvals)

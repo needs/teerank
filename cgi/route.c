@@ -87,14 +87,29 @@ struct url parse_url(char *uri, char *query)
 	char *dir, *name;
 	unsigned i;
 
-	dir = strtok(uri, "/");
-	do {
-		if (url.ndirs == MAX_DIRS)
-			error(414, NULL);
+	if (!(dir = strtok(uri, "/"))) {
+		/*
+		 * strtok() never return an empty string.  And that's
+		 * what we usually want, because "/players/" will be
+		 * handled the same than "/players".
+		 *
+		 * However, the root route doesn't have a name, hence
+		 * the default page doesn't either.  So to allow default
+		 * page for root directory, we make a special case and
+		 * use an empty string.
+		 */
+		strcpy(uri, "");
+		url.dirs[0] = uri;
+		url.ndirs = 1;
+	} else {
+		do {
+			if (url.ndirs == MAX_DIRS)
+				error(414, NULL);
 
-		url.dirs[url.ndirs] = dir;
-		url.ndirs++;
-	} while ((dir = strtok(NULL, "/")));
+			url.dirs[url.ndirs] = dir;
+			url.ndirs++;
+		} while ((dir = strtok(NULL, "/")));
+	}
 
 	/*
 	 * Load arg 'name' and 'val' in two steps to not mix up strtok()

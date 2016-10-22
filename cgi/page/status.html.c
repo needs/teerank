@@ -63,6 +63,7 @@ static void print_status(const char *title, const char *comment, int status)
 
 int main_html_status(int argc, char **argv)
 {
+	const char *title;
 	char buf[16], comment[64];
 	struct info info;
 	short teerank_stopped = 0;
@@ -92,13 +93,18 @@ int main_html_status(int argc, char **argv)
 	if (!elapsed_time_since(&info.last_update, NULL, buf, sizeof(buf))) {
 		snprintf(comment, sizeof(comment), "Not updated since %s", buf);
 		print_status("Teerank", comment, STATUS_STOPPED);
-		print_status("JSON API", comment, STATUS_STOPPED);
 		teerank_stopped = 1;
 	} else {
 		print_status("Teerank", NULL, STATUS_OK);
-		print_status("JSON API", NULL, STATUS_OK);
 	}
 
+	title = "Teerank 2.x backward compatibility";
+	if (!ROUTE_V2_URLS)
+		print_status(title, NULL, STATUS_DISABLED);
+	else if (teerank_stopped)
+		print_status(title, comment, STATUS_STOPPED);
+	else
+		print_status(title, NULL, STATUS_OK);
 
 	if (info.nmasters)
 		html("<h2>Teeworlds</h2>");

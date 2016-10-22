@@ -314,7 +314,7 @@ static struct route *find_child_route(
 {
 	struct route *r;
 
-	for (r = route->routes; r->name; r++) {
+	for (r = route->routes; r && r->name; r++) {
 		if (onlyleaf && r->routes)
 			continue;
 		if (route_match(r, name))

@@ -6,25 +6,7 @@
 #include "cgi.h"
 #include "config.h"
 #include "player.h"
-
-static int dump(const char *path)
-{
-	FILE *file;
-	int c;
-
-	if (!(file = fopen(path, "r"))) {
-		if (errno == ENOENT)
-			return EXIT_NOT_FOUND;
-		perror(path);
-		return EXIT_FAILURE;
-	}
-
-	while ((c = fgetc(file)) != EOF)
-		putchar(c);
-
-	fclose(file);
-	return EXIT_SUCCESS;
-}
+#include "page.h"
 
 int main_json_clan(int argc, char **argv)
 {

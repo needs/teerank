@@ -12,7 +12,7 @@ static const unsigned SERVERS_PER_PAGE = 100;
 /* Parse page number (used by *-list) */
 int parse_pnum(const char *str, unsigned *pnum);
 
-/* Only dump "n" json fields */
-int dump_n_fields(FILE *file, unsigned n);
+/* Dump the given file */
+int dump(const char *path);
 
 #endif /* PAGE_H */

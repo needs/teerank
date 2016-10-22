@@ -158,6 +158,21 @@ int main_html_about_json_api(int argc, char **argv)
 	jsondesc_row("elo", "integer", "1500", "Player elo points");
 	jsondesc_row("rank", "unsigned", "45678", "Player rank");
 	jsondesc_row("lastseen", "time", "\"1970-01-01T00:00:00Z\"", "Last time the player was connected");
+	jsondesc_row("server_ip", "string", "\"1.2.3.4\"", "Last server IP player was connected to");
+	jsondesc_row("server_port", "string", "\"8300\"", "Last server port player was connected to");
+
+	jsondesc_row("historic", "", "", "Historic of elo and rank values");
+	jsondesc_row("{", NULL, NULL, NULL);
+	jsondesc_row("length", "unsigned", "2", "Number fo records");
+	jsondesc_row("epoch", "time", "2016-10-22T01:46:00Z", "Creation date of the historic");
+	jsondesc_row("records", "", "", "Array of records");
+	jsondesc_row("[", NULL, NULL, NULL);
+	jsondesc_row("", "unsigned", "0", "Elapsed time since epoch");
+	jsondesc_row("", "integer", "1500", "Player elo points");
+	jsondesc_row("", "unsigned", "45678", "Player rank");
+	jsondesc_row("]", NULL, NULL, NULL);
+	jsondesc_row("}", NULL, NULL, NULL);
+
 	jsondesc_row("}", NULL, NULL, NULL);
 
 	end_jsondesc_table();

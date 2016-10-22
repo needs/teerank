@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <errno.h>
 
+#include "cgi.h"
 #include "page.h"
 
 int parse_pnum(const char *str, unsigned *pnum)
@@ -31,36 +32,21 @@ int parse_pnum(const char *str, unsigned *pnum)
 	return 1;
 }
 
-int dump_n_fields(FILE *file, unsigned n)
+int dump(const char *path)
 {
-	/*
-	 * Each time we have a coma that is not in a string, increase
-	 * field count.  Closing brace and closing bracket also increase
-	 * field count.
-	 */
-	int c, instring = 0, forcenext = 0;
+	FILE *file;
+	int c;
 
-	goto start;
-	while (n) {
-		putchar(c);
-
-	start:
-		c = fgetc(file);
-
-		if (c == EOF)
-			return 0;
-
-		if (forcenext)
-			forcenext = 0;
-		else if (instring && c == '\\')
-			forcenext = 1;
-		else if (!instring && c == '\"')
-			instring = 1;
-		else if (instring && c == '\"')
-			instring = 0;
-		else if (c == ',' || c == '}' || c == ']')
-			n--;
+	if (!(file = fopen(path, "r"))) {
+		if (errno == ENOENT)
+			return EXIT_NOT_FOUND;
+		perror(path);
+		return EXIT_FAILURE;
 	}
 
-	return 1;
+	while ((c = fgetc(file)) != EOF)
+		putchar(c);
+
+	fclose(file);
+	return EXIT_SUCCESS;
 }

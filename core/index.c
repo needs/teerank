@@ -261,7 +261,7 @@ int write_index(struct index *index, const char *filename)
 	if (!dbpath(path, PATH_MAX, "%s", filename))
 		goto fail;
 
-	if ((fd = open(path, O_WRONLY)) == -1) {
+	if ((fd = open(path, O_WRONLY | O_CREAT, (mode_t)0666)) == -1) {
 		perror(path);
 		goto fail;
 	}

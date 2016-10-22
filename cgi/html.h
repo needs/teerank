@@ -19,6 +19,12 @@ char *escape(const char *str);
  */
 int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize);
 
+/*
+ * Print a link to the given server if player is online.  Otherwise it
+ * print the elapsed time since it's last connection.
+ */
+void player_lastseen_link(struct tm *lastseen, const char *addr);
+
 struct tab {
 	char *name, *href;
 };

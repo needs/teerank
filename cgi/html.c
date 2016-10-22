@@ -227,6 +227,33 @@ int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize)
 	}
 }
 
+void player_lastseen_link(struct tm *lastseen, const char *addr)
+{
+	char text[64], strls[] = "00/00/1970 00h00", *class;
+	int is_online, have_strls;
+
+	if (mktime(lastseen) == NEVER_SEEN)
+		return;
+
+	is_online = elapsed_time_since(lastseen, &class, text, sizeof(text));
+	have_strls = strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", lastseen);
+
+	if (is_online && have_strls)
+		html("<a class=\"%s\" href=\"/servers/%s\" title=\"%s\">%s</a>",
+		     class, addr, strls, text);
+
+	else if (is_online)
+		html("<a class=\"%s\" href=\"/servers/%s\">%s</a>",
+		     class, addr, text);
+
+	else if (have_strls)
+		html("<span class=\"%s\" title=\"%s\">%s</span>",
+		     class, strls, text);
+
+	else
+		html("<span class=\"%s\">%s</span>", class, text);
+}
+
 void html_header(
 	const struct tab *active, const char *title,
 	const char *sprefix, const char *query)
@@ -458,25 +485,10 @@ static void player_list_entry(
 		html("<td>%d</td>", elo);
 
 	/* Last seen (not online-player-list only) */
-	if (!onlinelist && mktime(&lastseen) == NEVER_SEEN) {
-		html("<td></td>");
-	} else if (!onlinelist) {
-		char text[64], strls[] = "00/00/1970 00h00", *class;
-		int online;
-
-		online = elapsed_time_since(&lastseen, &class, text, sizeof(text));
-		if (strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", &lastseen))
-			html("<td class=\"%s\" title=\"%s\">", class, strls);
-		else
-			html("<td class=\"%s\">", class);
-
-		if (online)
-			html("<a href=\"/servers/%s\">%s</a>", addr, text);
-		else
-			html("%s", text);
-
-		html("</td>");
-	}
+	html("<td>");
+	if (!onlinelist)
+		player_lastseen_link(&lastseen, addr);
+	html("</td>");
 
 	html("</tr>");
 }

@@ -45,28 +45,15 @@ int main_html_player(int argc, char **argv)
 		html("<p id=\"player_clan\"><a href=\"/clans/%s\">%s</a></p>", player.clan, clan);
 
 	html("</div>");
+
 	html("<div>");
 	html("<p id=\"player_rank\">#%u (%d ELO)</p>", player.rank, player.elo);
-
-	if (mktime(&player.lastseen) != NEVER_SEEN) {
-		char text[64], strls[] = "00/00/1970 00h00", *class;
-		int is_online;
-
-		is_online = elapsed_time_since(&player.lastseen, &class, text, sizeof(text));
-
-		html("<p id=\"player_lastseen\" class=\"%s\">", class);
-		if (is_online) {
-			char *addr = build_addr(player.server_ip, player.server_port);
-			html("<a href=\"/servers/%s\">%s</a>", addr, text);
-		} else if (strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", &player.lastseen)) {
-			html("%s ago (%s)", text, strls);
-		} else {
-			html("%s ago", text);
-		}
-		html("</p>");
-	}
-
+	html("<p id=\"player_lastseen\">");
+	player_lastseen_link(
+		&player.lastseen, build_addr(player.server_ip, player.server_port));
+	html("</p>");
 	html("</div>");
+
 	html("</header>");
 	html("");
 	html("<h2>Historic</h2>");

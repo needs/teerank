@@ -309,7 +309,7 @@ tr.spectator td:nth-child(2) img {
 	margin-right: 10px;
 }
 
-.online, .online a {
+.online {
 	font-weight: bold;
 	color: #43a700;
 }

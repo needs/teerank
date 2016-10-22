@@ -146,7 +146,7 @@ struct url parse_url(char *uri, char *query)
  * server list share this pattern.
  */
 static void set_pagelist_args(
-	struct route *this, struct url *url)
+	struct route *this, struct url *url, char *order)
 {
 	char *p = "1";
 	unsigned i;
@@ -156,32 +156,36 @@ static void set_pagelist_args(
 			p = url->args[i].val;
 
 	this->args[1] = p;
-	this->args[2] = url->dirs[1];
+
+	if (url->ndirs == 2)
+		this->args[2] = url->dirs[1];
+	else
+		this->args[2] = order;
 }
 
 static void setup_html_player_list(struct route *this, struct url *url)
 {
-	set_pagelist_args(this, url);
+	set_pagelist_args(this, url, "by-rank");
 }
 static void setup_json_player_list(struct route *this, struct url *url)
 {
-	set_pagelist_args(this, url);
+	set_pagelist_args(this, url, "by-rank");
 }
 static void setup_html_clan_list(struct route *this, struct url *url)
 {
-	set_pagelist_args(this, url);
+	set_pagelist_args(this, url, "by-nmembers");
 }
 static void setup_json_clan_list(struct route *this, struct url *url)
 {
-	set_pagelist_args(this, url);
+	set_pagelist_args(this, url, "by-nmembers");
 }
 static void setup_html_server_list(struct route *this, struct url *url)
 {
-	set_pagelist_args(this, url);
+	set_pagelist_args(this, url, "by-nplayers");
 }
 static void setup_json_server_list(struct route *this, struct url *url)
 {
-	set_pagelist_args(this, url);
+	set_pagelist_args(this, url, "by-nplayers");
 }
 
 static void setup_html_player(struct route *this, struct url *url)
@@ -237,7 +241,7 @@ static void setup_html_search(struct route *this, struct url *url)
 /* URLs for player list looked like "/players/<pnum>.html" */
 static void setup_html_teerank2_player(struct route *this, struct url *url)
 {
-	redirect("/players/by-rank?p=%s", url->dirs[url->ndirs - 1]);
+	redirect("/players?p=%s", url->dirs[url->ndirs - 1]);
 }
 static int main_html_teerank2_player(int argc, char **argv)
 {

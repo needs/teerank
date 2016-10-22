@@ -31,6 +31,7 @@ DIR("players")
 	JSON("*", player)
 	HTML("*", player)
 END()
+HTML("players", player_list)
 
 DIR("clans")
 	HTML("search", search)
@@ -39,6 +40,7 @@ DIR("clans")
 	JSON("*", clan)
 	HTML("*", clan)
 END()
+HTML("clans", clan_list)
 
 DIR("servers")
 	HTML("search", search)
@@ -47,6 +49,9 @@ DIR("servers")
 	JSON("*", server)
 	HTML("*", server)
 END()
+HTML("servers", server_list)
+
+HTML("", player_list)
 
 #undef DIR
 #undef END

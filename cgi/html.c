@@ -607,9 +607,9 @@ void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabv
 		const char *url;
 		unsigned num;
 	} default_tabs[] = {
-		{ "Players", "/players/by-rank", 0 },
-		{ "Clans", "/clans/by-nmembers", 0 },
-		{ "Servers", "/servers/by-nplayers", 0 }
+		{ "Players", "/players", 0 },
+		{ "Clans", "/clans", 0 },
+		{ "Servers", "/servers", 0 }
 	}, search_tabs[] = {
 		{ "Players", "/players/search", 0 },
 		{ "Clans", "/clans/search", 0 },

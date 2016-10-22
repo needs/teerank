@@ -7,8 +7,9 @@
 #include "historic.h"
 #include "json.h"
 
-void init_historic(struct historic *hist, size_t data_size,
-                   unsigned max_records)
+void init_historic(
+	struct historic *hist, const char *histname, size_t data_size,
+	unsigned max_records)
 {
 	static const struct historic HISTORIC_ZERO;
 
@@ -17,6 +18,7 @@ void init_historic(struct historic *hist, size_t data_size,
 	assert(max_records > 0);
 
 	*hist = HISTORIC_ZERO;
+	hist->name = histname;
 	hist->data_size = data_size;
 	hist->max_records = max_records;
 }
@@ -148,8 +150,7 @@ static struct record *new_record(struct historic *hist)
 }
 
 int read_historic(
-	struct historic *hist, struct jfile *jfile,
-	read_data_func_t read_data)
+	struct historic *hist, struct jfile *jfile, read_data_func_t read_data)
 {
 	unsigned i;
 
@@ -159,6 +160,7 @@ int read_historic(
 
 	reset_historic(hist);
 
+	json_read_object_start(jfile, hist->name);
 	json_read_unsigned(   jfile, "length", &hist->nrecords);
 	json_read_time(       jfile, "epoch" , &hist->epoch);
 	json_read_array_start(jfile, "records");
@@ -190,7 +192,10 @@ int read_historic(
 			return 0;
 	}
 
-	if (!json_read_array_end(jfile))
+	json_read_array_end(jfile);
+	json_read_object_end(jfile);
+
+	if (json_have_error(jfile))
 		return 0;
 
 	hist->first = &hist->records[0];
@@ -216,8 +221,7 @@ static int write_record(
 }
 
 int write_historic(
-	struct historic *hist, struct jfile *jfile,
-	write_data_func_t write_data)
+	struct historic *hist, struct jfile *jfile, write_data_func_t write_data)
 {
 	struct record *rec;
 
@@ -225,6 +229,7 @@ int write_historic(
 	assert(jfile != NULL);
 	assert(write_data != NULL);
 
+	json_write_object_start(jfile, hist->name);
 	json_write_unsigned(jfile, "length", hist->nrecords);
 	json_write_time(jfile, "epoch", hist->epoch);
 	json_write_array_start(jfile, "records");
@@ -237,6 +242,7 @@ int write_historic(
 			return 0;
 
 	json_write_array_end(jfile);
+	json_write_object_end(jfile);
 
 	return !json_have_error(jfile);
 }
@@ -258,8 +264,10 @@ void append_record(struct historic *hist, const void *data)
 	memcpy(record_data(hist, rec), data, hist->data_size);
 }
 
-void read_historic_info(struct historic_info *hs, struct jfile *jfile)
+void read_historic_info(
+	struct historic_info *hs, const char *histname, struct jfile *jfile)
 {
+	json_read_object_start(jfile, histname);
 	json_read_unsigned(jfile, "length", &hs->nrecords);
 	json_read_time(    jfile, "epoch" , &hs->epoch);
 }

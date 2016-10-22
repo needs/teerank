@@ -107,7 +107,9 @@ void init_player(struct player *player)
 	static const struct player PLAYER_ZERO;
 	*player = PLAYER_ZERO;
 
-	init_historic(&player->hist, sizeof(struct player_record),  UINT_MAX);
+	init_historic(
+		&player->hist, "historic",
+		sizeof(struct player_record), UINT_MAX);
 }
 
 /*
@@ -394,7 +396,7 @@ int read_player_info(struct player_info *ps, const char *name)
 
 	json_read_object_start(&jfile, NULL);
 	read_player_info_header(&jfile, ps);
-	read_historic_info(&ps->hist, &jfile);
+	read_historic_info(&ps->hist, "historic", &jfile);
 
 	if (json_have_error(&jfile))
 		goto fail;

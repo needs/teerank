@@ -11,7 +11,7 @@
  *
  * Historics must be initialized before any other uses:
  *
- *	init_historic(&hist, sizeof(player->elo), UINT_MAX);
+ *	init_historic(&hist, "foobar", sizeof(player->elo), UINT_MAX);
  *
  * Historics needs to be initialized only once, hence the following
  * exmaple usage can be run again without calling init_historic()
@@ -19,9 +19,9 @@
  *
  * Here is how to append a record to a file:
  *
- * 	read_historic(&hist, file, path, read_elo);
+ * 	read_historic(&hist, jfile, read_elo);
  * 	append_record(&hist, &new_elo);
- * 	write_historic(&hist, file, path, write_elo);
+ * 	write_historic(&hist, jfile, write_elo);
  *
  * This example does not check return values, a compliant
  * implementation should.
@@ -52,6 +52,7 @@ struct record {
  */
 struct historic {
 	time_t epoch;
+	const char *name;
 
 	unsigned nrecords;
 	unsigned max_records;
@@ -81,11 +82,13 @@ typedef int (*write_data_func_t)(struct jfile *, void *);
  * number of records.
  *
  * @param hist Historic to initialize
+ * @param histname Historic name
  * @param data_size Data size in historic, used for buffer allocation
  * @param max_records Maximum number of records
  */
-void init_historic(struct historic *hist, size_t data_size,
-                   unsigned max_records);
+void init_historic(
+	struct historic *hist, const char *histname, size_t data_size,
+	unsigned max_records);
 
 /**
  * Create a fresh, empty, historic.
@@ -113,8 +116,8 @@ void create_historic(struct historic *hist);
  *
  * @return 1 on success, 0 on failure
  */
-int read_historic(struct historic *hist, struct jfile *jfile,
-                  read_data_func_t read_data);
+int read_historic(
+	struct historic *hist, struct jfile *jfile, read_data_func_t read_data);
 
 /**
  * Write the given historic to the given file.
@@ -127,8 +130,8 @@ int read_historic(struct historic *hist, struct jfile *jfile,
  *
  * @return 1 on success, 0 on failure
  */
-int write_historic(struct historic *hist, struct jfile *jfile,
-                   write_data_func_t write_data);
+int write_historic(
+	struct historic *hist, struct jfile *jfile, write_data_func_t write_data);
 
 /**
  * Return a pointer to the associated data of the given record.
@@ -162,9 +165,10 @@ struct historic_info {
  * Fill the given historic info with the content of the given file
  *
  * @param hs Historic info to fill
+ * @param histname Historic name
  * @param jfile Initialized JSON file
- * @param skip_data Function called to skip unused historic data
  */
-void read_historic_info(struct historic_info *hs, struct jfile *jfile);
+void read_historic_info(
+	struct historic_info *hs, const char *histname, struct jfile *jfile);
 
 #endif /* HISTORIC_H */

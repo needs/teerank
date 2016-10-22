@@ -271,7 +271,8 @@ static void try_add_result(
 		return;
 
 	if (onlycount) {
-		list->length++;
+		if (!is_full(list))
+			list->length++;
 		return;
 	}
 

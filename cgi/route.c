@@ -238,7 +238,7 @@ static void setup_html_search(struct route *this, struct url *url)
 }
 
 #if ROUTE_V2_URLS
-/* URLs for player list looked like "/players/<pnum>.html" */
+/* URLs for player list looked like "/pages/<pnum>.html" */
 static void setup_html_teerank2_player(struct route *this, struct url *url)
 {
 	redirect("/players?p=%s", url->dirs[url->ndirs - 1]);

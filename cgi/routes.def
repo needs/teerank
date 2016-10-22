@@ -11,18 +11,18 @@ TXT("robots", robots)
 XML("sitemap", sitemap)
 HTML("search", search)
 
+#if ROUTE_V2_URLS
+DIR("pages")
+	HTML("*", teerank2_player)
+END()
+#endif
+
 DIR("players")
 	HTML("search", search)
 	HTML("by-rank", player_list)
 	JSON("by-rank", player_list)
 	HTML("by-lastseen", player_list)
 	JSON("by-lastseen", player_list)
-
-#if ROUTE_V2_URLS
-	DIR("pages")
-		HTML("*", teerank2_player)
-	END()
-#endif
 
 	DIR("*")
 		SVG("elo+rank", graph)

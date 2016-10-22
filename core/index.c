@@ -341,6 +341,7 @@ static int select_page(
 	else
 		ipage->plen = plen;
 
+	ipage->istart = (pnum - 1) * plen;
 	ipage->pnum = pnum;
 	ipage->i = 0;
 
@@ -431,7 +432,7 @@ void *index_page_foreach(struct index_page *ipage, unsigned *i)
 	}
 
 	if (i)
-		*i = (ipage->pnum - 1) * ipage->plen + ipage->i + 1;
+		*i = ipage->istart + ipage->i + 1;
 
 	return ipage->data + (ipage->i++ * ipage->info->datasize);
 }

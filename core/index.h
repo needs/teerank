@@ -138,7 +138,7 @@ struct index_page {
 	void *mmapbuf, *data;
 
 	unsigned ndata, npages;
-	unsigned pnum, plen, i;
+	unsigned pnum, plen, i, istart;
 };
 
 /**

@@ -122,7 +122,7 @@ int main_html_about_json_api(int argc, char **argv)
 
 	html("<p>Time are encoded using the standard <a href=\"https://www.ietf.org/rfc/rfc3339.txt\">RFC-3339</a>.  It provide numerous advantages: fixed length, human readable, and is supported on many platforms and libraries.  They looks like the following: <code>\"2016-01-19T22:42:31Z\"</code></p>");
 
-	html("<p>The lowest possible date is <code>\"1970-01-01T00:00:00Z\"</code>, or unix epoch.</p>");
+	html("<p>The lowest possible date is <code>\"1970-01-01T00:00:00Z\"</code>, or unix epoch.  This date is used to mark the absence of meaningful value.</p>");
 
 	/*
 	 * About

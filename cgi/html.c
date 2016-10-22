@@ -145,7 +145,7 @@ void css(const char *fmt, ...)
 #endif  /* NDEBUG */
 
 const struct tab CTF_TAB = { "CTF", "/" };
-const struct tab ABOUT_TAB = { "About", "/about.html" };
+const struct tab ABOUT_TAB = { "About", "/about" };
 struct tab CUSTOM_TAB = { NULL, NULL };
 
 char *escape(const char *str)
@@ -263,7 +263,7 @@ void html_header(
 	 * since 10 minutes.
 	 */
 	if (read_info(&info) && !elapsed_time_since(&info.last_update, NULL, text, sizeof(text)))
-		html("<a id=\"alert\" href=\"/status.html\">Not updated since %s</a>", text);
+		html("<a id=\"alert\" href=\"/status\">Not updated since %s</a>", text);
 
 	html("<form action=\"%s/search\" id=\"searchform\">", sprefix);
 	html("<input name=\"q\" type=\"text\" placeholder=\"Search\"%s%s%s/>",
@@ -315,7 +315,7 @@ void html_footer(const char *jsonanchor, const char *jsonurl)
 	if (jsonanchor && jsonurl) {
 		html("<nav id=\"bottabs\">");
 		html("<a href=\"%s\">JSON</a>", jsonurl);
-		html("<a href=\"/about-json-api.html#%s\">JSON Doc</a>", jsonanchor);
+		html("<a href=\"/about-json-api#%s\">JSON Doc</a>", jsonanchor);
 		html("<a class=\"active\">HTML</a>");
 		html("</nav>");
 	}
@@ -330,8 +330,8 @@ void html_footer(const char *jsonanchor, const char *jsonurl)
 	html("<a href=\"https://github.com/needs/teerank/tree/%s\">(%s)</a>",
 	     CURRENT_BRANCH, STABLE_VERSION ? "stable" : "unstable");
 	html("</li>");
-	html("<li><a href=\"/status.html\">Status</a></li>");
-	html("<li><a href=\"/about.html\">About</a></li>");
+	html("<li><a href=\"/status\">Status</a></li>");
+	html("<li><a href=\"/about\">About</a></li>");
 	html("</ul>");
 	html("</footer>");
 
@@ -366,7 +366,7 @@ static void start_player_list(
 	else if (byrank)
 		html("<th>Elo%s</th>", selected);
 	else
-		html("<th><a href=\"/players/by-rank?p=%u\">Elo%s</a></th>",
+		html("<th><a href=\"/players?p=%u\">Elo%s</a></th>",
 		     pnum, unselected);
 
 	/*
@@ -436,7 +436,7 @@ static void player_list_entry(
 
 	/* Name */
 	hexname_to_name(hexname, name);
-	html("<td>%s<a href=\"/players/%s.html\">%s</a></td>",
+	html("<td>%s<a href=\"/players/%s\">%s</a></td>",
 	     spectator ? specimg : "", hexname, escape(name));
 
 	/* Clan */
@@ -444,7 +444,7 @@ static void player_list_entry(
 	if (no_clan_link || *clan == '\0')
 		html("<td>%s</td>", escape(clan));
 	else
-		html("<td><a href=\"/clans/%s.html\">%s</a></td>",
+		html("<td><a href=\"/clans/%s\">%s</a></td>",
 		     hexclan, escape(clan));
 
 	/* Score (online-player-list only) */
@@ -471,7 +471,7 @@ static void player_list_entry(
 			html("<td class=\"%s\">", class);
 
 		if (online)
-			html("<a href=\"/servers/%s.html\">%s</a>", addr, text);
+			html("<a href=\"/servers/%s\">%s</a>", addr, text);
 		else
 			html("%s", text);
 
@@ -532,7 +532,7 @@ void html_clan_list_entry(
 
 	/* Name */
 	hexname_to_name(hexname, name);
-	html("<td><a href=\"/clans/%s.html\">%s</a></td>", hexname, escape(name));
+	html("<td><a href=\"/clans/%s\">%s</a></td>", hexname, escape(name));
 
 	/* Members */
 	html("<td>%u</td>", nmembers);
@@ -570,7 +570,7 @@ void html_server_list_entry(unsigned pos, struct indexed_server *server)
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td><a href=\"/servers/%s.html\">%s</a></td>",
+	html("<td><a href=\"/servers/%s\">%s</a></td>",
 	     build_addr(server->ip, server->port), server->name);
 
 	/* Gametype */

@@ -37,7 +37,7 @@ int main_html_player_list(int argc, char **argv)
 
 	if (strcmp(argv[2], "by-rank") == 0) {
 		indexname = "players_by_rank";
-		urlprefix = "/players/by-rank";
+		urlprefix = "/players";
 		order = SORT_BY_RANK;
 	} else if (strcmp(argv[2], "by-lastseen") == 0) {
 		indexname = "players_by_lastseen";

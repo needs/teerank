@@ -50,7 +50,7 @@ int main_html_server_list(int argc, char **argv)
 		html_server_list_entry(pos, server);
 
 	html_end_server_list();
-	print_page_nav("/servers/by-nplayers", &ipage);
+	print_page_nav("/servers", &ipage);
 
 	html_footer("server-list", relurl("/servers/%s.json?p=%u", argv[2], pnum));
 

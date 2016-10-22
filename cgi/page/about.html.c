@@ -13,7 +13,7 @@ int main_html_about(int argc, char **argv)
 	html("<p>Report any bugs or ideas on <a href=\"https://github.com/needs/teerank/issues\">github issue tracker</a> or send them by e-mail at <a href=\"mailto:needs@mailoo.org\">needs@mailoo.org</a>.</p>");
 
 	html("<h1>JSON API</h1>");
-	html("<p>Here is a <a href=\"/about-json-api.html\">detailed presentation of teerank JSON API</a>.  You are free to use it for any purpose.</p>");
+	html("<p>Here is a <a href=\"/about-json-api\">detailed presentation of teerank JSON API</a>.  You are free to use it for any purpose.</p>");
 
 	html("<h1>Under the hood</h1>");
 	html("<p>Teerank works by polling CTF servers every 5 minutes.  Based on the score difference between two polls, it compute your score using a custom <a href=\"https://en.wikipedia.org/wiki/Elo_rating_system\">ELO rating system</a>.</p>");

@@ -50,7 +50,7 @@ int main_html_clan_list(int argc, char **argv)
 		html_clan_list_entry(pos, c->name, c->nmembers);
 
 	html_end_clan_list();
-	print_page_nav("/clans/by-nmembers", &ipage);
+	print_page_nav("/clans", &ipage);
 
 	html_footer("clan-list", relurl("/clans/%s.json?p=%u", argv[2], pnum));
 

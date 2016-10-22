@@ -42,7 +42,7 @@ int main_html_player(int argc, char **argv)
 	html("<h1>%s</h1>", name);
 
 	if (*clan)
-		html("<p><a href=\"/clans/%s.html\">%s</a></p>", player.clan, clan);
+		html("<p><a href=\"/clans/%s\">%s</a></p>", player.clan, clan);
 
 	html("</section>");
 	html("<p>#%u (%d ELO)</p>", player.rank, player.elo);

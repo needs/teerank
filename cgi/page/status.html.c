@@ -11,6 +11,7 @@ enum {
 	STATUS_OK,
 	STATUS_DOWN,
 	STATUS_STOPPED,
+	STATUS_ENABLED,
 	STATUS_DISABLED,
 	STATUS_UNKNOWN
 };
@@ -24,6 +25,8 @@ static const char *status_class(int status)
 		return "down";
 	case STATUS_STOPPED:
 		return "stopped";
+	case STATUS_ENABLED:
+		return "enabled";
 	case STATUS_DISABLED:
 		return "disabled";
 	case STATUS_UNKNOWN:
@@ -41,6 +44,8 @@ static const char *status_text(int status)
 		return "Down";
 	case STATUS_STOPPED:
 		return "Stopped";
+	case STATUS_ENABLED:
+		return "Enabled";
 	case STATUS_DISABLED:
 		return "Disabled";
 	case STATUS_UNKNOWN:
@@ -99,12 +104,10 @@ int main_html_status(int argc, char **argv)
 	}
 
 	title = "Teerank 2.x backward compatibility";
-	if (!ROUTE_V2_URLS)
-		print_status(title, NULL, STATUS_DISABLED);
-	else if (teerank_stopped)
-		print_status(title, comment, STATUS_STOPPED);
+	if (ROUTE_V2_URLS)
+		print_status(title, NULL, STATUS_ENABLED);
 	else
-		print_status(title, NULL, STATUS_OK);
+		print_status(title, NULL, STATUS_DISABLED);
 
 	if (info.nmasters)
 		html("<h2>Teeworlds</h2>");

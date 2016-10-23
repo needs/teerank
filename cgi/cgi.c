@@ -66,7 +66,8 @@ static char *reason_phrase(int code)
 static void print_error(int code)
 {
 	printf("Content-type: text/html\n");
-	printf("Status: %d %s\n\n", code, reason_phrase(code));
+	printf("Status: %d %s\n", code, reason_phrase(code));
+	printf("\n");
 	printf("<h1>%d %s</h1>\n", code, reason_phrase(code));
 }
 
@@ -125,10 +126,13 @@ static int dump(int status, const char *content_type, int fd, FILE *copy)
 	if (!(file = fdopen(fd, "r")))
 		error(500, "fdopen(): %s\n", strerror(errno));
 
-	if (status == 200)
-		printf("Content-Type: %s\n\n", content_type);
-	else
+	if (status != 200) {
 		print_error(status);
+	} else {
+		printf("Content-Type: %s\n", content_type);
+		printf("Cache-Control: max-age=120\n");
+		printf("\n");
+	}
 
 	if (copy) {
 		while ((c = fgetc(file)) != EOF) {

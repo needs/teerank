@@ -253,11 +253,6 @@ struct pool_entry *poll_pool(struct pool *pool, struct data *answer)
 		else
 			entry = NULL;
 
-		if (entry) {
-			remove_pending_entry(pool, entry);
-			entry->status = IDLE;
-		}
-
 	start:
 		clean_old_pending_entries(pool);
 		fill_pending_list(pool);

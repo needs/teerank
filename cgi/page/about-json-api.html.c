@@ -177,6 +177,22 @@ int main_html_about_json_api(int argc, char **argv)
 
 	end_jsondesc_table();
 
+	jsonurl("players/<em>player_id</em>.json?short");
+
+	start_jsondesc_table();
+
+	jsondesc_row("{", NULL, NULL, NULL);
+	jsondesc_row("name", "hexstring", "\"6e616d656c6573732074656500\"", "Player name");
+	jsondesc_row("clan", "hexstring", "\"00\"", "Player clan");
+	jsondesc_row("elo", "integer", "1500", "Player elo points");
+	jsondesc_row("rank", "unsigned", "45678", "Player rank");
+	jsondesc_row("lastseen", "time", "\"1970-01-01T00:00:00Z\"", "Last time the player was connected");
+	jsondesc_row("server_ip", "string", "\"1.2.3.4\"", "Last server IP player was connected to");
+	jsondesc_row("server_port", "string", "\"8300\"", "Last server port player was connected to");
+	jsondesc_row("}", NULL, NULL, NULL);
+
+	end_jsondesc_table();
+
 	/*
 	 * Player list
 	 */

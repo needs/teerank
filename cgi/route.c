@@ -195,6 +195,13 @@ static void setup_html_player(struct route *this, struct url *url)
 static void setup_json_player(struct route *this, struct url *url)
 {
 	this->args[1] = url->dirs[url->ndirs - 1];
+
+	if (url->nargs == 0)
+		this->args[2] = "full";
+	else if (url->nargs == 1 && strcmp(url->args[0].name, "short") == 0)
+		this->args[2] = "short";
+	else
+		error(400, "Optional parameter name should be \"short\"");
 }
 static void setup_html_clan(struct route *this, struct url *url)
 {

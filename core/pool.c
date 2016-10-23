@@ -49,7 +49,7 @@ void add_pool_entry(
 	entry->status = IDLE;
 	entry->failure_count = 0;
 
-	entry->next_entry = pool->entries;
+	entry->next = pool->entries;
 	pool->entries = entry;
 }
 
@@ -93,17 +93,17 @@ static struct pool_entry *foreach_entries(struct pool *pool)
 
 	assert(pool != NULL);
 
-	for (iter = pool->iter; iter; iter = iter->next_entry) {
+	for (iter = pool->iter; iter; iter = iter->next) {
 		if (iter->status == IDLE) {
-			pool->iter = iter->next_entry;
+			pool->iter = iter->next;
 			return iter;
 		}
 	}
 
 	/* Start over */
-	for (iter = pool->entries; iter != pool->iter; iter = iter->next_entry) {
+	for (iter = pool->entries; iter != pool->iter; iter = iter->next) {
 		if (iter->status == IDLE) {
-			pool->iter = iter->next_entry;
+			pool->iter = iter->next;
 			return iter;
 		}
 	}
@@ -278,9 +278,9 @@ struct pool_entry *foreach_failed_poll(struct pool *pool)
 	if (!pool->iter_failed)
 		pool->iter_failed = pool->entries;
 
-	for (iter = pool->iter_failed; iter; iter = iter->next_entry) {
+	for (iter = pool->iter_failed; iter; iter = iter->next) {
 		if (iter->status == FAILED) {
-			pool->iter_failed = iter->next_entry;
+			pool->iter_failed = iter->next;
 			return iter;
 		}
 	}

@@ -2,13 +2,15 @@
 
 set -e
 
+# Create database and check config
+teerank-init
+
 #
 # Trap signals because stopping at an unexpected point might corrupt the
 # database at worst.
 #
 function update {
 	trap "" INT TERM QUIT
-	teerank-init
 	teerank-add-new-servers
 	teerank-remove-offline-servers 1
 	teerank-update-servers | teerank-update-players | teerank-update-clans

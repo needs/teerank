@@ -354,7 +354,7 @@ void html_footer(const char *jsonanchor, const char *jsonurl)
 	html("<li>");
 	html("<a href=\"https://github.com/needs/teerank/commit/%s\">Teerank %d.%d</a>",
 	     CURRENT_COMMIT, TEERANK_VERSION, TEERANK_SUBVERSION);
-	html("<a href=\"https://github.com/needs/teerank/tree/%s\">(%s)</a>",
+	html(" <a href=\"https://github.com/needs/teerank/tree/%s\">(%s)</a>",
 	     CURRENT_BRANCH, STABLE_VERSION ? "stable" : "unstable");
 	html("</li>");
 	html("<li><a href=\"/status\">Status</a></li>");

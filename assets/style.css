@@ -679,7 +679,8 @@ h2 + .status {
 	font-weight: bold;
 }
 
-.status_ok span:last-child {
+.status_ok span:last-child,
+.status_enabled span:last-child {
 	color: #5a8d39;
 }
 

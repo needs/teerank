@@ -8,4 +8,9 @@
  * without any extra steps.
  */
 STRING("TEERANK_ROOT", ".teerank", root)
+UNSIGNED("TEERANK_UPDATE_DELAY", 5, update_delay)
 BOOL("TEERANK_VERBOSE", 0, verbose)
+
+#undef STRING
+#undef UNSIGNED
+#undef BOOL

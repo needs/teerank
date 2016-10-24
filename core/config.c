@@ -14,9 +14,9 @@ struct config config = {
 	.fname = value,
 #define BOOL(envname, value, fname) \
 	.fname = value,
+#define UNSIGNED(envname, value, fname) \
+	.fname = value,
 #include "default_config.h"
-#undef BOOL
-#undef STRING
 };
 
 /*
@@ -73,14 +73,31 @@ void load_config(int check_version)
 	char *tmp;
 
 #define STRING(envname, value, fname) \
-	if ((tmp = getenv(envname)))  \
+	if ((tmp = getenv(envname))) \
 		config.fname = tmp;
 #define BOOL(envname, value, fname) \
-	if ((tmp = getenv(envname)))  \
+	if ((tmp = getenv(envname))) \
 		config.fname = 1;
+#define UNSIGNED(envname, value, fname) \
+	if ((tmp = getenv(envname))) \
+		config.fname = strtol(tmp, NULL, 10);
+
 #include "default_config.h"
-#undef BOOL
-#undef STRING
+
+	/*
+	 * Update delay too short makes the ranking innacurate and
+	 * volatile, and when it's too long it adds too much
+	 * uncertainties.  Between 1 and 20 seems to be reasonable.
+	 */
+	if (config.update_delay < 1) {
+		fprintf(stderr, "%u: Update delay too short, ranking will be volatile\n",
+		        config.update_delay);
+		exit(EXIT_FAILURE);
+	} else if (config.update_delay > 20) {
+		fprintf(stderr, "%u: Update delay too long, data will be uncorrelated\n",
+		        config.update_delay);
+		exit(EXIT_FAILURE);
+	}
 
 	if (check_version) {
 		int version = get_version();

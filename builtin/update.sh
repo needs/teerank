@@ -18,4 +18,4 @@ function update {
 	trap - INT TERM QUIT
 }
 
-while true; do update & sleep 5m; done
+while true; do update & sleep "$TEERANK_UPDATE_DELAY"m; done

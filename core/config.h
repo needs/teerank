@@ -6,9 +6,9 @@ struct config {
 	char *fname;
 #define BOOL(envname, value, fname) \
 	int fname;
+#define UNSIGNED(envname, value, fname) \
+	unsigned fname;
 #include "default_config.h"
-#undef BOOL
-#undef STRING
 };
 
 /*

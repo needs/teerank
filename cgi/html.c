@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "config.h"
 #include "html.h"
 #include "info.h"
 
@@ -175,7 +176,29 @@ char *escape(const char *str)
 	return buf;
 }
 
-#define plural(n) (n), (n) > 1 ? "s" : ""
+/*
+ * Depending on config.update_delay, we may have a nice way to represent
+ * minutes.  If the delay is 2 or 5 minutes, then having an even number
+ * or a number ending with 0 or 5 is nice.  It is purely cosmetic.
+ */
+static unsigned pretiffy_minutes(unsigned minutes)
+{
+	const unsigned delay = config.update_delay;
+
+	if (delay == 2 || delay == 5)
+		return minutes - (minutes % delay);
+	else
+		return minutes;
+}
+
+/*
+ * Used to add an "s" when the given value is greater than 1.
+ * Implicitely assume variable name is "text" with a size of "textsize"
+ * and format contain "%d".  Only used in elapsed_time_since() to avoid
+ * long lines and redundant code.
+ */
+#define set_text(fmt, val) \
+	snprintf(text, textsize, fmt "%s", (val), (val) > 1 ? "s" : "")
 
 /*
  * Compute the number of minutes, hours, days, months and years from the
@@ -186,10 +209,17 @@ int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize)
 	time_t now = time(NULL), ts;
 	time_t elapsed_seconds;
 	struct tm elapsed;
+	unsigned update_delay;
 	char *dummy;
 
 	if (!class)
 		class = &dummy;
+
+	/*
+	 * Add one minute to compensate uneven running time of the
+	 * update process.
+	 */
+	update_delay = config.update_delay + 1;
 
 	/* Make sure elapsed time is positive */
 	ts = mktime(tm);
@@ -201,23 +231,23 @@ int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize)
 	elapsed = *gmtime(&elapsed_seconds);
 
 	if (elapsed.tm_year - 70) {
-		snprintf(text, textsize, "%d year%s", plural(elapsed.tm_year - 70));
+		set_text("%d year", elapsed.tm_year - 70);
 		*class = "years";
 		return 0;
 	} else if (elapsed.tm_mon) {
-		snprintf(text, textsize, "%d month%s", plural(elapsed.tm_mon));
+		set_text("%d month", elapsed.tm_mon);
 		*class = "months";
 		return 0;
 	} else if (elapsed.tm_mday - 1) {
-		snprintf(text, textsize, "%d day%s", plural(elapsed.tm_mday - 1));
+		set_text("%d day", elapsed.tm_mday - 1);
 		*class = "days";
 		return 0;
 	} else if (elapsed.tm_hour) {
-		snprintf(text, textsize, "%d hour%s", plural(elapsed.tm_hour));
+		set_text("%d hour", elapsed.tm_hour);
 		*class = "hours";
 		return 0;
-	} else if (elapsed.tm_min >= 10) {
-		snprintf(text, textsize, "%d minute%s", plural(elapsed.tm_min - (elapsed.tm_min % 5)));
+	} else if (elapsed.tm_min >= update_delay) {
+		set_text("%d minute", pretiffy_minutes(elapsed.tm_min));
 		*class = "minutes";
 		return 0;
 	} else {
@@ -226,6 +256,8 @@ int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize)
 		return 1;
 	}
 }
+
+#undef set_text
 
 void player_lastseen_link(struct tm *lastseen, const char *addr)
 {

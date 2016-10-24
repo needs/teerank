@@ -178,42 +178,42 @@ char *escape(const char *str)
 
 /*
  * Depending on config.update_delay, we may have a nice way to represent
- * minutes.  If the delay is 2 or 5 minutes, then having an even number
- * or a number ending with 0 or 5 is nice.  It is purely cosmetic.
+ * minutes.  If the delay is even, then we make minutes even too.  If
+ * the delay if 5, then we make minutes ending by 0 or 5.  It is purely
+ * cosmetic.
  */
 static unsigned pretiffy_minutes(unsigned minutes)
 {
 	const unsigned delay = config.update_delay;
 
-	if (delay == 2 || delay == 5)
-		return minutes - (minutes % delay);
+	if (delay % 2 == 0)
+		return minutes - (minutes % 2);
+	else if (delay == 5)
+		return minutes - (minutes % 5);
 	else
 		return minutes;
 }
 
 /*
- * Used to add an "s" when the given value is greater than 1.
- * Implicitely assume variable name is "text" with a size of "textsize"
- * and format contain "%d".  Only used in elapsed_time_since() to avoid
- * long lines and redundant code.
+ * Use the given timescale and elapsed time to build a string, and take
+ * care of the eventual plural form.
  */
-#define set_text(fmt, val) \
-	snprintf(text, textsize, fmt "%s", (val), (val) > 1 ? "s" : "")
+#define set_text_and_timescale(ts, val) do { \
+	*timescale = ts "s"; \
+	if (text) \
+		snprintf(text, textsize, "%d " ts "%s", (val), (val) > 1 ? "s" : ""); \
+} while (0)
 
-/*
- * Compute the number of minutes, hours, days, months and years from the
- * given date to now.  Return 1 if elapsed time is less than 10 minutes.
- */
-int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize)
+unsigned elapsed_time(struct tm *tm, char **timescale, char *text, size_t textsize)
 {
-	time_t now = time(NULL), ts;
+	time_t t, now = time(NULL);
 	time_t elapsed_seconds;
 	struct tm elapsed;
 	unsigned update_delay;
 	char *dummy;
 
-	if (!class)
-		class = &dummy;
+	if (!timescale)
+		timescale = &dummy;
 
 	/*
 	 * Add one minute to compensate uneven running time of the
@@ -222,68 +222,67 @@ int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize)
 	update_delay = config.update_delay + 1;
 
 	/* Make sure elapsed time is positive */
-	ts = mktime(tm);
-	if (now < ts)
-		elapsed_seconds = ts - now;
+	t = mktime(tm);
+	if (now < t)
+		elapsed_seconds = t - now;
 	else
-		elapsed_seconds = now - ts;
+		elapsed_seconds = now - t;
 
 	elapsed = *gmtime(&elapsed_seconds);
 
 	if (elapsed.tm_year - 70) {
-		set_text("%d year", elapsed.tm_year - 70);
-		*class = "years";
-		return 0;
-	} else if (elapsed.tm_mon) {
-		set_text("%d month", elapsed.tm_mon);
-		*class = "months";
-		return 0;
-	} else if (elapsed.tm_mday - 1) {
-		set_text("%d day", elapsed.tm_mday - 1);
-		*class = "days";
-		return 0;
-	} else if (elapsed.tm_hour) {
-		set_text("%d hour", elapsed.tm_hour);
-		*class = "hours";
-		return 0;
-	} else if (elapsed.tm_min >= update_delay) {
-		set_text("%d minute", pretiffy_minutes(elapsed.tm_min));
-		*class = "minutes";
-		return 0;
-	} else {
-		snprintf(text, textsize, "Online");
-		*class = "online";
-		return 1;
+		set_text_and_timescale("year", elapsed.tm_year - 70);
+		return elapsed.tm_year - 70;
 	}
+	if (elapsed.tm_mon) {
+		set_text_and_timescale("month", elapsed.tm_mon);
+		return elapsed.tm_mon;
+	}
+	if (elapsed.tm_mday - 1) {
+		set_text_and_timescale("day", elapsed.tm_mday - 1);
+		return elapsed.tm_mday - 1;
+	}
+	if (elapsed.tm_hour) {
+		set_text_and_timescale("hour", elapsed.tm_hour);
+		return elapsed.tm_hour;
+	}
+	if (elapsed.tm_min >= update_delay) {
+		set_text_and_timescale("minute", pretiffy_minutes(elapsed.tm_min));
+		return elapsed.tm_min;
+	}
+
+	snprintf(text, textsize, "Online");
+	*timescale = "online";
+	return 0;
 }
 
-#undef set_text
+#undef set_text_and_timescale
 
 void player_lastseen_link(struct tm *lastseen, const char *addr)
 {
-	char text[64], strls[] = "00/00/1970 00h00", *class;
+	char text[64], strls[] = "00/00/1970 00h00", *timescale;
 	int is_online, have_strls;
 
 	if (mktime(lastseen) == NEVER_SEEN)
 		return;
 
-	is_online = elapsed_time_since(lastseen, &class, text, sizeof(text));
+	is_online = !elapsed_time(lastseen, &timescale, text, sizeof(text));
 	have_strls = strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", lastseen);
 
 	if (is_online && have_strls)
 		html("<a class=\"%s\" href=\"/servers/%s\" title=\"%s\">%s</a>",
-		     class, addr, strls, text);
+		     timescale, addr, strls, text);
 
 	else if (is_online)
 		html("<a class=\"%s\" href=\"/servers/%s\">%s</a>",
-		     class, addr, text);
+		     timescale, addr, text);
 
 	else if (have_strls)
 		html("<span class=\"%s\" title=\"%s\">%s</span>",
-		     class, strls, text);
+		     timescale, strls, text);
 
 	else
-		html("<span class=\"%s\">%s</span>", class, text);
+		html("<span class=\"%s\">%s</span>", timescale, text);
 }
 
 void html_header(
@@ -321,7 +320,7 @@ void html_header(
 	 * Show a warning banner if the database has not been updated
 	 * since 10 minutes.
 	 */
-	if (read_info(&info) && !elapsed_time_since(&info.last_update, NULL, text, sizeof(text)))
+	if (read_info(&info) && elapsed_time(&info.last_update, NULL, text, sizeof(text)))
 		html("<a id=\"alert\" href=\"/status\">Not updated since %s</a>", text);
 
 	html("<form action=\"%s/search\" id=\"searchform\">", sprefix);

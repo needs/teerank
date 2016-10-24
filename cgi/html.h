@@ -15,9 +15,12 @@ char *escape(const char *str);
 
 /*
  * Compute the number of minutes, hours, days, months and years from the
- * given date to now.  Return 1 if elapsed time is less than 10 minutes.
+ * given date to now.  Set the most significant timescale and return a
+ * number of time elapsed in "timescale" unit.
+ *
+ * If "text" is not NULL, store a string representation of the elapsed time.
  */
-int elapsed_time_since(struct tm *tm, char **class, char *text, size_t textsize);
+unsigned elapsed_time(struct tm *tm, char **timescale, char *text, size_t textsize);
 
 /*
  * Print a link to the given server if player is online.  Otherwise it

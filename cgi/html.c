@@ -197,6 +197,46 @@ static unsigned pretiffy_minutes(unsigned minutes)
 }
 
 /*
+ * Make a raw evaluation of the elapsed time in years, months, days,
+ * hours, minutes and secondes.  Doesn't try to be hyper accurate, but
+ * rather give a good enough approximation.
+ *
+ * Returns a struct tm only to reuse it's fields, it is not by any means
+ * a valid, conventional struct tm usable in any standard functions.
+ */
+static struct tm broke_down_elapsed_time(time_t sec)
+{
+	const time_t MINUTE = 60;
+	const time_t HOUR = 60 * MINUTE;
+	const time_t DAY = 24 * HOUR;
+	const time_t MONTH = 30.4 * DAY;
+	const time_t YEAR = 12 * MONTH;
+
+	struct tm ret;
+
+	if ((ret.tm_year = sec / YEAR))
+		sec -= ret.tm_year * YEAR;
+	if ((ret.tm_mon = sec / MONTH))
+		sec -= ret.tm_mon * MONTH;
+	if ((ret.tm_mday = sec / DAY))
+		sec -= ret.tm_mday * DAY;
+	if ((ret.tm_hour = sec / HOUR))
+		sec -= ret.tm_hour * HOUR;
+	if ((ret.tm_min = sec / MINUTE))
+		sec -= ret.tm_min * MINUTE;
+	if ((ret.tm_sec = sec))
+		sec -= ret.tm_sec;
+
+	assert(ret.tm_mon < 12);
+	assert(ret.tm_mday < 31);
+	assert(ret.tm_hour < 24);
+	assert(ret.tm_min < 60);
+	assert(ret.tm_sec < 60);
+
+	return ret;
+}
+
+/*
  * Use the given timescale and elapsed time to build a string, and take
  * care of the eventual plural form.
  */
@@ -230,19 +270,19 @@ unsigned elapsed_time(struct tm *tm, char **timescale, char *text, size_t textsi
 	else
 		elapsed_seconds = now - t;
 
-	elapsed = *gmtime(&elapsed_seconds);
+	elapsed = broke_down_elapsed_time(elapsed_seconds);
 
-	if (elapsed.tm_year - 70) {
-		set_text_and_timescale("year", elapsed.tm_year - 70);
-		return elapsed.tm_year - 70;
+	if (elapsed.tm_year) {
+		set_text_and_timescale("year", elapsed.tm_year);
+		return elapsed.tm_year;
 	}
 	if (elapsed.tm_mon) {
 		set_text_and_timescale("month", elapsed.tm_mon);
 		return elapsed.tm_mon;
 	}
-	if (elapsed.tm_mday - 1) {
-		set_text_and_timescale("day", elapsed.tm_mday - 1);
-		return elapsed.tm_mday - 1;
+	if (elapsed.tm_mday) {
+		set_text_and_timescale("day", elapsed.tm_mday);
+		return elapsed.tm_mday;
 	}
 	if (elapsed.tm_hour) {
 		set_text_and_timescale("hour", elapsed.tm_hour);

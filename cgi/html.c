@@ -92,8 +92,10 @@ static void _xml(const char *fmt, va_list ap)
 	}
 
 print:
-	if (!opening_tag && closing_tag)
+	if (!opening_tag && closing_tag) {
+		assert(indent > 0);
 		indent--;
+	}
 
 	print(fmt, ap);
 

@@ -458,7 +458,7 @@ int json_read_time(struct jfile *jfile, const char *fname, time_t *t)
 
 int json_write_time(struct jfile *jfile, const char *fname, time_t t)
 {
-	return json_write_tm(jfile, fname, *localtime(&t));
+	return json_write_tm(jfile, fname, *gmtime(&t));
 }
 
 int json_read_tm(struct jfile *jfile, const char *fname, struct tm *tm)

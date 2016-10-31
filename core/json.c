@@ -491,7 +491,7 @@ int json_read_tm(struct jfile *jfile, const char *fname, struct tm *tm)
 int json_write_tm(struct jfile *jfile, const char *fname, struct tm tm)
 {
 	/* RFC-3339 */
-	char buf[] = "yyyy-mm-ddThh-mm-ssZ";
+	char buf[] = "yyyy-mm-ddThh:mm:ssZ";
 	size_t ret;
 
 	if (!write_field_name(jfile, fname))

@@ -117,8 +117,7 @@ generated/script-header.inc.sh: build/generate-default-config
 	@echo 'PATH="$$(dirname $$BASH_SOURCE):$$PATH"' >>$@
 	./$< >>$@
 
-$(BUILTINS_SCRIPTS): teerank-%: builtin/%.sh
-
+$(SCRIPTS): teerank-%: builtin/%.sh
 $(SCRIPTS): generated/script-header.inc.sh
 	cat $^ >$@ && chmod +x $@
 

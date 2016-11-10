@@ -128,17 +128,7 @@ static void raw_addr_to_addr(
 	(void)ret;
 }
 
-/*
- * Dividing maximum packet size by the size of a server address yield
- * 77, but for some reasons masters only send a maximum of 75 packets.
- */
-#define MAX_SERVER_ADDRS_PER_PACKET 75
-
-/*
- * Return 0 if we believe no more packets will be received from the
- * master server.
- */
-static int handle_data(struct data *data, struct server_list *list, struct master *master)
+static void handle_data(struct data *data, struct server_list *list, struct master *master)
 {
 	unsigned char *buf;
 	unsigned added = 0;
@@ -149,7 +139,7 @@ static int handle_data(struct data *data, struct server_list *list, struct maste
 	assert(master != NULL);
 
 	if (!skip_header(data, MSG_LIST, sizeof(MSG_LIST)))
-		return 1;
+		return;
 
 	size = data->size;
 	buf = data->buffer;
@@ -160,17 +150,14 @@ static int handle_data(struct data *data, struct server_list *list, struct maste
 
 		raw_addr_to_addr(raw, &addr);
 		add(list, &addr);
+		added++;
 
 		buf += sizeof(*raw);
 		size -= sizeof(*raw);
-
-		added++;
 	}
 
 	master->nservers += added;
 	master->is_online = 1;
-
-	return added == MAX_SERVER_ADDRS_PER_PACKET;
 }
 
 static struct master *get_master(struct pool_entry *entry)
@@ -205,9 +192,19 @@ static void fill_server_list(struct server_list *list)
 		add_pool_entry(&pool, &m->pentry, &m->addr);
 	}
 
+	/*
+	 * There is heuristics to know when a packet is the last of the
+	 * packet list sended by the master server.  However, UDP may
+	 * reorder packets, and the last packet of the packet list may
+	 * actually comes first.  In that case, we still want to wit for
+	 * the remnaing packets.
+	 *
+	 * Since we don't have any reliable way to know when no more
+	 * packets remains, we never manually remove a master from the
+	 * pool.
+	 */
 	while ((entry = poll_pool(&pool, &data)))
-		if (!handle_data(&data, list, get_master(entry)))
-			remove_pool_entry(&pool, entry);
+		handle_data(&data, list, get_master(entry));
 
 	close_sockets(&sockets);
 }

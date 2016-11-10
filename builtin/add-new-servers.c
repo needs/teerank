@@ -298,10 +298,9 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < list.length; i++) {
 		struct server_addr *addr = &list.addrs[i];
-		char *filename = addr_to_filename(addr);
 
 		if (create_server(addr->ip, addr->port)) {
-			verbose("New server: %s\n", filename);
+			verbose("New server: %s\n", addr_to_filename(addr));
 			count_new++;
 		}
 	}

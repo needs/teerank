@@ -179,6 +179,31 @@ static int is_valid_port(const char *port)
 	return ret >= 0 && ret < 65535 && *port && !*end;
 }
 
+/*
+ * Reverse the result of server_filename(), and handle garbage input as
+ * well.
+ */
+int parse_server_filename(const char *sname, char *ip, char *port)
+{
+	char ipv, sep, *c;
+
+	if (sscanf(sname, "v%c %71s %5s", &ipv, ip, port) != 3)
+		return 0;
+
+	if (ipv == '4')
+		sep = '.';
+	else if (ipv == '6')
+		sep = ':';
+	else
+		return 0;
+
+	for (c = ip; *c; c++)
+		if (*c == '_')
+			*c = sep;
+
+	return is_valid_ip(ip) && is_valid_port(port);
+}
+
 int parse_addr(char *addr, char **ip, char **port)
 {
 	assert(addr != NULL);

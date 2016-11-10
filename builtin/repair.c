@@ -72,7 +72,12 @@ static int need_repair(struct clan *clan)
 
 static const struct clan_list CLAN_LIST_ZERO;
 
-int main(int argc, char **argv)
+/*
+ * We load every players and sort place them in there respective clan.
+ * Once this process is done, repair clan that are actually different
+ * from what we actually computed.
+ */
+static int repair_clans(void)
 {
 	DIR *dir;
 	struct dirent *dp;
@@ -81,8 +86,6 @@ int main(int argc, char **argv)
 	unsigned i;
 	unsigned nrepair = 0;
 	struct player player;
-
-	load_config(1);
 
 	if (!dbpath(path, PATH_MAX, "players/"))
 		return EXIT_FAILURE;
@@ -120,6 +123,61 @@ int main(int argc, char **argv)
 	}
 
 	verbose("%u clans repaired\n", nrepair);
+
+	return EXIT_SUCCESS;
+}
+
+/*
+ * Each servers that cannot be properly parsed is considered broken and
+ * thus need to be repaired.  Here, we remove and create again the
+ * server.  Since there is no long term data it is not a problem to
+ * delete the entire server.
+ */
+static int repair_servers(void)
+{
+	DIR *dir;
+	struct dirent *dp;
+	char path[PATH_MAX];
+	unsigned nrepair = 0;
+
+	if (!dbpath(path, PATH_MAX, "servers/"))
+		return EXIT_FAILURE;
+
+	if (!(dir = opendir(path)))
+		return perror(path), EXIT_FAILURE;
+
+	while ((dp = readdir(dir))) {
+		struct server server;
+		char ip[IP_STRSIZE], port[PORT_STRSIZE];
+
+		if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
+			continue;
+
+		if (!parse_server_filename(dp->d_name, ip, port)) {
+			fprintf(stderr, "%s: Doesn't seems to belong to the database\n", dp->d_name);
+			continue;
+		}
+
+		if (read_server(&server, dp->d_name) == FAILURE) {
+			remove_server(dp->d_name);
+			create_server(ip, port);
+			nrepair++;
+		}
+	}
+
+	verbose("%u servers repaired\n", nrepair);
+
+	return EXIT_SUCCESS;
+}
+
+int main(int argc, char **argv)
+{
+	load_config(1);
+
+	if (repair_clans() == EXIT_FAILURE)
+		return EXIT_FAILURE;
+	if (repair_servers() == EXIT_FAILURE)
+		return EXIT_FAILURE;
 
 	return EXIT_SUCCESS;
 }

@@ -69,6 +69,16 @@ int is_vanilla_ctf_server(
 char *server_filename(const char *ip, const char *port);
 
 /**
+ * Extract IP and port from a filename
+ *
+ * @param addr Server address
+ * @param ip extracted IP
+ * @param port extracted port
+ * @return 1 on success, 0 on failure
+ */
+int parse_server_filename(const char *sname, char *ip, char *port);
+
+/**
  * Extract IP and port from a full address
  *
  * The given buffer is modified.  IP and port are checked for validity.

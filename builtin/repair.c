@@ -165,6 +165,7 @@ static int repair_servers(void)
 		}
 	}
 
+	closedir(dir);
 	verbose("%u servers repaired\n", nrepair);
 
 	return EXIT_SUCCESS;

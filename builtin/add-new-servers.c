@@ -135,7 +135,7 @@ static void raw_addr_to_addr(
 #define MAX_SERVER_ADDRS_PER_PACKET 75
 
 /*
- * Return 1 if we believe no more packets will be received from the
+ * Return 0 if we believe no more packets will be received from the
  * master server.
  */
 static int handle_data(struct data *data, struct server_list *list, struct master *master)
@@ -149,7 +149,7 @@ static int handle_data(struct data *data, struct server_list *list, struct maste
 	assert(master != NULL);
 
 	if (!skip_header(data, MSG_LIST, sizeof(MSG_LIST)))
-		return 0;
+		return 1;
 
 	size = data->size;
 	buf = data->buffer;
@@ -170,7 +170,7 @@ static int handle_data(struct data *data, struct server_list *list, struct maste
 	master->nservers += added;
 	master->is_online = 1;
 
-	return added < MAX_SERVER_ADDRS_PER_PACKET;
+	return added == MAX_SERVER_ADDRS_PER_PACKET;
 }
 
 static struct master *get_master(struct pool_entry *entry)
@@ -197,17 +197,16 @@ static void fill_server_list(struct server_list *list)
 
 	data.size = sizeof(MSG_GETLIST);
 	memcpy(data.buffer, MSG_GETLIST, data.size);
-	init_pool(&pool, &sockets, &data, 0);
+	init_pool(&pool, &sockets, &data);
 
 	for (m = masters; m->node; m++) {
 		if (!get_sockaddr(m->node, m->service, &m->addr))
 			continue;
-
 		add_pool_entry(&pool, &m->pentry, &m->addr);
 	}
 
 	while ((entry = poll_pool(&pool, &data)))
-		if (handle_data(&data, list, get_master(entry)))
+		if (!handle_data(&data, list, get_master(entry)))
 			remove_pool_entry(&pool, entry);
 
 	close_sockets(&sockets);

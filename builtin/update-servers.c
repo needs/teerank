@@ -324,12 +324,12 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 	struct pool pool;
 	struct pool_entry *entry;
 	struct data answer;
-	unsigned i, failed_count = 0;
+	unsigned i, failed_count = 0, success_count = 0;
 
 	assert(list != NULL);
 	assert(sockets != NULL);
 
-	init_pool(&pool, sockets, &request, 1);
+	init_pool(&pool, sockets, &request);
 	for (i = 0; i < list->length; i++)
 		add_pool_entry(&pool, &list->netservers[i].entry,
 		               &list->netservers[i].addr);
@@ -340,6 +340,7 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 		/* In any cases, we expect only one answer */
 		remove_pool_entry(&pool, entry);
 		handle_data(&answer, get_netserver(entry));
+		success_count++;
 	}
 
 	stop_printing_delta();
@@ -351,7 +352,7 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 		failed_count++;
 	}
 
-	verbose("Polling failed for %u servers\n", failed_count);
+	verbose("Polling succeded for %u servers and failed for %u servers\n", success_count, failed_count);
 }
 
 static const struct netserver_list NETSERVER_LIST_ZERO;

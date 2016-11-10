@@ -29,13 +29,11 @@
  */
 struct pool_entry {
 	struct sockaddr_storage *addr;
-	unsigned failure_count;
-	unsigned status;
-	short data_sent;
+	unsigned retries;
+	short polled;
 	clock_t start_time;
 
-	struct pool_entry *next;
-	struct pool_entry *next_pending, *prev_pending;
+	struct pool_entry *next, *prev;
 };
 
 /**
@@ -44,11 +42,8 @@ struct pool_entry {
  * Hold pool states.
  */
 struct pool {
-	short resend_on_failure;
-
-	struct pool_entry *entries;
-	struct pool_entry *pending, *iter, *iter_failed;
-	unsigned pending_count;
+	struct pool_entry *idle, *idletail, *pending, *failed;
+	unsigned npending;
 
 	struct sockets *sockets;
 	const struct data *request;
@@ -61,12 +56,9 @@ struct pool {
  * @param pool Pool to initialize
  * @param sockets An initialized socket structure
  * @param request Data to send to pool entries
- * @param resend_on_failure Re-send data when an entry is polled again
- *        after a failure.
  */
 void init_pool(
-	struct pool *pool, struct sockets *sockets, const struct data *request,
-	short resend_on_failure);
+	struct pool *pool, struct sockets *sockets, const struct data *request);
 
 /**
  * Add a pool entry to the pool with the given adress.
@@ -80,7 +72,7 @@ void add_pool_entry(
 	struct sockaddr_storage *addr);
 
 /**
- * Remove the given entry from the pool
+ * Remove entry from the pool and the pending list
  *
  * @param pool Pool to remove entry from
  * @param pentry Entry to remove

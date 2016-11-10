@@ -9,16 +9,11 @@
 #include "network.h"
 
 #define MAX_PENDING 25
-#define MAX_FAILURE 2
+#define MAX_RETRIES 2
 #define MAX_PING 999
 
-enum poll_status {
-	IDLE, PENDING, POLLED, FAILED
-};
-
 void init_pool(
-	struct pool *pool, struct sockets *sockets, const struct data *request,
-	short resend_on_failure)
+	struct pool *pool, struct sockets *sockets, const struct data *request)
 {
 	static const struct pool POOL_ZERO;
 
@@ -28,10 +23,60 @@ void init_pool(
 
 	*pool = POOL_ZERO;
 
-	pool->resend_on_failure = resend_on_failure;
 	pool->sockets = sockets;
 	pool->request = request;
 }
+
+/*
+ * Helpers to insert and remove a given entry from the given double
+ * linked list.  Since this operation can be tricky we better have to
+ * write it once and reuse it.
+ */
+static void insert_entry(
+	struct pool_entry *entry,
+	struct pool_entry **head,
+	struct pool_entry **tail)
+{
+	assert(entry != NULL);
+	assert(head != NULL);
+
+	if (*head)
+		(*head)->prev = entry;
+	else if (tail)
+		(*tail) = entry;
+
+	entry->next = (*head);
+	entry->prev = NULL;
+	(*head) = entry;
+}
+
+static void remove_entry(
+	struct pool_entry *entry,
+	struct pool_entry **head,
+	struct pool_entry **tail)
+{
+	assert(entry != NULL);
+	assert(head != NULL);
+
+	if (entry->prev)
+		entry->prev->next = entry->next;
+	if (entry->next)
+		entry->next->prev = entry->prev;
+	if (*head == entry)
+		(*head) = entry->next;
+	if (tail && *tail == entry)
+		(*tail) = entry->prev;
+}
+
+/*
+ * Should work even if the current iterated entry is moved to another
+ * list (hence making ->next meaningless for the current loop).
+ */
+#define list_foreach(list, it, _next) for ( \
+	it = list; \
+	_next = (it ? it->next : NULL), it; \
+	it = _next \
+)
 
 void add_pool_entry(
 	struct pool *pool, struct pool_entry *entry,
@@ -44,123 +89,61 @@ void add_pool_entry(
 	assert(addr != NULL);
 
 	*entry = POOL_ENTRY_ZERO;
-
 	entry->addr = addr;
-	entry->status = IDLE;
-	entry->failure_count = 0;
 
-	entry->next = pool->entries;
-	pool->entries = entry;
+	insert_entry(entry, &pool->idle, &pool->idletail);
 }
 
-static int entry_send_data(struct pool *pool, struct pool_entry *pentry)
+static void entry_expired(struct pool *pool, struct pool_entry *entry)
 {
-	if (!pool->resend_on_failure && pentry->data_sent)
-		return 1;
+	if (entry->polled)
+		return;
 
-	return send_data(pool->sockets, pool->request, pentry->addr);
+	if (entry->retries == MAX_RETRIES) {
+		insert_entry(entry, &pool->failed, NULL);
+	} else {
+		insert_entry(entry, &pool->idle, &pool->idletail);
+		entry->retries++;
+	}
 }
 
 static void add_pending_entry(struct pool *pool, struct pool_entry *entry)
 {
 	assert(pool != NULL);
 	assert(entry != NULL);
-	assert(pool->pending_count < MAX_PENDING);
+	assert(pool->npending < MAX_PENDING);
 
-	if (!entry_send_data(pool, entry))
+	remove_entry(entry, &pool->idle, &pool->idletail);
+
+	if (!send_data(pool->sockets, pool->request, entry->addr)) {
+		entry_expired(pool, entry);
 		return;
+	}
 
-	entry->data_sent = 1;
 	entry->start_time = times(NULL);
-	entry->status = PENDING;
 
-	/* Insert before list head */
-	entry->prev_pending = NULL;
-	entry->next_pending = pool->pending;
-	if (pool->pending)
-		pool->pending->prev_pending = entry;
-	pool->pending = entry;
-	pool->pending_count++;
+	insert_entry(entry, &pool->pending, NULL);
+	pool->npending++;
 }
 
-/*
- * Iterate over every pollable entries, starting
- * from the last iterated entry.
- */
-static struct pool_entry *foreach_entries(struct pool *pool)
+void remove_pool_entry(struct pool *pool, struct pool_entry *entry)
 {
-	struct pool_entry *iter;
-
-	assert(pool != NULL);
-
-	for (iter = pool->iter; iter; iter = iter->next) {
-		if (iter->status == IDLE) {
-			pool->iter = iter->next;
-			return iter;
-		}
-	}
-
-	/* Start over */
-	for (iter = pool->entries; iter != pool->iter; iter = iter->next) {
-		if (iter->status == IDLE) {
-			pool->iter = iter->next;
-			return iter;
-		}
-	}
-
-	return NULL;
+	remove_entry(entry, &pool->pending, NULL);
+	pool->npending--;
 }
 
 static void fill_pending_list(struct pool *pool)
 {
-	struct pool_entry *entry;
-
 	assert(pool != NULL);
 
-	while (pool->pending_count < MAX_PENDING
-	       && (entry = foreach_entries(pool))) {
-		add_pending_entry(pool, entry);
-	}
+	while (pool->idletail && pool->npending < MAX_PENDING)
+		add_pending_entry(pool, pool->idletail);
 }
 
-/*
- * Remove the given pool entry from the pending list, but keep the given
- * entry pointers set, so that removing while looping still works.
- */
-static void remove_pending_entry(
-	struct pool *pool, struct pool_entry *entry)
-{
-	assert(pool != NULL);
-	assert(entry != NULL);
-	assert(entry->prev_pending != NULL || entry == pool->pending);
-
-	if (entry->next_pending)
-		entry->next_pending->prev_pending = entry->prev_pending;
-	if (entry->prev_pending)
-		entry->prev_pending->next_pending = entry->next_pending;
-
-	if (entry == pool->pending) {
-		pool->pending = entry->next_pending;
-		if (pool->pending)
-			pool->pending->prev_pending = NULL;
-	}
-
-	pool->pending_count--;
-}
-
-void remove_pool_entry(struct pool *pool, struct pool_entry *pentry)
-{
-	if (pentry->status == PENDING)
-		remove_pending_entry(pool, pentry);
-
-	/* TODO: Remove it from the pool as well */
-	pentry->status = POLLED;
-}
-
-static void clean_old_pending_entries(struct pool *pool)
+static void clean_expired_pending_entries(struct pool *pool)
 {
 	static long ticks_per_second = -1;
-	struct pool_entry *entry;
+	struct pool_entry *entry, *next;
 	clock_t now;
 
 	assert(pool != NULL);
@@ -172,19 +155,14 @@ static void clean_old_pending_entries(struct pool *pool)
 
 	now = times(NULL);
 
-	for (entry = pool->pending; entry; entry = entry->next_pending) {
+	list_foreach(pool->pending, entry, next) {
 		/* In seconds */
 		float elapsed = (now - entry->start_time) / ticks_per_second;
 
 		if (elapsed >= MAX_PING / 1000.0f) {
-			remove_pending_entry(pool, entry);
-
-			if (entry->failure_count == MAX_FAILURE)
-				entry->status = FAILED;
-			else
-				entry->status = IDLE;
-
-			entry->failure_count++;
+			remove_entry(entry, &pool->pending, NULL);
+			pool->npending--;
+			entry_expired(pool, entry);
 		}
 	}
 }
@@ -225,18 +203,25 @@ static int is_same_addr(
 static struct pool_entry *get_pending_entry(
 	struct pool *pool, struct sockaddr_storage *addr)
 {
-	struct pool_entry *entry;
+	struct pool_entry *entry, *next;
 
 	assert(pool != NULL);
 	assert(addr != NULL);
-	assert(pool->pending_count > 0);
 
-	for (entry = pool->pending; entry; entry = entry->next_pending)
+	list_foreach(pool->pending, entry, next)
 		if (is_same_addr(addr, entry->addr))
 			return entry;
 
 	return NULL;
 }
+
+static void reset_pending_entry(struct pool_entry *entry)
+{
+	entry->polled = 1;
+	entry->start_time = times(NULL);
+}
+
+#include <stdio.h>
 
 struct pool_entry *poll_pool(struct pool *pool, struct data *answer)
 {
@@ -246,19 +231,21 @@ struct pool_entry *poll_pool(struct pool *pool, struct data *answer)
 	assert(pool != NULL);
 	assert(answer != NULL);
 
-	goto start;
-	while (pool->pending_count > 0) {
+	fill_pending_list(pool);
+
+	while (pool->pending) {
 		if (recv_data(pool->sockets, answer, &addr))
 			entry = get_pending_entry(pool, &addr);
 		else
 			entry = NULL;
 
-	start:
-		clean_old_pending_entries(pool);
-		fill_pending_list(pool);
-
-		if (entry)
+		if (entry) {
+			reset_pending_entry(entry);
 			return entry;
+		} else {
+			clean_expired_pending_entries(pool);
+			fill_pending_list(pool);
+		}
 	}
 
 	return NULL;
@@ -266,20 +253,13 @@ struct pool_entry *poll_pool(struct pool *pool, struct data *answer)
 
 struct pool_entry *foreach_failed_poll(struct pool *pool)
 {
-	struct pool_entry *iter;
+	struct pool_entry *entry;
 
-	assert(pool != NULL);
+	if (!pool->failed)
+		return NULL;
 
-	if (!pool->iter_failed)
-		pool->iter_failed = pool->entries;
+	entry = pool->failed;
+	remove_entry(entry, &pool->failed, NULL);
 
-	for (iter = pool->iter_failed; iter; iter = iter->next) {
-		if (iter->status == FAILED) {
-			pool->iter_failed = iter->next;
-			return iter;
-		}
-	}
-
-	pool->iter_failed = NULL;
-	return NULL;
+	return entry;
 }

@@ -34,7 +34,6 @@ BUILTINS_BINS = $(addprefix teerank-,$(patsubst builtin/%.c,%,$(wildcard builtin
 UPGRADE_BIN = teerank-upgrade-$(PREVIOUS_DATABASE_VERSION)-to-$(DATABASE_VERSION)
 
 BINS = $(UPGRADE_BIN) $(BUILTINS_BINS)
-
 CGI = teerank.cgi
 
 $(shell mkdir -p generated)
@@ -54,23 +53,26 @@ release: $(BINS) $(SCRIPTS) $(CGI)
 #
 
 # Object files
-core_objs = $(patsubst %.c,%.o,$(wildcard core/*.c))
-page_objs = $(patsubst %.c,%.o,$(wildcard cgi/*.c) $(wildcard cgi/page/*.c))
+core_objs    = $(patsubst %.c,%.o,$(wildcard core/*.c))
+cgi_objs     = $(patsubst %.c,%.o,$(wildcard cgi/*.c) $(wildcard cgi/page/*.c))
+builtin_objs = $(patsubst %.c,%.o,$(wildcard builtin/*.c))
+upgrade_objs = $(patsubst %.c,%.o,$(wildcard upgrade/*.c))
 
-# Header file dependancies
+# Header file dependencies
 core_headers = $(wildcard core/*.h)
-page_headers = $(wildcard cgi/*.h)
+cgi_headers  = $(wildcard cgi/*.h)
 
-$(core_objs): $(core_headers)
-$(page_objs): $(page_headers) $(core_headers)
+$(core_objs):    $(core_headers)
+$(builtin_objs): $(core_headers)
+$(cgi_objs):     $(core_headers) $(cgi_headers)
+$(upgrade_objs): $(core_headers)
 
 # config.c use version constants defined here
 $(core_objs): Makefile
 
+$(BUILTINS_BINS): teerank-% : builtin/%.o
 $(BUILTINS_BINS): $(core_objs)
 	$(CC) -o $@ $(CFLAGS) $^
-
-$(BUILTINS_BINS): teerank-% : builtin/%.o
 
 #
 # Scripts
@@ -105,7 +107,7 @@ $(SCRIPTS): generated/script-header.inc.sh
 # CGI
 #
 
-$(CGI): cgi/cgi.o cgi/route.o $(core_objs) $(page_objs)
+$(CGI): $(core_objs) $(cgi_objs)
 	$(CC) -o $@ $(CFLAGS) $^
 
 #

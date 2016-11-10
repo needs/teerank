@@ -70,6 +70,34 @@ static int need_repair(struct clan *clan)
 	return !clan_equal(&tmp, clan);
 }
 
+static void remove_empty_clans(void)
+{
+	DIR *dir;
+	struct dirent *dp;
+	char path[PATH_MAX];
+
+	if (!dbpath(path, PATH_MAX, "clans/"))
+		return;
+
+	if (!(dir = opendir(path)))
+		return perror(path);
+
+	/* Build clan list */
+	while ((dp = readdir(dir))) {
+		struct clan clan;
+
+		if (!strcmp(dp->d_name, "..") || !strcmp(dp->d_name, "."))
+			continue;
+		if (read_clan(&clan, dp->d_name) != SUCCESS)
+			continue;
+
+		if (clan.nmembers == 0)
+			remove_clan(dp->d_name);
+	}
+
+	closedir(dir);
+}
+
 static const struct clan_list CLAN_LIST_ZERO;
 
 /*
@@ -86,6 +114,8 @@ static int repair_clans(void)
 	unsigned i;
 	unsigned nrepair = 0;
 	struct player player;
+
+	remove_empty_clans();
 
 	if (!dbpath(path, PATH_MAX, "players/"))
 		return EXIT_FAILURE;

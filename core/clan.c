@@ -261,3 +261,18 @@ int clan_equal(const struct clan *c1, const struct clan *c2)
 
 	return 1;
 }
+
+int remove_clan(const char *cname)
+{
+	char path[PATH_MAX];
+
+	if (!dbpath(path, PATH_MAX, "clans/%s", cname))
+		return 0;
+
+	if (unlink(path) == -1) {
+		perror(path);
+		return 0;
+	}
+
+	return 1;
+}

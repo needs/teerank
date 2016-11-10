@@ -58,7 +58,12 @@ static int clan_move_player(char *src_clan, char *dest_clan, char *pname)
 			return 0;
 
 		remove_member(&clan, get_member(&clan, pname));
-		ret = write_clan(&clan);
+
+		if (clan.nmembers == 0)
+			ret = remove_clan(clan.name);
+		else
+			ret = write_clan(&clan);
+
 		free_clan(&clan);
 
 		if (!ret)

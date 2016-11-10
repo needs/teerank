@@ -123,4 +123,13 @@ unsigned load_members(struct clan *clan);
  */
 int clan_equal(const struct clan *c1, const struct clan *c2);
 
+/**
+ * Remove the given clan
+ *
+ * @param cname Name of the clan to remove
+ *
+ * @return 1 if clan has been successfully removed, 0 otherwise
+ */
+int remove_clan(const char *cname);
+
 #endif /* CLAN_H */

@@ -56,8 +56,6 @@ int scan_delta(struct delta *delta);
  * @return 1 on success 0 on failure
  */
 int print_delta(struct delta *delta);
-void start_printing_delta(void);
-void stop_printing_delta(void);
 
 /**
  * Compare the given servers and return a delta

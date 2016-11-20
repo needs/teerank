@@ -4,8 +4,7 @@
 #include <limits.h>
 #include <time.h>
 
-#include "network.h"
-#include "historic.h"
+#include <sqlite3.h>
 
 /**
  * @def NAME_LENGTH
@@ -31,6 +30,27 @@
 #define HEXNAME_LENGTH 33
 
 #include "server.h"
+
+#define ALL_PLAYER_COLUMN \
+	" name, clan, elo, lastseen, server_ip, server_port "
+
+#define RANK_COLUMN \
+	" (SELECT COUNT(1) + 1" \
+	"  FROM players AS p2" \
+	"  WHERE players.elo < p2.elo" \
+	"   OR (players.elo = p2.elo" \
+	"    AND (players.lastseen < p2.lastseen" \
+	"     OR (players.lastseen = p2.lastseen" \
+	"      AND players.name < p2.name))))" \
+	" AS rank "
+
+#define SORT_BY_ELO \
+	" elo DESC, lastseen DESC, name "
+#define SORT_BY_LASTSEEN \
+	" lastseen DESC, elo DESC, name "
+
+#define IS_VALID_CLAN \
+	" clan <> '00' "
 
 /**
  * Check wether or not the supplied string is a valid hexadecimal string
@@ -59,11 +79,6 @@ void hexname_to_name(const char *hex, char *name);
  */
 void name_to_hexname(const char *name, char *hex);
 
-struct player_record {
-	int elo;
-	unsigned rank;
-};
-
 /**
  * @struct player
  *
@@ -75,11 +90,10 @@ struct player {
 
 	int elo;
 	unsigned rank;
+	time_t lastseen;
 
-	struct tm lastseen;
-	char server_ip[IP_STRSIZE], server_port[PORT_STRSIZE];
-
-	struct historic hist;
+	char server_ip[IP_STRSIZE];
+	char server_port[PORT_STRSIZE];
 
 	struct player_delta *delta;
 
@@ -95,7 +109,7 @@ struct player {
  *
  * Value used to mark the absence of ELO points.
  */
-static const int INVALID_ELO  = INT_MIN;
+static const int INVALID_ELO = INT_MIN;
 
 /**
  * @def UNRANKED
@@ -112,14 +126,6 @@ static const unsigned UNRANKED = 0;
 static const time_t NEVER_SEEN = 0;
 
 /**
- * Every struct layer must be initialized once for all, before any
- * use.  The pattern is as follow: init once, use multiple times.
- *
- * @param player Player to be initialized
- */
-void init_player(struct player *player);
-
-/**
  * Create a player with the given name.
  *
  * The player is *not* written in the database, but it can be written
@@ -131,52 +137,37 @@ void init_player(struct player *player);
 void create_player(struct player *player, const char *name);
 
 /**
- * Read from the disk a player.  This function allocate or reuse buffers
- * allocated by previous calls.  Hence player must been initialized
- * with init_player() before the first call to real_player().
+ * Read a player from the database.
  *
  * If anything, the returned player is still printable, as the
  * function may have read some data before failure.
  *
  * @param player Player to read
  * @param name Name of the player to read
+ * @param read_rank Also read player's rank
  *
  * @return SUCCESS on success, NOT_FOUND when player does not exist,
  *         FAILURE when an error occured.
  */
-int read_player(struct player *player, const char *name);
+int read_player(struct player *player, const char *name, int read_rank);
 
 /**
- * Write a player to the disk.
+ * Copy a result row to the provided player struct
+ *
+ * @param player Valid buffer to store the result in
+ * @param res SQlite result row
+ * @param read_rank The row also contains the player's rank at the end
+ */
+void player_from_result_row(struct player *player, sqlite3_stmt *res, int read_rank);
+
+/**
+ * Write a player to the database.
  *
  * @param player Player to write
  *
  * @return 1 on success, 0 on failure
  */
 int write_player(struct player *player);
-
-/**
- * Change current elo point of the given player.
- *
- * If last record is UNRANKED, it does not add a new record to the
- * historic but rather update its elo value.  When the last record is
- * already ranked, it just add a new record with UNRANKED as rank.
- *
- * @param player Player to update elo
- * @param elo New elo value for the given player
- */
-void set_elo(struct player *player, int elo);
-
-/**
- * Change current rank of the given player.  If the new last record's
- * rank was UNRANKED, it does change it with the given rank.  This
- * function will never add a new record to historic, hence it cannot
- * fail.
- *
- * @param player Player to update rank
- * @param rank New rank value for the given player
- */
-void set_rank(struct player *player, unsigned rank);
 
 /**
  * Change current clan of the given player.
@@ -195,39 +186,11 @@ void set_clan(struct player *player, char *clan);
  */
 void set_lastseen(struct player *player, const char *ip, const char *port);
 
-
 /**
- * @struct player_info
+ * Add an entry in player historic
  *
- * Hold a info of player data.  It is lighter than player data structure
- * because it doesn't store the complete historic.  When dealing with this data
- * structure no malloc() are performed, at all.
- *
- * However, because the structure only holds a part of the complete set of
- * player's data, the structure cannot be written back on the disk.
+ * @param player Player to update
  */
-struct player_info {
-	char name[HEXNAME_LENGTH];
-	char clan[HEXNAME_LENGTH];
-
-	int elo;
-	unsigned rank;
-
-	struct tm lastseen;
-	char server_ip[IP_STRSIZE], server_port[PORT_STRSIZE];
-
-	struct historic_info hist;
-};
-
-/**
- * Read and fill player info.
- *
- * @param ps Player info to be read
- * @param name Name of the player to read
- *
- * @return SUCCESS on success, NOT_FOUND when player does not exist,
- *         FAILURE when an error occured.
- */
-int read_player_info(struct player_info *ps, const char *name);
+void record_elo_and_rank(struct player *player);
 
 #endif /* PLAYER_H */

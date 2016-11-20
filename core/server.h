@@ -22,6 +22,22 @@
 
 #include "player.h"
 
+#define ALL_SERVER_COLUMN \
+	" ip, port, name, gametype, map, lastseen, expire," \
+	" master_node, master_service, max_clients "
+
+#define NUM_CLIENTS_COLUMN \
+	" (SELECT COUNT(1)" \
+	"  FROM server_clients AS sc" \
+	"  WHERE sc.ip = servers.ip" \
+	"  AND sc.port = servers.port)" \
+	" AS num_clients "
+
+#define IS_VANILLA_CTF_SERVER \
+	" gametype = 'CTF'" \
+	" AND map IN ('ctf1', 'ctf2', 'ctf3', 'ctf4', 'ctf5', 'ctf6', 'ctf7')" \
+	" AND max_clients <= 16 "
+
 /**
  * @struct server
  *
@@ -38,6 +54,9 @@ struct server {
 	time_t lastseen;
 	time_t expire;
 
+	char master_node[sizeof("masterX.teeworlds.com")];
+	char master_service[sizeof("00000")];
+
 	int num_clients;
 	int max_clients;
 	struct client {
@@ -52,31 +71,6 @@ struct server {
  */
 int is_vanilla_ctf_server(
 	const char *gametype, const char *map, int num_clients, int max_clients);
-
-/**
- * From an IP and a port, return a filename
- *
- * It returns a statically allocated buffer suitable for read_server().
- * However it does not check if it actually match any file at all.  It
- * also does not validate IP and port, so if they contain malicious
- * filepath like ".." or "/", it may cause problems either.
- *
- * @param ip Server's IP
- * @param port Server's port
- *
- * @return A statically allocated buffer with a filename
- */
-char *server_filename(const char *ip, const char *port);
-
-/**
- * Extract IP and port from a filename
- *
- * @param addr Server address
- * @param ip extracted IP
- * @param port extracted port
- * @return 1 on success, 0 on failure
- */
-int parse_server_filename(const char *sname, char *ip, char *port);
 
 /**
  * Extract IP and port from a full address
@@ -107,12 +101,35 @@ char *build_addr(const char *ip, const char *port);
  * Read a server from the database.
  *
  * @param server Pointer to a server structure were readed data are stored
- * @param server_name Server name
+ * @param ip Server IP
+ * @param port Server port
  *
  * @return SUCCESS on success, NOT_FOUND if the server does not exist,
  *         FAILURE on failure.
  */
-int read_server(struct server *server, const char *sname);
+int read_server(struct server *server, const char *ip, const char *port);
+
+/**
+ * Copy a result row to the provided server struct
+ *
+ * @param server Valid buffer to store the result in
+ * @param res SQlite result row
+ * @param read_num_clients The row also contains the server's number of
+ *                         clients at the end
+ */
+void server_from_result_row(struct server *server, sqlite3_stmt *res, int read_num_clients);
+
+/**
+ * Read server's clients from the database.
+ *
+ * The function actually need the provided server structure to contains
+ * an IP and a port, and will also use it to store the results.
+ *
+ * @param server Pointer to a server structure were readed data are stored
+ *
+ * @return 1 on success, 0 on failure
+ */
+int read_server_clients(struct server *server);
 
 /**
  * Write a server in the database.
@@ -124,21 +141,35 @@ int read_server(struct server *server, const char *sname);
 int write_server(struct server *server);
 
 /**
+ * Write server's clients in the database
+ *
+ * @param server Server structure containing clients to be written
+ *
+ * @return 1 on success, 0 on failure
+ */
+int write_server_clients(struct server *server);
+
+/**
  * Create an empty server in the database if it doesn't already exists.
  *
  * @param ip Server IP
  * @param port Server port
+ * @param ip Master server node
+ * @param port Master server service
  *
  * @return 1 on success, 0 on failure or when the server already exist.
  */
-int create_server(const char *ip, const char *port);
+int create_server(
+	const char *ip, const char *port,
+	const char *master_node, const char *master_service);
 
 /**
- * Delete a server from the database.
+ * Remove a server from the database.
  *
- * @param sname Server name
+ * @param ip Server IP
+ * @param port Server port
  */
-void remove_server(const char *sname);
+void remove_server(const char *ip, const char *port);
 
 /**
  * Update expiration date

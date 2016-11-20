@@ -5,46 +5,67 @@
 
 #include "config.h"
 #include "cgi.h"
-#include "index.h"
 #include "page.h"
+#include "player.h"
 
 int main_json_clan_list(int argc, char **argv)
 {
-	struct index_page ipage;
-	struct jfile jfile;
-	struct indexed_clan *c;
-
-	unsigned pnum;
 	int ret;
+	unsigned count = 0;
+	sqlite3_stmt *res;
+	unsigned pnum;
+	const char query[] =
+		"SELECT clan, COUNT(1) AS nmembers"
+		" FROM players"
+		" WHERE" IS_VALID_CLAN
+		" GROUP BY clan"
+		" ORDER BY nmembers DESC, clan"
+		" LIMIT 100 OFFSET ?";
+
+	if (argc != 3) {
+		fprintf(stderr, "usage: %s <pnum> by-nmembers\n", argv[0]);
+		return EXIT_FAILURE;
+	}
 
 	if (!parse_pnum(argv[1], &pnum))
 		return EXIT_NOT_FOUND;
 
-	ret = open_index_page(
-		"clans_by_nmembers", &ipage, &INDEX_DATA_INFO_CLAN,
-		pnum, CLANS_PER_PAGE);
-	if (ret != SUCCESS)
-		return ret;
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int64(res, 1, (pnum - 1) * 100) != SQLITE_OK)
+		goto fail;
 
-	json_init(&jfile, stdout, "<stdout>");
-
-	json_write_object_start(&jfile, NULL);
-	json_write_unsigned(&jfile, "length", ipage.plen);
-	json_write_array_start(&jfile, "clans");
-
-	while ((c = index_page_foreach(&ipage, NULL))) {
-		json_write_object_start(&jfile, NULL);
-
-		json_write_string(&jfile, "name", c->name, sizeof(c->name));
-		json_write_unsigned(&jfile, "nmembers", c->nmembers);
-
-		json_write_object_end(&jfile);
+	if ((ret = sqlite3_step(res)) == SQLITE_DONE && pnum > 1) {
+		sqlite3_finalize(res);
+		return EXIT_NOT_FOUND;
 	}
 
-	json_write_object_end(&jfile);
-	json_write_array_end(&jfile);
+	printf("{\"clans\":[");
 
-	close_index_page(&ipage);
+	while (ret == SQLITE_ROW) {
+		if (count)
+			putchar(',');
+		putchar('{');
+		printf("\"name\":\"%s\",", sqlite3_column_text(res, 0));
+		printf("\"nmembers\":\"%u\"", (unsigned)sqlite3_column_int64(res, 1));
+		putchar('}');
 
+		ret = sqlite3_step(res);
+		count++;
+	}
+
+	if (ret != SQLITE_DONE)
+		goto fail;
+
+	printf("],\"length\":%u}", count);
+
+	sqlite3_finalize(res);
 	return EXIT_SUCCESS;
+
+fail:
+	fprintf(
+		stderr, "%s: json_clan_list(%s): %s\n",
+		config.dbpath, argv[1], sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return EXIT_FAILURE;
 }

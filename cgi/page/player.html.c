@@ -12,7 +12,7 @@ int main_html_player(int argc, char **argv)
 {
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
 	const char *hexname;
-	struct player_info player;
+	struct player player;
 	int ret;
 
 	if (argc != 2) {
@@ -26,7 +26,7 @@ int main_html_player(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 	}
 
-	if ((ret = read_player_info(&player, hexname)) != SUCCESS)
+	if ((ret = read_player(&player, hexname, 1)) != SUCCESS)
 		return ret;
 
 	hexname_to_name(hexname, name);
@@ -50,7 +50,7 @@ int main_html_player(int argc, char **argv)
 	html("<p id=\"player_rank\">#%u (%d ELO)</p>", player.rank, player.elo);
 	html("<p id=\"player_lastseen\">");
 	player_lastseen_link(
-		&player.lastseen, build_addr(player.server_ip, player.server_port));
+		player.lastseen, build_addr(player.server_ip, player.server_port));
 	html("</p>");
 	html("</div>");
 

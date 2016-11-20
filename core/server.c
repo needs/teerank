@@ -36,104 +36,106 @@ int is_vanilla_ctf_server(
 	return 1;
 }
 
-int read_server(struct server *server, const char *sname)
+void server_from_result_row(struct server *server, sqlite3_stmt *res, int read_num_clients)
 {
-	FILE *file = NULL;
-	struct jfile jfile;
-	char path[PATH_MAX];
-	unsigned i;
+	snprintf(server->ip, sizeof(server->ip), "%s", sqlite3_column_text(res, 0));
+	snprintf(server->port, sizeof(server->port), "%s", sqlite3_column_text(res, 1));
+	snprintf(server->name, sizeof(server->name), "%s", sqlite3_column_text(res, 2));
+	snprintf(server->gametype, sizeof(server->gametype), "%s", sqlite3_column_text(res, 3));
+	snprintf(server->map, sizeof(server->map), "%s", sqlite3_column_text(res, 4));
 
-	assert(server != NULL);
-	assert(sname != NULL);
+	server->lastseen = sqlite3_column_int64(res, 5);
+	server->expire = sqlite3_column_int64(res, 6);
 
-	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
-		goto fail;
+	snprintf(server->master_node, sizeof(server->master_node), "%s", sqlite3_column_text(res, 7));
+	snprintf(server->master_service, sizeof(server->master_service), "%s", sqlite3_column_text(res, 8));
 
-	if ((file = fopen(path, "r")) == NULL) {
-		if (errno == ENOENT)
-			return NOT_FOUND;
-		perror(path);
-		goto fail;
-	}
+	server->max_clients = sqlite3_column_int(res, 9);
 
-	json_init(&jfile, file, path);
-
-	json_read_object_start(&jfile, NULL);
-
-	json_read_string(  &jfile, "ip",   server->ip,   sizeof(server->ip));
-	json_read_string(  &jfile, "port", server->port, sizeof(server->port));
-
-	json_read_string(  &jfile, "name",      server->name,     sizeof(server->name));
-	json_read_string(  &jfile, "gametype",  server->gametype, sizeof(server->gametype));
-	json_read_string(  &jfile, "map",       server->map,      sizeof(server->map));
-	json_read_time(&jfile, "lastseen", &server->lastseen);
-	json_read_time(&jfile, "expire",   &server->expire);
-
-	json_read_int(&jfile, "num_clients", &server->num_clients);
-	json_read_int(&jfile, "max_clients", &server->max_clients);
-
-	json_read_array_start(&jfile, "clients");
-
-	if (json_have_error(&jfile))
-		goto fail;
-
-	for (i = 0; i < server->num_clients; i++) {
-		struct client *client = &server->clients[i];
-
-		json_read_object_start(&jfile, NULL);
-
-		json_read_string(&jfile, "name" , client->name, sizeof(client->name));
-		json_read_string(&jfile, "clan" , client->clan, sizeof(client->clan));
-		json_read_int(   &jfile, "score", &client->score);
-		json_read_bool(  &jfile, "ingame", &client->ingame);
-
-		json_read_object_end(&jfile);
-
-		if (json_have_error(&jfile))
-			goto fail;
-	}
-
-	json_read_array_end(&jfile);
-	json_read_object_end(&jfile);
-
-	if (json_have_error(&jfile))
-		goto fail;
-
-	fclose(file);
-	return SUCCESS;
-
-fail:
-	if (file)
-		fclose(file);
-	return FAILURE;
+	if (read_num_clients)
+		server->num_clients = sqlite3_column_int(res, 10);
 }
 
-#define SERVER_FILENAME_STRSIZE \
-	sizeof("vX xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx 00000")
-
-char *server_filename(const char *ip, const char *port)
+int read_server_clients(struct server *server)
 {
-	static char buf[SERVER_FILENAME_STRSIZE];
-	char ipv, *c;
 	int ret;
+	sqlite3_stmt *res;
+	struct client *client;
+	const char query[] =
+		"SELECT name, clan, score, ingame"
+		" FROM server_clients"
+		" WHERE ip = ? AND port = ?"
+		" ORDER BY ingame DESC, score DESC";
 
-	assert(ip != NULL);
-	assert(port != NULL);
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 1, server->ip, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 2, server->port, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
 
-	if (ip[1] == '.' || ip[2] == '.' ||ip[3] == '.')
-		ipv = '4';
-	else
-		ipv = '6';
+	for (client = server->clients; client - server->clients < MAX_CLIENTS; client++) {
+		if ((ret = sqlite3_step(res)) != SQLITE_ROW)
+			break;
 
-	ret = snprintf(buf, sizeof(buf), "v%c %s %s", ipv, ip, port);
-	assert(ret < sizeof(buf)); (void)ret;
+		snprintf(client->name, sizeof(client->name), "%s", sqlite3_column_text(res, 0));
+		snprintf(client->clan, sizeof(client->clan), "%s", sqlite3_column_text(res, 1));
 
-	/* Replace '.' or ':' by '_' */
-	for (c = buf; *c; c++)
-		if (*c == '.' || *c == ':')
-			*c = '_';
+		client->score = sqlite3_column_int(res, 2);
+		client->ingame = sqlite3_column_int(res, 3);
+	}
 
-	return buf;
+	if (ret != SQLITE_DONE && ret != SQLITE_ROW)
+		goto fail;
+
+	server->num_clients = client - server->clients;
+
+	sqlite3_finalize(res);
+	return 1;
+
+fail:
+	fprintf(
+		stderr, "%s: read_server_clients(%s, %s): %s\n",
+	        config.dbpath, server->ip, server->port, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 0;
+}
+
+int read_server(struct server *server, const char *ip, const char *port)
+{
+	int ret;
+	sqlite3_stmt *res;
+	const char query[] =
+		"SELECT" ALL_SERVER_COLUMN
+		" FROM servers"
+		" WHERE ip = ? AND port = ?";
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+
+	ret = sqlite3_step(res);
+	if (ret == SQLITE_DONE)
+		goto not_found;
+	else if (ret != SQLITE_ROW)
+		goto fail;
+
+	server_from_result_row(server, res, 0);
+	sqlite3_finalize(res);
+	return SUCCESS;
+
+not_found:
+	sqlite3_finalize(res);
+	return NOT_FOUND;
+fail:
+	fprintf(
+		stderr, "%s: read_server(%s, %s): %s\n",
+	        config.dbpath, ip, port, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return FAILURE;
 }
 
 /* An IPv4 address starts by either "0." or "00." or "000." */
@@ -179,31 +181,6 @@ static int is_valid_port(const char *port)
 	return ret >= 0 && ret < 65535 && *port && !*end;
 }
 
-/*
- * Reverse the result of server_filename(), and handle garbage input as
- * well.
- */
-int parse_server_filename(const char *sname, char *ip, char *port)
-{
-	char ipv, sep, *c;
-
-	if (sscanf(sname, "v%c %71s %5s", &ipv, ip, port) != 3)
-		return 0;
-
-	if (ipv == '4')
-		sep = '.';
-	else if (ipv == '6')
-		sep = ':';
-	else
-		return 0;
-
-	for (c = ip; *c; c++)
-		if (*c == '_')
-			*c = sep;
-
-	return is_valid_ip(ip) && is_valid_port(port);
-}
-
 int parse_addr(char *addr, char **ip, char **port)
 {
 	assert(addr != NULL);
@@ -245,75 +222,125 @@ char *build_addr(const char *ip, const char *port)
 	return buf;
 }
 
-int write_server(struct server *server)
+static int flush_server_clients(const char *ip, const char *port)
 {
-	FILE *file = NULL;
-	struct jfile jfile;
-	char path[PATH_MAX];
-	char *filename;
+	sqlite3_stmt *res;
+	const char query[] =
+		"DELETE FROM server_clients"
+		" WHERE ip = ? AND port = ?";
 
-	unsigned i;
-
-	assert(server != NULL);
-
-	filename = server_filename(server->ip, server->port);
-	if (!dbpath(path, PATH_MAX, "servers/%s", filename))
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
 		goto fail;
 
-	if ((file = fopen(path, "w")) == NULL) {
-		perror(path);
+	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
 		goto fail;
-	}
-
-	json_init(&jfile, file, path);
-
-	json_write_object_start(&jfile, NULL);
-
-	json_write_string(&jfile, "ip",   server->ip,   sizeof(server->ip));
-	json_write_string(&jfile, "port", server->port, sizeof(server->port));
-
-	json_write_string(&jfile, "name"    , server->name,     sizeof(server->name));
-	json_write_string(&jfile, "gametype", server->gametype, sizeof(server->gametype));
-	json_write_string(&jfile, "map"     , server->map,      sizeof(server->map));
-	json_write_time(&jfile, "lastseen", server->lastseen);
-	json_write_time(&jfile, "expire"  , server->expire);
-
-	json_write_unsigned(&jfile, "num_clients", server->num_clients);
-	json_write_unsigned(&jfile, "max_clients", server->max_clients);
-
-	json_write_array_start(&jfile, "clients");
-
-	if (json_have_error(&jfile))
+	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
 		goto fail;
 
-	for (i = 0; i < server->num_clients; i++) {
-		struct client *client = &server->clients[i];
-
-		json_write_object_start(&jfile, NULL);
-
-		json_write_string(&jfile, "name" , client->name, sizeof(client->name));
-		json_write_string(&jfile, "clan" , client->clan, sizeof(client->clan));
-		json_write_int(   &jfile, "score", client->score);
-		json_write_bool(  &jfile, "ingame", client->ingame);
-
-		json_write_object_end(&jfile);
-
-		if (json_have_error(&jfile))
-			goto fail;
-	}
-
-	json_write_array_end(&jfile);
-	json_write_object_end(&jfile);
-
-	if (json_have_error(&jfile))
+	if (sqlite3_step(res) != SQLITE_DONE)
 		goto fail;
 
-	fclose(file);
+	sqlite3_finalize(res);
 	return 1;
 
 fail:
-	if (file)
-		fclose(file);
+	fprintf(
+		stderr, "%s: flush_server_clients(%s, %s): %s\n",
+	        config.dbpath, ip, port, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 0;
+}
+
+int write_server_clients(struct server *server)
+{
+	sqlite3_stmt *res;
+	struct client *client;
+	const char query[] =
+		"INSERT OR REPLACE INTO server_clients"
+		" VALUES (?, ?, ?, ?, ?, ?)";
+
+	if (!flush_server_clients(server->ip, server->port))
+		return 0;
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	for (client = server->clients; client - server->clients < server->num_clients; client++) {
+		if (sqlite3_bind_text(res, 1, server->ip, -1, SQLITE_STATIC) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_bind_text(res, 2, server->port, -1, SQLITE_STATIC) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_bind_text(res, 3, client->name, -1, SQLITE_STATIC) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_bind_text(res, 4, client->clan, -1, SQLITE_STATIC) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_bind_int(res, 5, client->score) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_bind_int(res, 6, client->ingame) != SQLITE_OK)
+			goto fail;
+
+		if (sqlite3_step(res) != SQLITE_DONE)
+			goto fail;
+
+		if (sqlite3_reset(res) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_clear_bindings(res) != SQLITE_OK)
+			goto fail;
+	}
+
+	sqlite3_finalize(res);
+	return 1;
+
+fail:
+	fprintf(
+		stderr, "%s: write_server_clients(%s, %s): %s\n",
+	        config.dbpath, server->ip, server->port, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 0;
+}
+
+int write_server(struct server *server)
+{
+	sqlite3_stmt *res;
+	const char query[] =
+		"INSERT OR REPLACE INTO servers(" ALL_SERVER_COLUMN ")"
+		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	if (sqlite3_bind_text(res, 1, server->ip, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 2, server->port, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 3, server->name, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 4, server->gametype, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 5, server->map, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int64(res, 6, server->lastseen) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int64(res, 7, server->expire) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 8, server->master_node, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 9, server->master_service, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int(res, 10, server->max_clients) != SQLITE_OK)
+		goto fail;
+
+	if (sqlite3_step(res) != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_finalize(res);
+	return 1;
+
+fail:
+	fprintf(
+		stderr, "%s: write_server(%s, %s): %s\n",
+		config.dbpath, server->ip, server->port, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
 	return 0;
 }
 
@@ -401,56 +428,113 @@ void mark_server_online(struct server *server)
 	}
 }
 
-void remove_server(const char *name)
+static void remove_server_clients(const char *ip, const char *port)
 {
-	char path[PATH_MAX];
+	sqlite3_stmt *res;
+	const char query[] =
+		"DELETE FROM server_clients"
+		" WHERE ip = ? AND port = ?";
 
-	assert(name != NULL);
+	assert(ip != NULL);
+	assert(port != NULL);
 
-	if (!dbpath(path, PATH_MAX, "servers/%s", name))
-		return;
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
 
-	if (unlink(path) == -1)
-		if (errno != ENOENT)
-			perror(path);
+	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+
+	if (sqlite3_step(res) != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_finalize(res);
+	return;
+
+fail:
+	fprintf(
+		stderr, "%s: remove_server_clients(%s, %s): %s\n",
+		config.dbpath, ip, port, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
 }
 
-static int server_exist(const char *sname)
+void remove_server(const char *ip, const char *port)
 {
-	char path[PATH_MAX];
+	sqlite3_stmt *res;
+	const char query[] =
+		"DELETE FROM servers"
+		" WHERE ip = ? AND port = ?";
 
-	if (!dbpath(path, PATH_MAX, "servers/%s", sname))
-		return 0;
+	assert(ip != NULL);
+	assert(port != NULL);
 
-	return access(path, F_OK) == 0;
+	remove_server_clients(ip, port);
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+
+	if (sqlite3_step(res) != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_finalize(res);
+	return;
+
+fail:
+	fprintf(
+		stderr, "%s: remove_server(%s, %s): %s\n",
+		config.dbpath, ip, port, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
 }
 
-int create_server(const char *ip, const char *port)
+int create_server(
+	const char *ip, const char *port,
+	const char *master_node, const char *master_service)
 {
-	static const struct server SERVER_ZERO;
-	struct server server = SERVER_ZERO;
-	char *filename;
+	sqlite3_stmt *res;
+	const char query[] =
+		"INSERT OR IGNORE INTO servers(" ALL_SERVER_COLUMN ")"
+		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-	filename = server_filename(ip, port);
-	if (server_exist(filename))
-		return 0;
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
 
-	if (snprintf(server.ip, sizeof(server.ip), "%s", ip) >= sizeof(server.ip)) {
-		fprintf(stderr, "create_server: %s: IP too long\n", ip);
-		return 0;
-	}
+	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_null(res, 3) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_null(res, 4) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_null(res, 5) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int(res, 6, NEVER_SEEN) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int(res, 7, 0) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 8, master_node, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 9, master_service, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_null(res, 10) != SQLITE_OK)
+		goto fail;
 
-	if (snprintf(server.port, sizeof(server.port), "%s", port) >= sizeof(server.port)) {
-		fprintf(stderr, "create_server: %s: Port too long\n", port);
-		return 0;
-	}
+	if (sqlite3_step(res) != SQLITE_DONE)
+		goto fail;
 
-	strcpy(server.name, "???");
-	strcpy(server.gametype, "???");
-	strcpy(server.map, "???");
+	sqlite3_finalize(res);
+	return 1;
 
-	server.lastseen = NEVER_SEEN;
-	server.expire = 0;
-
-	return write_server(&server);
+fail:
+	fprintf(
+		stderr, "%s: create_server(%s, %s): %s\n",
+		config.dbpath, ip, port, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 0;
 }

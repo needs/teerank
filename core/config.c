@@ -8,6 +8,7 @@
 #include <time.h>
 
 #include "config.h"
+#include "player.h"
 
 struct config config = {
 #define STRING(envname, value, fname) \
@@ -19,52 +20,227 @@ struct config config = {
 #include "default_config.h"
 };
 
+sqlite3 *db = NULL;
+
 /*
- * Query database version.  It require config to be loaded as it use
- * config.root to get to the file with version number.
+ * Query database version.  It does require database handle to be
+ * opened, as it will query version from the "version" table.
  */
 static int get_version(void)
 {
-	char path[PATH_MAX];
-	FILE *file = NULL;
+	int ret, version;
+	sqlite3_stmt *res;
+	const char query[] = "SELECT version FROM version";
 
-	int ret;
-	int version;
-
-	if (!dbpath(path, PATH_MAX, "version"))
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
 		goto fail;
 
-	file = fopen(path, "r");
-	if (!file) {
-		/*
-		 * First databases did not have version file at all.
-		 * Hence it is like version 0.
-		 */
-		if (errno == ENOENT)
-			return 0;
-
-		perror(path);
+	ret = sqlite3_step(res);
+	if (ret == SQLITE_DONE)
+		goto not_found;
+	else if (ret != SQLITE_ROW)
 		goto fail;
-	}
 
-	errno = 0;
-	ret = fscanf(file, "%d", &version);
+	version = sqlite3_column_int(res, 0);
 
-	if (ret == EOF && errno != 0) {
-		perror(path);
-		goto fail;
-	} else if (ret == EOF || ret == 0) {
-		fprintf(stderr, "%s: Cannot match database version number\n", path);
-		goto fail;
-	}
-
-	fclose(file);
-
+	sqlite3_finalize(res);
 	return version;
 
+not_found:
+	fprintf(stderr, "%s: Database doesn't contain a version number\n", config.dbpath);
+	sqlite3_finalize(res);
+	exit(EXIT_FAILURE);
 fail:
-	if (file)
-		fclose(file);
+	fprintf(stderr, "%s: get_version(): %s\n", config.dbpath, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	exit(EXIT_FAILURE);
+}
+
+static void init_version_table(void)
+{
+	sqlite3_stmt *res;
+	const char query[] =
+		"INSERT INTO version"
+		" VALUES(?)";
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int(res, 1, DATABASE_VERSION) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_step(res) != SQLITE_DONE)
+		goto fail;
+	sqlite3_finalize(res);
+	return;
+
+fail:
+	fprintf(
+		stderr, "%s: init_version_table(): %s\n",
+		config.dbpath, sqlite3_errmsg(db));
+	exit(EXIT_FAILURE);
+}
+
+static void init_masters_table(void)
+{
+	sqlite3_stmt *res;
+	const struct master {
+		const char *node, *service;
+	} *master, masters[] = {
+		{ "master1.teeworlds.com", "8300" },
+		{ "master2.teeworlds.com", "8300" },
+		{ "master3.teeworlds.com", "8300" },
+		{ "master4.teeworlds.com", "8300" },
+		{ NULL, NULL }
+	};
+
+	const char query[] =
+		"INSERT INTO masters"
+		" VALUES(?, ?, ?)";
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	for (master = masters; master->node; master++) {
+		if (sqlite3_bind_text(res, 1, master->node, -1, NULL) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_bind_text(res, 2, master->service, -1, NULL) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_bind_int64(res, 3, NEVER_SEEN) != SQLITE_OK)
+			goto fail;
+
+		if (sqlite3_step(res) != SQLITE_DONE)
+			goto fail;
+
+		if (sqlite3_reset(res) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_clear_bindings(res) != SQLITE_OK)
+			goto fail;
+	}
+
+	sqlite3_finalize(res);
+	return;
+
+fail:
+	fprintf(
+		stderr, "%s: init_masters_table(): %s\n",
+		config.dbpath, sqlite3_errmsg(db));
+	exit(EXIT_FAILURE);
+}
+
+static void create_database(void)
+{
+	const int FLAGS = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+	sqlite3_stmt *res;
+
+	const char **query = NULL, *queries[] = {
+		"CREATE TABLE version("
+		" version INTEGER,"
+		" PRIMARY KEY(version))",
+
+		"CREATE TABLE masters("
+		" node TEXT,"
+		" service TEXT,"
+		" lastseen DATE,"
+		" PRIMARY KEY(node, service))",
+
+		"CREATE TABLE servers("
+		" ip TEXT,"
+		" port TEXT,"
+		" name TEXT,"
+		" gametype TEXT,"
+		" map TEXT,"
+		" lastseen DATE,"
+		" expire DATE,"
+		" master_node TEXT,"
+		" master_service TEXT,"
+		" max_clients INTEGER,"
+		" PRIMARY KEY(ip, port),"
+		" FOREIGN KEY(master_node, master_service)"
+		"  REFERENCES masters(node, service))",
+
+		"CREATE TABLE players("
+		" name TEXT,"
+		" clan TEXT,"
+		" elo INTEGER,"
+		" lastseen DATE,"
+		" server_ip TEXT,"
+		" server_port TEXT,"
+		" PRIMARY KEY(name),"
+		" FOREIGN KEY(server_ip, server_port)"
+		"  REFERENCES servers(ip, port))",
+
+		"CREATE TABLE server_clients("
+		" ip TEXT,"
+		" port TEXT,"
+		" name TEXT,"
+		" clan TEXT,"
+		" score INTEGER,"
+		" ingame BOOLEAN,"
+		" PRIMARY KEY(ip, port, name),"
+		" FOREIGN KEY(ip, port)"
+		"  REFERENCES servers(ip, port)"
+		" FOREIGN KEY(name)"
+		"  REFERENCES players(name))",
+
+		"CREATE TABLE player_historic("
+		" name TEXT,"
+		" timestamp DATE,"
+		" elo INTEGER,"
+		" rank INTEGER,"
+		" PRIMARY KEY(name, timestamp),"
+		" FOREIGN KEY(name)"
+		"  REFERENCES players(name))",
+
+		"CREATE INDEX players_by_rank"
+		" ON players (elo DESC, lastseen DESC, name DESC)",
+
+		"CREATE INDEX players_by_lastseen"
+		" ON players (lastseen DESC, elo DESC, name DESC)",
+
+		"CREATE INDEX clan_index"
+		" ON players (clan)",
+
+		NULL
+	};
+
+	if (sqlite3_open_v2(config.dbpath, &db, FLAGS, NULL) != SQLITE_OK)
+		goto fail_open;
+
+	/*
+	 * Batch create queries in a single immediate transaction so
+	 * that if someone else try to create the database at the same
+	 * time, one will quietly fail, assuming the other successfully
+	 * created the database.
+	 */
+	if (sqlite3_exec(db, "BEGIN IMMEDIATE", 0, 0, 0) != SQLITE_OK)
+		return;
+
+	for (query = queries; *query; query++) {
+		if (sqlite3_prepare_v2(db, *query, -1, &res, NULL) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_step(res) != SQLITE_DONE)
+			goto fail;
+		sqlite3_finalize(res);
+	}
+
+	init_version_table();
+	init_masters_table();
+
+	if (sqlite3_exec(db, "COMMIT", 0, 0, 0) != SQLITE_OK)
+		goto fail;
+
+	return;
+
+fail_open:
+	fprintf(
+		stderr, "%s: create_database(): %s\n",
+		config.dbpath, sqlite3_errmsg(db));
+	exit(EXIT_FAILURE);
+
+fail:
+	fprintf(
+		stderr, "%s: create_database(): query %zi: %s\n",
+		config.dbpath, query - queries + 1, sqlite3_errmsg(db));
+	sqlite3_exec(db, "ROLLBACK", 0, 0, 0);
 	exit(EXIT_FAILURE);
 }
 
@@ -99,23 +275,35 @@ void load_config(int check_version)
 		exit(EXIT_FAILURE);
 	}
 
+	/* We work with UTC time only */
+	setenv("TZ", "", 1);
+	tzset();
+
+	/* Open database now so we can check it's version */
+	if (sqlite3_open_v2(config.dbpath, &db, SQLITE_OPEN_READWRITE, NULL) != SQLITE_OK)
+		create_database();
+
+	/*
+	 * Wait when two or more processes want to write the database.
+	 * That is useful to avoid "database is locked", to some
+	 * extents.  It could still happen if somehow the process has to
+	 * wait more then the given timeout.
+	 */
+	sqlite3_busy_timeout(db, 5000);
+
 	if (check_version) {
 		int version = get_version();
 
 		if (version > DATABASE_VERSION) {
-			fprintf(stderr, "%s: Database layout unsupported, upgrade your teerank installation\n",
-				config.root);
+			fprintf(stderr, "%s: Database too modern, upgrade your teerank installation\n",
+				config.dbpath);
 			exit(EXIT_FAILURE);
 		} else if (version < DATABASE_VERSION) {
 			fprintf(stderr, "%s: Database outdated, upgrade it with teerank-upgrade\n",
-				config.root);
+				config.dbpath);
 			exit(EXIT_FAILURE);
 		}
 	}
-
-	/* Doing so makes mktime() usable for UTC time */
-	setenv("TZ", "", 1);
-	tzset();
 }
 
 void verbose(const char *fmt, ...)
@@ -126,51 +314,4 @@ void verbose(const char *fmt, ...)
 		vfprintf(stderr, fmt, ap);
 		va_end(ap);
 	}
-}
-
-static char *prefix_root(char *buf, size_t *size)
-{
-	int ret;
-
-	assert(buf != NULL);
-	assert(size != NULL);
-
-	ret = snprintf(buf, *size, "%s/", config.root);
-	if (ret < 0) {
-		perror(config.root);
-		return NULL;
-	} else if (ret >= *size) {
-		fprintf(stderr, "%s: Too long\n", config.root);
-		return NULL;
-	}
-
-	*size -= ret;
-	return buf + ret;
-}
-
-char *dbpath(char *buf, size_t size, const char *fmt, ...)
-{
-	char *tmp;
-	va_list ap;
-	int ret;
-
-	/* Prefix config.root */
-	if (!(tmp = prefix_root(buf, &size)))
-		return NULL;
-
-	va_start(ap, fmt);
-	ret = vsnprintf(tmp, size, fmt, ap);
-	if (ret < 0) {
-		perror(config.root);
-		goto fail;
-	} else if (ret >= size) {
-		fprintf(stderr, "%s: Too long\n", config.root);
-		goto fail;
-	}
-	va_end(ap);
-	return buf;
-
-fail:
-	va_end(ap);
-	return NULL;
 }

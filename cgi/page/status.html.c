@@ -95,7 +95,7 @@ int main_html_status(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	if (elapsed_time(&info.last_update, NULL, buf, sizeof(buf))) {
+	if (elapsed_time(info.last_update, NULL, buf, sizeof(buf))) {
 		snprintf(comment, sizeof(comment), "Not updated since %s", buf);
 		print_status("Teerank", comment, STATUS_STOPPED);
 		teerank_stopped = 1;
@@ -125,7 +125,7 @@ int main_html_status(int argc, char **argv)
 		else if (minfo->lastseen == NEVER_SEEN)
 			print_status(minfo->node, NULL, STATUS_DOWN);
 
-		else if (elapsed_time(gmtime(&minfo->lastseen), NULL, buf, sizeof(buf))) {
+		else if (elapsed_time(minfo->lastseen, NULL, buf, sizeof(buf))) {
 			snprintf(comment, sizeof(comment), "Since %s", buf);
 			print_status(minfo->node, comment, STATUS_DOWN);
 

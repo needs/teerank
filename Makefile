@@ -1,6 +1,6 @@
-TEERANK_VERSION = 3
+TEERANK_VERSION = 4
 TEERANK_SUBVERSION = 0
-DATABASE_VERSION = 6
+DATABASE_VERSION = 7
 STABLE_VERSION = 0
 
 # Used to make a direct URL to github
@@ -27,7 +27,8 @@ CFLAGS += \
 	-std=c89 \
 	-Wall -Werror \
 	-Icore -Icgi \
-	-lm
+	-lm \
+	-lsqlite3
 
 # Using POSIX 2008 is another safeguard against unwanted lib C
 # extensions.  We could use an older POSIX standard but it turns out

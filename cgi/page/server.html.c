@@ -10,23 +10,6 @@
 #include "player.h"
 #include "server.h"
 
-static int cmp_client(const void *p1, const void *p2)
-{
-	const struct client *a = p1, *b = p2;
-
-	/* Ingame players comes first */
-	if (a->ingame != b->ingame)
-		return a->ingame ? -1 : 1;
-
-	/* We want player with the higher score first */
-	if (b->score > a->score)
-		return 1;
-	if (b->score < a->score)
-		return -1;
-
-	return 0;
-}
-
 int main_html_server(int argc, char **argv)
 {
 	struct server server;
@@ -43,11 +26,10 @@ int main_html_server(int argc, char **argv)
 	if (!parse_addr(argv[1], &ip, &port))
 		return EXIT_NOT_FOUND;
 
-	if ((ret = read_server(&server, server_filename(ip, port))) != SUCCESS)
+	if ((ret = read_server(&server, ip, port)) != SUCCESS)
 		return ret;
-
-	/* Sort client */
-	qsort(server.clients, server.num_clients, sizeof(*server.clients), cmp_client);
+	if (!read_server_clients(&server))
+		return EXIT_FAILURE;
 
 	for (i = 0; i < server.num_clients; i++)
 		server.clients[i].ingame ? playing++ : spectating++;
@@ -86,16 +68,16 @@ int main_html_server(int argc, char **argv)
 
 		for (i = 0; i < server.num_clients; i++) {
 			struct client client = server.clients[i];
-			struct player_info player;
+			struct player player;
 
-			read_player_info(&player, client.name);
+			read_player(&player, client.name, 1);
 			html_online_player_list_entry(&player, &client);
 		}
 
 		html_end_online_player_list();
 	}
 
-	html_footer("server", relurl("/server/%s.json", addr));
+	html_footer("server", relurl("/servers/%s.json", addr));
 
 	return EXIT_SUCCESS;
 }

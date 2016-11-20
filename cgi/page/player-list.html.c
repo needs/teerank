@@ -9,23 +9,52 @@
 #include "cgi.h"
 #include "config.h"
 #include "html.h"
-#include "index.h"
 #include "page.h"
 
-enum sort_order {
-	SORT_BY_RANK,
-	SORT_BY_LASTSEEN
+static const struct order {
+	char *column1, *column2, *urlprefix;
+} BY_RANK = {
+	"elo", "lastseen", "/players"
+}, BY_LASTSEEN = {
+	"lastseen", "elo", "/players/by-lastseen"
 };
+
+static unsigned get_npages(void)
+{
+	unsigned npages;
+	struct sqlite3_stmt *res;
+	char query[] =
+		"SELECT COUNT(1) FROM players";
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	if (sqlite3_step(res) != SQLITE_ROW)
+		goto fail;
+
+	npages = sqlite3_column_int64(res, 0) / 100 + 1;
+
+	sqlite3_finalize(res);
+	return npages;
+
+fail:
+	fprintf(stderr, "%s: get_npages(): %s\n", config.dbpath, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 1;
+}
 
 int main_html_player_list(int argc, char **argv)
 {
-	struct index_page ipage;
-	struct indexed_player *p;
-	unsigned pnum;
-	const char *indexname;
-	const char *urlprefix;
+	const struct order *order;
+	unsigned pnum, offset;
 	int ret;
-	enum sort_order order;
+
+	struct sqlite3_stmt *res;
+	char query[512], *queryfmt =
+		"SELECT" ALL_PLAYER_COLUMN "," RANK_COLUMN
+		" FROM players"
+		" ORDER BY %s DESC, %s DESC, name DESC"
+		" LIMIT 100 OFFSET %u";
 
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s <page_number> by-rank|by-lastseen\n", argv[0]);
@@ -36,43 +65,58 @@ int main_html_player_list(int argc, char **argv)
 		return EXIT_FAILURE;
 
 	if (strcmp(argv[2], "by-rank") == 0) {
-		indexname = "players_by_rank";
-		urlprefix = "/players";
-		order = SORT_BY_RANK;
+		order = &BY_RANK;
 	} else if (strcmp(argv[2], "by-lastseen") == 0) {
-		indexname = "players_by_lastseen";
-		urlprefix = "/players/by-lastseen";
-		order = SORT_BY_LASTSEEN;
+		order = &BY_LASTSEEN;
 	} else {
 		fprintf(stderr, "%s: Should be either \"by-rank\" or \"by-lastseen\"\n", argv[2]);
 		return EXIT_FAILURE;
 	}
 
-	ret = open_index_page(
-		indexname, &ipage, &INDEX_DATA_INFO_PLAYER,
-		pnum, PLAYERS_PER_PAGE);
-	if (ret != SUCCESS)
-		return ret;
+	offset = (pnum - 1) * 100;
+	snprintf(
+		query, sizeof(query), queryfmt,
+		order->column1, order->column2, offset);
+
+	if (sqlite3_prepare_v2(db, query, -1, &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	if ((ret = sqlite3_step(res)) == SQLITE_DONE && pnum > 1) {
+		sqlite3_finalize(res);
+		return EXIT_NOT_FOUND;
+	}
 
 	html_header(&CTF_TAB, "CTF", "/players", NULL);
 	print_section_tabs(PLAYERS_TAB, NULL, NULL);
 
-	if (order == SORT_BY_RANK)
+	if (order == &BY_RANK)
 		html_start_player_list(1, 0, pnum);
 	else
 		html_start_player_list(0, 1, pnum);
 
-	while ((p = index_page_foreach(&ipage, NULL)))
+	while (ret == SQLITE_ROW) {
+		struct player p;
+
+		player_from_result_row(&p, res, 1);
+
 		html_player_list_entry(
-			p->name, p->clan, p->elo, p->rank, *gmtime(&p->lastseen),
-			build_addr(p->server_ip, p->server_port), 0);
+			p.name, p.clan, p.elo, p.rank, p.lastseen,
+			build_addr(p.server_ip, p.server_port), 0);
+		ret = sqlite3_step(res);
+	}
+
+	if (ret != SQLITE_DONE)
+		goto fail;
 
 	html_end_player_list();
-	print_page_nav(urlprefix, &ipage);
-
+	print_page_nav(order->urlprefix, pnum, get_npages());
 	html_footer("player-list", relurl("/players/%s.json?p=%u", argv[2], pnum));
 
-	close_index_page(&ipage);
-
+	sqlite3_finalize(res);
 	return EXIT_SUCCESS;
+
+fail:
+	fprintf(stderr, "%s: html_player_list: %s\n", config.dbpath, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 1;
 }

@@ -106,10 +106,6 @@ void init_player(struct player *player)
 {
 	static const struct player PLAYER_ZERO;
 	*player = PLAYER_ZERO;
-
-	init_historic(
-		&player->hist, "historic",
-		sizeof(struct player_record), UINT_MAX);
 }
 
 /*
@@ -121,73 +117,54 @@ static void reset_player(struct player *player, const char *name)
 	strcpy(player->clan, "00");
 	player->elo = INVALID_ELO;
 	player->rank = UNRANKED;
-	player->lastseen = *gmtime(&NEVER_SEEN);
+	player->lastseen = NEVER_SEEN;
 
 	player->clan_changed = 0;
 	player->delta = NULL;
 }
 
-static void reset_player_info(struct player_info *player, const char *name)
-{
-	strcpy(player->name, name);
-	strcpy(player->clan, "00");
-	player->elo = INVALID_ELO;
-	player->rank = UNRANKED;
-	player->lastseen = *gmtime(&NEVER_SEEN);
-}
-
 void create_player(struct player *player, const char *name)
 {
-	time_t now;
-
 	assert(player != NULL);
 
 	strcpy(player->name, name);
 	strcpy(player->clan, "00");
 
-	create_historic(&player->hist);
+	player->elo = DEFAULT_ELO;
+	player->rank = UNRANKED;
 
-	set_elo(player, DEFAULT_ELO);
-	set_rank(player, UNRANKED);
-
-	now = time(NULL);
-	player->lastseen = *gmtime(&now);
+	player->lastseen = time(NULL);
 	strcpy(player->server_ip, "");
 	strcpy(player->server_port, "");
 
 	player->is_rankable = 0;
 }
 
-static int read_player_record(struct jfile *jfile, void *buf)
+void player_from_result_row(struct player *player, sqlite3_stmt *res, int read_rank)
 {
-	struct player_record *rec = buf;
+	snprintf(player->name, sizeof(player->name), "%s", sqlite3_column_text(res, 0));
+	snprintf(player->clan, sizeof(player->clan), "%s", sqlite3_column_text(res, 1));
+	player->elo = sqlite3_column_int(res, 2);
+	player->lastseen = sqlite3_column_int64(res, 3);
+	snprintf(player->server_ip, sizeof(player->server_ip), "%s", sqlite3_column_text(res, 4));
+	snprintf(player->server_port, sizeof(player->server_port), "%s", sqlite3_column_text(res, 5));
 
-	json_read_int(jfile, NULL, &rec->elo);
-	json_read_unsigned(jfile, NULL, &rec->rank);
-
-	return !json_have_error(jfile);
+	if (read_rank)
+		player->rank = sqlite3_column_int64(res, 6);
 }
 
-static void read_player_header(struct jfile *jfile, struct player *player)
+int read_player(struct player *player, const char *name, int read_rank)
 {
-	json_read_string(  jfile, "name"    , player->name, sizeof(player->name));
-	json_read_string(  jfile, "clan"    , player->clan, sizeof(player->clan));
-	json_read_int(     jfile, "elo"     , &player->elo);
-	json_read_unsigned(jfile, "rank"    , &player->rank);
-	json_read_tm(      jfile, "lastseen", &player->lastseen);
-	json_read_string(  jfile, "server_ip"  , player->server_ip, sizeof(player->server_ip));
-	json_read_string(  jfile, "server_port", player->server_port, sizeof(player->server_port));
-}
-
-int read_player(struct player *player, const char *name)
-{
-	FILE *file = NULL;
-	struct jfile jfile;
-	char path[PATH_MAX];
-
-	assert(name != NULL);
-	assert(player != NULL);
-	assert(is_valid_hexname(name));
+	int ret;
+	sqlite3_stmt *res;
+	const char qnorank[] =
+		"SELECT" ALL_PLAYER_COLUMN
+		" FROM players"
+		" WHERE name = ?";
+	const char qrank[] =
+		"SELECT" ALL_PLAYER_COLUMN "," RANK_COLUMN
+		" FROM players"
+		" WHERE name = ?";
 
 	/*
 	 * Reset player sets every fields to a 'no value' state, invalid for
@@ -198,138 +175,71 @@ int read_player(struct player *player, const char *name)
 	 */
 	reset_player(player, name);
 
-	if (!dbpath(path, PATH_MAX, "players/%s", name))
+	if (read_rank)
+		ret = sqlite3_prepare_v2(db, qrank, sizeof(qrank), &res, NULL);
+	else
+		ret = sqlite3_prepare_v2(db, qnorank, sizeof(qnorank), &res, NULL);
+
+	if (ret != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 1, name, -1, SQLITE_STATIC) != SQLITE_OK)
 		goto fail;
 
-	if (!(file = fopen(path, "r"))) {
-		if (errno == ENOENT)
-			return NOT_FOUND;
-
-		perror(path);
-		goto fail;
-	}
-
-	json_init(&jfile, file, path);
-
-	json_read_object_start(&jfile, NULL);
-	read_player_header(&jfile, player);
-
-	if (json_have_error(&jfile))
+	ret = sqlite3_step(res);
+	if (ret == SQLITE_DONE)
+		goto not_found;
+	else if (ret != SQLITE_ROW)
 		goto fail;
 
-	if (!read_historic(&player->hist, &jfile, read_player_record))
-		goto fail;
+	player_from_result_row(player, res, read_rank);
 
-	if (!json_read_object_end(&jfile))
-		goto fail;
-
-	fclose(file);
-
-	/* Historics cannot be empty */
-	assert(player->hist.nrecords > 0);
-
+	sqlite3_finalize(res);
 	return SUCCESS;
 
+not_found:
+	sqlite3_finalize(res);
+	return NOT_FOUND;
 fail:
-	if (file)
-		fclose(file);
+	fprintf(stderr, "%s: read_player(%s): %s\n", config.dbpath, name, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
 	return FAILURE;
-}
-
-static int write_player_record(struct jfile *jfile, void *buf)
-{
-	struct player_record *rec = buf;
-
-	json_write_int(     jfile, NULL, rec->elo);
-	json_write_unsigned(jfile, NULL, rec->rank);
-
-	return !json_have_error(jfile);
-}
-
-static void write_player_header(struct jfile *jfile, struct player *player)
-{
-	json_write_string(  jfile, "name"    , player->name, sizeof(player->name));
-	json_write_string(  jfile, "clan"    , player->clan, sizeof(player->clan));
-	json_write_int(     jfile, "elo"     , player->elo);
-	json_write_unsigned(jfile, "rank"    , player->rank);
-	json_write_tm(      jfile, "lastseen", player->lastseen);
-	json_write_string(  jfile, "server_ip"  , player->server_ip, sizeof(player->server_ip));
-	json_write_string(  jfile, "server_port", player->server_port, sizeof(player->server_port));
 }
 
 int write_player(struct player *player)
 {
-	struct jfile jfile;
-	FILE *file = NULL;
-	char path[PATH_MAX];
+	sqlite3_stmt *res;
+	const char query[] =
+		"INSERT OR REPLACE INTO players"
+		" VALUES (?, ?, ?, ?, ?, ?)";
 
-	assert(player != NULL);
-	assert(player->name[0] != '\0');
-
-	if (!dbpath(path, PATH_MAX, "players/%s", player->name))
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
 		goto fail;
 
-	if (!(file = fopen(path, "w"))) {
-		perror(path);
+	if (sqlite3_bind_text(res, 1, player->name, -1, SQLITE_STATIC) != SQLITE_OK)
 		goto fail;
-	}
-
-	json_init(&jfile, file, path);
-
-	json_write_object_start(&jfile, NULL);
-	write_player_header(&jfile, player);
-
-	if (json_have_error(&jfile))
+	if (sqlite3_bind_text(res, 2, player->clan, -1, SQLITE_STATIC) != SQLITE_OK)
 		goto fail;
-
-	if (!write_historic(&player->hist, &jfile, write_player_record))
+	if (sqlite3_bind_int(res, 3, player->elo) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int64(res, 4, player->lastseen) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 5, player->server_ip, -1, SQLITE_STATIC) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 6, player->server_port, -1, SQLITE_STATIC) != SQLITE_OK)
 		goto fail;
 
-	if (!json_write_object_end(&jfile))
+	if (sqlite3_step(res) != SQLITE_DONE)
 		goto fail;
 
-	fclose(file);
-	return 1;
+	sqlite3_finalize(res);
+	return SUCCESS;
+
 fail:
-	if (file)
-		fclose(file);
-	return 0;
-}
-
-void set_elo(struct player *player, int elo)
-{
-	struct player_record *last = NULL;
-
-	assert(player != NULL);
-
-	player->elo = elo;
-
-	if (player->hist.last)
-		last = record_data(&player->hist, player->hist.last);
-
-	if (last && last->rank == UNRANKED) {
-		last->elo = elo;
-	} else {
-		struct player_record rec;
-
-		rec.elo = elo;
-		rec.rank = UNRANKED;
-
-		append_record(&player->hist, &rec);
-	}
-}
-
-void set_rank(struct player *player, unsigned rank)
-{
-	struct player_record *rec;
-
-	assert(player != NULL);
-
-	player->rank = rank;
-
-	rec = record_data(&player->hist, player->hist.last);
-	if (rec->rank == UNRANKED)
-		rec->rank = rank;
+	fprintf(
+		stderr, "%s: write_player(%s): %s\n",
+		config.dbpath, player->name, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return FAILURE;
 }
 
 void set_clan(struct player *player, char *clan)
@@ -344,68 +254,45 @@ void set_clan(struct player *player, char *clan)
 
 void set_lastseen(struct player *player, const char *ip, const char *port)
 {
-	time_t now = time(NULL);
-
 	assert(player != NULL);
 
-	player->lastseen = *gmtime(&now);
+	player->lastseen = time(NULL);
 	strcpy(player->server_ip, ip);
 	strcpy(player->server_port, port);
 }
 
-static void init_player_info(struct player_info *ps)
+void record_elo_and_rank(struct player *player)
 {
-	strcpy(ps->clan, "00");
-	ps->elo = INVALID_ELO;
-	ps->rank = UNRANKED;
-	ps->lastseen = (struct tm){ 0 };
-}
+	sqlite3_stmt *res;
+	const char query[] =
+		"INSERT OR REPLACE INTO player_historic"
+		" VALUES (?, ?, ?, ?)";
 
-static void read_player_info_header(
-	struct jfile *jfile, struct player_info *ps)
-{
-	json_read_string(  jfile, "name", ps->name, sizeof(ps->name));
-	json_read_string(  jfile, "clan", ps->clan, sizeof(ps->clan));
-	json_read_int(     jfile, "elo", &ps->elo);
-	json_read_unsigned(jfile, "rank", &ps->rank);
-	json_read_tm(      jfile, "lastseen", &ps->lastseen);
-	json_read_string(  jfile, "server_ip", ps->server_ip, sizeof(ps->server_ip));
-	json_read_string(  jfile, "server_port", ps->server_port, sizeof(ps->server_port));
-}
+	assert(player != NULL);
+	assert(player->elo != INVALID_ELO);
+	assert(player->rank != UNRANKED);
 
-int read_player_info(struct player_info *ps, const char *name)
-{
-	struct jfile jfile;
-	FILE *file = NULL;
-	char path[PATH_MAX];
-
-	init_player_info(ps);
-	reset_player_info(ps, name);
-
-	if (!dbpath(path, PATH_MAX, "players/%s", name))
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
 		goto fail;
 
-	if (!(file = fopen(path, "r"))) {
-		if (errno == ENOENT)
-			return NOT_FOUND;
-		perror(path);
+	if (sqlite3_bind_text(res, 1, player->name, -1, SQLITE_STATIC) != SQLITE_OK)
 		goto fail;
-	}
-
-	json_init(&jfile, file, path);
-
-	json_read_object_start(&jfile, NULL);
-	read_player_info_header(&jfile, ps);
-	read_historic_info(&ps->hist, "historic", &jfile);
-
-	if (json_have_error(&jfile))
+	if (sqlite3_bind_int64(res, 2, time(NULL)) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int(res, 3, player->elo) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int64(res, 4, player->rank) != SQLITE_OK)
 		goto fail;
 
-	fclose(file);
-	return SUCCESS;
+	if (sqlite3_step(res) != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_finalize(res);
+	return;
 
 fail:
-	if (file)
-		fclose(file);
-	return FAILURE;
+	fprintf(
+		stderr, "%s: record_player_elo_and_rank(%s): %s\n",
+		config.dbpath, player->name, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
 }

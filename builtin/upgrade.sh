@@ -1,15 +1,23 @@
 #!/bin/sh
 
+# Since teerank_root is not a thing anymore, we have to redefine it here
+# for the old database
+if [ -z "$TEERANK_ROOT" ]; then TEERANK_ROOT=.teerank; fi
+
 file="$TEERANK_ROOT/version"
 
 if [ -f "$file" ]; then
 	version=$(< "$file")
 else
-	version=0
+	version=DATABASE_VERSION
 fi
 
 if (( version == $DATABASE_VERSION )); then
 	echo "Database already upgraded to the latest version ($version)"
+	exit 0
+elif (( version + 1 != $DATABASE_VERSION )); then
+	echo "Database too old to be upgraded ($version), use an older"
+	echo" version of teerank to upgrade it"
 	exit 0
 fi
 
@@ -27,32 +35,11 @@ if [ $version -lt $DATABASE_VERSION ] && [ $STABLE_VERSION -eq 0 ]; then
 	echo
 fi
 
-backup="teerank.$version.upgrade-backup.tar.gz"
+echo "Upgrading from $version to $((version + 1))..."
 
-echo "Creating backup \"$backup\""
-tar czfC "$backup" "$TEERANK_ROOT" . || {
-	echo "Cannot create backup, aborting"
+teerank-upgrade-$version-to-$(($version + 1)) || {
+	echo "Error while upgrading from $version to $(($version + 1))"
 	exit 1
 }
 
-while (( version < $DATABASE_VERSION )); do
-        echo "Upgrading from $version to $((version + 1))..."
-
-	teerank-upgrade-$version-to-$(($version + 1)) || {
-		echo "Error while upgrading from $version to $(($version + 1))"
-		echo "Restoring database with backup \"$backup\""
-
-		# We could use rm -r but I'm actually afraid of any
-		# mistake that will delete the wrong directory
-		tar xzf "$backup" -C "$TEERANK_ROOT"
-		rm "$backup"
-
-		exit 1
-	}
-
-	((version++))
-	echo "$version" > "$file"
-done
-
-echo "Success! Removing backup"
-rm "$backup"
+echo "Success!"

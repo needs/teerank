@@ -22,22 +22,58 @@
 #include "pool.h"
 #include "info.h"
 
+#define MAX_MASTERS 8
+
 struct master {
-	char *node, *service;
-	unsigned nservers;
+	char node[64], service[10];
+	time_t lastseen;
+
 	short is_online;
 
 	struct pool_entry pentry;
 	struct sockaddr_storage addr;
 };
 
-static struct master masters[] = {
-	{ "master1.teeworlds.com", "8300" },
-	{ "master2.teeworlds.com", "8300" },
-	{ "master3.teeworlds.com", "8300" },
-	{ "master4.teeworlds.com", "8300" },
-	{ NULL }
-};
+/*
+ * Add one extra element so that we can iterate the array and stop when
+ * node is empty, removing the need for keeping count of masters.
+ */
+static struct master masters[MAX_MASTERS + 1];
+
+static int init_masters_list(void)
+{
+	int ret;
+	sqlite3_stmt *res;
+	struct master *master;
+	const char query[] =
+		"SELECT node, service, lastseen"
+		" FROM masters";
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	for (master = masters; master - masters < MAX_MASTERS; master++) {
+		if ((ret = sqlite3_step(res)) != SQLITE_ROW)
+			break;
+
+		snprintf(master->node, sizeof(master->node), "%s", sqlite3_column_text(res, 0));
+		snprintf(master->service, sizeof(master->service), "%s", sqlite3_column_text(res, 1));
+		master->lastseen = sqlite3_column_int64(res, 3);
+	}
+
+	if (ret != SQLITE_ROW && ret != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_finalize(res);
+	return 1;
+
+fail:
+	fprintf(
+		stderr, "%s: init_masters_list(): %s\n",
+	        config.dbpath, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 0;
+}
 
 static const uint8_t MSG_GETLIST[] = {
 	255, 255, 255, 255, 'r', 'e', 'q', '2'
@@ -46,12 +82,17 @@ static const uint8_t MSG_LIST[] = {
 	255, 255, 255, 255, 'l', 'i', 's', '2'
 };
 
-struct server_list {
-	unsigned length;
-	struct server_addr *addrs;
+struct entry {
+	struct server_addr addr;
+	struct master *master;
 };
 
-static void add(struct server_list *list, struct server_addr *addr)
+struct list {
+	unsigned length;
+	struct entry *entries;
+};
+
+static void add(struct list *list, struct server_addr *addr, struct master *master)
 {
 	const unsigned OFFSET = 1024;
 
@@ -59,16 +100,17 @@ static void add(struct server_list *list, struct server_addr *addr)
 	assert(addr != NULL);
 
 	if (list->length % OFFSET == 0) {
-		list->addrs = realloc(
-			list->addrs,
-			(list->length + OFFSET) * sizeof(*list->addrs));
-		if (!list->addrs) {
+		list->entries = realloc(
+			list->entries,
+			(list->length + OFFSET) * sizeof(*list->entries));
+		if (!list->entries) {
 			perror("realloc(list)");
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	list->addrs[list->length] = *addr;
+	list->entries[list->length].addr = *addr;
+	list->entries[list->length].master = master;
 	list->length++;
 }
 
@@ -128,7 +170,7 @@ static void raw_addr_to_addr(
 	(void)ret;
 }
 
-static void handle_data(struct data *data, struct server_list *list, struct master *master)
+static void handle_data(struct data *data, struct list *list, struct master *master)
 {
 	unsigned char *buf;
 	unsigned added = 0;
@@ -149,14 +191,13 @@ static void handle_data(struct data *data, struct server_list *list, struct mast
 		struct server_addr addr;
 
 		raw_addr_to_addr(raw, &addr);
-		add(list, &addr);
+		add(list, &addr, master);
 		added++;
 
 		buf += sizeof(*raw);
 		size -= sizeof(*raw);
 	}
 
-	master->nservers += added;
 	master->is_online = 1;
 }
 
@@ -166,7 +207,7 @@ static struct master *get_master(struct pool_entry *entry)
 	return (struct master*)((char*)entry - offsetof(struct master, pentry));
 }
 
-static void fill_server_list(struct server_list *list)
+static void fill_list(struct list *list)
 {
 	struct pool pool;
 	struct pool_entry *entry;
@@ -177,7 +218,7 @@ static void fill_server_list(struct server_list *list)
 	assert(list != NULL);
 
 	list->length = 0;
-	list->addrs = NULL;
+	list->entries = NULL;
 
 	if (!init_sockets(&sockets))
 		exit(EXIT_FAILURE);
@@ -186,7 +227,7 @@ static void fill_server_list(struct server_list *list)
 	memcpy(data.buffer, MSG_GETLIST, data.size);
 	init_pool(&pool, &sockets, &data);
 
-	for (m = masters; m->node; m++) {
+	for (m = masters; m->node[0]; m++) {
 		if (!get_sockaddr(m->node, m->service, &m->addr))
 			continue;
 		add_pool_entry(&pool, &m->pentry, &m->addr);
@@ -209,75 +250,63 @@ static void fill_server_list(struct server_list *list)
 	close_sockets(&sockets);
 }
 
-static char *addr_to_filename(struct server_addr *addr)
+static int update_masters_info(void)
 {
-	static char ret[2 + 1 + IP_LENGTH + 1 + PORT_LENGTH + 1];
-	unsigned i;
+	struct master *master;
+	sqlite3_stmt *res;
+	const char query[] =
+		"UPDATE masters"
+		" SET lastseen = ?"
+		" WHERE node = ? AND service = ?";
 
-	assert(addr != NULL);
+	if (sqlite3_exec(db, "BEGIN", 0, 0, 0) != SQLITE_OK)
+		goto fail;
 
-	/*
-	 * Produce a unique identifier based on IP and port.
-	 *
-	 * 	<type> <IP> <port>
-	 *
-	 * Where every occurence of '.' and ':' has been replaced by '_'.
-	 */
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
 
-	sprintf(ret, "%s %s %s",
-	        addr->version == IPV4 ? "v4" : "v6",
-	        addr->ip, addr->port);
+	for (master = masters; master->node[0]; master++) {
+		if (!master->is_online)
+			continue;
+		else
+			master->lastseen = time(NULL);
 
-	for (i = 0; i < strlen(ret); i++)
-		if (ret[i] == '.' || ret[i] == ':')
-			ret[i] = '_';
+		if (sqlite3_bind_int64(res, 1, master->lastseen) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_bind_text(res, 2, master->node, -1, SQLITE_STATIC) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_bind_text(res, 3, master->service, -1, SQLITE_STATIC) != SQLITE_OK)
+			goto fail;
 
-	return ret;
-}
+		if (sqlite3_step(res) != SQLITE_DONE)
+			goto fail;
 
-static void update_masters_info(void)
-{
-	struct info info;
-	struct master *m;
-	time_t now;
-
-	read_info(&info);
-
-	now = time(NULL);
-
-	/* Assume masters are sorted */
-	for (m = masters; m->node; m++) {
-		struct master_info *minfo;
-
-		if (m - masters == MAX_MASTERS)
-			break;
-
-		minfo = &info.masters[m - masters];
-
-		if (m - masters >= info.nmasters) {
-			/* New master */
-			snprintf(minfo->node, sizeof(minfo->node), "%s", m->node);
-			snprintf(minfo->service, sizeof(minfo->service), "%s", m->service);
-			minfo->lastseen = NEVER_SEEN;
-			minfo->nservers = m->nservers;
-		}
-
-		if (m->is_online) {
-			minfo->lastseen = now;
-			minfo->nservers = m->nservers;
-		}
+		if (sqlite3_reset(res) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_clear_bindings(res) != SQLITE_OK)
+			goto fail;
 	}
 
-	info.nmasters = m - masters;
-	write_info(&info);
+	sqlite3_finalize(res);
+
+	if (sqlite3_exec(db, "COMMIT", 0, 0, 0) != SQLITE_OK)
+		goto fail;
+
+	return 1;
+
+fail:
+	fprintf(
+		stderr, "%s: update_masters_info(): %s\n",
+		config.dbpath, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	sqlite3_exec(db, "ROLLBACK", 0, 0, 0);
+	return 0;
 }
 
 int main(int argc, char **argv)
 {
-	struct server_list list;
-	int fd;
+	struct list list;
 	unsigned i;
-	static char path[PATH_MAX];
 	unsigned count_new = 0;
 
 	load_config(1);
@@ -286,26 +315,26 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	sprintf(path, "%s/servers", config.root);
-	fd = open(path, O_RDONLY | O_DIRECTORY);
-	if (fd == -1) {
-		perror(path);
+	if (!init_masters_list())
 		return EXIT_FAILURE;
-	}
 
-	fill_server_list(&list);
-	update_masters_info();
+	fill_list(&list);
+	if (!update_masters_info())
+		return EXIT_FAILURE;
+
+	if (sqlite3_exec(db, "BEGIN", 0, 0, 0) != SQLITE_OK)
+		return EXIT_FAILURE;
 
 	for (i = 0; i < list.length; i++) {
-		struct server_addr *addr = &list.addrs[i];
+		struct server_addr *addr = &list.entries[i].addr;
+		struct master *master = list.entries[i].master;
 
-		if (create_server(addr->ip, addr->port)) {
-			verbose("New server: %s\n", addr_to_filename(addr));
+		if (create_server(addr->ip, addr->port, master->node, master->service))
 			count_new++;
-		}
 	}
 
-	close(fd);
+	if (sqlite3_exec(db, "COMMIT", 0, 0, 0) != SQLITE_OK)
+		return EXIT_FAILURE;
 
 	verbose("Over %u servers referenced by masters, %u are new\n",
 	        list.length, count_new);

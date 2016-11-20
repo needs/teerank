@@ -5,35 +5,56 @@
 
 #include "cgi.h"
 #include "config.h"
+#include "info.h"
+#include "json.h"
 
-static int dump(const char *path)
+static void json_master(struct master_info *master)
 {
-	FILE *file;
-	int c;
+	putchar('{');
+	printf("\"node\":\"%s\",", master->node);
+	printf("\"service\":\"%s\",", master->node);
+	printf("\"last_seen\":\"%s\",", json_date(master->lastseen));
+	printf("\"nservers\":%u", master->nservers);
+	putchar('}');
+}
 
-	if (!(file = fopen(path, "r"))) {
-		perror(path);
-		return EXIT_FAILURE;
+static void json_info(struct info *info)
+{
+	unsigned i;
+
+	putchar('{');
+
+	printf("\"nplayers\":%u,", info->nplayers);
+	printf("\"nclans\":%u,", info->nclans);
+	printf("\"nservers\":%u,", info->nservers);
+	printf("\"last_update\":\"%s\",", json_date(info->last_update));
+
+	printf("\"nmasters\":%u,", info->nmasters);
+	printf("\"masters\":[");
+
+	for (i = 0; i < info->nmasters; i++) {
+		if (i)
+			putchar(',');
+		json_master(&info->masters[i]);
 	}
 
-	while ((c = fgetc(file)) != EOF)
-		putchar(c);
-
-	fclose(file);
-	return EXIT_SUCCESS;
+	putchar(']');
+	putchar('}');
 }
 
 int main_json_about(int argc, char **argv)
 {
-	char path[PATH_MAX];
+	struct info info;
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	if (!dbpath(path, PATH_MAX, "info"))
+	if (!read_info(&info))
 		return EXIT_FAILURE;
 
-	return dump(path);
+	json_info(&info);
+
+	return EXIT_SUCCESS;
 }

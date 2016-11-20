@@ -197,9 +197,7 @@ static int unpack_packet_data(struct data *data, struct server *server)
 
 struct netserver {
 	struct sockaddr_storage addr;
-
 	struct server server;
-
 	struct pool_entry entry;
 };
 
@@ -208,24 +206,26 @@ struct netserver_list {
 	struct netserver *netservers;
 };
 
-static int handle_data(struct data *data, struct netserver *ns)
+static int handle_data(struct pool *pool, struct data *data, struct netserver *ns)
 {
-	struct server new;
-	int elapsed;
+	struct server old;
 	struct delta delta;
+	int elapsed;
 
 	assert(data != NULL);
 	assert(ns != NULL);
 
-	new = ns->server;
+	/* In any cases, we expect only one answer */
+	remove_pool_entry(pool, &ns->entry);
+
+	old = ns->server;
 
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
 		return 0;
-	if (!unpack_packet_data(data, &new))
+	if (!unpack_packet_data(data, &ns->server))
 		return 0;
 
-	mark_server_online(&new);
-	write_server(&new);
+	mark_server_online(&ns->server);
 
 	/*
 	 * A new server have an elapsed time set to zero, so it wont be
@@ -233,12 +233,12 @@ static int handle_data(struct data *data, struct netserver *ns)
 	 * will have NO_SCORE in the "old_score" field of the delta,
 	 * hence, no players will be ranked anyway.
 	 */
-	if (ns->server.lastseen == NEVER_SEEN)
+	if (old.lastseen == NEVER_SEEN)
 		elapsed = 0;
 	else
-		elapsed = time(NULL) - ns->server.lastseen;
+		elapsed = time(NULL) - old.lastseen;
 
-	delta = delta_servers(&ns->server, &new, elapsed);
+	delta = delta_servers(&old, &ns->server, elapsed);
 	return print_delta(&delta);
 }
 
@@ -262,32 +262,23 @@ static int add_netserver(struct netserver_list *list, struct netserver *ns)
 
 static int fill_netserver_list(struct netserver_list *list)
 {
-	DIR *dir;
-	struct dirent *dp;
-	char path[PATH_MAX];
+	int ret;
+	sqlite3_stmt *res;
 	unsigned count = 0;
+	const char query[] =
+		"SELECT" ALL_SERVER_COLUMN
+		" FROM servers";
 
-	assert(list != NULL);
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
 
-	if (!dbpath(path, PATH_MAX, "servers"))
-		return 0;
-
-	dir = opendir(path);
-	if (!dir) {
-		perror(path);
-		return 0;
-	}
-
-	/* Fill array (ignore server on error) */
-	while ((dp = readdir(dir))) {
+	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
 		struct netserver ns;
 
-		if (!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, ".."))
-			continue;
-
+		server_from_result_row(&ns.server, res, 0);
 		count++;
 
-		if (read_server(&ns.server, dp->d_name) != SUCCESS)
+		if (!read_server_clients(&ns.server))
 			continue;
 		if (!server_expired(&ns.server))
 			continue;
@@ -298,12 +289,21 @@ static int fill_netserver_list(struct netserver_list *list)
 			continue;
 	}
 
-	closedir(dir);
+	if (ret != SQLITE_DONE)
+		goto fail;
 
 	verbose("%u servers found, %u will be refreshed\n",
 	        count, list->length);
 
+	sqlite3_finalize(res);
 	return 1;
+
+fail:
+	fprintf(
+		stderr, "%s: fill_netserver_list(): %s\n",
+	        config.dbpath, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 0;
 }
 
 static struct netserver *get_netserver(struct pool_entry *entry)
@@ -314,6 +314,10 @@ static struct netserver *get_netserver(struct pool_entry *entry)
 
 static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 {
+	struct pool pool;
+	struct pool_entry *entry;
+	struct data answer;
+	unsigned i, failed_count = 0, success_count = 0;
 	const struct data request = {
 		sizeof(MSG_GETINFO) + 1, {
 			MSG_GETINFO[0], MSG_GETINFO[1], MSG_GETINFO[2],
@@ -321,38 +325,41 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 			MSG_GETINFO[6], MSG_GETINFO[7], 0
 		}
 	};
-	struct pool pool;
-	struct pool_entry *entry;
-	struct data answer;
-	unsigned i, failed_count = 0, success_count = 0;
 
 	assert(list != NULL);
 	assert(sockets != NULL);
 
 	init_pool(&pool, sockets, &request);
 	for (i = 0; i < list->length; i++)
-		add_pool_entry(&pool, &list->netservers[i].entry,
-		               &list->netservers[i].addr);
-
-	start_printing_delta();
+		add_pool_entry(
+			&pool, &list->netservers[i].entry,
+			&list->netservers[i].addr);
 
 	while ((entry = poll_pool(&pool, &answer))) {
-		/* In any cases, we expect only one answer */
-		remove_pool_entry(&pool, entry);
-		handle_data(&answer, get_netserver(entry));
+		handle_data(&pool, &answer, get_netserver(entry));
 		success_count++;
 	}
 
-	stop_printing_delta();
-
 	while ((entry = foreach_failed_poll(&pool))) {
-		struct netserver *ns = get_netserver(entry);
-		mark_server_offline(&ns->server);
-		write_server(&ns->server);
+		mark_server_offline(&(get_netserver(entry)->server));
 		failed_count++;
 	}
 
-	verbose("Polling succeded for %u servers and failed for %u servers\n", success_count, failed_count);
+	/*
+	 * Write servers in the database only now to batch every updates
+	 * in a single transaction, hence reducing lock contention on
+	 * the database.
+	 */
+	sqlite3_exec(db, "BEGIN", 0, 0, 0);
+	for (i = 0; i < list->length; i++) {
+		write_server(&list->netservers[i].server);
+		write_server_clients(&list->netservers[i].server);
+	}
+	sqlite3_exec(db, "COMMIT", 0, 0, 0);
+
+	verbose(
+		"Polling succeded for %u servers and failed for %u servers\n",
+		success_count, failed_count);
 }
 
 static const struct netserver_list NETSERVER_LIST_ZERO;

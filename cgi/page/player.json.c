@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <limits.h>
 #include <errno.h>
@@ -8,45 +9,70 @@
 #include "config.h"
 #include "player.h"
 #include "page.h"
+#include "json.h"
 
-static int dump_n_fields(FILE *file, unsigned n)
+static void json_player(struct player *player)
 {
-        /*
-         * Each time we have a coma that is not in a string, increase
-         * field count.  Closing brace and closing bracket also increase
-         * field count.
-         */
-        int c, instring = 0, forcenext = 0;
+	printf("\"name\":\"%s\",", player->name);
+	printf("\"clan\":\"%s\",", player->clan);
+	printf("\"elo\":%d,", player->elo);
+	printf("\"rank\":%u,", player->rank);
+	printf("\"lastseen\":\"%s\",", json_date(player->lastseen));
+	printf("\"server_ip\":\"%s\",", player->server_ip);
+	printf("\"server_port\":\"%s\"", player->server_port);
+}
 
-        goto start;
-        while (n) {
-                putchar(c);
+static int json_player_historic(const char *pname)
+{
+	time_t epoch = 0;
+	int ret;
+	unsigned count = 0;
+	sqlite3_stmt *res;
+	char query[] =
+		"SELECT timestamp, elo, rank"
+		" FROM player_historic"
+		" WHERE name = ?"
+		" ORDER BY timestamp";
 
-        start:
-                c = fgetc(file);
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 1, pname, -1, NULL) != SQLITE_OK)
+		goto fail;
 
-                if (c == EOF)
-                        return 0;
+	printf("\"historic\":{\"records\":[");
 
-                if (forcenext)
-                        forcenext = 0;
-                else if (instring && c == '\\')
-                        forcenext = 1;
-                else if (!instring && c == '\"')
-                        instring = 1;
-                else if (instring && c == '\"')
-                        instring = 0;
-                else if (c == ',' || c == '}' || c == ']')
-                        n--;
-        }
+	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
+		if (!count)
+			epoch = sqlite3_column_int64(res, 1);
 
-        return 1;
+		printf(
+			"[%ju, %d, %u],",
+			(uintmax_t)(sqlite3_column_int64(res, 1) - epoch),
+			sqlite3_column_int(res, 2),
+			(unsigned)sqlite3_column_int64(res, 3));
+		count++;
+	}
+
+	printf("],\"epoch\":%ju,\"length\":%u}", (uintmax_t)epoch, count);
+
+	if (ret != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_finalize(res);
+	return 1;
+
+fail:
+	fprintf(
+		stderr, "%s: json_player_historic(%s): %s\n",
+		config.dbpath, pname, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 0;
 }
 
 int main_json_player(int argc, char **argv)
 {
-	char path[PATH_MAX];
-	int full;
+	struct player player;
+	int ret, full;
 
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s <player_name> full|short\n", argv[0]);
@@ -62,33 +88,16 @@ int main_json_player(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (!is_valid_hexname(argv[1]))
-		return EXIT_NOT_FOUND;
+	if ((ret = read_player(&player, argv[1], 1)) != SUCCESS)
+		return ret;
 
-	if (!dbpath(path, PATH_MAX, "players/%s", argv[1]))
+	putchar('{');
+
+	json_player(&player);
+	if (full && !json_player_historic(player.name))
 		return EXIT_FAILURE;
 
-	if (full) {
-		return dump(path);
-	} else {
-		FILE *file;
-		int success;
+	putchar('}');
 
-		if (!(file = fopen(path, "r"))) {
-			if (errno == ENOENT)
-				return EXIT_NOT_FOUND;
-			else
-				return EXIT_FAILURE;
-		}
-
-		success = dump_n_fields(file, 7);
-		putchar('}');
-		fclose(file);
-
-		if (success)
-			return EXIT_SUCCESS;
-		else
-			return EXIT_FAILURE;
-	}
-
+	return EXIT_SUCCESS;
 }

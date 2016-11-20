@@ -105,6 +105,50 @@ static void merge_delta(struct player *player, struct player_delta *delta)
 	player->is_rankable = 0;
 }
 
+static void compute_ranks(struct player *players, unsigned len)
+{
+	unsigned i;
+	sqlite3_stmt *res;
+	struct player *p = NULL;
+	const char query[] =
+		"SELECT" RANK_COLUMN
+		" FROM players"
+		" WHERE name = ?";
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	for (i = 0; i < len; i++) {
+		p = &players[i];
+
+		if (!p->is_rankable)
+			continue;
+
+		if (sqlite3_bind_text(res, 1, p->name, -1, SQLITE_STATIC) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_step(res) != SQLITE_ROW)
+			goto fail;
+
+		p->rank = sqlite3_column_int64(res, 0);
+
+		if (sqlite3_reset(res) != SQLITE_OK)
+			goto fail;
+		if (sqlite3_clear_bindings(res) != SQLITE_OK)
+			goto fail;
+
+		record_elo_and_rank(p);
+	}
+
+	sqlite3_finalize(res);
+	return;
+
+fail:
+	fprintf(
+		stderr, "%s: compute_ranks(%s): %s\n",
+		config.dbpath, p ? p->name : "", sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+}
+
 int main(int argc, char **argv)
 {
 	struct delta delta;
@@ -117,11 +161,11 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	for (i = 0; i < MAX_PLAYERS; i++)
-		init_player(&players[i]);
-
 	while (scan_delta(&delta)) {
 		unsigned length = 0;
+		int rankedgame;
+
+		sqlite3_exec(db, "BEGIN", 0, 0, 0);
 
 		/* Load player (ignore fail) */
 		for (i = 0; i < delta.length; i++) {
@@ -132,7 +176,7 @@ int main(int argc, char **argv)
 			player = &players[length];
 			name = delta.players[i].name;
 
-			ret = read_player(player, name);
+			ret = read_player(player, name, 0);
 
 			if (ret == FAILURE)
 				continue;
@@ -143,24 +187,25 @@ int main(int argc, char **argv)
 			length++;
 		}
 
-		/* Compute their new elos */
-		if (mark_rankable_players(&delta, players, length))
-			update_elos(players, length);
+		rankedgame = mark_rankable_players(&delta, players, length);
 
-		/* Update lastseen and write players */
+		if (rankedgame)
+			compute_elos(players, length);
+
 		for (i = 0; i < length; i++) {
 			set_lastseen(&players[i], delta.ip, delta.port);
-
-			if (!write_player(&players[i]))
-				continue;
-
-			if (players[i].clan_changed) {
-				printf("%s %s %s\n",
-				       players[i].name,
-				       players[i].delta->clan,
-				       players[i].clan);
-			}
+			write_player(&players[i]);
 		}
+
+		/*
+		 * We need player to have been written to the database
+		 * before calculating rank, because such calculation
+		 * only use what's in the database.
+		 */
+		if (rankedgame)
+			compute_ranks(players, length);
+
+		sqlite3_exec(db, "COMMIT", 0, 0, 0);
 	}
 
 	return EXIT_SUCCESS;

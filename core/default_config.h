@@ -7,7 +7,7 @@
  * easy to hack on it, since everything will work after git clone && make
  * without any extra steps.
  */
-STRING("TEERANK_ROOT", ".teerank", root)
+STRING("TEERANK_DB", "teerank.sqlite3", dbpath)
 UNSIGNED("TEERANK_UPDATE_DELAY", 5, update_delay)
 BOOL("TEERANK_VERBOSE", 0, verbose)
 

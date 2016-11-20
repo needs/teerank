@@ -1,15 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-struct config {
-#define STRING(envname, value, fname) \
-	char *fname;
-#define BOOL(envname, value, fname) \
-	int fname;
-#define UNSIGNED(envname, value, fname) \
-	unsigned fname;
-#include "default_config.h"
-};
+#include <sqlite3.h>
 
 /*
  * Used by many functions that search for a particular entity in the
@@ -25,36 +17,35 @@ enum {
 	NOT_FOUND
 };
 
+struct config {
+#define STRING(envname, value, fname) \
+	char *fname;
+#define BOOL(envname, value, fname) \
+	int fname;
+#define UNSIGNED(envname, value, fname) \
+	unsigned fname;
+#include "default_config.h"
+};
+
 extern struct config config;
+extern sqlite3 *db;
 
 /**
  * Load configuration from environement.  It shoudld be called at the
- * start of every program that use the config structure.
+ * start of every program that use the config structure or that use the
+ * database.
  *
  * Set check_version to 1 if your program isn't called too often,
  * because checking version is a little bit expensive.  You might not
  * want to do it for a program on the fast path.
  *
- * It does exit(EXIT_FAILURE) when version cannot be checked.  However
- * it cannot fail when check_version is not set.
+ * It does exit(EXIT_FAILURE) when version cannot be checked or database
+ * opneing failed.
  *
  * @param check_version 1 to make sure database is up-to-date
  */
 void load_config(int check_version);
 
 void verbose(const char *fmt, ...);
-
-/**
- * Copy the full path to access the given file or directory in the
- * database in the provided buffer.
- *
- * It is recommended to use PATH_MAX for buffer size.
- *
- * @param buf A valid buffer
- * @param size Size of the given buffer
- * @param fmt See printf() format string
- * @return Return buf on success, NULL on failure
- */
-char *dbpath(char *buf, size_t size, const char *fmt, ...);
 
 #endif /* CONFIG_H */

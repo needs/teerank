@@ -17,13 +17,12 @@ struct info {
 	unsigned nplayers;
 	unsigned nclans;
 	unsigned nservers;
-	struct tm last_update;
+	time_t last_update;
 
 	unsigned nmasters;
 	struct master_info masters[MAX_MASTERS];
 };
 
 int read_info(struct info *info);
-int write_info(struct info *info);
 
 #endif /* INFO_H */

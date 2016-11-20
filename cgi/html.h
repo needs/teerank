@@ -4,7 +4,6 @@
 #include <time.h>
 
 #include "player.h"
-#include "index.h"
 
 void html(const char *fmt, ...);
 void xml(const char *fmt, ...);
@@ -20,13 +19,13 @@ char *escape(const char *str);
  *
  * If "text" is not NULL, store a string representation of the elapsed time.
  */
-unsigned elapsed_time(struct tm *tm, char **timescale, char *text, size_t textsize);
+unsigned elapsed_time(time_t t, char **timescale, char *text, size_t textsize);
 
 /*
  * Print a link to the given server if player is online.  Otherwise it
  * print the elapsed time since it's last connection.
  */
-void player_lastseen_link(struct tm *lastseen, const char *addr);
+void player_lastseen_link(time_t _lastseen, const char *addr);
 
 struct tab {
 	char *name, *href;
@@ -43,13 +42,13 @@ void html_start_player_list(int byrank, int bylastseen, unsigned pnum);
 void html_end_player_list(void);
 void html_player_list_entry(
 	const char *hexname, const char *hexclan,
-	int elo, unsigned rank, struct tm lastseen,
+	int elo, unsigned rank, time_t lastseen,
 	const char *addr, int no_clan_link);
 
 /* Online player list */
 void html_start_online_player_list(void);
 void html_end_online_player_list(void);
-void html_online_player_list_entry(struct player_info *player, struct client *client);
+void html_online_player_list_entry(struct player *player, struct client *client);
 
 /* Clan list */
 void html_start_clan_list(void);
@@ -60,7 +59,7 @@ void html_clan_list_entry(
 /* Server list */
 void html_start_server_list(void);
 void html_end_server_list(void);
-void html_server_list_entry(unsigned pos, struct indexed_server *server);
+void html_server_list_entry(unsigned pos, struct server *server);
 
 enum section_tab {
 	PLAYERS_TAB, CLANS_TAB, SERVERS_TAB, SECTION_TABS_COUNT
@@ -68,6 +67,6 @@ enum section_tab {
 
 void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabvals);
 
-void print_page_nav(const char *url, struct index_page *ipage);
+void print_page_nav(const char *url, unsigned pnum, unsigned npages);
 
 #endif /* HTML_H */

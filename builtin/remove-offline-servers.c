@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <limits.h>
-#include <time.h>
 #include <errno.h>
-#include <dirent.h>
 #include <string.h>
 
 #include "config.h"
@@ -43,14 +40,57 @@ static int number_of_days(char *str)
 	return ret;
 }
 
+static int remove_offline_servers(long days, int dryrun)
+{
+	int ret;
+	sqlite3_stmt *res;
+	unsigned offline = 0;
+	const char query[] =
+		"SELECT" ALL_SERVER_COLUMN
+		" FROM servers";
+
+	sqlite3_exec(db, "BEGIN", 0, 0, 0);
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
+		struct server server;
+
+		server_from_result_row(&server, res, 0);
+
+		if (days_offline(server.lastseen) >= days) {
+			if (dryrun) {
+				printf("'%s' would have been removed\n", build_addr(server.ip, server.port));
+			} else {
+				remove_server(server.ip, server.port);
+				verbose("Offline server removed: %s\n", build_addr(server.ip, server.port));
+			}
+			offline++;
+		}
+	}
+
+	if (ret != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_exec(db, "END", 0, 0, 0);
+
+	verbose("%u offline servers removed\n", offline);
+
+	sqlite3_finalize(res);
+	return SUCCESS;
+
+fail:
+	fprintf(
+		stderr, "%s: remove_offline_servers(): %s\n",
+	        config.dbpath, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return FAILURE;
+}
+
 int main(int argc, char **argv)
 {
-	char path[PATH_MAX];
-	struct dirent *dp;
-	DIR *dir;
 	long days;
-	int dry_run = 0;
-	unsigned count_offline = 0;
 
 	load_config(1);
 
@@ -66,37 +106,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "The option al third argument must be equal to 'dry-run'\n");
 			return EXIT_FAILURE;
 		}
-		dry_run = 1;
+		return remove_offline_servers(days, 1);
+	} else {
+		return remove_offline_servers(days, 0);
 	}
 
-	sprintf(path, "%s/servers", config.root);
-	if (!(dir = opendir(path)))
-		return perror(path), EXIT_FAILURE;
-
-	while ((dp = readdir(dir))) {
-		struct server server;
-
-		if (strcmp(".", dp->d_name) == 0 || strcmp("..", dp->d_name) == 0)
-			continue;
-
-		/* Just ignore server on error */
-		if (read_server(&server, dp->d_name) != SUCCESS)
-			continue;
-
-		if (days_offline(server.lastseen) >= days) {
-			if (dry_run) {
-				printf("'%s' would have been removed\n", dp->d_name);
-			} else {
-				remove_server(dp->d_name);
-				verbose("Offline server removed: %s\n", dp->d_name);
-			}
-			count_offline++;
-		}
-	}
-
-	verbose("%u offline servers removed\n", count_offline);
-
-	closedir(dir);
-
-	return EXIT_SUCCESS;
 }

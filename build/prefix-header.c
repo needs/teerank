@@ -197,6 +197,7 @@ static int is_ignored_symbol(struct symbol *s)
 		strcmp(s->name, "INT_MIN") == 0 ||
 		strcmp(s->name, "STRING") == 0 ||
 		strcmp(s->name, "BOOL") == 0 ||
+		strcmp(s->name, "UNSIGNED") == 0 ||
 		strcmp(s->name, "pollfd") == 0;
 }
 
@@ -218,6 +219,7 @@ static int is_keyword(struct symbol *s)
 		strcmp(s->name, "static") == 0   ||
 		strcmp(s->name, "extern") == 0   ||
 		strcmp(s->name, "typedef") == 0  ||
+		strcmp(s->name, "sizeof") == 0   ||
 		strcmp(s->name, "const") == 0;
 }
 
@@ -231,6 +233,9 @@ static int is_standard_type(struct symbol *s)
 		strcmp(s->name, "long") == 0   ||
 		strcmp(s->name, "float") == 0  ||
 		strcmp(s->name, "double") == 0 ||
+		strcmp(s->name, "size_t") == 0 ||
+		strcmp(s->name, "tm") == 0     ||
+		strcmp(s->name, "time_t") == 0 ||
 		strcmp(s->name, "unsigned") == 0;
 }
 

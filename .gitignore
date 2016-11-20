@@ -1,4 +1,6 @@
 /.teerank/
+/teerank.sqlite3
+
 /clans/
 /players/
 /pages/

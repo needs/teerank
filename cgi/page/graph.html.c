@@ -3,47 +3,99 @@
 #include <assert.h>
 #include <string.h>
 
-#include "cgi.h"
 #include "config.h"
-#include "player.h"
 #include "html.h"
 
-/*
- * Graph works with numbers, however numbers can be signed or unsigned.
- * For instance elo points are signed but rank are unsigned.  Having
- * separate cases for both signed un unsigned numbers would make the
- * code highly redundant.  Instead we just choose to use "long" as the
- * only accepted number, and data need to be converted to fit in a long.
- *
- * This may have some issue because domain(int) <= domain(long), hence
- * LONG_MAX < UINT_MAX, so some overflow checking must be done when
- * dealing with unsigned numbers, sadly.
- *
- * I wish there was some nice way to handle signed and unsigned numbers.
- * One way could be to use pointers to functions but it would not be
- * enough because printf() format string as to be adapted too.  So just
- * forcing "long" for data seems to be the best choice...
- */
+#define MAX_DATA 48
 
-typedef long (*to_long_t)(const void *data);
+struct dataset {
+	unsigned ndata;
 
-static long elo_to_long(const void *data)
+	struct data {
+		time_t ts;
+		long value;
+	} data[MAX_DATA];
+
+	long min, max;
+};
+
+static void dataset_append(struct dataset *ds, time_t ts, long value)
 {
-	return (long)((const struct player_record*)(data))->elo;
+	struct data *data = &ds->data[ds->ndata];
+
+	assert(ds->ndata < MAX_DATA);
+
+	data->ts = ts;
+	data->value = value;
+
+	if (!ds->ndata) {
+		ds->min = value;
+		ds->max = value;
+	} else if (value > ds->max) {
+		ds->max = value;
+	} else if (value < ds->min) {
+		ds->min = value;
+	}
+
+	ds->ndata++;
 }
 
-static long rank_to_long(const void *data)
+static int fill_datasets(
+	struct dataset *dselo, struct dataset *dsrank, const char *pname)
 {
-	unsigned rank = ((const struct player_record*)(data))->rank;
+	int ret;
+	sqlite3_stmt *res;
+	static const struct dataset DATASET_ZERO;
+	char query[] =
+		"SELECT timestamp, elo, rank"
+		" FROM player_historic"
+		" WHERE name = ?"
+		" ORDER BY timestamp"
+		" LIMIT ?";
 
-	if (rank > LONG_MAX)
-		return LONG_MAX;
+	*dselo = DATASET_ZERO;
+	*dsrank = DATASET_ZERO;
 
-	return (long)rank;
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_text(res, 1, pname, -1, NULL) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_bind_int(res, 2, MAX_DATA) != SQLITE_OK)
+		goto fail;
+
+	if ((ret = sqlite3_step(res)) == SQLITE_DONE)
+		goto not_found;
+
+	while (ret == SQLITE_ROW) {
+		time_t ts = sqlite3_column_int64(res, 0);
+
+		dataset_append(dselo, ts, sqlite3_column_int(res, 1));
+		dataset_append(dsrank, ts, sqlite3_column_int64(res, 2));
+
+		ret = sqlite3_step(res);
+	}
+
+	if (ret != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_finalize(res);
+	return SUCCESS;
+
+not_found:
+	sqlite3_finalize(res);
+	return NOT_FOUND;
+
+fail:
+	fprintf(
+		stderr, "%s: fill_datasets(%s): %s\n",
+		config.dbpath, pname, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return FAILURE;
 }
 
 struct curve {
-	to_long_t to_long;
+	struct dataset *ds;
+
 	int reversed;
 	const char *color, *hover_color;
 	const char *name;
@@ -64,49 +116,13 @@ struct curve {
 /* Only two curves are handled because placing axes is not trivial */
 #define MAX_CURVES 2
 
-#define MAX_POINTS 48
-
 struct graph {
-	struct historic *hist;
-
-	/*
-	 * Not the whole historic is plotted, only the last MAX_POINT
-	 * points are.
-	 */
-	struct record *first;
-	unsigned nrecords;
-
-	/*
-	 * Number of axes is shared between curves so we don't mix up
-	 * graph of each curve.
-	 */
+	/* Curves share axes */
 	unsigned naxes;
 
 	unsigned ncurves;
 	struct curve curves[MAX_CURVES];
 };
-
-static long find_data(
-	struct graph *graph, int (*cmp)(long, long), to_long_t to_long)
-{
-	struct record *rec;
-	long ret;
-
-	assert(cmp != NULL);
-	assert(to_long != NULL);
-	assert(graph->nrecords > 0);
-	assert(graph->first != NULL);
-
-	ret = to_long(record_data(graph->hist, graph->first));
-	for (rec = graph->first->next; rec; rec = rec->next) {
-		long data = to_long(record_data(graph->hist, rec));
-
-		if (cmp(data, ret))
-			ret = data;
-	}
-
-	return ret;
-}
 
 /* We want at least 3 axes on the graph */
 #define MIN_NAXES 3
@@ -159,36 +175,6 @@ static unsigned number_of_axes(int min, int max, unsigned gap)
 	return n - 1 < MIN_NAXES ? MIN_NAXES : n - 1;
 }
 
-static int min_cmp(long a, long b)
-{
-	return a < b;
-}
-
-static int max_cmp(long a, long b)
-{
-	return a > b;
-}
-
-static struct graph init_graph(struct historic *hist)
-{
-	static const struct graph GRAPH_ZERO;
-	struct graph graph = GRAPH_ZERO;
-	unsigned nrecords;
-	struct record *rec;
-
-	graph.hist = hist;
-
-	for (nrecords = 1, rec = hist->last;
-	     nrecords < MAX_POINTS && rec->prev;
-	     nrecords++, rec = rec->prev)
-		;
-
-	graph.nrecords = nrecords;
-	graph.first = rec;
-
-	return graph;
-}
-
 /*
  * Scale a curve to the new number of axes
  */
@@ -217,7 +203,7 @@ static void scale_curve(struct curve *curve, unsigned old_naxes, unsigned new_na
 }
 
 static void add_curve(
-	struct graph *graph, to_long_t to_long, int reversed,
+	struct graph *graph, struct dataset *ds, int reversed,
 	const char *color, const char *hover_color, const char *name)
 {
 	struct curve *curve;
@@ -228,17 +214,14 @@ static void add_curve(
 	curve = &graph->curves[graph->ncurves];
 	graph->ncurves++;
 
-	curve->to_long = to_long;
+	curve->ds = ds;
 	curve->reversed = reversed;
 	curve->color = color;
 	curve->hover_color = hover_color;
 	curve->name = name;
 
-	if (graph->nrecords == 0)
-		return;
-
-	ymin = find_data(graph, min_cmp, to_long);
-	ymax = find_data(graph, max_cmp, to_long);
+	ymin = ds->min;
+	ymax = ds->max;
 
 	curve->gap = best_axes_gap(ymax - ymin);
 	naxes = number_of_axes(ymin, ymax, curve->gap);
@@ -311,12 +294,12 @@ static float percentage(float range, float value, int reversed)
 }
 
 static float x_coord(
-	struct graph *graph, struct curve *curve, struct record *record)
+	struct graph *graph, struct curve *curve, struct data *data)
 {
 	float range, value;
 
-	range = graph->nrecords - 1;
-	value = record - graph->first;
+	range = curve->ds->ndata - 1;
+	value = data - curve->ds->data;
 
 	return pad_x(graph, percentage(range, value, 1));
 }
@@ -390,29 +373,26 @@ struct point {
  * Given an entry compute the coordinates of the point on the curve.
  */
 struct point init_point(
-	struct graph *graph, struct curve *curve, struct record *record)
+	struct graph *graph, struct curve *curve, struct data *data)
 {
 	struct point p;
-	long data;
 
 	assert(curve != NULL);
-	assert(record != NULL);
+	assert(data != NULL);
 
-	data = curve->to_long(record_data(graph->hist, record));
-
-	p.x = x_coord(graph, curve, record);
-	p.y = y_coord(graph, curve, data);
+	p.x = x_coord(graph, curve, data);
+	p.y = y_coord(graph, curve, data->value);
 
 	return p;
 }
 
 static void print_path(struct graph *graph, struct curve *curve)
 {
-	struct record *rec;
+	unsigned i;
 
 	assert(curve != NULL);
 
-	if (graph->nrecords < 2)
+	if (curve->ds->ndata < 2)
 		return;
 
 	svg("<!-- Path -->");
@@ -420,16 +400,17 @@ static void print_path(struct graph *graph, struct curve *curve)
 
 	/* No need to create a class for a single element */
 	svg("<path style=\"fill: none; stroke: %s; stroke-width: 3px;\" d=\"", curve->color);
-	for (rec = graph->first; rec; rec = rec->next) {
+
+	for (i = 0; i < curve->ds->ndata; i++) {
 		struct point p;
 		char c;
 
-		if (rec == graph->first)
+		if (i == 0)
 			c = 'M';
 		else
 			c = 'L';
 
-		p = init_point(graph, curve, rec);
+		p = init_point(graph, curve, &curve->ds->data[i]);
 		svg("%c %.1f %.1f", c, p.x, p.y);
 
 	}
@@ -439,7 +420,7 @@ static void print_path(struct graph *graph, struct curve *curve)
 
 static const char *point_label_pos(
 	struct graph *graph, struct curve *curve,
-	struct record *record, long data, struct point p)
+	struct data *data, struct point p)
 {
 	const char *top_left = "top_left";
 	const char *top_right = "top_right";
@@ -478,57 +459,63 @@ static const char *point_label_pos(
 	 * enforced to make it sure it is inside svg rendering area.
 	 */
 	if (p.x > 100.0 - X_MARGIN) {
-		long prev_data;
+		struct data *prevdata;
 
 		if (p.y > 100.0 - Y_MARGIN)
 			return top_left;
 		else if (p.y < Y_MARGIN)
 			return bottom_left;
 
-		if (!record->prev)
+		if (data == curve->ds->data)
 			return bottom_left;
 
-		prev_data = curve->to_long(record_data(graph->hist, record->prev));
+		prevdata = data - 1;
 
-		if (prev_data > data)
+		if (prevdata->value > data->value)
 			return bottom_left;
 		else
 			return top_left;
 	} else {
-		long next_data;
+		struct data *nextdata;
 
 		if (p.y > 100.0 - Y_MARGIN)
 			return top_right;
 		else if (p.y < Y_MARGIN)
 			return bottom_right;
 
-		if (!record->next)
+		if (data - curve->ds->data == curve->ds->ndata)
 			return bottom_right;
 
-		next_data = curve->to_long(record_data(graph->hist, record->next));
+		nextdata = data + 1;
 
-		if (next_data > data)
+		if (nextdata->value > data->value)
 			return bottom_right;
 		else
 			return top_right;
 	}
 }
 
-static void print_zone(struct graph *graph, struct record *rec, struct point p)
+static void print_zone(struct graph *graph, struct data *data, struct point p)
 {
 	float gap, zone_start, zone_width;
+	unsigned ndata;
+	int isfirst, islast;
 
-	if (graph->nrecords == 1)
+	ndata = graph->curves[0].ds->ndata;
+	isfirst = data - graph->curves[0].ds->data == 0;
+	islast  = data - graph->curves[0].ds->data == ndata - 1;
+
+	if (ndata == 1)
 		gap = 100.0;
 	else {
-		const float unpadded_gap = 100.0 / (graph->nrecords - 1);
+		const float unpadded_gap = 100.0 / (ndata - 1);
 		gap = pad_x(graph, unpadded_gap) - pad_x(graph, 0.0);
 	}
 
-	if (rec == graph->first) {
+	if (isfirst) {
 		zone_start = 0.0;
 		zone_width = pad_x(graph, 0.0) + gap / 2.0;
-	} else if (rec == graph->hist->last) {
+	} else if (islast) {
 		zone_start = p.x - gap / 2.0;
 		zone_width = pad_x(graph, 100.0) + gap / 2.0;
 	} else {
@@ -541,44 +528,44 @@ static void print_zone(struct graph *graph, struct record *rec, struct point p)
 }
 
 static void print_label(
-	struct point p, long data, const char *label_pos, unsigned curve_index)
+	struct point p, struct data *data, const char *label_pos, unsigned curve_index)
 {
 	svg("<circle class=\"curve%u_hover\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
 	    curve_index, p.x, p.y);
 	svg("<text class=\"%s\" x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",
-	    label_pos, p.x, p.y, data);
+	    label_pos, p.x, p.y, data->value);
 }
 
 static void print_labels(struct graph *graph)
 {
-	struct record *rec;
 	const char *label_pos;
-	unsigned i;
+	unsigned i, j;
 
-	for (rec = graph->first; rec; rec = rec->next) {
+	for (i = 0; i < graph->curves[0].ds->ndata; i++) {
 		char buf[128];
 		struct point p;
-		long data;
+		struct data *data;
 		const char *class;
 
-		p = init_point(graph, &graph->curves[0], rec);
+		data = &graph->curves[0].ds->data[i];
+		p = init_point(graph, &graph->curves[0], data);
 
-		print_zone(graph, rec, p);
+		print_zone(graph, data, p);
 
 		svg("<g class=\"labels\">");
 		svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
 		    p.x, pad_y(graph, 0.0), p.x, 100.0);
 
-		for (i = 0; i < graph->ncurves; i++) {
-			struct curve *curve = &graph->curves[i];
+		for (j = 0; j < graph->ncurves; j++) {
+			struct curve *curve = &graph->curves[j];
 
-			p = init_point(graph, curve, rec);
-			data = curve->to_long(record_data(graph->hist, rec));
-			label_pos = point_label_pos(graph, curve, rec, data, p);
-			print_label(p, data, label_pos, i);
+			data = &graph->curves[j].ds->data[i];
+			p = init_point(graph, curve, data);
+			label_pos = point_label_pos(graph, curve, data, p);
+			print_label(p, data, label_pos, j);
 		}
 
-		strftime(buf, sizeof(buf), "%d %b %H:%M", gmtime(&rec->time));
+		strftime(buf, sizeof(buf), "%d %b %H:%M", gmtime(&data->ts));
 
 		if (p.x > 88.0)
 			class = "right";
@@ -591,41 +578,42 @@ static void print_labels(struct graph *graph)
 
 		svg("</g>");
 	}
-
 }
 
 static void print_point(
-	struct graph *graph, struct curve *curve, struct record *record)
+	struct graph *graph, struct curve *curve, struct data *data)
 {
 	struct point p;
+	int islast;
 
 	assert(curve != NULL);
-	assert(record != NULL);
+	assert(data != NULL);
 
-	p = init_point(graph, curve, record);
+	p = init_point(graph, curve, data);
+	islast = data - curve->ds->data == curve->ds->ndata;
 
 	/*
 	 * Too much points in a curve reduce readability, above 24
 	 * points, don't draw them anymore.
 	 */
-	if (record == graph->hist->last || graph->nrecords <= 24)
+	if (islast || curve->ds->ndata <= 24)
 		svg("<circle class=\"curve%u\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
 		    curve - graph->curves, p.x, p.y);
 }
 
 static void print_points(struct graph *graph, struct curve *curve)
 {
-	struct record *rec;
+	unsigned i;
 
 	assert(curve != NULL);
 
 	svg("<!-- Points -->");
 	svg("<g>");
 
-	for (rec = graph->first; rec; rec = rec->next) {
-		if (rec->prev)
+	for (i = 0; i < curve->ds->ndata; i++) {
+		if (i > 0)
 			svg("");
-		print_point(graph, curve, rec);
+		print_point(graph, curve, &curve->ds->data[i]);
 	}
 
 	svg("</g>");
@@ -638,8 +626,7 @@ static unsigned axe_before(struct curve *curve, long data)
 
 static void print_name(struct graph *graph, struct curve *curve)
 {
-	struct record *rec;
-	long data;
+	struct data *data;
 	unsigned curve_index;
 	float x, y;
 	const char *class;
@@ -648,17 +635,16 @@ static void print_name(struct graph *graph, struct curve *curve)
 	curve_index = curve - graph->curves;
 
 	if (curve_index == 0) {
-		rec = graph->first;
+		data = &curve->ds->data[0];
 		x = 0.0;
 		class = "left";
 	} else {
-		rec = graph->hist->last;
+		data = &curve->ds->data[curve->ds->ndata];
 		x = 100.0;
 		class = "right";
 	}
 
-	data = curve->to_long(record_data(graph->hist, rec));
-	axe = axe_before(curve, data);
+	axe = axe_before(curve, data->value);
 
 	y = 0;
 	y += y_coord(graph, curve, axe_data(curve, axe));
@@ -775,7 +761,7 @@ static void print_css(struct graph *graph)
 
 static int is_empty(struct graph *graph)
 {
-	return graph->nrecords == 0;
+	return graph->curves[0].ds->ndata == 0;
 }
 
 static void print_graph(struct graph *graph)
@@ -813,31 +799,18 @@ end:
 
 int main_svg_graph(int argc, char **argv)
 {
-	struct player player;
-	char *name;
-	struct graph graph;
-	int ret;
+	struct graph graph = { 0 };
+	struct dataset dselo, dsrank;
 
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s <player_name>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	name = argv[1];
+	fill_datasets(&dselo, &dsrank, argv[1]);
 
-	if (!is_valid_hexname(name)) {
-		fprintf(stderr, "\"%s\" is not a valid player name\n", name);
-		return EXIT_FAILURE;
-	}
-
-	init_player(&player);
-
-	if ((ret = read_player(&player, name)) != SUCCESS)
-		return ret;
-
-	graph = init_graph(&player.hist);
-	add_curve(&graph, elo_to_long, 0, "#970", "#725800", "Elo");
-	add_curve(&graph, rank_to_long, 1, "#aaa", "#888", "Rank");
+	add_curve(&graph, &dselo, 0, "#970", "#725800", "Elo");
+	add_curve(&graph, &dsrank, 1, "#aaa", "#888", "Rank");
 	print_graph(&graph);
 
 	return EXIT_SUCCESS;

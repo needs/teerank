@@ -246,9 +246,9 @@ static struct tm broke_down_elapsed_time(time_t sec)
 		snprintf(text, textsize, "%d " ts "%s", (val), (val) > 1 ? "s" : ""); \
 } while (0)
 
-unsigned elapsed_time(struct tm *tm, char **timescale, char *text, size_t textsize)
+unsigned elapsed_time(time_t t, char **timescale, char *text, size_t textsize)
 {
-	time_t t, now = time(NULL);
+	time_t now = time(NULL);
 	time_t elapsed_seconds;
 	struct tm elapsed;
 	unsigned update_delay;
@@ -264,7 +264,6 @@ unsigned elapsed_time(struct tm *tm, char **timescale, char *text, size_t textsi
 	update_delay = config.update_delay + 1;
 
 	/* Make sure elapsed time is positive */
-	t = mktime(tm);
 	if (now < t)
 		elapsed_seconds = t - now;
 	else
@@ -300,16 +299,16 @@ unsigned elapsed_time(struct tm *tm, char **timescale, char *text, size_t textsi
 
 #undef set_text_and_timescale
 
-void player_lastseen_link(struct tm *lastseen, const char *addr)
+void player_lastseen_link(time_t lastseen, const char *addr)
 {
 	char text[64], strls[] = "00/00/1970 00h00", *timescale;
 	int is_online, have_strls;
 
-	if (mktime(lastseen) == NEVER_SEEN)
+	if (lastseen == NEVER_SEEN)
 		return;
 
 	is_online = !elapsed_time(lastseen, &timescale, text, sizeof(text));
-	have_strls = strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", lastseen);
+	have_strls = strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", gmtime(&lastseen));
 
 	if (is_online && have_strls)
 		html("<a class=\"%s\" href=\"/servers/%s\" title=\"%s\">%s</a>",
@@ -362,7 +361,7 @@ void html_header(
 	 * Show a warning banner if the database has not been updated
 	 * since 10 minutes.
 	 */
-	if (read_info(&info) && elapsed_time(&info.last_update, NULL, text, sizeof(text)))
+	if (read_info(&info) && elapsed_time(info.last_update, NULL, text, sizeof(text)))
 		html("<a id=\"alert\" href=\"/status\">Not updated since %s</a>", text);
 
 	html("<form action=\"%s/search\" id=\"searchform\">", sprefix);
@@ -512,7 +511,7 @@ void html_end_online_player_list(void)
 static void player_list_entry(
 	int onlinelist,
 	const char *hexname, const char *hexclan,
-	int elo, unsigned rank, struct tm lastseen,
+	int elo, unsigned rank, time_t lastseen,
 	int score, int ingame, const char *addr, int no_clan_link)
 {
 	char name[NAME_LENGTH], clan[NAME_LENGTH];
@@ -561,7 +560,7 @@ static void player_list_entry(
 	/* Last seen (not online-player-list only) */
 	html("<td>");
 	if (!onlinelist)
-		player_lastseen_link(&lastseen, addr);
+		player_lastseen_link(lastseen, addr);
 	html("</td>");
 
 	html("</tr>");
@@ -569,20 +568,20 @@ static void player_list_entry(
 
 void html_player_list_entry(
 	const char *hexname, const char *hexclan,
-	int elo, unsigned rank, struct tm lastseen,
+	int elo, unsigned rank, time_t lastseen,
 	const char *addr, int no_clan_link)
 {
 	player_list_entry(0, hexname, hexclan, elo, rank, lastseen, 0, 0, addr, no_clan_link);
 }
 
-void html_online_player_list_entry(struct player_info *player, struct client *client)
+void html_online_player_list_entry(struct player *player, struct client *client)
 {
 	assert(player != NULL);
 	assert(client != NULL);
 
 	player_list_entry(
 		1, player->name, player->clan, player->elo, player->rank,
-		*gmtime(&NEVER_SEEN), client->score, client->ingame,
+		NEVER_SEEN, client->score, client->ingame,
 		NULL, 0);
 }
 
@@ -647,7 +646,7 @@ void html_end_server_list(void)
 	html("</table>");
 }
 
-void html_server_list_entry(unsigned pos, struct indexed_server *server)
+void html_server_list_entry(unsigned pos, struct server *server)
 {
 	assert(server != NULL);
 
@@ -666,7 +665,7 @@ void html_server_list_entry(unsigned pos, struct indexed_server *server)
 	html("<td>%s</td>", server->map);
 
 	/* Players */
-	html("<td>%u / %u</td>", server->nplayers, server->maxplayers);
+	html("<td>%u / %u</td>", server->num_clients, server->max_clients);
 
 	html("</tr>");
 }
@@ -751,17 +750,13 @@ static unsigned min(unsigned a, unsigned b)
 	return a < b ? a : b;
 }
 
-void print_page_nav(const char *url, struct index_page *ipage)
+void print_page_nav(const char *url, unsigned pnum, unsigned npages)
 {
 	/* Number of pages shown before and after the current page */
 	static const unsigned extra = 3;
 	unsigned i;
 
-	unsigned pnum = ipage->pnum;
-	unsigned npages = ipage->npages;
-
 	assert(url != NULL);
-	assert(ipage != NULL);
 
 	html("<nav class=\"pages\">");
 

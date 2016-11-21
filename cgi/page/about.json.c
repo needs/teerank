@@ -5,10 +5,13 @@
 
 #include "cgi.h"
 #include "config.h"
-#include "info.h"
 #include "json.h"
+#include "master.h"
+#include "player.h"
+#include "clan.h"
+#include "server.h"
 
-static void json_master(struct master_info *master)
+static void json_master(struct master *master)
 {
 	putchar('{');
 	printf("\"node\":\"%s\",", master->node);
@@ -18,43 +21,59 @@ static void json_master(struct master_info *master)
 	putchar('}');
 }
 
-static void json_info(struct info *info)
+static int json_info(void)
 {
-	unsigned i;
+	int ret;
+	unsigned n = 0;
+	sqlite3_stmt *res;
+	struct master master;
+	const char query[] =
+		"SELECT" ALL_MASTER_COLUMNS "," NSERVERS_COLUMN
+		" FROM masters";
 
 	putchar('{');
 
-	printf("\"nplayers\":%u,", info->nplayers);
-	printf("\"nclans\":%u,", info->nclans);
-	printf("\"nservers\":%u,", info->nservers);
-	printf("\"last_update\":\"%s\",", json_date(info->last_update));
+	printf("\"nplayers\":%u,", count_players());
+	printf("\"nclans\":%u,",   count_clans());
+	printf("\"nservers\":%u,", count_vanilla_servers());
+	printf("\"last_update\":\"%s\",", json_date(last_database_update()));
 
-	printf("\"nmasters\":%u,", info->nmasters);
 	printf("\"masters\":[");
 
-	for (i = 0; i < info->nmasters; i++) {
-		if (i)
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
+		if (n++)
 			putchar(',');
-		json_master(&info->masters[i]);
+
+		master_from_result_row(&master, res, 1);
+		json_master(&master);
 	}
 
-	putchar(']');
+	if (ret != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_finalize(res);
+
+	printf("],\"nmasters\":%u", n);
+
 	putchar('}');
+	return SUCCESS;
+fail:
+	fprintf(
+		stderr, "%s: json_info(): %s\n",
+		config.dbpath, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return FAILURE;
 }
 
 int main_json_about(int argc, char **argv)
 {
-	struct info info;
-
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	if (!read_info(&info))
-		return EXIT_FAILURE;
-
-	json_info(&info);
-
-	return EXIT_SUCCESS;
+	return json_info();
 }

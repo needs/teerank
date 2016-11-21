@@ -190,4 +190,9 @@ void set_lastseen(struct player *player, const char *ip, const char *port);
  */
 void record_elo_and_rank(struct player *player);
 
+/**
+ * Count the number of players in the database
+ */
+unsigned count_players(void);
+
 #endif /* PLAYER_H */

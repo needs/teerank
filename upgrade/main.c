@@ -9,7 +9,6 @@
 #include "config.h"
 #include "player.h"
 #include "server.h"
-#include "info.h"
 #include "network.h" /* Because prefix-header is buggy */
 
 #include "teerank6/core/config.h"

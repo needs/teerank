@@ -22,7 +22,6 @@ unsigned count_clans(void)
 
 	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
 		goto fail;
-
 	if (sqlite3_step(res) != SQLITE_ROW)
 		goto fail;
 
@@ -32,7 +31,9 @@ unsigned count_clans(void)
 	return retval;
 
 fail:
-	fprintf(stderr, "%s: count_clans(): %s\n", config.dbpath, sqlite3_errmsg(db));
+	fprintf(
+		stderr, "%s: count_clans(): %s\n",
+		config.dbpath, sqlite3_errmsg(db));
 	sqlite3_finalize(res);
 	return 0;
 }

@@ -19,30 +19,6 @@ static const struct order {
 	"lastseen", "elo", "/players/by-lastseen"
 };
 
-static unsigned get_npages(void)
-{
-	unsigned npages;
-	struct sqlite3_stmt *res;
-	char query[] =
-		"SELECT COUNT(1) FROM players";
-
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_step(res) != SQLITE_ROW)
-		goto fail;
-
-	npages = sqlite3_column_int64(res, 0) / 100 + 1;
-
-	sqlite3_finalize(res);
-	return npages;
-
-fail:
-	fprintf(stderr, "%s: get_npages(): %s\n", config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 1;
-}
-
 int main_html_player_list(int argc, char **argv)
 {
 	const struct order *order;
@@ -109,7 +85,7 @@ int main_html_player_list(int argc, char **argv)
 		goto fail;
 
 	html_end_player_list();
-	print_page_nav(order->urlprefix, pnum, get_npages());
+	print_page_nav(order->urlprefix, pnum, count_players() / 100 + 1);
 	html_footer("player-list", relurl("/players/%s.json?p=%u", argv[2], pnum));
 
 	sqlite3_finalize(res);

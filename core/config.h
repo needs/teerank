@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 #include <sqlite3.h>
+#include <time.h>
 
 /*
  * Used by many functions that search for a particular entity in the
@@ -47,5 +48,7 @@ extern sqlite3 *db;
 void load_config(int check_version);
 
 void verbose(const char *fmt, ...);
+
+time_t last_database_update(void);
 
 #endif /* CONFIG_H */

@@ -20,14 +20,10 @@
 #include "network.h"
 #include "server.h"
 #include "pool.h"
-#include "info.h"
+#include "master.h"
 
-#define MAX_MASTERS 8
-
-struct master {
-	char node[64], service[10];
-	time_t lastseen;
-
+struct master_info {
+	struct master info;
 	short is_online;
 
 	struct pool_entry pentry;
@@ -38,15 +34,16 @@ struct master {
  * Add one extra element so that we can iterate the array and stop when
  * node is empty, removing the need for keeping count of masters.
  */
-static struct master masters[MAX_MASTERS + 1];
+static struct master_info masters[MAX_MASTERS + 1];
 
 static int init_masters_list(void)
 {
 	int ret;
 	sqlite3_stmt *res;
-	struct master *master;
+	struct master_info *master;
+
 	const char query[] =
-		"SELECT node, service, lastseen"
+		"SELECT" ALL_MASTER_COLUMNS
 		" FROM masters";
 
 	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
@@ -55,10 +52,7 @@ static int init_masters_list(void)
 	for (master = masters; master - masters < MAX_MASTERS; master++) {
 		if ((ret = sqlite3_step(res)) != SQLITE_ROW)
 			break;
-
-		snprintf(master->node, sizeof(master->node), "%s", sqlite3_column_text(res, 0));
-		snprintf(master->service, sizeof(master->service), "%s", sqlite3_column_text(res, 1));
-		master->lastseen = sqlite3_column_int64(res, 3);
+		master_from_result_row(&master->info, res, 0);
 	}
 
 	if (ret != SQLITE_ROW && ret != SQLITE_DONE)
@@ -84,7 +78,7 @@ static const uint8_t MSG_LIST[] = {
 
 struct entry {
 	struct server_addr addr;
-	struct master *master;
+	struct master_info *master;
 };
 
 struct list {
@@ -92,7 +86,7 @@ struct list {
 	struct entry *entries;
 };
 
-static void add(struct list *list, struct server_addr *addr, struct master *master)
+static void add(struct list *list, struct server_addr *addr, struct master_info *master)
 {
 	const unsigned OFFSET = 1024;
 
@@ -170,7 +164,7 @@ static void raw_addr_to_addr(
 	(void)ret;
 }
 
-static void handle_data(struct data *data, struct list *list, struct master *master)
+static void handle_data(struct data *data, struct list *list, struct master_info *master)
 {
 	unsigned char *buf;
 	unsigned added = 0;
@@ -201,10 +195,10 @@ static void handle_data(struct data *data, struct list *list, struct master *mas
 	master->is_online = 1;
 }
 
-static struct master *get_master(struct pool_entry *entry)
+static struct master_info *get_master(struct pool_entry *entry)
 {
 	assert(entry != NULL);
-	return (struct master*)((char*)entry - offsetof(struct master, pentry));
+	return (struct master_info*)((char*)entry - offsetof(struct master_info, pentry));
 }
 
 static void fill_list(struct list *list)
@@ -213,7 +207,7 @@ static void fill_list(struct list *list)
 	struct pool_entry *entry;
 	struct sockets sockets;
 	struct data data;
-	struct master *m;
+	struct master_info *m;
 
 	assert(list != NULL);
 
@@ -227,8 +221,8 @@ static void fill_list(struct list *list)
 	memcpy(data.buffer, MSG_GETLIST, data.size);
 	init_pool(&pool, &sockets, &data);
 
-	for (m = masters; m->node[0]; m++) {
-		if (!get_sockaddr(m->node, m->service, &m->addr))
+	for (m = masters; m->info.node[0]; m++) {
+		if (!get_sockaddr(m->info.node, m->info.service, &m->addr))
 			continue;
 		add_pool_entry(&pool, &m->pentry, &m->addr);
 	}
@@ -252,7 +246,7 @@ static void fill_list(struct list *list)
 
 static int update_masters_info(void)
 {
-	struct master *master;
+	struct master_info *master;
 	sqlite3_stmt *res;
 	const char query[] =
 		"UPDATE masters"
@@ -265,17 +259,17 @@ static int update_masters_info(void)
 	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
 		goto fail;
 
-	for (master = masters; master->node[0]; master++) {
+	for (master = masters; master->info.node[0]; master++) {
 		if (!master->is_online)
 			continue;
 		else
-			master->lastseen = time(NULL);
+			master->info.lastseen = time(NULL);
 
-		if (sqlite3_bind_int64(res, 1, master->lastseen) != SQLITE_OK)
+		if (sqlite3_bind_int64(res, 1, master->info.lastseen) != SQLITE_OK)
 			goto fail;
-		if (sqlite3_bind_text(res, 2, master->node, -1, SQLITE_STATIC) != SQLITE_OK)
+		if (sqlite3_bind_text(res, 2, master->info.node, -1, SQLITE_STATIC) != SQLITE_OK)
 			goto fail;
-		if (sqlite3_bind_text(res, 3, master->service, -1, SQLITE_STATIC) != SQLITE_OK)
+		if (sqlite3_bind_text(res, 3, master->info.service, -1, SQLITE_STATIC) != SQLITE_OK)
 			goto fail;
 
 		if (sqlite3_step(res) != SQLITE_DONE)
@@ -307,7 +301,6 @@ int main(int argc, char **argv)
 {
 	struct list list;
 	unsigned i;
-	unsigned count_new = 0;
 
 	load_config(1);
 	if (argc != 1) {
@@ -327,17 +320,15 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < list.length; i++) {
 		struct server_addr *addr = &list.entries[i].addr;
-		struct master *master = list.entries[i].master;
+		struct master_info *master = list.entries[i].master;
 
-		if (create_server(addr->ip, addr->port, master->node, master->service))
-			count_new++;
+		create_server(addr->ip, addr->port, master->info.node, master->info.service);
 	}
 
 	if (sqlite3_exec(db, "COMMIT", 0, 0, 0) != SQLITE_OK)
 		return EXIT_FAILURE;
 
-	verbose("Over %u servers referenced by masters, %u are new\n",
-	        list.length, count_new);
+	verbose("Masters referenced %u servers\n", list.length);
 
 	return EXIT_SUCCESS;
 }

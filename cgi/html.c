@@ -3,9 +3,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "player.h"
+#include "clan.h"
+#include "server.h"
 #include "config.h"
 #include "html.h"
-#include "info.h"
 
 #ifdef NDEBUG
 void html(const char *fmt, ...)
@@ -330,7 +332,6 @@ void html_header(
 	const struct tab *active, const char *title,
 	const char *sprefix, const char *query)
 {
-	struct info info;
 	char text[64];
 
 	assert(active != NULL);
@@ -361,7 +362,7 @@ void html_header(
 	 * Show a warning banner if the database has not been updated
 	 * since 10 minutes.
 	 */
-	if (read_info(&info) && elapsed_time(info.last_update, NULL, text, sizeof(text)))
+	if (elapsed_time(last_database_update(), NULL, text, sizeof(text)))
 		html("<a id=\"alert\" href=\"/status\">Not updated since %s</a>", text);
 
 	html("<form action=\"%s/search\" id=\"searchform\">", sprefix);
@@ -716,13 +717,9 @@ void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabv
 		tabs[1].num = tabvals[1];
 		tabs[2].num = tabvals[2];
 	} else {
-		struct info info;
-
-		if (read_info(&info)) {
-			tabs[0].num = round(info.nplayers);
-			tabs[1].num = round(info.nclans);
-			tabs[2].num = round(info.nservers);
-		}
+		tabs[0].num = round(count_players());
+		tabs[1].num = round(count_clans());
+		tabs[2].num = round(count_vanilla_servers());
 	}
 
 	html("<nav class=\"section_tabs\">");

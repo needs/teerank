@@ -6,9 +6,11 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "config.h"
 #include "player.h"
+#include "master.h"
 
 struct config config = {
 #define STRING(envname, value, fname) \
@@ -82,16 +84,7 @@ fail:
 static void init_masters_table(void)
 {
 	sqlite3_stmt *res;
-	const struct master {
-		const char *node, *service;
-	} *master, masters[] = {
-		{ "master1.teeworlds.com", "8300" },
-		{ "master2.teeworlds.com", "8300" },
-		{ "master3.teeworlds.com", "8300" },
-		{ "master4.teeworlds.com", "8300" },
-		{ NULL, NULL }
-	};
-
+	const struct master *master;
 	const char query[] =
 		"INSERT INTO masters"
 		" VALUES(?, ?, ?)";
@@ -99,7 +92,7 @@ static void init_masters_table(void)
 	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
 		goto fail;
 
-	for (master = masters; master->node; master++) {
+	for (master = DEFAULT_MASTERS; *master->node; master++) {
 		if (sqlite3_bind_text(res, 1, master->node, -1, NULL) != SQLITE_OK)
 			goto fail;
 		if (sqlite3_bind_text(res, 2, master->service, -1, NULL) != SQLITE_OK)
@@ -314,4 +307,14 @@ void verbose(const char *fmt, ...)
 		vfprintf(stderr, fmt, ap);
 		va_end(ap);
 	}
+}
+
+time_t last_database_update(void)
+{
+	struct stat st;
+
+	if (stat(config.dbpath, &st) == -1)
+		return 0;
+
+	return st.st_mtim.tv_sec;
 }

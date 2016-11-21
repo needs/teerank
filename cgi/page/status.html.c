@@ -5,7 +5,7 @@
 #include "cgi.h"
 #include "config.h"
 #include "html.h"
-#include "info.h"
+#include "master.h"
 
 enum {
 	STATUS_OK,
@@ -66,13 +66,64 @@ static void print_status(const char *title, const char *comment, int status)
 	html("</section>");
 }
 
+static int show_masters_status(int teerank_stopped)
+{
+	struct master m;
+	struct sqlite3_stmt *res;
+	char buf[16], comment[64];
+	int ret;
+
+	char query[] =
+		"SELECT" ALL_MASTER_COLUMNS "," NSERVERS_COLUMN
+		" FROM masters";
+
+	html("<h2>Teeworlds</h2>");
+
+	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
+		master_from_result_row(&m, res, 1);
+
+		/*
+		 * If teerank is stopped, then we can't really guess
+		 * masters status.
+		 */
+		if (teerank_stopped)
+			print_status(m.node, NULL, STATUS_UNKNOWN);
+
+		else if (m.lastseen == NEVER_SEEN)
+			print_status(m.node, NULL, STATUS_DOWN);
+
+		else if (elapsed_time(m.lastseen, NULL, buf, sizeof(buf))) {
+			snprintf(comment, sizeof(comment), "Since %s", buf);
+			print_status(m.node, comment, STATUS_DOWN);
+
+		} else {
+			snprintf(comment, sizeof(comment), "%u servers", m.nservers);
+			print_status(m.node, comment, STATUS_OK);
+		}
+	}
+
+	if (ret != SQLITE_DONE)
+		goto fail;
+
+	sqlite3_finalize(res);
+	return 1;
+
+fail:
+	fprintf(
+		stderr, "%s: show_masters_status(): %s\n",
+		config.dbpath, sqlite3_errmsg(db));
+	sqlite3_finalize(res);
+	return 0;
+}
+
 int main_html_status(int argc, char **argv)
 {
 	const char *title;
 	char buf[16], comment[64];
-	struct info info;
 	short teerank_stopped = 0;
-	unsigned i;
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
@@ -85,22 +136,13 @@ int main_html_status(int argc, char **argv)
 
 	html("<h2>Teerank</h2>");
 
-	/*
-	 * Teerank status, since the whole status is in the info struct,
-	 * failing to read it is fatal.
-	 */
-	if (!read_info(&info)) {
-		print_status("Teerank", "Can't read last update date", STATUS_UNKNOWN);
-		html_footer(NULL, NULL);
-		return EXIT_SUCCESS;
-	}
-
-	if (elapsed_time(info.last_update, NULL, buf, sizeof(buf))) {
+	title = "Teerank";
+	if (elapsed_time(last_database_update(), NULL, buf, sizeof(buf))) {
 		snprintf(comment, sizeof(comment), "Not updated since %s", buf);
-		print_status("Teerank", comment, STATUS_STOPPED);
+		print_status(title, comment, STATUS_STOPPED);
 		teerank_stopped = 1;
 	} else {
-		print_status("Teerank", NULL, STATUS_OK);
+		print_status(title, NULL, STATUS_OK);
 	}
 
 	title = "Teerank 2.x backward compatibility";
@@ -109,32 +151,7 @@ int main_html_status(int argc, char **argv)
 	else
 		print_status(title, NULL, STATUS_DISABLED);
 
-	if (info.nmasters)
-		html("<h2>Teeworlds</h2>");
-
-	for (i = 0; i < info.nmasters; i++) {
-		struct master_info *minfo = &info.masters[i];
-
-		/*
-		 * If teerank is stopped, then we can't really guess
-		 * masters status.
-		 */
-		if (teerank_stopped)
-			print_status(minfo->node, NULL, STATUS_UNKNOWN);
-
-		else if (minfo->lastseen == NEVER_SEEN)
-			print_status(minfo->node, NULL, STATUS_DOWN);
-
-		else if (elapsed_time(minfo->lastseen, NULL, buf, sizeof(buf))) {
-			snprintf(comment, sizeof(comment), "Since %s", buf);
-			print_status(minfo->node, comment, STATUS_DOWN);
-
-		} else {
-			snprintf(comment, sizeof(comment), "%u servers", minfo->nservers);
-			print_status(minfo->node, comment, STATUS_OK);
-		}
-	}
-
+	show_masters_status(teerank_stopped);
 	html_footer(NULL, NULL);
 
 	return EXIT_SUCCESS;

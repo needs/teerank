@@ -194,4 +194,9 @@ void mark_server_online(struct server *server);
  */
 int server_expired(struct server *server);
 
+/**
+ * Count the number of vanilla servers in the database
+ */
+unsigned count_vanilla_servers(void);
+
 #endif /* SERVER_H */

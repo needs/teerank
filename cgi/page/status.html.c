@@ -71,20 +71,15 @@ static int show_masters_status(int teerank_stopped)
 	struct master m;
 	struct sqlite3_stmt *res;
 	char buf[16], comment[64];
-	int ret;
+	unsigned nrow;
 
 	char query[] =
-		"SELECT" ALL_MASTER_COLUMNS "," NSERVERS_COLUMN
+		"SELECT" ALL_EXTENDED_MASTER_COLUMNS
 		" FROM masters";
 
 	html("<h2>Teeworlds</h2>");
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
-		master_from_result_row(&m, res, 1);
-
+	foreach_extended_master(query, &m) {
 		/*
 		 * If teerank is stopped, then we can't really guess
 		 * masters status.
@@ -105,17 +100,12 @@ static int show_masters_status(int teerank_stopped)
 		}
 	}
 
-	if (ret != SQLITE_DONE)
-		goto fail;
+	if (res)
+		return 1;
 
-	sqlite3_finalize(res);
-	return 1;
-
-fail:
 	fprintf(
 		stderr, "%s: show_masters_status(): %s\n",
 		config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
 	return 0;
 }
 

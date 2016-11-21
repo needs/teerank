@@ -38,34 +38,23 @@ static struct master_info masters[MAX_MASTERS + 1];
 
 static int init_masters_list(void)
 {
-	int ret;
+	unsigned nrow;
 	sqlite3_stmt *res;
-	struct master_info *master;
 
 	const char query[] =
 		"SELECT" ALL_MASTER_COLUMNS
 		" FROM masters";
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
+	foreach_master(query, &masters[nrow])
+		if (nrow == MAX_MASTERS)
+			foreach_break;
 
-	for (master = masters; master - masters < MAX_MASTERS; master++) {
-		if ((ret = sqlite3_step(res)) != SQLITE_ROW)
-			break;
-		master_from_result_row(&master->info, res, 0);
-	}
+	if (res)
+		return 1;
 
-	if (ret != SQLITE_ROW && ret != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-	return 1;
-
-fail:
 	fprintf(
 		stderr, "%s: init_masters_list(): %s\n",
-	        config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
+		config.dbpath, sqlite3_errmsg(db));
 	return 0;
 }
 

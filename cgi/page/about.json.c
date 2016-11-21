@@ -23,12 +23,12 @@ static void json_master(struct master *master)
 
 static int json_info(void)
 {
-	int ret;
-	unsigned n = 0;
+	unsigned nrow = 0;
 	sqlite3_stmt *res;
 	struct master master;
+
 	const char query[] =
-		"SELECT" ALL_MASTER_COLUMNS "," NSERVERS_COLUMN
+		"SELECT" ALL_EXTENDED_MASTER_COLUMNS
 		" FROM masters";
 
 	putchar('{');
@@ -40,31 +40,18 @@ static int json_info(void)
 
 	printf("\"masters\":[");
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
-		if (n++)
-			putchar(',');
-
-		master_from_result_row(&master, res, 1);
+	foreach_extended_master(query, &master)
 		json_master(&master);
-	}
 
-	if (ret != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-
-	printf("],\"nmasters\":%u", n);
-
+	printf("],\"nmasters\":%u", nrow);
 	putchar('}');
-	return SUCCESS;
-fail:
+
+	if (res)
+		return SUCCESS;
+
 	fprintf(
 		stderr, "%s: json_info(): %s\n",
 		config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
 	return FAILURE;
 }
 

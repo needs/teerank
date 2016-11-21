@@ -7,6 +7,7 @@
 #include "cgi.h"
 #include "page.h"
 #include "player.h"
+#include "clan.h"
 
 int main_json_clan_list(int argc, char **argv)
 {

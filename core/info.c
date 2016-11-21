@@ -6,6 +6,7 @@
 #include "info.h"
 #include "config.h"
 #include "server.h"
+#include "clan.h"
 
 int read_info(struct info *info)
 {

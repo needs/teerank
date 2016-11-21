@@ -49,9 +49,6 @@
 #define SORT_BY_LASTSEEN \
 	" lastseen DESC, elo DESC, name "
 
-#define IS_VALID_CLAN \
-	" clan <> '00' "
-
 /**
  * Check wether or not the supplied string is a valid hexadecimal string
  *

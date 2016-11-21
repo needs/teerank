@@ -8,6 +8,7 @@
 #include "player.h"
 #include "page.h"
 #include "json.h"
+#include "clan.h"
 
 static void json_player(struct player *player)
 {

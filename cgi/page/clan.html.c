@@ -9,6 +9,7 @@
 #include "config.h"
 #include "html.h"
 #include "player.h"
+#include "clan.h"
 
 int main_html_clan(int argc, char **argv)
 {

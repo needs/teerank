@@ -151,6 +151,15 @@ void read_extended_player(sqlite3_stmt *res, void *p)
 	_read_player(res, p, 1);
 }
 
+void read_player_record(sqlite3_stmt *res, void *_r)
+{
+	struct player_record *r = _r;
+
+	r->ts = sqlite3_column_int64(res, 0);
+	r->elo = sqlite3_column_int(res, 1);
+	r->rank = sqlite3_column_int64(res, 2);
+}
+
 int write_player(struct player *p)
 {
 	const char query[] =

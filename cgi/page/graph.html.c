@@ -43,11 +43,13 @@ static void dataset_append(struct dataset *ds, time_t ts, long value)
 static int fill_datasets(
 	struct dataset *dselo, struct dataset *dsrank, const char *pname)
 {
-	int ret;
+	unsigned nrow;
 	sqlite3_stmt *res;
+	struct player_record r;
 	static const struct dataset DATASET_ZERO;
+
 	char query[] =
-		"SELECT timestamp, elo, rank"
+		"SELECT" ALL_PLAYER_RECORD_COLUMNS
 		" FROM player_historic"
 		" WHERE name = ?"
 		" ORDER BY timestamp"
@@ -56,41 +58,17 @@ static int fill_datasets(
 	*dselo = DATASET_ZERO;
 	*dsrank = DATASET_ZERO;
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 1, pname, -1, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int(res, 2, MAX_DATA) != SQLITE_OK)
-		goto fail;
-
-	if ((ret = sqlite3_step(res)) == SQLITE_DONE)
-		goto not_found;
-
-	while (ret == SQLITE_ROW) {
-		time_t ts = sqlite3_column_int64(res, 0);
-
-		dataset_append(dselo, ts, sqlite3_column_int(res, 1));
-		dataset_append(dsrank, ts, sqlite3_column_int64(res, 2));
-
-		ret = sqlite3_step(res);
+	foreach_player_record(query, &r, "si", pname, MAX_DATA) {
+		dataset_append(dselo,  r.ts, r.elo);
+		dataset_append(dsrank, r.ts, r.rank);
 	}
 
-	if (ret != SQLITE_DONE)
-		goto fail;
+	if (!res)
+		return FAILURE;
+	if (!nrow)
+		return NOT_FOUND;
 
-	sqlite3_finalize(res);
 	return SUCCESS;
-
-not_found:
-	sqlite3_finalize(res);
-	return NOT_FOUND;
-
-fail:
-	fprintf(
-		stderr, "%s: fill_datasets(%s): %s\n",
-		config.dbpath, pname, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return FAILURE;
 }
 
 struct curve {

@@ -25,48 +25,30 @@ static void json_player(struct player *player)
 static int json_player_historic(const char *pname)
 {
 	time_t epoch = 0;
-	int ret;
-	unsigned count = 0;
+	unsigned nrow;
 	sqlite3_stmt *res;
+	struct player_record r;
+
 	char query[] =
-		"SELECT timestamp, elo, rank"
+		"SELECT" ALL_PLAYER_RECORD_COLUMNS
 		" FROM player_historic"
 		" WHERE name = ?"
 		" ORDER BY timestamp";
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 1, pname, -1, NULL) != SQLITE_OK)
-		goto fail;
-
 	printf("\"historic\":{\"records\":[");
 
-	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
-		if (!count)
-			epoch = sqlite3_column_int64(res, 1);
+	foreach_player_record(query, &r, "s", pname) {
+		if (!nrow)
+			epoch = r.ts;
+		else
+			putchar(',');
 
-		printf(
-			"[%ju, %d, %u],",
-			(uintmax_t)(sqlite3_column_int64(res, 1) - epoch),
-			sqlite3_column_int(res, 2),
-			(unsigned)sqlite3_column_int64(res, 3));
-		count++;
+		printf("[%ju, %d, %u]", (uintmax_t)(r.ts - epoch), r.elo, r.rank);
 	}
 
-	printf("],\"epoch\":%ju,\"length\":%u}", (uintmax_t)epoch, count);
+	printf("],\"epoch\":%ju,\"length\":%u}", (uintmax_t)epoch, nrow);
 
-	if (ret != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: json_player_historic(%s): %s\n",
-		config.dbpath, pname, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 0;
+	return res != NULL;
 }
 
 int main_json_player(int argc, char **argv)

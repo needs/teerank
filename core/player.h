@@ -52,14 +52,28 @@
 #define SORT_BY_LASTSEEN \
 	" lastseen DESC, elo DESC, name "
 
-#define foreach_player(query, m, ...) \
-	foreach_row(query, read_player, m, __VA_ARGS__)
+#define foreach_player(query, p, ...) \
+	foreach_row(query, read_player, p, __VA_ARGS__)
 
-#define foreach_extended_player(query, m, ...) \
-	foreach_row(query, read_extended_player, m, __VA_ARGS__)
+#define foreach_extended_player(query, p, ...) \
+	foreach_row(query, read_extended_player, p, __VA_ARGS__)
 
 void read_player(sqlite3_stmt *res, void *p);
 void read_extended_player(sqlite3_stmt *res, void *p);
+
+struct player_record {
+	time_t ts;
+	int elo;
+	unsigned rank;
+};
+
+#define ALL_PLAYER_RECORD_COLUMNS \
+	" timestamp, elo, rank "
+
+#define foreach_player_record(query, r, ...) \
+	foreach_row(query, read_player_record, r, __VA_ARGS__)
+
+void read_player_record(sqlite3_stmt *res, void *p);
 
 /**
  * Check wether or not the supplied string is a valid hexadecimal string

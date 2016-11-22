@@ -17,7 +17,7 @@
 #define MAX_RESULTS 50
 
 struct clan {
-	char *name;
+	const char *name;
 	unsigned nmembers;
 };
 
@@ -25,7 +25,7 @@ static void read_clan_result(void *data, sqlite3_stmt *res)
 {
 	struct clan *clan = data;
 
-	snprintf(clan->name, sizeof(clan->name), "%s", sqlite3_column_text(res, 0));
+	clan->name = (const char*)sqlite3_column_text(res, 0);
 	clan->nmembers = sqlite3_column_int64(res, 1);
 }
 

@@ -23,7 +23,7 @@
 
 #include "player.h"
 
-#define ALL_SERVER_COLUMN \
+#define ALL_SERVER_COLUMNS \
 	" ip, port, name, gametype, map, lastseen, expire," \
 	" master_node, master_service, max_clients "
 
@@ -34,10 +34,22 @@
 	"  AND sc.port = servers.port)" \
 	" AS num_clients "
 
+#define ALL_EXTENDED_SERVER_COLUMNS \
+	ALL_SERVER_COLUMNS "," NUM_CLIENTS_COLUMN
+
 #define IS_VANILLA_CTF_SERVER \
 	" gametype = 'CTF'" \
 	" AND map IN ('ctf1', 'ctf2', 'ctf3', 'ctf4', 'ctf5', 'ctf6', 'ctf7')" \
 	" AND max_clients <= 16 "
+
+#define foreach_server(query, m, ...) \
+	foreach_row(query, read_server, m, __VA_ARGS__)
+
+#define foreach_extended_server(query, m, ...) \
+	foreach_row(query, read_extended_server, m, __VA_ARGS__)
+
+void read_server(sqlite3_stmt *res, void *s);
+void read_extended_server(sqlite3_stmt *res, void *s);
 
 /**
  * @struct server
@@ -97,28 +109,6 @@ int parse_addr(char *addr, char **ip, char **port);
  * @return A statically allocated string
  */
 char *build_addr(const char *ip, const char *port);
-
-/**
- * Read a server from the database.
- *
- * @param server Pointer to a server structure were readed data are stored
- * @param ip Server IP
- * @param port Server port
- *
- * @return SUCCESS on success, NOT_FOUND if the server does not exist,
- *         FAILURE on failure.
- */
-int read_server(struct server *server, const char *ip, const char *port);
-
-/**
- * Copy a result row to the provided server struct
- *
- * @param server Valid buffer to store the result in
- * @param res SQlite result row
- * @param read_num_clients The row also contains the server's number of
- *                         clients at the end
- */
-void server_from_result_row(struct server *server, sqlite3_stmt *res, int read_num_clients);
 
 /**
  * Read server's clients from the database.

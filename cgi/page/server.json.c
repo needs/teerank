@@ -50,7 +50,13 @@ int main_json_server(int argc, char **argv)
 {
 	char *ip, *port;
 	struct server server;
-	int ret;
+	sqlite3_stmt *res;
+	unsigned nrow;
+
+	const char query[] =
+		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
+		" FROM servers"
+		" WHERE ip = ? AND port = ?";
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <server_addr>\n", argv[0]);
@@ -60,11 +66,15 @@ int main_json_server(int argc, char **argv)
 	if (!parse_addr(argv[1], &ip, &port))
 		return EXIT_NOT_FOUND;
 
-	if ((ret = read_server(&server, ip, port)) != SUCCESS)
-		return ret;
+	foreach_extended_server(query, &server, "ss", ip, port);
+	if (!res)
+		return EXIT_FAILURE;
+	if (!nrow)
+		return EXIT_NOT_FOUND;
+
 	if (!read_server_clients(&server))
 		return EXIT_FAILURE;
-
 	json_server(&server);
+
 	return EXIT_SUCCESS;
 }

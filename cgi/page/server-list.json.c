@@ -25,12 +25,12 @@ static void json_server(struct server *server)
 
 int main_json_server_list(int argc, char **argv)
 {
-	int ret;
-	unsigned offset = 0;
+	unsigned nrow, pnum, offset;
 	sqlite3_stmt *res;
-	unsigned pnum;
+	struct server server;
+
 	const char query[] =
-		"SELECT" ALL_SERVER_COLUMN "," NUM_CLIENTS_COLUMN
+		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 		" FROM servers"
 		" WHERE" IS_VANILLA_CTF_SERVER
 		" ORDER BY num_clients DESC"
@@ -46,41 +46,20 @@ int main_json_server_list(int argc, char **argv)
 
 	offset = (pnum - 1) * 100;
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int64(res, 1, offset) != SQLITE_OK)
-		goto fail;
-
-	if ((ret = sqlite3_step(res)) == SQLITE_DONE && pnum > 1) {
-		sqlite3_finalize(res);
-		return EXIT_NOT_FOUND;
-	}
-
 	printf("{\"servers\":[");
 
-	while (ret == SQLITE_ROW) {
-		struct server server;
-
-		server_from_result_row(&server, res, 1);
-		json_server(&server);
-		offset++;
-
-		if ((ret = sqlite3_step(res)) == SQLITE_ROW)
+	foreach_extended_server(query, &server, "u", offset) {
+		if (nrow)
 			putchar(',');
+		json_server(&server);
 	}
 
-	if (ret != SQLITE_DONE)
-		goto fail;
+	printf("],\"length\":%u}", nrow);
 
-	printf("],\"length\":%u}", offset - (pnum - 1) * 100);
+	if (!res)
+		return EXIT_FAILURE;
+	if (!nrow && pnum > 1)
+		return EXIT_NOT_FOUND;
 
-	sqlite3_finalize(res);
 	return EXIT_SUCCESS;
-
-fail:
-	fprintf(
-		stderr, "%s: json_server_list(%s): %s\n",
-		config.dbpath, argv[1], sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return EXIT_FAILURE;
 }

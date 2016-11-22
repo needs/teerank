@@ -42,50 +42,36 @@ static int number_of_days(char *str)
 
 static int remove_offline_servers(long days, int dryrun)
 {
-	int ret;
+	struct server server;
 	sqlite3_stmt *res;
-	unsigned offline = 0;
+	unsigned nrow, offline = 0;
 	const char query[] =
-		"SELECT" ALL_SERVER_COLUMN
+		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
 	sqlite3_exec(db, "BEGIN", 0, 0, 0);
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
-		struct server server;
-
-		server_from_result_row(&server, res, 0);
-
+	foreach_server(query, &server) {
 		if (days_offline(server.lastseen) >= days) {
+			char *addr = build_addr(server.ip, server.port);
+
 			if (dryrun) {
-				printf("'%s' would have been removed\n", build_addr(server.ip, server.port));
+				printf("'%s' would have been removed\n", addr);
 			} else {
 				remove_server(server.ip, server.port);
-				verbose("Offline server removed: %s\n", build_addr(server.ip, server.port));
+				verbose("Offline server removed: %s\n", addr);
 			}
 			offline++;
 		}
 	}
 
-	if (ret != SQLITE_DONE)
-		goto fail;
-
 	sqlite3_exec(db, "END", 0, 0, 0);
 
+	if (!res)
+		return FAILURE;
+
 	verbose("%u offline servers removed\n", offline);
-
-	sqlite3_finalize(res);
 	return SUCCESS;
-
-fail:
-	fprintf(
-		stderr, "%s: remove_offline_servers(): %s\n",
-	        config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return FAILURE;
 }
 
 int main(int argc, char **argv)

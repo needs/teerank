@@ -29,12 +29,6 @@ static void read_clan_result(sqlite3_stmt *res, void *data)
 	clan->nmembers = sqlite3_column_int64(res, 1);
 }
 
-static void read_server_result(sqlite3_stmt *res, void *data)
-{
-	struct server *server = data;
-	server_from_result_row(server, res, 1);
-}
-
 static void start_player_list(void)
 {
 	html_start_player_list(1, 1, 0);
@@ -133,7 +127,7 @@ static const struct search_info CLAN_SINFO = {
 static const struct search_info SERVER_SINFO = {
 	html_start_server_list,
 	html_end_server_list,
-	read_server_result,
+	read_extended_server,
 	print_server,
 	"No servers found",
 
@@ -145,7 +139,7 @@ static const struct search_info SERVER_SINFO = {
 	" WHERE" IS_VANILLA_CTF_SERVER "AND" IS_RELEVANT("name")
 	" LIMIT ?",
 
-	"SELECT" ALL_SERVER_COLUMN "," NUM_CLIENTS_COLUMN
+	"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 	" FROM servers"
 	" WHERE" IS_VANILLA_CTF_SERVER "AND" IS_RELEVANT("name")
 	" ORDER BY" RELEVANCE("name") ", num_clients"

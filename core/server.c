@@ -36,7 +36,7 @@ int is_vanilla_ctf_server(
 	return 1;
 }
 
-void server_from_result_row(struct server *server, sqlite3_stmt *res, int read_num_clients)
+static void _read_server(sqlite3_stmt *res, struct server *server, int extended)
 {
 	snprintf(server->ip, sizeof(server->ip), "%s", sqlite3_column_text(res, 0));
 	snprintf(server->port, sizeof(server->port), "%s", sqlite3_column_text(res, 1));
@@ -52,8 +52,20 @@ void server_from_result_row(struct server *server, sqlite3_stmt *res, int read_n
 
 	server->max_clients = sqlite3_column_int(res, 9);
 
-	if (read_num_clients)
+	if (extended)
 		server->num_clients = sqlite3_column_int(res, 10);
+	else
+		server->num_clients = 0;
+}
+
+void read_server(sqlite3_stmt *res, void *s)
+{
+	_read_server(res, s, 0);
+}
+
+void read_extended_server(sqlite3_stmt *res, void *s)
+{
+	_read_server(res, s, 1);
 }
 
 int read_server_clients(struct server *server)
@@ -99,43 +111,6 @@ fail:
 	        config.dbpath, server->ip, server->port, sqlite3_errmsg(db));
 	sqlite3_finalize(res);
 	return 0;
-}
-
-int read_server(struct server *server, const char *ip, const char *port)
-{
-	int ret;
-	sqlite3_stmt *res;
-	const char query[] =
-		"SELECT" ALL_SERVER_COLUMN
-		" FROM servers"
-		" WHERE ip = ? AND port = ?";
-
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-
-	ret = sqlite3_step(res);
-	if (ret == SQLITE_DONE)
-		goto not_found;
-	else if (ret != SQLITE_ROW)
-		goto fail;
-
-	server_from_result_row(server, res, 0);
-	sqlite3_finalize(res);
-	return SUCCESS;
-
-not_found:
-	sqlite3_finalize(res);
-	return NOT_FOUND;
-fail:
-	fprintf(
-		stderr, "%s: read_server(%s, %s): %s\n",
-	        config.dbpath, ip, port, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return FAILURE;
 }
 
 /* An IPv4 address starts by either "0." or "00." or "000." */
@@ -303,7 +278,7 @@ int write_server(struct server *server)
 {
 	sqlite3_stmt *res;
 	const char query[] =
-		"INSERT OR REPLACE INTO servers(" ALL_SERVER_COLUMN ")"
+		"INSERT OR REPLACE INTO servers(" ALL_SERVER_COLUMNS ")"
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
@@ -498,7 +473,7 @@ int create_server(
 {
 	sqlite3_stmt *res;
 	const char query[] =
-		"INSERT OR IGNORE INTO servers(" ALL_SERVER_COLUMN ")"
+		"INSERT OR IGNORE INTO servers(" ALL_SERVER_COLUMNS ")"
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)

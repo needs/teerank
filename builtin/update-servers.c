@@ -262,22 +262,14 @@ static int add_netserver(struct netserver_list *list, struct netserver *ns)
 
 static int fill_netserver_list(struct netserver_list *list)
 {
-	int ret;
+	struct netserver ns;
 	sqlite3_stmt *res;
-	unsigned count = 0;
+	unsigned nrow;
 	const char query[] =
-		"SELECT" ALL_SERVER_COLUMN
+		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	while ((ret = sqlite3_step(res)) == SQLITE_ROW) {
-		struct netserver ns;
-
-		server_from_result_row(&ns.server, res, 0);
-		count++;
-
+	foreach_server(query, &ns.server) {
 		if (!read_server_clients(&ns.server))
 			continue;
 		if (!server_expired(&ns.server))
@@ -289,21 +281,13 @@ static int fill_netserver_list(struct netserver_list *list)
 			continue;
 	}
 
-	if (ret != SQLITE_DONE)
-		goto fail;
+	if (!res)
+		return 0;
 
 	verbose("%u servers found, %u will be refreshed\n",
-	        count, list->length);
+	        nrow, list->length);
 
-	sqlite3_finalize(res);
 	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: fill_netserver_list(): %s\n",
-	        config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 0;
 }
 
 static struct netserver *get_netserver(struct pool_entry *entry)

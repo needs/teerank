@@ -10,15 +10,16 @@
 #include "config.h"
 #include "html.h"
 #include "page.h"
+#include "server.h"
 
 int main_html_server_list(int argc, char **argv)
 {
-	int ret;
-	unsigned offset;
+	struct server server;
+	unsigned pnum, offset, nrow;
 	sqlite3_stmt *res;
-	unsigned pnum;
+
 	const char query[] =
-		"SELECT" ALL_SERVER_COLUMN "," NUM_CLIENTS_COLUMN
+		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 		" FROM servers"
 		" WHERE" IS_VANILLA_CTF_SERVER
 		" ORDER BY num_clients DESC"
@@ -37,42 +38,24 @@ int main_html_server_list(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	offset = (pnum - 1) * 100;
-
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int64(res, 1, offset) != SQLITE_OK)
-		goto fail;
-
-	if ((ret = sqlite3_step(res)) == SQLITE_DONE && pnum > 1) {
-		sqlite3_finalize(res);
-		return EXIT_NOT_FOUND;
-	}
-
 	html_header(&CTF_TAB, "CTF", "/servers", NULL);
 	print_section_tabs(SERVERS_TAB, NULL, NULL);
+
 	html_start_server_list();
 
-	while (ret == SQLITE_ROW) {
-		struct server server;
-
-		server_from_result_row(&server, res, 1);
+	offset = (pnum - 1) * 100;
+	foreach_extended_server(query, &server, "u", offset)
 		html_server_list_entry(++offset, &server);
 
-		ret = sqlite3_step(res);
-	}
-
-	if (ret != SQLITE_DONE)
-		goto fail;
-
 	html_end_server_list();
+
+	if (!res)
+		return EXIT_FAILURE;
+	if (!nrow && pnum > 1)
+		return EXIT_NOT_FOUND;
+
 	print_page_nav("/servers", pnum, count_vanilla_servers() / 100 + 1);
 	html_footer("server-list", relurl("/servers/%s.json?p=%u", argv[2], pnum));
 
 	return EXIT_SUCCESS;
-
-fail:
-	fprintf(stderr, "%s: html_server_list(): %s\n", config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return EXIT_FAILURE;
 }

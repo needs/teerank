@@ -12,6 +12,6 @@ int  foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*
 	foreach_next(&res, m, read_row);           nrow++ \
 )
 
-#define foreach_break { sqlite3_finalize(res); break; }
+#define break_foreach { sqlite3_finalize(res); break; }
 
 #endif /* DATABASE_H */

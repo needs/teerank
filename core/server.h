@@ -2,6 +2,7 @@
 #define SERVER_H
 
 #include <time.h>
+#include "master.h"
 
 /* Maximum clients connected to a server */
 #define MAX_CLIENTS 16
@@ -54,8 +55,8 @@ struct server {
 	time_t lastseen;
 	time_t expire;
 
-	char master_node[sizeof("masterX.teeworlds.com")];
-	char master_service[sizeof("00000")];
+	char master_node[NODE_STRSIZE];
+	char master_service[SERVICE_STRSIZE];
 
 	int num_clients;
 	int max_clients;

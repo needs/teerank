@@ -21,9 +21,12 @@
 #define ALL_EXTENDED_MASTER_COLUMNS \
 	ALL_MASTER_COLUMNS "," NSERVERS_COLUMN
 
+#define NODE_STRSIZE 64
+#define SERVICE_STRSIZE 8
+
 struct master {
-	char node[64];
-	char service[8];
+	char node[NODE_STRSIZE];
+	char service[SERVICE_STRSIZE];
 
 	time_t lastseen;
 	unsigned nservers;

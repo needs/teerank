@@ -133,28 +133,6 @@ static const struct search_info SERVER_SINFO = {
 	" LIMIT ?"
 };
 
-static unsigned count_results(const char *query, const char *value)
-{
-	sqlite3_stmt *res;
-	unsigned nresults = 0;
-
-	/* Ignore failure, those data doesn't really matter anyway */
-
-	if (sqlite3_prepare_v2(db, query, -1, &res, NULL) != SQLITE_OK)
-		goto out;
-	if (sqlite3_bind_text(res, 1, value, -1, NULL) != SQLITE_OK)
-		goto out;
-	if (sqlite3_bind_int(res, 2, MAX_RESULTS) != SQLITE_OK)
-		goto out;
-
-	if (sqlite3_step(res) == SQLITE_ROW)
-		nresults = sqlite3_column_int64(res, 0);
-
-out:
-	sqlite3_finalize(res);
-	return nresults;
-}
-
 static int search(const struct search_info *sinfo, const char *value)
 {
 	unsigned nrow;
@@ -207,7 +185,7 @@ int main_html_search(int argc, char **argv)
 	}
 
 	for (s = sinfos; *s; s++)
-		tabvals[(*s)->tab] = count_results((*s)->count_query, argv[2]);
+		tabvals[(*s)->tab] = count_rows((*s)->count_query, "si", argv[2], MAX_RESULTS);
 
 	CUSTOM_TAB.name = "Search results";
 	CUSTOM_TAB.href = "";

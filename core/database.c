@@ -273,20 +273,28 @@ static void errmsg(sqlite3_stmt **res, const char *func, const char *query)
 	*res = NULL;
 }
 
-unsigned count_rows(const char *query)
+unsigned _count_rows(const char *query, const char *bindfmt, ...)
 {
-	unsigned retval;
+	va_list ap;
+	unsigned ret, count;
 	struct sqlite3_stmt *res;
 
 	if (sqlite3_prepare_v2(db, query, -1, &res, NULL) != SQLITE_OK)
 		goto fail;
+
+	va_start(ap, bindfmt);
+	ret = _bind(&res, bindfmt, ap);
+	va_end(ap);
+
+	if (!ret)
+		goto fail;
 	if (sqlite3_step(res) != SQLITE_ROW)
 		goto fail;
 
-	retval = sqlite3_column_int64(res, 0);
+	count = sqlite3_column_int64(res, 0);
 
 	sqlite3_finalize(res);
-	return retval;
+	return count;
 
 fail:
 	errmsg(&res, "count_rows", query);

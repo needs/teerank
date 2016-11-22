@@ -17,7 +17,8 @@ int database_version(void);
  * Helper to return the result of query counting rows.  hence queries
  * should look like: "SELECT COUNT(1) FROM ...".
  */
-unsigned count_rows(const char *query);
+#define count_rows(query, ...) _count_rows(query, "" __VA_ARGS__)
+unsigned _count_rows(const char *query, const char *bindfmt, ...);
 
 /*
  * Helper to execute a query yielding no results, and binds data before

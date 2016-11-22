@@ -14,6 +14,12 @@ int create_database(void);
 int database_version(void);
 
 /*
+ * Helper to return the result of query counting rows.  hence queries
+ * should look like: "SELECT COUNT(1) FROM ...".
+ */
+unsigned count_rows(const char *query);
+
+/*
  * Helper to read result row from queries.  Prepare, run and clean up
  * resources necesarry to process the given query.
  */

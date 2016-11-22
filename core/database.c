@@ -241,6 +241,27 @@ static void errmsg(const char *func, const char *query)
 #endif
 }
 
+unsigned count_rows(const char *query)
+{
+	unsigned retval;
+	struct sqlite3_stmt *res;
+
+	if (sqlite3_prepare_v2(db, query, -1, &res, NULL) != SQLITE_OK)
+		goto fail;
+	if (sqlite3_step(res) != SQLITE_ROW)
+		goto fail;
+
+	retval = sqlite3_column_int64(res, 0);
+
+	sqlite3_finalize(res);
+	return retval;
+
+fail:
+	errmsg("count_rows", query);
+	sqlite3_finalize(res);
+	return 0;
+}
+
 void foreach_init(sqlite3_stmt **res, const char *query, const char *bindfmt, ...)
 {
 	va_list ap;

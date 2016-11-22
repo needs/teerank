@@ -10,6 +10,37 @@
 #include "player.h"
 #include "server.h"
 
+static void show_client_list(struct server *server)
+{
+	unsigned i, nrow;
+	sqlite3_stmt *res;
+	struct player p;
+	struct client *client;
+
+	const char query[] =
+		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+		" FROM players"
+		" WHERE name = ?";
+
+	if (!server->num_clients)
+		return;
+
+	html_start_online_player_list();
+
+	for (i = 0; i < server->num_clients; i++) {
+		client = &server->clients[i];
+
+		foreach_extended_player(query, &p, "s", client->name);
+
+		if (res && nrow)
+			html_online_player_list_entry(&p, client);
+		else
+			html_online_player_list_entry(NULL, client);
+	}
+
+	html_end_online_player_list();
+}
+
 int main_html_server(int argc, char **argv)
 {
 	struct server server;
@@ -63,19 +94,7 @@ int main_html_server(int argc, char **argv)
 	html("</section>");
 	html("</header>");
 
-	if (server.num_clients) {
-		html_start_online_player_list();
-
-		for (i = 0; i < server.num_clients; i++) {
-			struct client client = server.clients[i];
-			struct player player;
-
-			read_player(&player, client.name, 1);
-			html_online_player_list_entry(&player, &client);
-		}
-
-		html_end_online_player_list();
-	}
+	show_client_list(&server);
 
 	html_footer("server", relurl("/servers/%s.json", addr));
 

@@ -149,6 +149,26 @@ fail:
 	sqlite3_finalize(res);
 }
 
+static int load_player(struct player *p, const char *pname)
+{
+	unsigned nrow;
+	sqlite3_stmt *res;
+
+	const char query[] =
+		"SELECT" ALL_PLAYER_COLUMNS
+		" FROM players"
+		" WHERE name = ?";
+
+	foreach_player(query, p, "s", pname);
+
+	if (!res)
+		return 0;
+	if (!nrow)
+		create_player(p, pname);
+
+	return 1;
+}
+
 int main(int argc, char **argv)
 {
 	struct delta delta;
@@ -171,20 +191,14 @@ int main(int argc, char **argv)
 		for (i = 0; i < delta.length; i++) {
 			struct player *player;
 			const char *name;
-			int ret;
 
 			player = &players[length];
 			name = delta.players[i].name;
 
-			ret = read_player(player, name, 0);
-
-			if (ret == FAILURE)
-				continue;
-			else if (ret == NOT_FOUND)
-				create_player(player, name);
-
-			merge_delta(player, &delta.players[i]);
-			length++;
+			if (load_player(player, name)) {
+				merge_delta(player, &delta.players[i]);
+				length++;
+			}
 		}
 
 		rankedgame = mark_rankable_players(&delta, players, length);

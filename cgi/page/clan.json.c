@@ -25,11 +25,12 @@ static void json_player(struct player *player)
 
 int main_json_clan(int argc, char **argv)
 {
-	int ret;
-	unsigned count = 0;
+	unsigned nrow;
 	sqlite3_stmt *res;
+	struct player p;
+
 	const char query[] =
-		"SELECT" ALL_PLAYER_COLUMN "," RANK_COLUMN
+		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE clan = ? AND " IS_VALID_CLAN
 		" ORDER BY" SORT_BY_ELO;
@@ -39,42 +40,17 @@ int main_json_clan(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 1, argv[1], -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-
-	if ((ret = sqlite3_step(res)) == SQLITE_DONE)
-		goto not_found;
-
 	printf("{\"members\":[");
 
-	while (ret == SQLITE_ROW) {
-		struct player player;
+	foreach_extended_player(query, &p, "s", argv[1])
+		json_player(&p);
 
-		player_from_result_row(&player, res, 1);
-		json_player(&player);
+	printf("],\"nmembers\":%u}", nrow);
 
-		count++;
-		ret = sqlite3_step(res);
-	}
+	if (!res)
+		return EXIT_FAILURE;
+	if (!nrow)
+		return EXIT_NOT_FOUND;
 
-	printf("],\"nmembers\":%u}", count);
-
-	if (ret != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
 	return EXIT_SUCCESS;
-
-not_found:
-	sqlite3_finalize(res);
-	return EXIT_NOT_FOUND;
-
-fail:
-	fprintf(
-		stderr, "%s: json_clan(%s): %s\n",
-		config.dbpath, argv[1], sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return EXIT_FAILURE;
 }

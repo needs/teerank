@@ -575,14 +575,19 @@ void html_player_list_entry(
 	player_list_entry(0, hexname, hexclan, elo, rank, lastseen, 0, 0, addr, no_clan_link);
 }
 
-void html_online_player_list_entry(struct player *player, struct client *client)
+void html_online_player_list_entry(struct player *p, struct client *c)
 {
-	assert(player != NULL);
-	assert(client != NULL);
+	int elo;
+	unsigned rank;
+
+	assert(c != NULL);
+
+	elo = p ? p->elo : INVALID_ELO;
+	rank = p ? p->rank : UNRANKED;
 
 	player_list_entry(
-		1, player->name, player->clan, player->elo, player->rank,
-		NEVER_SEEN, client->score, client->ingame,
+		1, c->name, c->clan, elo, rank,
+		NEVER_SEEN, c->score, c->ingame,
 		NULL, 0);
 }
 

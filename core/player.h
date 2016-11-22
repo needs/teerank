@@ -4,7 +4,7 @@
 #include <limits.h>
 #include <time.h>
 
-#include <sqlite3.h>
+#include "database.h"
 
 /**
  * @def NAME_LENGTH
@@ -31,7 +31,7 @@
 
 #include "server.h"
 
-#define ALL_PLAYER_COLUMN \
+#define ALL_PLAYER_COLUMNS \
 	" name, clan, elo, lastseen, server_ip, server_port "
 
 #define RANK_COLUMN \
@@ -44,10 +44,22 @@
 	"      AND players.name < p2.name))))" \
 	" AS rank "
 
+#define ALL_EXTENDED_PLAYER_COLUMNS \
+	ALL_PLAYER_COLUMNS "," RANK_COLUMN
+
 #define SORT_BY_ELO \
 	" elo DESC, lastseen DESC, name "
 #define SORT_BY_LASTSEEN \
 	" lastseen DESC, elo DESC, name "
+
+#define foreach_player(query, m, ...) \
+	foreach_row(query, read_player, m, __VA_ARGS__)
+
+#define foreach_extended_player(query, m, ...) \
+	foreach_row(query, read_extended_player, m, __VA_ARGS__)
+
+void read_player(sqlite3_stmt *res, void *p);
+void read_extended_player(sqlite3_stmt *res, void *p);
 
 /**
  * Check wether or not the supplied string is a valid hexadecimal string
@@ -132,30 +144,6 @@ static const time_t NEVER_SEEN = 0;
  * @param name Name of the new player
  */
 void create_player(struct player *player, const char *name);
-
-/**
- * Read a player from the database.
- *
- * If anything, the returned player is still printable, as the
- * function may have read some data before failure.
- *
- * @param player Player to read
- * @param name Name of the player to read
- * @param read_rank Also read player's rank
- *
- * @return SUCCESS on success, NOT_FOUND when player does not exist,
- *         FAILURE when an error occured.
- */
-int read_player(struct player *player, const char *name, int read_rank);
-
-/**
- * Copy a result row to the provided player struct
- *
- * @param player Valid buffer to store the result in
- * @param res SQlite result row
- * @param read_rank The row also contains the player's rank at the end
- */
-void player_from_result_row(struct player *player, sqlite3_stmt *res, int read_rank);
 
 /**
  * Write a player to the database.

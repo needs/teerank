@@ -25,15 +25,16 @@ static void json_player(struct player *player)
 
 int main_json_player_list(int argc, char **argv)
 {
-	int ret;
-	unsigned offset;
+	unsigned nrow, offset;
 	sqlite3_stmt *res;
-	const char *orderby1, *orderby2;
+	const char *sortby;
 	unsigned pnum;
+	struct player p;
+
 	char query[512], *queryfmt =
-		"SELECT" ALL_PLAYER_COLUMN "," RANK_COLUMN
+		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
 		" FROM players"
-		" ORDER BY %s DESC, %s DESC, name DESC"
+		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 
 	if (argc != 3) {
@@ -45,12 +46,10 @@ int main_json_player_list(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 
 	if (strcmp(argv[2], "by-rank") == 0) {
-		orderby1 = "elo";
-		orderby2 = "lastseen";
+		sortby = SORT_BY_ELO;
 
 	} else if (strcmp(argv[2], "by-lastseen") == 0) {
-		orderby1 = "lastseen";
-		orderby2 = "elo";
+		sortby = SORT_BY_LASTSEEN;
 
 	} else {
 		fprintf(stderr, "%s: Should be either \"by-rank\" or \"by-lastseen\"\n", argv[2]);
@@ -58,41 +57,18 @@ int main_json_player_list(int argc, char **argv)
 	}
 
 	offset = (pnum - 1) * 100;
-	snprintf(query, sizeof(query), queryfmt, orderby1, orderby2, offset);
-
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if ((ret = sqlite3_step(res)) == SQLITE_DONE && pnum > 1) {
-		sqlite3_finalize(res);
-		return EXIT_NOT_FOUND;
-	}
+	snprintf(query, sizeof(query), queryfmt, sortby, offset);
 
 	printf("{\"players\":[");
 
-	while (ret == SQLITE_ROW) {
-		struct player player;
-
-		player_from_result_row(&player, res, 1);
-		json_player(&player);
-		offset++;
-
-		if ((ret = sqlite3_step(res)) == SQLITE_ROW)
+	foreach_extended_player(query, &p) {
+		if (nrow)
 			putchar(',');
+
+		json_player(&p);
 	}
 
-	if (ret != SQLITE_DONE)
-		goto fail;
+	printf("],\"length\":%u}", nrow);
 
-	printf("],\"length\":%u}", offset - ((pnum - 1) * 100));
-
-	sqlite3_finalize(res);
 	return EXIT_SUCCESS;
-
-fail:
-	fprintf(
-		stderr, "%s: json_clan_list(%s): %s\n",
-		config.dbpath, argv[1], sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return EXIT_FAILURE;
 }

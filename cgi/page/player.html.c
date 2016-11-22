@@ -5,6 +5,7 @@
 
 #include "cgi.h"
 #include "config.h"
+#include "database.h"
 #include "html.h"
 #include "player.h"
 
@@ -13,7 +14,14 @@ int main_html_player(int argc, char **argv)
 	char name[HEXNAME_LENGTH], clan[NAME_LENGTH];
 	const char *hexname;
 	struct player player;
-	int ret;
+
+	sqlite3_stmt *res;
+	unsigned nrow;
+
+	const char query[] =
+		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+		" FROM players"
+		" WHERE name = ?";
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <player_name>\n", argv[0]);
@@ -26,8 +34,11 @@ int main_html_player(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 	}
 
-	if ((ret = read_player(&player, hexname, 1)) != SUCCESS)
-		return ret;
+	foreach_extended_player(query, &player, "s", hexname);
+	if (!res)
+		return EXIT_FAILURE;
+	if (!nrow)
+		return EXIT_NOT_FOUND;
 
 	hexname_to_name(hexname, name);
 	CUSTOM_TAB.name = name;

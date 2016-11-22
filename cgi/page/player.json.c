@@ -72,7 +72,15 @@ fail:
 int main_json_player(int argc, char **argv)
 {
 	struct player player;
-	int ret, full;
+	int full;
+
+	sqlite3_stmt *res;
+	unsigned nrow;
+
+	const char query[] =
+		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+		" FROM players"
+		" WHERE name = ?";
 
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s <player_name> full|short\n", argv[0]);
@@ -88,8 +96,11 @@ int main_json_player(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if ((ret = read_player(&player, argv[1], 1)) != SUCCESS)
-		return ret;
+	foreach_extended_player(query, &player, "s", argv[1]);
+	if (!res)
+		return EXIT_FAILURE;
+	if (!nrow)
+		return EXIT_NOT_FOUND;
 
 	putchar('{');
 

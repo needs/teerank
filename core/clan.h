@@ -1,6 +1,8 @@
 #ifndef CLAN_H
 #define CLAN_H
 
+#include "player.h"
+
 #define IS_VALID_CLAN \
 	" clan <> '00' "
 

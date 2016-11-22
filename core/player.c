@@ -108,21 +108,6 @@ void init_player(struct player *player)
 	*player = PLAYER_ZERO;
 }
 
-/*
- * Set all player's fields to meaningless values suitable for printing.
- */
-static void reset_player(struct player *player, const char *name)
-{
-	strcpy(player->name, name);
-	strcpy(player->clan, "00");
-	player->elo = INVALID_ELO;
-	player->rank = UNRANKED;
-	player->lastseen = NEVER_SEEN;
-
-	player->clan_changed = 0;
-	player->delta = NULL;
-}
-
 void create_player(struct player *player, const char *name)
 {
 	assert(player != NULL);
@@ -140,69 +125,30 @@ void create_player(struct player *player, const char *name)
 	player->is_rankable = 0;
 }
 
-void player_from_result_row(struct player *player, sqlite3_stmt *res, int read_rank)
+static void _read_player(sqlite3_stmt *res, struct player *p, int extended)
 {
-	snprintf(player->name, sizeof(player->name), "%s", sqlite3_column_text(res, 0));
-	snprintf(player->clan, sizeof(player->clan), "%s", sqlite3_column_text(res, 1));
-	player->elo = sqlite3_column_int(res, 2);
-	player->lastseen = sqlite3_column_int64(res, 3);
-	snprintf(player->server_ip, sizeof(player->server_ip), "%s", sqlite3_column_text(res, 4));
-	snprintf(player->server_port, sizeof(player->server_port), "%s", sqlite3_column_text(res, 5));
+	snprintf(p->name, sizeof(p->name), "%s", sqlite3_column_text(res, 0));
+	snprintf(p->clan, sizeof(p->clan), "%s", sqlite3_column_text(res, 1));
+	p->elo = sqlite3_column_int(res, 2);
+	p->lastseen = sqlite3_column_int64(res, 3);
+	snprintf(p->server_ip, sizeof(p->server_ip), "%s", sqlite3_column_text(res, 4));
+	snprintf(p->server_port, sizeof(p->server_port), "%s", sqlite3_column_text(res, 5));
 
-	if (read_rank)
-		player->rank = sqlite3_column_int64(res, 6);
+	if (extended) {
+		p->rank = sqlite3_column_int64(res, 6);
+	} else {
+		p->rank = UNRANKED;
+	}
 }
 
-int read_player(struct player *player, const char *name, int read_rank)
+void read_player(sqlite3_stmt *res, void *p)
 {
-	int ret;
-	sqlite3_stmt *res;
-	const char qnorank[] =
-		"SELECT" ALL_PLAYER_COLUMN
-		" FROM players"
-		" WHERE name = ?";
-	const char qrank[] =
-		"SELECT" ALL_PLAYER_COLUMN "," RANK_COLUMN
-		" FROM players"
-		" WHERE name = ?";
+	_read_player(res, p, 0);
+}
 
-	/*
-	 * Reset player sets every fields to a 'no value' state, invalid for
-	 * advanced use but still suitable for printing the player.
-	 *
-	 * That mean failing at every points of the function will leaves
-	 * us with a player suitable for printing, as expected.
-	 */
-	reset_player(player, name);
-
-	if (read_rank)
-		ret = sqlite3_prepare_v2(db, qrank, sizeof(qrank), &res, NULL);
-	else
-		ret = sqlite3_prepare_v2(db, qnorank, sizeof(qnorank), &res, NULL);
-
-	if (ret != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 1, name, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-
-	ret = sqlite3_step(res);
-	if (ret == SQLITE_DONE)
-		goto not_found;
-	else if (ret != SQLITE_ROW)
-		goto fail;
-
-	player_from_result_row(player, res, read_rank);
-
-	sqlite3_finalize(res);
-	return SUCCESS;
-
-not_found:
-	sqlite3_finalize(res);
-	return NOT_FOUND;
-fail:
-	fprintf(stderr, "%s: read_player(%s): %s\n", config.dbpath, name, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return FAILURE;
+void read_extended_player(sqlite3_stmt *res, void *p)
+{
+	_read_player(res, p, 1);
 }
 
 int write_player(struct player *player)

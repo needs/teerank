@@ -21,7 +21,7 @@ struct clan {
 	unsigned nmembers;
 };
 
-static void read_clan_result(void *data, sqlite3_stmt *res)
+static void read_clan_result(sqlite3_stmt *res, void *data)
 {
 	struct clan *clan = data;
 
@@ -29,13 +29,7 @@ static void read_clan_result(void *data, sqlite3_stmt *res)
 	clan->nmembers = sqlite3_column_int64(res, 1);
 }
 
-static void read_player_result(void *data, sqlite3_stmt *res)
-{
-	struct player *player = data;
-	player_from_result_row(player, res, 1);
-}
-
-static void read_server_result(void *data, sqlite3_stmt *res)
+static void read_server_result(sqlite3_stmt *res, void *data)
 {
 	struct server *server = data;
 	server_from_result_row(server, res, 1);
@@ -80,7 +74,7 @@ static void print_server(unsigned pos, void *data)
 struct search_info {
 	void (*start_list)(void);
 	void (*end_list)(void);
-	void (*read_result)(void *data, sqlite3_stmt *res);
+	void (*read_row)(sqlite3_stmt *res, void *data);
 	void (*print_result)(unsigned pos, void *data);
 	const char *emptylist;
 
@@ -94,7 +88,7 @@ struct search_info {
 static const struct search_info PLAYER_SINFO = {
 	start_player_list,
 	html_end_player_list,
-	read_player_result,
+	read_extended_player,
 	print_player,
 	"No players found",
 
@@ -106,7 +100,7 @@ static const struct search_info PLAYER_SINFO = {
 	" WHERE" IS_RELEVANT("name")
 	" LIMIT ?",
 
-	"SELECT" ALL_PLAYER_COLUMN "," RANK_COLUMN
+	"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
 	" FROM players"
 	" WHERE" IS_RELEVANT("name")
 	" ORDER BY" RELEVANCE("name") ", elo"
@@ -123,7 +117,7 @@ static const struct search_info CLAN_SINFO = {
 	CLANS_TAB,
 	"/clans",
 
-	"SELECT COUNT(1)"
+	"SELECT COUNT(DISTINCT clan)"
 	" FROM players"
 	" WHERE" IS_VALID_CLAN "AND" IS_RELEVANT("clan")
 	" LIMIT ?",
@@ -182,58 +176,30 @@ out:
 
 static int search(const struct search_info *sinfo, const char *value)
 {
-	int ret;
-	unsigned count = 0;
+	unsigned nrow;
 	sqlite3_stmt *res;
 	union {
 		struct player player;
 		struct clan clan;
 		struct server server;
-	} result;
+	} row;
 
-	if (sqlite3_prepare_v2(db, sinfo->search_query, -1, &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_bind_text(res, 1, value, -1, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 2, value, -1, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 3, value, -1, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 4, value, -1, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int(res, 5, MAX_RESULTS) != SQLITE_OK)
-		goto fail;
-
-	if ((ret = sqlite3_step(res)) == SQLITE_DONE) {
-		html("%s", sinfo->emptylist);
-		sqlite3_finalize(res);
-		return 1;
-	}
+#define binds "ssssi",	\
+	value, value, value, value, MAX_RESULTS
 
 	sinfo->start_list();
-
-	while (ret == SQLITE_ROW) {
-		sinfo->read_result(&result, res);
-		sinfo->print_result(count, &result);
-		ret = sqlite3_step(res);
-		count++;
-	}
-
+	foreach_row(sinfo->search_query, sinfo->read_row, &row, binds)
+		sinfo->print_result(nrow+1, &row);
 	sinfo->end_list();
 
-	if (ret != SQLITE_DONE)
-		goto fail;
+#undef binds
 
-	sqlite3_finalize(res);
+	if (!res)
+		return 0;
+	if (!nrow)
+		html("%s", sinfo->emptylist);
+
 	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: search(%s): %s\n",
-		config.dbpath, value, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 0;
 }
 
 int main_html_search(int argc, char **argv)

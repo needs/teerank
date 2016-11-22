@@ -29,7 +29,6 @@ struct config {
 };
 
 extern struct config config;
-extern sqlite3 *db;
 
 /**
  * Load configuration from environement.  It shoudld be called at the

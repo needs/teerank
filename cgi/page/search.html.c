@@ -16,19 +16,6 @@
 /* Too many results is meaningless */
 #define MAX_RESULTS 50
 
-struct clan {
-	const char *name;
-	unsigned nmembers;
-};
-
-static void read_clan_result(sqlite3_stmt *res, void *data)
-{
-	struct clan *clan = data;
-
-	clan->name = (const char*)sqlite3_column_text(res, 0);
-	clan->nmembers = sqlite3_column_int64(res, 1);
-}
-
 static void start_player_list(void)
 {
 	html_start_player_list(1, 1, 0);
@@ -104,7 +91,7 @@ static const struct search_info PLAYER_SINFO = {
 static const struct search_info CLAN_SINFO = {
 	html_start_clan_list,
 	html_end_clan_list,
-	read_clan_result,
+	read_clan,
 	print_clan,
 	"No clans found",
 

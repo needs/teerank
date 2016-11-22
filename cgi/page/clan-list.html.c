@@ -14,12 +14,12 @@
 
 int main_html_clan_list(int argc, char **argv)
 {
-	int ret;
-	unsigned offset;
+	unsigned pnum, offset, nrow;
 	sqlite3_stmt *res;
-	unsigned pnum;
+	struct clan clan;
+
 	const char query[] =
-		"SELECT clan, COUNT(1) AS nmembers"
+		"SELECT" ALL_CLAN_COLUMNS
 		" FROM players"
 		" WHERE" IS_VALID_CLAN
 		" GROUP BY clan"
@@ -39,42 +39,22 @@ int main_html_clan_list(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	offset = (pnum - 1) * 100;
-
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int64(res, 1, offset) != SQLITE_OK)
-		goto fail;
-
-	if ((ret = sqlite3_step(res)) == SQLITE_DONE && pnum > 1) {
-		sqlite3_finalize(res);
-		return EXIT_NOT_FOUND;
-	}
-
 	html_header(&CTF_TAB, "CTF", "/clans", NULL);
 	print_section_tabs(CLANS_TAB, NULL, NULL);
 	html_start_clan_list();
 
-	while (ret == SQLITE_ROW) {
-		html_clan_list_entry(
-			++offset,
-			(const char*)sqlite3_column_text(res, 0),
-			sqlite3_column_int(res, 1));
+	offset = (pnum - 1) * 100;
+	foreach_clan(query, &clan, "u", offset)
+		html_clan_list_entry(++offset, clan.name, clan.nmembers);
 
-		ret = sqlite3_step(res);
-	}
-
-	if (ret != SQLITE_DONE)
-		goto fail;
+	if (!res)
+		return EXIT_FAILURE;
+	if (!nrow && pnum > 1)
+		return EXIT_NOT_FOUND;
 
 	html_end_clan_list();
 	print_page_nav("/clans", pnum, count_clans() / 100 + 1);
 	html_footer("clan-list", relurl("/clans/%s.json?p=%u", argv[2], pnum));
 
 	return EXIT_SUCCESS;
-
-fail:
-	fprintf(stderr, "%s: html_clan_list(): %s\n", config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return EXIT_FAILURE;
 }

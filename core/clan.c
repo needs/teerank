@@ -4,6 +4,14 @@
 #include "clan.h"
 #include "config.h"
 
+void read_clan(sqlite3_stmt *res, void *_c)
+{
+	struct clan *c = _c;
+
+	snprintf(c->name, sizeof(c->name), "%s", sqlite3_column_text(res, 0));
+	c->nmembers = sqlite3_column_int64(res, 1);
+}
+
 unsigned count_clans(void)
 {
 	unsigned retval;

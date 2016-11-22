@@ -68,49 +68,37 @@ void read_extended_server(sqlite3_stmt *res, void *s)
 	_read_server(res, s, 1);
 }
 
+void read_server_client(sqlite3_stmt *res, void *_c)
+{
+	struct client *c = _c;
+
+	snprintf(c->name, sizeof(c->name), "%s", sqlite3_column_text(res, 0));
+	snprintf(c->clan, sizeof(c->clan), "%s", sqlite3_column_text(res, 1));
+
+	c->score = sqlite3_column_int(res, 2);
+	c->ingame = sqlite3_column_int(res, 3);
+}
+
 int read_server_clients(struct server *server)
 {
-	int ret;
+	unsigned nrow;
 	sqlite3_stmt *res;
-	struct client *client;
+
 	const char query[] =
-		"SELECT name, clan, score, ingame"
+		"SELECT" ALL_SERVER_CLIENT_COLUMNS
 		" FROM server_clients"
 		" WHERE ip = ? AND port = ?"
-		" ORDER BY ingame DESC, score DESC";
+		" ORDER BY" SORT_BY_SCORE;
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 1, server->ip, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 2, server->port, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
+	foreach_server_client(query, &server->clients[nrow], "ss", server->ip, server->port)
+		if (nrow == MAX_CLIENTS)
+			break_foreach;
 
-	for (client = server->clients; client - server->clients < MAX_CLIENTS; client++) {
-		if ((ret = sqlite3_step(res)) != SQLITE_ROW)
-			break;
+	if (!res)
+		return 0;
 
-		snprintf(client->name, sizeof(client->name), "%s", sqlite3_column_text(res, 0));
-		snprintf(client->clan, sizeof(client->clan), "%s", sqlite3_column_text(res, 1));
-
-		client->score = sqlite3_column_int(res, 2);
-		client->ingame = sqlite3_column_int(res, 3);
-	}
-
-	if (ret != SQLITE_DONE && ret != SQLITE_ROW)
-		goto fail;
-
-	server->num_clients = client - server->clients;
-
-	sqlite3_finalize(res);
+	server->num_clients = nrow;
 	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: read_server_clients(%s, %s): %s\n",
-	        config.dbpath, server->ip, server->port, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 0;
 }
 
 /* An IPv4 address starts by either "0." or "00." or "000." */

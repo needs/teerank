@@ -11,7 +11,15 @@
 
 static void json_server(struct server *server)
 {
-	unsigned i;
+	unsigned nrow;
+	sqlite3_stmt *res;
+	struct client c;
+
+	const char query[] =
+		"SELECT" ALL_SERVER_CLIENT_COLUMNS
+		" FROM server_clients"
+		" WHERE ip = ? AND port = ?"
+		" ORDER BY" SORT_BY_SCORE;
 
 	putchar('{');
 	printf("\"ip\":\"%s\",", server->ip);
@@ -28,17 +36,16 @@ static void json_server(struct server *server)
 	printf("\"max_clients\":%d,", server->max_clients);
 
 	printf("\"clients\":[");
-	for (i = 0; i < server->num_clients; i++) {
-		struct client *client = &server->clients[i];
 
-		if (i)
+	foreach_server_client(query, &c, "ss", server->ip, server->port) {
+		if (nrow)
 			putchar(',');
 
 		putchar('{');
-		printf("\"name\":\"%s\",", client->name);
-		printf("\"clan\":\"%s\",", client->clan);
-		printf("\"score\":%d,", client->score);
-		printf("\"ingame\":%s", json_boolean(client->ingame));
+		printf("\"name\":\"%s\",", c.name);
+		printf("\"clan\":\"%s\",", c.clan);
+		printf("\"score\":%d,", c.score);
+		printf("\"ingame\":%s", json_boolean(c.ingame));
 		putchar('}');
 	}
 	putchar(']');
@@ -72,8 +79,6 @@ int main_json_server(int argc, char **argv)
 	if (!nrow)
 		return EXIT_NOT_FOUND;
 
-	if (!read_server_clients(&server))
-		return EXIT_FAILURE;
 	json_server(&server);
 
 	return EXIT_SUCCESS;

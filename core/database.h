@@ -20,6 +20,12 @@ int database_version(void);
 unsigned count_rows(const char *query);
 
 /*
+ * Helper to execute a query yielding no results, and binds data before
+ * executing the query.
+ */
+int exec(const char *query, const char *bindfmt, ...);
+
+/*
  * Helper to read result row from queries.  Prepare, run and clean up
  * resources necesarry to process the given query.
  */

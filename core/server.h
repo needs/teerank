@@ -42,6 +42,10 @@
 	" AND map IN ('ctf1', 'ctf2', 'ctf3', 'ctf4', 'ctf5', 'ctf6', 'ctf7')" \
 	" AND max_clients <= 16 "
 
+#define bind_server(s) "sssssttssu", \
+	(s).ip, (s).port, (s).name, (s).gametype, (s).map, (s).lastseen, \
+	(s).expire, (s).master_node, (s).master_service, (s).max_clients
+
 #define foreach_server(query, m, ...) \
 	foreach_row(query, read_server, m, __VA_ARGS__)
 

@@ -40,26 +40,59 @@ fail:
 
 static int init_version_table(void)
 {
-	sqlite3_stmt *res;
 	const char query[] =
 		"INSERT INTO version"
 		" VALUES(?)";
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int(res, 1, DATABASE_VERSION) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_step(res) != SQLITE_DONE)
-		goto fail;
-	sqlite3_finalize(res);
-	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: init_version_table(): %s\n",
-		config.dbpath, sqlite3_errmsg(db));
-	return 0;
+	return exec(query, "i", DATABASE_VERSION);
 }
+
+static int _bind(sqlite3_stmt **res, const char *bindfmt, va_list ap)
+{
+	unsigned i;
+	int ret;
+
+	for (i = 0; bindfmt[i]; i++) {
+		switch (bindfmt[i]) {
+		case 'i':
+			ret = sqlite3_bind_int(*res, i+1, va_arg(ap, int));
+			break;
+
+		case 'u':
+			ret = sqlite3_bind_int64(*res, i+1, va_arg(ap, unsigned));
+			break;
+
+		case 's':
+			ret = sqlite3_bind_text(*res, i+1, va_arg(ap, char*), -1, SQLITE_STATIC);
+			break;
+
+		case 't':
+			ret = sqlite3_bind_int64(*res, i+1, (unsigned)va_arg(ap, time_t));
+			break;
+
+		default:
+			return 0;
+		}
+
+		if (ret != SQLITE_OK)
+			return 0;
+	}
+
+	return 1;
+}
+
+static int bind(sqlite3_stmt **res, const char *bindfmt, ...)
+{
+	int ret;
+	va_list ap;
+
+	va_start(ap, bindfmt);
+	ret = _bind(res, bindfmt, ap);
+	va_end(ap);
+
+	return ret;
+}
+
 
 static int init_masters_table(void)
 {
@@ -73,11 +106,7 @@ static int init_masters_table(void)
 		goto fail;
 
 	for (master = DEFAULT_MASTERS; *master->node; master++) {
-		if (sqlite3_bind_text(res, 1, master->node, -1, NULL) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_text(res, 2, master->service, -1, NULL) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_int64(res, 3, NEVER_SEEN) != SQLITE_OK)
+		if (!bind(&res, "sst", master->node, master->service, NEVER_SEEN))
 			goto fail;
 
 		if (sqlite3_step(res) != SQLITE_DONE)
@@ -226,7 +255,7 @@ fail_init:
 	return 0;
 }
 
-static void errmsg(const char *func, const char *query)
+static void errmsg(sqlite3_stmt **res, const char *func, const char *query)
 {
 	const char *dbpath = config.dbpath;
 	const char *msg = sqlite3_errmsg(db);
@@ -239,6 +268,9 @@ static void errmsg(const char *func, const char *query)
 	else
 		fprintf(stderr, "%s: %s: %s\n", dbpath, func, msg);
 #endif
+
+	sqlite3_finalize(*res);
+	*res = NULL;
 }
 
 unsigned count_rows(const char *query)
@@ -257,50 +289,54 @@ unsigned count_rows(const char *query)
 	return retval;
 
 fail:
-	errmsg("count_rows", query);
+	errmsg(&res, "count_rows", query);
+	return 0;
+}
+
+int exec(const char *query, const char *bindfmt, ...)
+{
+	sqlite3_stmt *res;
+	va_list ap;
+	int ret;
+
+	if (sqlite3_prepare_v2(db, query, -1, &res, NULL) != SQLITE_OK)
+		goto fail;
+
+	va_start(ap, bindfmt);
+	ret = _bind(&res, bindfmt, ap);
+	va_end(ap);
+
+	if (!ret)
+		goto fail;
+
+	ret = sqlite3_step(res);
+	if (ret != SQLITE_ROW && ret != SQLITE_DONE)
+		goto fail;
+
 	sqlite3_finalize(res);
+	return 1;
+
+fail:
+	errmsg(&res, "exec", query);
 	return 0;
 }
 
 void foreach_init(sqlite3_stmt **res, const char *query, const char *bindfmt, ...)
 {
-	va_list ap;
-	unsigned i;
 	int ret = sqlite3_prepare_v2(db, query, -1, res, NULL);
+	va_list ap;
 
 	if (ret != SQLITE_OK) {
-		errmsg("foreach_init", query);
-		*res = NULL;
+		errmsg(res, "foreach_init", query);
 		return;
 	}
 
 	va_start(ap, bindfmt);
-
-	for (i = 0; bindfmt[i]; i++) {
-		switch (bindfmt[i]) {
-		case 'i':
-			ret = sqlite3_bind_int(*res, i+1, va_arg(ap, int));
-			break;
-
-		case 'u':
-			ret = sqlite3_bind_int64(*res, i+1, va_arg(ap, int));
-			break;
-
-		case 's':
-			ret = sqlite3_bind_text(*res, i+1, va_arg(ap, char*), -1, SQLITE_STATIC);
-			break;
-		}
-
-		if (ret != SQLITE_OK) {
-			va_end(ap);
-			errmsg("foreach_init", query);
-			sqlite3_finalize(*res);
-			*res = NULL;
-			return;
-		}
-	}
-
+	ret = _bind(res, bindfmt, ap);
 	va_end(ap);
+
+	if (!ret)
+		errmsg(res, "foreach_init", query);
 }
 
 int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*, void*))
@@ -314,9 +350,7 @@ int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*,
 		sqlite3_finalize(*res);
 		return 0;
 	} else if (ret != SQLITE_ROW) {
-		*res = NULL;
-		errmsg("foreach_next", NULL);
-		sqlite3_finalize(*res);
+		errmsg(res, "foreach_next", NULL);
 		return 0;
 	} else {
 		read_row(*res, data);

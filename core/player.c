@@ -151,41 +151,16 @@ void read_extended_player(sqlite3_stmt *res, void *p)
 	_read_player(res, p, 1);
 }
 
-int write_player(struct player *player)
+int write_player(struct player *p)
 {
-	sqlite3_stmt *res;
 	const char query[] =
 		"INSERT OR REPLACE INTO players"
 		" VALUES (?, ?, ?, ?, ?, ?)";
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_bind_text(res, 1, player->name, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 2, player->clan, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int(res, 3, player->elo) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int64(res, 4, player->lastseen) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 5, player->server_ip, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 6, player->server_port, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_step(res) != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-	return SUCCESS;
-
-fail:
-	fprintf(
-		stderr, "%s: write_player(%s): %s\n",
-		config.dbpath, player->name, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return FAILURE;
+	if (exec(query, "ssitss", p->name, p->clan, p->elo, p->lastseen, p->server_ip, p->server_port))
+		return SUCCESS;
+	else
+		return FAILURE;
 }
 
 void set_clan(struct player *player, char *clan)
@@ -207,40 +182,17 @@ void set_lastseen(struct player *player, const char *ip, const char *port)
 	strcpy(player->server_port, port);
 }
 
-void record_elo_and_rank(struct player *player)
+void record_elo_and_rank(struct player *p)
 {
-	sqlite3_stmt *res;
 	const char query[] =
 		"INSERT OR REPLACE INTO player_historic"
 		" VALUES (?, ?, ?, ?)";
 
-	assert(player != NULL);
-	assert(player->elo != INVALID_ELO);
-	assert(player->rank != UNRANKED);
+	assert(p != NULL);
+	assert(p->elo != INVALID_ELO);
+	assert(p->rank != UNRANKED);
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_bind_text(res, 1, player->name, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int64(res, 2, time(NULL)) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int(res, 3, player->elo) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int64(res, 4, player->rank) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_step(res) != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-	return;
-
-fail:
-	fprintf(
-		stderr, "%s: record_player_elo_and_rank(%s): %s\n",
-		config.dbpath, player->name, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
+	exec(query, "stiu", p->name, time(NULL), p->elo, p->rank);
 }
 
 unsigned count_players(void)

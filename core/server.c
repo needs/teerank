@@ -199,31 +199,11 @@ char *build_addr(const char *ip, const char *port)
 
 static int flush_server_clients(const char *ip, const char *port)
 {
-	sqlite3_stmt *res;
 	const char query[] =
 		"DELETE FROM server_clients"
 		" WHERE ip = ? AND port = ?";
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_step(res) != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: flush_server_clients(%s, %s): %s\n",
-	        config.dbpath, ip, port, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 0;
+	return exec(query, "ss", ip, port);
 }
 
 int write_server_clients(struct server *server)
@@ -276,47 +256,11 @@ fail:
 
 int write_server(struct server *server)
 {
-	sqlite3_stmt *res;
 	const char query[] =
 		"INSERT OR REPLACE INTO servers(" ALL_SERVER_COLUMNS ")"
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_bind_text(res, 1, server->ip, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 2, server->port, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 3, server->name, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 4, server->gametype, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 5, server->map, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int64(res, 6, server->lastseen) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int64(res, 7, server->expire) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 8, server->master_node, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 9, server->master_service, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int(res, 10, server->max_clients) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_step(res) != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: write_server(%s, %s): %s\n",
-		config.dbpath, server->ip, server->port, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 0;
+	return exec(query, bind_server(*server));
 }
 
 int server_expired(struct server *server)
@@ -405,7 +349,6 @@ void mark_server_online(struct server *server)
 
 static void remove_server_clients(const char *ip, const char *port)
 {
-	sqlite3_stmt *res;
 	const char query[] =
 		"DELETE FROM server_clients"
 		" WHERE ip = ? AND port = ?";
@@ -413,30 +356,11 @@ static void remove_server_clients(const char *ip, const char *port)
 	assert(ip != NULL);
 	assert(port != NULL);
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_step(res) != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-	return;
-
-fail:
-	fprintf(
-		stderr, "%s: remove_server_clients(%s, %s): %s\n",
-		config.dbpath, ip, port, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
+	exec(query, "ss", ip, port);
 }
 
 void remove_server(const char *ip, const char *port)
 {
-	sqlite3_stmt *res;
 	const char query[] =
 		"DELETE FROM servers"
 		" WHERE ip = ? AND port = ?";
@@ -445,73 +369,25 @@ void remove_server(const char *ip, const char *port)
 	assert(port != NULL);
 
 	remove_server_clients(ip, port);
-
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_step(res) != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-	return;
-
-fail:
-	fprintf(
-		stderr, "%s: remove_server(%s, %s): %s\n",
-		config.dbpath, ip, port, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
+	exec(query, "ss", ip, port);
 }
 
 int create_server(
 	const char *ip, const char *port,
 	const char *master_node, const char *master_service)
 {
-	sqlite3_stmt *res;
+	struct server s = { 0 };
+
+	snprintf(s.ip, sizeof(s.ip), "%s", ip);
+	snprintf(s.port, sizeof(s.port), "%s", port);
+	snprintf(s.master_node, sizeof(s.master_node), "%s", master_node);
+	snprintf(s.master_service, sizeof(s.master_service), "%s", master_service);
+
 	const char query[] =
 		"INSERT OR IGNORE INTO servers(" ALL_SERVER_COLUMNS ")"
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_bind_text(res, 1, ip, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 2, port, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_null(res, 3) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_null(res, 4) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_null(res, 5) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int(res, 6, NEVER_SEEN) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_int(res, 7, 0) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 8, master_node, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_text(res, 9, master_service, -1, SQLITE_STATIC) != SQLITE_OK)
-		goto fail;
-	if (sqlite3_bind_null(res, 10) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_step(res) != SQLITE_DONE)
-		goto fail;
-
-	sqlite3_finalize(res);
-	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: create_server(%s, %s): %s\n",
-		config.dbpath, ip, port, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 0;
+	return exec(query, bind_server(s));
 }
 
 unsigned count_vanilla_servers(void)

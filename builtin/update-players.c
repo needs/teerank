@@ -105,18 +105,22 @@ static void merge_delta(struct player *player, struct player_delta *delta)
 	player->is_rankable = 0;
 }
 
+static void read_rank(sqlite3_stmt *res, void *_rank)
+{
+	unsigned *rank = _rank;
+	*rank = sqlite3_column_int64(res, 0);
+}
+
 static void compute_ranks(struct player *players, unsigned len)
 {
-	unsigned i;
+	unsigned i, nrow;
 	sqlite3_stmt *res;
-	struct player *p = NULL;
+	struct player *p;
+
 	const char query[] =
 		"SELECT" RANK_COLUMN
 		" FROM players"
 		" WHERE name = ?";
-
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
 
 	for (i = 0; i < len; i++) {
 		p = &players[i];
@@ -124,29 +128,9 @@ static void compute_ranks(struct player *players, unsigned len)
 		if (!p->is_rankable)
 			continue;
 
-		if (sqlite3_bind_text(res, 1, p->name, -1, SQLITE_STATIC) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_step(res) != SQLITE_ROW)
-			goto fail;
-
-		p->rank = sqlite3_column_int64(res, 0);
-
-		if (sqlite3_reset(res) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_clear_bindings(res) != SQLITE_OK)
-			goto fail;
-
+		foreach_row(query, read_rank, &p->rank, "s", p->name);
 		record_elo_and_rank(p);
 	}
-
-	sqlite3_finalize(res);
-	return;
-
-fail:
-	fprintf(
-		stderr, "%s: compute_ranks(%s): %s\n",
-		config.dbpath, p ? p->name : "", sqlite3_errmsg(db));
-	sqlite3_finalize(res);
 }
 
 static int load_player(struct player *p, const char *pname)

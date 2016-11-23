@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "database.h"
 #include "config.h"
@@ -47,7 +48,7 @@ static int init_version_table(void)
 	return exec(query, "i", DATABASE_VERSION);
 }
 
-static int _bind(sqlite3_stmt **res, const char *bindfmt, va_list ap)
+static int _bind(sqlite3_stmt *res, const char *bindfmt, va_list ap)
 {
 	unsigned i;
 	int ret;
@@ -55,19 +56,19 @@ static int _bind(sqlite3_stmt **res, const char *bindfmt, va_list ap)
 	for (i = 0; bindfmt[i]; i++) {
 		switch (bindfmt[i]) {
 		case 'i':
-			ret = sqlite3_bind_int(*res, i+1, va_arg(ap, int));
+			ret = sqlite3_bind_int(res, i+1, va_arg(ap, int));
 			break;
 
 		case 'u':
-			ret = sqlite3_bind_int64(*res, i+1, va_arg(ap, unsigned));
+			ret = sqlite3_bind_int64(res, i+1, va_arg(ap, unsigned));
 			break;
 
 		case 's':
-			ret = sqlite3_bind_text(*res, i+1, va_arg(ap, char*), -1, SQLITE_STATIC);
+			ret = sqlite3_bind_text(res, i+1, va_arg(ap, char*), -1, SQLITE_STATIC);
 			break;
 
 		case 't':
-			ret = sqlite3_bind_int64(*res, i+1, (unsigned)va_arg(ap, time_t));
+			ret = sqlite3_bind_int64(res, i+1, (unsigned)va_arg(ap, time_t));
 			break;
 
 		default:
@@ -81,7 +82,7 @@ static int _bind(sqlite3_stmt **res, const char *bindfmt, va_list ap)
 	return 1;
 }
 
-static int bind(sqlite3_stmt **res, const char *bindfmt, ...)
+static int bind(sqlite3_stmt *res, const char *bindfmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -106,7 +107,7 @@ static int init_masters_table(void)
 		goto fail;
 
 	for (master = DEFAULT_MASTERS; *master->node; master++) {
-		if (!bind(&res, "sst", master->node, master->service, NEVER_SEEN))
+		if (!bind(res, "sst", master->node, master->service, NEVER_SEEN))
 			goto fail;
 
 		if (sqlite3_step(res) != SQLITE_DONE)
@@ -255,7 +256,7 @@ fail_init:
 	return 0;
 }
 
-static void errmsg(sqlite3_stmt **res, const char *func, const char *query)
+static void errmsg(const char *func, const char *query)
 {
 	const char *dbpath = config.dbpath;
 	const char *msg = sqlite3_errmsg(db);
@@ -268,9 +269,6 @@ static void errmsg(sqlite3_stmt **res, const char *func, const char *query)
 	else
 		fprintf(stderr, "%s: %s: %s\n", dbpath, func, msg);
 #endif
-
-	sqlite3_finalize(*res);
-	*res = NULL;
 }
 
 unsigned _count_rows(const char *query, const char *bindfmt, ...)
@@ -283,7 +281,7 @@ unsigned _count_rows(const char *query, const char *bindfmt, ...)
 		goto fail;
 
 	va_start(ap, bindfmt);
-	ret = _bind(&res, bindfmt, ap);
+	ret = _bind(res, bindfmt, ap);
 	va_end(ap);
 
 	if (!ret)
@@ -297,21 +295,63 @@ unsigned _count_rows(const char *query, const char *bindfmt, ...)
 	return count;
 
 fail:
-	errmsg(&res, "count_rows", query);
+	errmsg("count_rows", query);
+	sqlite3_finalize(res);
 	return 0;
 }
 
-int exec(const char *query, const char *bindfmt, ...)
+/*
+ * If the given query is the same than the previous one, we want to
+ * reset it and clear any bindings instead of re-preparing it: that's
+ * faster.
+ */
+static int prepare_query(const char *query, const char **prevquery, sqlite3_stmt **res)
 {
-	sqlite3_stmt *res;
+	assert(!*prevquery || *res);
+
+	/*
+	 * Failing to reset state and bindings is not fatal: we can
+	 * still fallback and try to re-prepare the query.
+	 */
+	if (query == *prevquery) {
+		if (sqlite3_reset(*res) != SQLITE_OK)
+			goto prepare;
+		if (sqlite3_clear_bindings(*res) != SQLITE_OK)
+			goto prepare;
+
+		return 1;
+	}
+
+prepare:
+	if (*prevquery)
+		sqlite3_finalize(*res);
+
+	if (sqlite3_prepare_v2(db, query, -1, res, NULL) != SQLITE_OK) {
+		*prevquery = NULL;
+		*res = NULL;
+		return 0;
+	}
+
+	*prevquery = query;
+
+	return 1;
+}
+
+int _exec(const char *query, const char *bindfmt, ...)
+{
+	static const char *prevquery;
+	static sqlite3_stmt *res;
+
 	va_list ap;
 	int ret;
 
-	if (sqlite3_prepare_v2(db, query, -1, &res, NULL) != SQLITE_OK)
+	assert(query != NULL);
+
+	if (!prepare_query(query, &prevquery, &res))
 		goto fail;
 
 	va_start(ap, bindfmt);
-	ret = _bind(&res, bindfmt, ap);
+	ret = _bind(res, bindfmt, ap);
 	va_end(ap);
 
 	if (!ret)
@@ -321,47 +361,52 @@ int exec(const char *query, const char *bindfmt, ...)
 	if (ret != SQLITE_ROW && ret != SQLITE_DONE)
 		goto fail;
 
-	sqlite3_finalize(res);
 	return 1;
 
 fail:
-	errmsg(&res, "exec", query);
+	errmsg("exec", query);
 	return 0;
 }
 
-void foreach_init(sqlite3_stmt **res, const char *query, const char *bindfmt, ...)
+sqlite3_stmt *foreach_init(const char *query, const char *bindfmt, ...)
 {
-	int ret = sqlite3_prepare_v2(db, query, -1, res, NULL);
-	va_list ap;
+	static const char *prevquery;
+	static sqlite3_stmt *res;
 
-	if (ret != SQLITE_OK) {
-		errmsg(res, "foreach_init", query);
-		return;
+	va_list ap;
+	int ret;
+
+	if (!prepare_query(query, &prevquery, &res)) {
+		errmsg("foreach_init", query);
+		return NULL;
 	}
 
 	va_start(ap, bindfmt);
 	ret = _bind(res, bindfmt, ap);
 	va_end(ap);
 
-	if (!ret)
-		errmsg(res, "foreach_init", query);
+	if (!ret) {
+		errmsg("foreach_init", query);
+		return NULL;
+	}
+
+	return res;
 }
 
-int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*, void*))
+int foreach_next(sqlite3_stmt *res, void *data, void (*read_row)(sqlite3_stmt*, void*))
 {
-	int ret = sqlite3_step(*res);
+	int ret = sqlite3_step(res);
 
-	if (!*res)
+	if (!res)
 		return 0;
 
 	if (ret == SQLITE_DONE) {
-		sqlite3_finalize(*res);
 		return 0;
 	} else if (ret != SQLITE_ROW) {
-		errmsg(res, "foreach_next", NULL);
+		errmsg("foreach_next", NULL);
 		return 0;
 	} else {
-		read_row(*res, data);
+		read_row(res, data);
 		return 1;
 	}
 }

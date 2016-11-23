@@ -61,6 +61,9 @@ void read_extended_server(sqlite3_stmt *res, void *s);
 #define SORT_BY_SCORE \
 	" ingame DESC, score DESC "
 
+#define bind_client(s, c) "ssssii", \
+	(s).ip, (s).port, (c).name, (c).clan, (c).score, (c).ingame
+
 #define foreach_server_client(query, c, ...) \
 	foreach_row(query, read_server_client, c, __VA_ARGS__)
 

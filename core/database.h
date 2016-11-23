@@ -22,22 +22,22 @@ unsigned _count_rows(const char *query, const char *bindfmt, ...);
 
 /*
  * Helper to execute a query yielding no results, and binds data before
- * executing the query.
+ * executing the query.  exec() keep the last query in memory, hence
+ * reusing a query should not prepare() it each time.
  */
-int exec(const char *query, const char *bindfmt, ...);
+#define exec(query, ...) _exec(query, "" __VA_ARGS__)
+int _exec(const char *query, const char *bindfmt, ...);
 
 /*
  * Helper to read result row from queries.  Prepare, run and clean up
- * resources necesarry to process the given query.
+ * resources necessary to process the given query.  User must have
+ * declared "sqlite3_stmt *res; unsigned nrow;".
  */
 #define foreach_row(query, read_row, buf, ...) for ( \
-	foreach_init(&res, query, "" __VA_ARGS__), nrow = 0; \
-	foreach_next(&res, buf, read_row);         nrow++ \
+	res = foreach_init(query, "" __VA_ARGS__), nrow = 0; \
+	foreach_next(res, buf, read_row);          nrow++ \
 )
-void foreach_init(sqlite3_stmt **res, const char *query, const char *bindfmt, ...);
-int  foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*, void*));
-
-/* Should be used in place of 'break' to exit a foreach_row() loop */
-#define break_foreach { sqlite3_finalize(res); break; }
+sqlite3_stmt *foreach_init(const char *query, const char *bindfmt, ...);
+int foreach_next(sqlite3_stmt  *res, void *data, void (*read_row)(sqlite3_stmt*, void*));
 
 #endif /* DATABASE_H */

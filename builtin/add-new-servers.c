@@ -47,7 +47,7 @@ static int init_masters_list(void)
 
 	foreach_master(query, &masters[nrow])
 		if (nrow == MAX_MASTERS)
-			break_foreach;
+			break;
 
 	if (res)
 		return 1;
@@ -235,55 +235,30 @@ static void fill_list(struct list *list)
 
 static int update_masters_info(void)
 {
+	int ret = 1;
 	struct master_info *master;
-	sqlite3_stmt *res;
+
 	const char query[] =
 		"UPDATE masters"
 		" SET lastseen = ?"
 		" WHERE node = ? AND service = ?";
 
-	if (sqlite3_exec(db, "BEGIN", 0, 0, 0) != SQLITE_OK)
-		goto fail;
-
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
+	exec("BEGIN");
 
 	for (master = masters; master->info.node[0]; master++) {
+		struct master *m = &master->info;
+
 		if (!master->is_online)
 			continue;
 		else
-			master->info.lastseen = time(NULL);
+			m->lastseen = time(NULL);
 
-		if (sqlite3_bind_int64(res, 1, master->info.lastseen) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_text(res, 2, master->info.node, -1, SQLITE_STATIC) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_text(res, 3, master->info.service, -1, SQLITE_STATIC) != SQLITE_OK)
-			goto fail;
-
-		if (sqlite3_step(res) != SQLITE_DONE)
-			goto fail;
-
-		if (sqlite3_reset(res) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_clear_bindings(res) != SQLITE_OK)
-			goto fail;
+		ret &= exec(query, "tss", m->lastseen, m->node, m->service);
 	}
 
-	sqlite3_finalize(res);
+	exec("COMMIT");
 
-	if (sqlite3_exec(db, "COMMIT", 0, 0, 0) != SQLITE_OK)
-		goto fail;
-
-	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: update_masters_info(): %s\n",
-		config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	sqlite3_exec(db, "ROLLBACK", 0, 0, 0);
-	return 0;
+	return ret;
 }
 
 int main(int argc, char **argv)

@@ -92,7 +92,7 @@ int read_server_clients(struct server *server)
 
 	foreach_server_client(query, &server->clients[nrow], "ss", server->ip, server->port)
 		if (nrow == MAX_CLIENTS)
-			break_foreach;
+			break;
 
 	if (!res)
 		return 0;
@@ -196,8 +196,9 @@ static int flush_server_clients(const char *ip, const char *port)
 
 int write_server_clients(struct server *server)
 {
-	sqlite3_stmt *res;
 	struct client *client;
+	int ret = 1;
+
 	const char query[] =
 		"INSERT OR REPLACE INTO server_clients"
 		" VALUES (?, ?, ?, ?, ?, ?)";
@@ -205,41 +206,10 @@ int write_server_clients(struct server *server)
 	if (!flush_server_clients(server->ip, server->port))
 		return 0;
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
+	for (client = server->clients; client - server->clients < server->num_clients; client++)
+		ret &= exec(query, bind_client(*server, *client));
 
-	for (client = server->clients; client - server->clients < server->num_clients; client++) {
-		if (sqlite3_bind_text(res, 1, server->ip, -1, SQLITE_STATIC) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_text(res, 2, server->port, -1, SQLITE_STATIC) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_text(res, 3, client->name, -1, SQLITE_STATIC) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_text(res, 4, client->clan, -1, SQLITE_STATIC) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_int(res, 5, client->score) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_int(res, 6, client->ingame) != SQLITE_OK)
-			goto fail;
-
-		if (sqlite3_step(res) != SQLITE_DONE)
-			goto fail;
-
-		if (sqlite3_reset(res) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_clear_bindings(res) != SQLITE_OK)
-			goto fail;
-	}
-
-	sqlite3_finalize(res);
-	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: write_server_clients(%s, %s): %s\n",
-	        config.dbpath, server->ip, server->port, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 0;
+	return ret;
 }
 
 int write_server(struct server *server)

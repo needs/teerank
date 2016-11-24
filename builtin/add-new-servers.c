@@ -47,7 +47,7 @@ static int init_masters_list(void)
 
 	foreach_master(query, &masters[nrow])
 		if (nrow == MAX_MASTERS)
-			break;
+			break_foreach;
 
 	if (res)
 		return 1;

@@ -92,7 +92,7 @@ int read_server_clients(struct server *server)
 
 	foreach_server_client(query, &server->clients[nrow], "ss", server->ip, server->port)
 		if (nrow == MAX_CLIENTS)
-			break;
+			break_foreach;
 
 	if (!res)
 		return 0;

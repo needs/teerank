@@ -35,9 +35,12 @@ int _exec(const char *query, const char *bindfmt, ...);
  */
 #define foreach_row(query, read_row, buf, ...) for ( \
 	res = foreach_init(query, "" __VA_ARGS__), nrow = 0; \
-	foreach_next(res, buf, read_row);          nrow++ \
+	foreach_next(&res, buf, read_row);         nrow++ \
 )
 sqlite3_stmt *foreach_init(const char *query, const char *bindfmt, ...);
-int foreach_next(sqlite3_stmt *res, void *data, void (*read_row)(sqlite3_stmt*, void*));
+int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*, void*));
+
+/* Should be used instead of break; to exit foreach_row() loop */
+#define break_foreach { sqlite3_finalize(res); break; }
 
 #endif /* DATABASE_H */

@@ -383,37 +383,39 @@ sqlite3_stmt *foreach_init(const char *query, const char *bindfmt, ...)
 	va_list ap;
 	sqlite3_stmt *res;
 
-	if (sqlite3_prepare_v2(db, query, -1, &res, NULL)) {
-		errmsg("foreach_init", query);
-		return NULL;
-	}
+	if (sqlite3_prepare_v2(db, query, -1, &res, NULL))
+		goto fail;
 
 	va_start(ap, bindfmt);
 	ret = _bind(res, bindfmt, ap);
 	va_end(ap);
 
-	if (!ret) {
-		errmsg("foreach_init", query);
-		return NULL;
-	}
+	if (!ret)
+		goto fail;
 
 	return res;
+fail:
+	errmsg("foreach_init", query);
+	sqlite3_finalize(res);
+	return NULL;
 }
 
-int foreach_next(sqlite3_stmt *res, void *data, void (*read_row)(sqlite3_stmt*, void*))
+int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*, void*))
 {
-	int ret = sqlite3_step(res);
-
-	if (!res)
+	if (!*res)
 		return 0;
+
+	int ret = sqlite3_step(*res);
 
 	if (ret == SQLITE_DONE) {
 		return 0;
-	} else if (ret != SQLITE_ROW) {
-		errmsg("foreach_next", NULL);
-		return 0;
-	} else {
-		read_row(res, data);
+	} else if (ret == SQLITE_ROW) {
+		read_row(*res, data);
 		return 1;
+	} else {
+		errmsg("foreach_next", NULL);
+		sqlite3_finalize(*res);
+		*res = NULL;
+		return 0;
 	}
 }

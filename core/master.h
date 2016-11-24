@@ -2,8 +2,6 @@
 #define MASTER_H
 
 #include <time.h>
-#include <sqlite3.h>
-
 #include "database.h"
 
 #define MAX_MASTERS 8

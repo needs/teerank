@@ -11,7 +11,7 @@ const struct master DEFAULT_MASTERS[5] = {
 	{ "", "" }
 };
 
-void _read_master(sqlite3_stmt *res, void *_m, int extended)
+static void _read_master(sqlite3_stmt *res, void *_m, int extended)
 {
 	struct master *m = _m;
 

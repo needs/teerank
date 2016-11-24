@@ -59,9 +59,8 @@ void load_config(int check_version)
 	tzset();
 
 	/* Open database now so we can check it's version */
-	if (sqlite3_open_v2(config.dbpath, &db, SQLITE_OPEN_READWRITE, NULL) != SQLITE_OK)
-		if (!create_database())
-			exit(EXIT_FAILURE);
+	if (!init_database())
+		exit(EXIT_FAILURE);
 
 	/*
 	 * Wait when two or more processes want to write the database.

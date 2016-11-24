@@ -5,7 +5,7 @@
 #include <sqlite3.h>
 
 extern sqlite3 *db;
-int create_database(void);
+int init_database(void);
 
 /*
  * Query database version.  It does require database handle to be

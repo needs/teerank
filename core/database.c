@@ -129,7 +129,7 @@ fail:
 	return 0;
 }
 
-int create_database(void)
+static int create_database(void)
 {
 	const int FLAGS = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 	sqlite3_stmt *res;
@@ -254,6 +254,16 @@ fail_init:
 		config.dbpath, sqlite3_errmsg(db));
 	sqlite3_exec(db, "ROLLBACK", 0, 0, 0);
 	return 0;
+}
+
+int init_database(void)
+{
+	int flags = SQLITE_OPEN_READWRITE;
+
+	if (sqlite3_open_v2(config.dbpath, &db, flags, NULL) != SQLITE_OK)
+		return create_database();
+
+	return 1;
 }
 
 static void errmsg(const char *func, const char *query)

@@ -49,7 +49,7 @@ static int remove_offline_servers(long days, int dryrun)
 		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
-	sqlite3_exec(db, "BEGIN", 0, 0, 0);
+	exec("BEGIN");
 
 	foreach_server(query, &server) {
 		if (days_offline(server.lastseen) >= days) {
@@ -65,7 +65,7 @@ static int remove_offline_servers(long days, int dryrun)
 		}
 	}
 
-	sqlite3_exec(db, "END", 0, 0, 0);
+	exec("COMMIT");
 
 	if (!res)
 		return FAILURE;

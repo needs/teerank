@@ -334,12 +334,12 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 	 * in a single transaction, hence reducing lock contention on
 	 * the database.
 	 */
-	sqlite3_exec(db, "BEGIN", 0, 0, 0);
+	exec("BEGIN");
 	for (i = 0; i < list->length; i++) {
 		write_server(&list->netservers[i].server);
 		write_server_clients(&list->netservers[i].server);
 	}
-	sqlite3_exec(db, "COMMIT", 0, 0, 0);
+	exec("COMMIT");
 
 	verbose(
 		"Polling succeded for %u servers and failed for %u servers\n",

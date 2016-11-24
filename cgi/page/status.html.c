@@ -103,9 +103,6 @@ static int show_masters_status(int teerank_stopped)
 	if (res)
 		return 1;
 
-	fprintf(
-		stderr, "%s: show_masters_status(): %s\n",
-		config.dbpath, sqlite3_errmsg(db));
 	return 0;
 }
 

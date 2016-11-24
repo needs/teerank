@@ -22,48 +22,19 @@
 static int upgrade_historic(const char *pname, struct teerank6_historic *hist)
 {
 	struct teerank6_record *r;
-	sqlite3_stmt *res;
+
 	const char query[] =
 		"INSERT INTO player_historic(name, timestamp, elo, rank)"
 		" VALUES (?, ?, ?, ?)";
 
-	/*
-	 * The query is the same, only values change, so we can reuse
-	 * the prepared statement.
-	 */
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
 	for (r = hist->first; r; r = r->next) {
 		struct teerank6_player_record *data = teerank6_record_data(hist, r);
 
-		if (sqlite3_bind_text(res, 1, pname, -1, SQLITE_STATIC) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_int64(res, 2, r->time) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_int(res, 3, data->elo) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_bind_int64(res, 4, data->rank) != SQLITE_OK)
-			goto fail;
-
-		if (sqlite3_step(res) != SQLITE_DONE)
-			goto fail;
-
-		if (sqlite3_reset(res) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_clear_bindings(res) != SQLITE_OK)
-			goto fail;
+		if (!exec(query, "stiu", pname, r->time, data->elo, data->rank))
+			return 0;
 	}
 
-	sqlite3_finalize(res);
 	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: upgrade_historic(%s): %s\n",
-		config.dbpath, pname, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	return 0;
 }
 
 static int upgrade_player(struct teerank6_player *old, struct player *new)
@@ -176,12 +147,12 @@ int main(int argc, char *argv[])
 	load_config(0);
 	teerank6_load_config(1);
 
-	sqlite3_exec(db, "BEGIN", 0, 0, 0);
+	exec("BEGIN");
 
 	upgrade_players();
 	upgrade_servers();
 
-	sqlite3_exec(db, "COMMIT", 0, 0, 0);
+	exec("COMMIT");
 
 	return EXIT_SUCCESS;
 }

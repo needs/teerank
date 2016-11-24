@@ -46,13 +46,7 @@ static int json_info(void)
 	printf("],\"nmasters\":%u", nrow);
 	putchar('}');
 
-	if (res)
-		return SUCCESS;
-
-	fprintf(
-		stderr, "%s: json_info(): %s\n",
-		config.dbpath, sqlite3_errmsg(db));
-	return FAILURE;
+	return res ? SUCCESS : FAILURE;
 }
 
 int main_json_about(int argc, char **argv)

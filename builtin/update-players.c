@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 		unsigned length = 0;
 		int rankedgame;
 
-		sqlite3_exec(db, "BEGIN", 0, 0, 0);
+		exec("BEGIN");
 
 		/* Load player (ignore fail) */
 		for (i = 0; i < delta.length; i++) {
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 		if (rankedgame)
 			compute_ranks(players, length);
 
-		sqlite3_exec(db, "COMMIT", 0, 0, 0);
+		exec("COMMIT");
 	}
 
 	return EXIT_SUCCESS;

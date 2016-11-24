@@ -52,9 +52,6 @@ static int init_masters_list(void)
 	if (res)
 		return 1;
 
-	fprintf(
-		stderr, "%s: init_masters_list(): %s\n",
-		config.dbpath, sqlite3_errmsg(db));
 	return 0;
 }
 
@@ -279,8 +276,7 @@ int main(int argc, char **argv)
 	if (!update_masters_info())
 		return EXIT_FAILURE;
 
-	if (sqlite3_exec(db, "BEGIN", 0, 0, 0) != SQLITE_OK)
-		return EXIT_FAILURE;
+	exec("BEGIN");
 
 	for (i = 0; i < list.length; i++) {
 		struct server_addr *addr = &list.entries[i].addr;
@@ -289,8 +285,7 @@ int main(int argc, char **argv)
 		create_server(addr->ip, addr->port, master->info.node, master->info.service);
 	}
 
-	if (sqlite3_exec(db, "COMMIT", 0, 0, 0) != SQLITE_OK)
-		return EXIT_FAILURE;
+	exec("COMMIT");
 
 	verbose("Masters referenced %u servers\n", list.length);
 

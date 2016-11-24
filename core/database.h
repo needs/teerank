@@ -38,6 +38,6 @@ int _exec(const char *query, const char *bindfmt, ...);
 	foreach_next(res, buf, read_row);          nrow++ \
 )
 sqlite3_stmt *foreach_init(const char *query, const char *bindfmt, ...);
-int foreach_next(sqlite3_stmt  *res, void *data, void (*read_row)(sqlite3_stmt*, void*));
+int foreach_next(sqlite3_stmt *res, void *data, void (*read_row)(sqlite3_stmt*, void*));
 
 #endif /* DATABASE_H */

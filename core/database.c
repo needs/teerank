@@ -258,9 +258,9 @@ fail_init:
 
 int init_database(void)
 {
-	int flags = SQLITE_OPEN_READWRITE;
+	const int FLAGS = SQLITE_OPEN_READWRITE;
 
-	if (sqlite3_open_v2(config.dbpath, &db, flags, NULL) != SQLITE_OK)
+	if (sqlite3_open_v2(config.dbpath, &db, FLAGS, NULL) != SQLITE_OK)
 		return create_database();
 
 	return 1;
@@ -317,6 +317,7 @@ fail:
  */
 static int prepare_query(const char *query, const char **prevquery, sqlite3_stmt **res)
 {
+	assert(query);
 	assert(!*prevquery || *res);
 
 	/*
@@ -338,12 +339,10 @@ prepare:
 
 	if (sqlite3_prepare_v2(db, query, -1, res, NULL) != SQLITE_OK) {
 		*prevquery = NULL;
-		*res = NULL;
 		return 0;
 	}
 
 	*prevquery = query;
-
 	return 1;
 }
 
@@ -380,13 +379,11 @@ fail:
 
 sqlite3_stmt *foreach_init(const char *query, const char *bindfmt, ...)
 {
-	static const char *prevquery;
-	static sqlite3_stmt *res;
-
-	va_list ap;
 	int ret;
+	va_list ap;
+	sqlite3_stmt *res;
 
-	if (!prepare_query(query, &prevquery, &res)) {
+	if (sqlite3_prepare_v2(db, query, -1, &res, NULL)) {
 		errmsg("foreach_init", query);
 		return NULL;
 	}

@@ -36,26 +36,26 @@ int is_vanilla_ctf_server(
 	return 1;
 }
 
-static void _read_server(sqlite3_stmt *res, struct server *server, int extended)
+static void _read_server(sqlite3_stmt *res, struct server *s, int extended)
 {
-	snprintf(server->ip, sizeof(server->ip), "%s", sqlite3_column_text(res, 0));
-	snprintf(server->port, sizeof(server->port), "%s", sqlite3_column_text(res, 1));
-	snprintf(server->name, sizeof(server->name), "%s", sqlite3_column_text(res, 2));
-	snprintf(server->gametype, sizeof(server->gametype), "%s", sqlite3_column_text(res, 3));
-	snprintf(server->map, sizeof(server->map), "%s", sqlite3_column_text(res, 4));
+	snprintf(s->ip, sizeof(s->ip), "%s", sqlite3_column_text(res, 0));
+	snprintf(s->port, sizeof(s->port), "%s", sqlite3_column_text(res, 1));
+	snprintf(s->name, sizeof(s->name), "%s", sqlite3_column_text(res, 2));
+	snprintf(s->gametype, sizeof(s->gametype), "%s", sqlite3_column_text(res, 3));
+	snprintf(s->map, sizeof(s->map), "%s", sqlite3_column_text(res, 4));
 
-	server->lastseen = sqlite3_column_int64(res, 5);
-	server->expire = sqlite3_column_int64(res, 6);
+	s->lastseen = sqlite3_column_int64(res, 5);
+	s->expire = sqlite3_column_int64(res, 6);
 
-	snprintf(server->master_node, sizeof(server->master_node), "%s", sqlite3_column_text(res, 7));
-	snprintf(server->master_service, sizeof(server->master_service), "%s", sqlite3_column_text(res, 8));
+	snprintf(s->master_node, sizeof(s->master_node), "%s", sqlite3_column_text(res, 7));
+	snprintf(s->master_service, sizeof(s->master_service), "%s", sqlite3_column_text(res, 8));
 
-	server->max_clients = sqlite3_column_int(res, 9);
+	s->max_clients = sqlite3_column_int(res, 9);
 
 	if (extended)
-		server->num_clients = sqlite3_column_int(res, 10);
+		s->num_clients = sqlite3_column_int(res, 10);
 	else
-		server->num_clients = 0;
+		s->num_clients = 0;
 }
 
 void read_server(sqlite3_stmt *res, void *s)
@@ -215,7 +215,7 @@ int write_server_clients(struct server *server)
 int write_server(struct server *server)
 {
 	const char query[] =
-		"INSERT OR REPLACE INTO servers(" ALL_SERVER_COLUMNS ")"
+		"INSERT OR REPLACE INTO servers"
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	return exec(query, bind_server(*server));

@@ -258,6 +258,32 @@ static int update_masters_info(void)
 	return ret;
 }
 
+static void update_server(struct server_addr *addr, struct master *master)
+{
+	unsigned nrow;
+	sqlite3_stmt *res;
+	struct server s;
+
+	const char *query =
+		"SELECT" ALL_SERVER_COLUMNS
+		" FROM servers"
+		" WHERE ip = ? AND port = ?";
+
+	foreach_server(query, &s, "ss", addr->ip, addr->port);
+
+	if (!res)
+		return;
+
+	if (!nrow) {
+		create_server(addr->ip, addr->port, master->node, master->service);
+		return;
+	}
+
+	snprintf(s.master_node, sizeof(s.master_node), "%s", master->node);
+	snprintf(s.master_service, sizeof(s.master_service), "%s", master->service);
+	write_server(&s);
+}
+
 int main(int argc, char **argv)
 {
 	struct list list;
@@ -278,11 +304,13 @@ int main(int argc, char **argv)
 
 	exec("BEGIN");
 
+	exec("UPDATE servers SET master_node = '', master_service = ''");
+
 	for (i = 0; i < list.length; i++) {
 		struct server_addr *addr = &list.entries[i].addr;
-		struct master_info *master = list.entries[i].master;
+		struct master *master = &list.entries[i].master->info;
 
-		create_server(addr->ip, addr->port, master->info.node, master->info.service);
+		update_server(addr, master);
 	}
 
 	exec("COMMIT");

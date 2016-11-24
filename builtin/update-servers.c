@@ -265,7 +265,8 @@ static int fill_netserver_list(struct netserver_list *list)
 	struct netserver ns;
 	sqlite3_stmt *res;
 	unsigned nrow;
-	const char query[] =
+
+	const char *query =
 		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
@@ -274,7 +275,6 @@ static int fill_netserver_list(struct netserver_list *list)
 			continue;
 		if (!server_expired(&ns.server))
 			continue;
-
 		if (!get_sockaddr(ns.server.ip, ns.server.port, &ns.addr))
 			continue;
 		if (!add_netserver(list, &ns))

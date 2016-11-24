@@ -9,34 +9,31 @@
 
 sqlite3 *db = NULL;
 
+static void read_version(sqlite3_stmt *res, void *_version)
+{
+	int *version = _version;
+	*version = sqlite3_column_int(res, 0);
+}
+
 int database_version(void)
 {
-	int ret, version;
+	int version;
 	sqlite3_stmt *res;
-	const char query[] = "SELECT version FROM version";
+	unsigned nrow;
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
+	const char *query = "SELECT version FROM version";
 
-	ret = sqlite3_step(res);
-	if (ret == SQLITE_DONE)
-		goto not_found;
-	else if (ret != SQLITE_ROW)
-		goto fail;
+	foreach_row(query, read_version, &version);
 
-	version = sqlite3_column_int(res, 0);
+	if (!res)
+		exit(EXIT_FAILURE);
 
-	sqlite3_finalize(res);
+	if (!nrow) {
+		fprintf(stderr, "%s: Database doesn't contain a version number\n", config.dbpath);
+		exit(EXIT_FAILURE);
+	}
+
 	return version;
-
-not_found:
-	fprintf(stderr, "%s: Database doesn't contain a version number\n", config.dbpath);
-	sqlite3_finalize(res);
-	exit(EXIT_FAILURE);
-fail:
-	fprintf(stderr, "%s: get_version(): %s\n", config.dbpath, sqlite3_errmsg(db));
-	sqlite3_finalize(res);
-	exit(EXIT_FAILURE);
 }
 
 static int init_version_table(void)
@@ -48,7 +45,7 @@ static int init_version_table(void)
 	return exec(query, "i", DATABASE_VERSION);
 }
 
-static int _bind(sqlite3_stmt *res, const char *bindfmt, va_list ap)
+static int bind(sqlite3_stmt *res, const char *bindfmt, va_list ap)
 {
 	unsigned i;
 	int ret;
@@ -82,57 +79,39 @@ static int _bind(sqlite3_stmt *res, const char *bindfmt, va_list ap)
 	return 1;
 }
 
-static int bind(sqlite3_stmt *res, const char *bindfmt, ...)
+static int init_masters_table(void)
 {
-	int ret;
-	va_list ap;
+	const struct master *master;
+	int ret = 1;
 
-	va_start(ap, bindfmt);
-	ret = _bind(res, bindfmt, ap);
-	va_end(ap);
+	const char *query =
+		"INSERT INTO masters"
+		" VALUES(?, ?, ?)";
+
+	for (master = DEFAULT_MASTERS; *master->node; master++)
+		ret &= exec(query, "sst", master->node, master->service, NEVER_SEEN);
 
 	return ret;
 }
 
-
-static int init_masters_table(void)
+static void errmsg(const char *func, const char *query)
 {
-	sqlite3_stmt *res;
-	const struct master *master;
-	const char query[] =
-		"INSERT INTO masters"
-		" VALUES(?, ?, ?)";
+	const char *dbpath = config.dbpath;
+	const char *msg = sqlite3_errmsg(db);
 
-	if (sqlite3_prepare_v2(db, query, sizeof(query), &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	for (master = DEFAULT_MASTERS; *master->node; master++) {
-		if (!bind(res, "sst", master->node, master->service, NEVER_SEEN))
-			goto fail;
-
-		if (sqlite3_step(res) != SQLITE_DONE)
-			goto fail;
-
-		if (sqlite3_reset(res) != SQLITE_OK)
-			goto fail;
-		if (sqlite3_clear_bindings(res) != SQLITE_OK)
-			goto fail;
-	}
-
-	sqlite3_finalize(res);
-	return 1;
-
-fail:
-	fprintf(
-		stderr, "%s: init_masters_table(): %s\n",
-		config.dbpath, sqlite3_errmsg(db));
-	return 0;
+#ifdef NDEBUG
+	fprintf(stderr, "%s: %s: %s\n", dbpath, func, msg);
+#else
+	if (query)
+		fprintf(stderr, "%s: %s: %s: %s\n", dbpath, func, query, msg);
+	else
+		fprintf(stderr, "%s: %s: %s\n", dbpath, func, msg);
+#endif
 }
 
 static int create_database(void)
 {
 	const int FLAGS = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-	sqlite3_stmt *res;
 
 	const char **query = NULL, *queries[] = {
 		"CREATE TABLE version("
@@ -205,8 +184,10 @@ static int create_database(void)
 		NULL
 	};
 
-	if (sqlite3_open_v2(config.dbpath, &db, FLAGS, NULL) != SQLITE_OK)
-		goto fail_open;
+	if (sqlite3_open_v2(config.dbpath, &db, FLAGS, NULL) != SQLITE_OK) {
+		errmsg("create_database", NULL);
+		return 0;
+	}
 
 	/*
 	 * Batch create queries in a single immediate transaction so
@@ -218,41 +199,22 @@ static int create_database(void)
 		return 1;
 
 	for (query = queries; *query; query++) {
-		if (sqlite3_prepare_v2(db, *query, -1, &res, NULL) != SQLITE_OK)
+		if (!exec(*query))
 			goto fail;
-		if (sqlite3_step(res) != SQLITE_DONE)
-			goto fail;
-		sqlite3_finalize(res);
 	}
 
 	if (!init_version_table())
-		goto fail_init;
+		goto fail;
 	if (!init_masters_table())
-		goto fail_init;
+		goto fail;
 
-	if (sqlite3_exec(db, "COMMIT", 0, 0, 0) != SQLITE_OK)
+	if (!exec("COMMIT"))
 		goto fail;
 
 	return 1;
 
-fail_open:
-	fprintf(
-		stderr, "%s: create_database(): %s\n",
-		config.dbpath, sqlite3_errmsg(db));
-	return 0;
-
 fail:
-	fprintf(
-		stderr, "%s: create_database(): query %zi: %s\n",
-		config.dbpath, query - queries + 1, sqlite3_errmsg(db));
-	sqlite3_exec(db, "ROLLBACK", 0, 0, 0);
-	return 0;
-
-fail_init:
-	fprintf(
-		stderr, "%s: create_database(): init: %s\n",
-		config.dbpath, sqlite3_errmsg(db));
-	sqlite3_exec(db, "ROLLBACK", 0, 0, 0);
+	exec("ROLLBACK");
 	return 0;
 }
 
@@ -266,21 +228,6 @@ int init_database(void)
 	return 1;
 }
 
-static void errmsg(const char *func, const char *query)
-{
-	const char *dbpath = config.dbpath;
-	const char *msg = sqlite3_errmsg(db);
-
-#ifdef NDEBUG
-	fprintf(stderr, "%s: %s: %s\n", dbpath, func, msg);
-#else
-	if (query)
-		fprintf(stderr, "%s: %s: %s: %s\n", dbpath, func, query, msg);
-	else
-		fprintf(stderr, "%s: %s: %s\n", dbpath, func, msg);
-#endif
-}
-
 unsigned _count_rows(const char *query, const char *bindfmt, ...)
 {
 	va_list ap;
@@ -291,7 +238,7 @@ unsigned _count_rows(const char *query, const char *bindfmt, ...)
 		goto fail;
 
 	va_start(ap, bindfmt);
-	ret = _bind(res, bindfmt, ap);
+	ret = bind(res, bindfmt, ap);
 	va_end(ap);
 
 	if (!ret)
@@ -360,7 +307,7 @@ int _exec(const char *query, const char *bindfmt, ...)
 		goto fail;
 
 	va_start(ap, bindfmt);
-	ret = _bind(res, bindfmt, ap);
+	ret = bind(res, bindfmt, ap);
 	va_end(ap);
 
 	if (!ret)
@@ -387,7 +334,7 @@ sqlite3_stmt *foreach_init(const char *query, const char *bindfmt, ...)
 		goto fail;
 
 	va_start(ap, bindfmt);
-	ret = _bind(res, bindfmt, ap);
+	ret = bind(res, bindfmt, ap);
 	va_end(ap);
 
 	if (!ret)

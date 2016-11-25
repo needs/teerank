@@ -23,34 +23,18 @@ static unsigned mark_rankable_players(
 	assert(players != NULL);
 
 	/*
-	 * New server will have an elapsed time equals to zero.  Make it
-	 * a special case so we don't print a verbose message, since
-	 * add-new-servers already printed one.
-	 */
-	if (delta->elapsed == 0)
-		return 0;
-
-	/*
 	 * 30 minutes between each update is just too much and it increase
 	 * the chance of rating two different games.
 	 */
-	if (delta->elapsed > 30 * 60) {
-		verbose("A game with %u players is unrankable because too"
-		        " much time have passed between two updates\n",
-		        length);
+	if (delta->elapsed > 30 * 60)
 		return 0;
-	}
 
 	/*
 	 * On the other hand, less than 1 minutes between updates is
 	 * also meaningless.
 	 */
-	if (delta->elapsed < 60) {
-		verbose("A game with %u players is unrankable because too"
-		        " little time have passed between two updates\n",
-		        length);
+	if (delta->elapsed < 60)
 		return 0;
-	}
 
 	if (!is_vanilla_ctf_server(
 		    delta->gametype, delta->map,
@@ -70,15 +54,12 @@ static unsigned mark_rankable_players(
 	 * We don't rank games with less than 4 rankable players.  We believe
 	 * it is too much volatile to rank those kind of games.
 	 */
-	if (rankable < 4) {
-		verbose("A game with %u players is unrankable because only"
-		        " %u players can be ranked, 4 needed\n",
-		        length, rankable);
+	if (rankable < 4)
 		return 0;
-	}
 
-	verbose("A game with %u rankable players over %u will be ranked\n",
-	        rankable, length);
+	verbose(
+		"%s, %u rankable players over %u\n",
+		build_addr(delta->ip, delta->port), rankable, length);
 
 	return rankable;
 }

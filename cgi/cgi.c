@@ -364,32 +364,36 @@ static int generate(struct route *route)
 	return dump(500, NULL, err[0], stderr);
 }
 
-static char *get_path(void)
+static int load_path_and_query(char **_path, char **_query)
 {
-	static char *tmp, path[PATH_MAX];
+	static char path[1024], query[1024];
+	char *uri, *tmp;
 
-	if (!(tmp = getenv("PATH_INFO")) && !(tmp = getenv("DOCUMENT_URI")))
-		error(500, "PATH_INFO or DOCUMENT_URI not set\n");
+	/*
+	 * Turns out webservers can do some crazy things before giving
+	 * us the requested URI.  For instance Nginx does de-encode %2F
+	 * ('/') in URL body, making URLs like "/player/foo%2F" not
+	 * working because we will receive "/player/foo/".
+	 *
+	 * Hopefully nginx does provide the unparsed string in
+	 * $REQUEST_URI.  We need to split the URI body (path) from the
+	 * query string.
+	 */
 
-	/* Env vars cannot be modified so we have to copy it */
-	if (*stpncpy(path, tmp, PATH_MAX) != '\0')
-		error(414, NULL);
+	if (!(uri = getenv("REQUEST_URI")))
+		return 0;
 
-	return path;
-}
+	*_path = path;
+	*_query = query;
+	path[0] = 0;
+	query[0] = 0;
 
-static char *get_query(void)
-{
-	static char *tmp, query[PATH_MAX] = "";
+	/* Env vars cannot be modified so copy them */
+	snprintf(path, sizeof(path), "%s", strtok(uri, "?"));
+	tmp = strtok(NULL, "?");
+	snprintf(query, sizeof(query), "%s", tmp ? tmp : "");
 
-	if (!(tmp = getenv("QUERY_STRING")))
-		return query;
-
-	/* Env vars cannot be modified so we have to copy it */
-	if (*stpncpy(query, tmp, PATH_MAX) != '\0')
-		error(414, NULL);
-
-	return query;
+	return 1;
 }
 
 static void load_cgi_config(void)
@@ -418,6 +422,8 @@ static void load_cgi_config(void)
 
 int main(int argc, char **argv)
 {
+	char *path, *query;
+
 	/*
 	 * I'm not sure we do want to check database version because
 	 * CGI can be called often.  And as long it is not a fast-cgi,
@@ -434,13 +440,13 @@ int main(int argc, char **argv)
 	 */
 	load_cgi_config();
 
-	if (argc != 1) {
+	if (argc != 1 || !load_path_and_query(&path, &query)) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
-		fprintf(stderr, "This program expect $PATH_INFO or $DOCUMENT_URI to be set, and optionally $QUERY_STRING.\n");
+		fprintf(stderr, "This program expect $REQUEST_URI to be set.\n");
 		error(500, NULL);
 	}
 
-	generate(do_route(get_path(), get_query()));
+	generate(do_route(path, query));
 
 	return EXIT_SUCCESS;
 }

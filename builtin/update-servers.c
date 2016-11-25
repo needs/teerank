@@ -115,9 +115,6 @@ static long int unpack_int(struct unpacker *up)
 
 static int validate_client_info(struct client *client)
 {
-	char name[NAME_LENGTH];
-	char clan[NAME_LENGTH];
-
 	assert(client != NULL);
 	assert(client->name != NULL);
 	assert(client->clan != NULL);
@@ -126,9 +123,6 @@ static int validate_client_info(struct client *client)
 		return 0;
 	if (strlen(client->clan) >= NAME_LENGTH)
 		return 0;
-
-	strcpy(client->name, name);
-	strcpy(client->clan, clan);
 
 	return 1;
 }

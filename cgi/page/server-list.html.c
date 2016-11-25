@@ -9,7 +9,6 @@
 #include "cgi.h"
 #include "config.h"
 #include "html.h"
-#include "page.h"
 #include "server.h"
 
 int main_html_server_list(int argc, char **argv)

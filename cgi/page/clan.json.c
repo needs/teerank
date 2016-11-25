@@ -6,7 +6,6 @@
 #include "cgi.h"
 #include "config.h"
 #include "player.h"
-#include "page.h"
 #include "json.h"
 #include "clan.h"
 

@@ -4,7 +4,6 @@
 #include <errno.h>
 
 #include "cgi.h"
-#include "page.h"
 #include "config.h"
 #include "server.h"
 #include "json.h"

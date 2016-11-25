@@ -6,7 +6,6 @@
 #include "cgi.h"
 #include "config.h"
 #include "server.h"
-#include "page.h"
 #include "json.h"
 
 static void json_server(struct server *server)

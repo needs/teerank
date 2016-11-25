@@ -18,6 +18,13 @@ extern struct cgi_config {
 	char domain[MAX_DOMAIN_LENGTH];
 } cgi_config;
 
+#define PLAYERS_PER_PAGE 100;
+#define CLANS_PER_PAGE   100;
+#define SERVERS_PER_PAGE 100;
+
+/* Parse page number (used by *-list) */
+int parse_pnum(const char *str, unsigned *pnum);
+
 unsigned char hextodec(char c);
 
 char *url_encode(const char *str);

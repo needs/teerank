@@ -9,7 +9,6 @@
 #include "cgi.h"
 #include "config.h"
 #include "html.h"
-#include "page.h"
 #include "database.h"
 #include "player.h"
 

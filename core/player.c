@@ -13,95 +13,6 @@
 #include "config.h"
 #include "elo.h"
 
-static int is_valid_hexpair(const char *hex)
-{
-	char c1, c2;
-
-	if (hex[0] == '\0' || hex[1] == '\0')
-		return 0;
-
-	c1 = hex[0];
-	c2 = hex[1];
-
-	if (!isxdigit(c1) || !isxdigit(c2))
-		return 0;
-
-	if (c1 == '0' && c2 == '0')
-		return 0;
-
-	return 1;
-}
-
-static int is_terminating_hexpair(const char *hex)
-{
-	if (hex[0] == '\0' || hex[1] == '\0')
-		return 0;
-
-	return hex[0] == '0' && hex[1] == '0' && hex[2] == '\0';
-}
-
-int is_valid_hexname(const char *hex)
-{
-	assert(hex != NULL);
-
-	while (is_valid_hexpair(hex))
-		hex += 2;
-
-	return is_terminating_hexpair(hex);
-}
-
-static unsigned char hextodec(char c)
-{
-	switch (c) {
-	case '0': return 0;
-	case '1': return 1;
-	case '2': return 2;
-	case '3': return 3;
-	case '4': return 4;
-	case '5': return 5;
-	case '6': return 6;
-	case '7': return 7;
-	case '8': return 8;
-	case '9': return 9;
-	case 'A':
-	case 'a': return 10;
-	case 'B':
-	case 'b': return 11;
-	case 'C':
-	case 'c': return 12;
-	case 'D':
-	case 'd': return 13;
-	case 'E':
-	case 'e': return 14;
-	case 'F':
-	case 'f': return 15;
-	default: return 0;
-	}
-}
-
-void hexname_to_name(const char *hex, char *name)
-{
-	assert(hex != NULL);
-	assert(name != NULL);
-	assert(hex != name);
-
-	for (; hex[0] != '0' || hex[1] != '0'; hex += 2, name++)
-		*name = hextodec(hex[0]) * 16 + hextodec(hex[1]);
-
-	*name = '\0';
-}
-
-void name_to_hexname(const char *name, char *hex)
-{
-	assert(name != NULL);
-	assert(hex != NULL);
-	assert(name != hex);
-
-	for (; *name; name++, hex += 2)
-		sprintf(hex, "%2x", *(unsigned char*)name);
-	strcpy(hex, "00");
-}
-
 void init_player(struct player *player)
 {
 	static const struct player PLAYER_ZERO;
@@ -176,7 +87,6 @@ void set_clan(struct player *player, char *clan)
 {
 	assert(player != NULL);
 	assert(clan != NULL);
-	assert(is_valid_hexname(clan));
 
 	strcpy(player->clan, clan);
 	player->clan_changed = 1;

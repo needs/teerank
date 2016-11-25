@@ -15,20 +15,6 @@
  */
 #define NAME_LENGTH 17
 
-/**
- * @def HEXNAME_LENGTH
- *
- * Hex string represent a regular string on a different form, with only
- * hexadecimal characters (0-9, a-f).  A pair of two following characters
- * define a byte of the represented string.
- *
- * They are used to convert any string to a valid filename.  In our case only
- * teeworlds name will be converted to hex string, hence a hex string is twice
- * as long as a regular string, plus one extra byte for the terminating nul byte.
- * Hence the value 33 = (16 * 2) + 1 .
- */
-#define HEXNAME_LENGTH 33
-
 #include "server.h"
 
 #define ALL_PLAYER_COLUMNS \
@@ -76,40 +62,13 @@ struct player_record {
 void read_player_record(sqlite3_stmt *res, void *p);
 
 /**
- * Check wether or not the supplied string is a valid hexadecimal string
- *
- * @param hex Hexadecimal string to be checked
- *
- * @return 1 if hex is a valid hex string, 0 else
- */
-int is_valid_hexname(const char *hex);
-
-/**
- * Convert a hex string to a regular string.  Supplied output buffer must
- * be wide enough to hold the result of the conversion.
- *
- * @param hex Hex string to be converted
- * @param name Buffer to store result of conversion
- */
-void hexname_to_name(const char *hex, char *name);
-
-/**
- * Convert a regular string to a hex string.  Supplied output buffer must
- * be wide enough to hold the result of the conversion.
- *
- * @param name Regular string to be converted
- * @param hex Buffer to store result of conversion
- */
-void name_to_hexname(const char *name, char *hex);
-
-/**
  * @struct player
  *
  * Holds a complete set of data of a player.
  */
 struct player {
-	char name[HEXNAME_LENGTH];
-	char clan[HEXNAME_LENGTH];
+	char name[NAME_LENGTH];
+	char clan[NAME_LENGTH];
 
 	int elo;
 	unsigned rank;

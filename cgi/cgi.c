@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <libgen.h>
+#include <ctype.h>
 
 #include "config.h"
 #include "route.h"
@@ -20,6 +21,118 @@
 struct cgi_config cgi_config = {
 	"teerank.com", "80"
 };
+
+static int safe_for_urls(char c)
+{
+	if (isalnum(c))
+		return 1;
+
+	return strchr("-_.~", c) != NULL;
+}
+
+static char dectohex(char dec)
+{
+	switch (dec) {
+	case 0: return '0';
+	case 1: return '1';
+	case 2: return '2';
+	case 3: return '3';
+	case 4: return '4';
+	case 5: return '5';
+	case 6: return '6';
+	case 7: return '7';
+	case 8: return '8';
+	case 9: return '9';
+	case 10: return 'A';
+	case 11: return 'B';
+	case 12: return 'C';
+	case 13: return 'D';
+	case 14: return 'E';
+	case 15: return 'F';
+	default: return '0';
+	}
+}
+
+char *url_encode(const char *str)
+{
+	static char _buf[1024];
+	char *buf = _buf;
+
+	for (; *str; str++) {
+		if (buf - _buf + 1 >= sizeof(_buf))
+			break;
+
+		if (safe_for_urls(*str)) {
+			*buf++ = *str;
+			continue;
+		}
+
+		if (buf - _buf + 3 >= sizeof(_buf))
+			break;
+
+		*buf++ = '%';
+		*buf++ = dectohex(*(unsigned char*)str / 16);
+		*buf++ = dectohex(*(unsigned char*)str % 16);
+	}
+
+	*buf = '\0';
+	return _buf;
+}
+
+unsigned char hextodec(char c)
+{
+	switch (c) {
+	case '0': return 0;
+	case '1': return 1;
+	case '2': return 2;
+	case '3': return 3;
+	case '4': return 4;
+	case '5': return 5;
+	case '6': return 6;
+	case '7': return 7;
+	case '8': return 8;
+	case '9': return 9;
+	case 'A':
+	case 'a': return 10;
+	case 'B':
+	case 'b': return 11;
+	case 'C':
+	case 'c': return 12;
+	case 'D':
+	case 'd': return 13;
+	case 'E':
+	case 'e': return 14;
+	case 'F':
+	case 'f': return 15;
+	default: return 0;
+	}
+}
+
+void url_decode(char *str)
+{
+	char *tmp = str;
+
+	while (*str) {
+		if (*str == '%') {
+			unsigned char byte;
+
+			if (!str[1] || !str[2])
+				break;
+
+			byte = hextodec(str[1]) * 16 + hextodec(str[2]);
+			*tmp = *(char*)&byte;
+			str += 3;
+		} else {
+			if (*str == '+')
+				*tmp = ' ';
+			else
+				*tmp = *str;
+			str++;
+		}
+		tmp++;
+	}
+	*tmp = '\0';
+}
 
 char *relurl(const char *fmt, ...)
 {

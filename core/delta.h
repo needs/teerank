@@ -30,7 +30,7 @@ struct delta {
 	int elapsed;
 	unsigned length;
 	struct player_delta {
-		char name[HEXNAME_LENGTH], clan[HEXNAME_LENGTH];
+		char name[NAME_LENGTH], clan[NAME_LENGTH];
 		int ingame;
 		int score, old_score;
 		int elo;

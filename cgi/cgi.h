@@ -18,6 +18,11 @@ extern struct cgi_config {
 	char domain[MAX_DOMAIN_LENGTH];
 } cgi_config;
 
+unsigned char hextodec(char c);
+
+char *url_encode(const char *str);
+void url_decode(char *str);
+
 char *relurl(const char *fmt, ...);
 char *absurl(const char *fmt, ...);
 

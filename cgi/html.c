@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "cgi.h"
 #include "player.h"
 #include "clan.h"
 #include "server.h"
@@ -313,11 +314,11 @@ void player_lastseen_link(time_t lastseen, const char *addr)
 	have_strls = strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", gmtime(&lastseen));
 
 	if (is_online && have_strls)
-		html("<a class=\"%s\" href=\"/servers/%s\" title=\"%s\">%s</a>",
+		html("<a class=\"%s\" href=\"/server/%s\" title=\"%s\">%s</a>",
 		     timescale, addr, strls, text);
 
 	else if (is_online)
-		html("<a class=\"%s\" href=\"/servers/%s\">%s</a>",
+		html("<a class=\"%s\" href=\"/server/%s\">%s</a>",
 		     timescale, addr, text);
 
 	else if (have_strls)
@@ -511,16 +512,15 @@ void html_end_online_player_list(void)
 
 static void player_list_entry(
 	int onlinelist,
-	const char *hexname, const char *hexclan,
+	const char *name, const char *clan,
 	int elo, unsigned rank, time_t lastseen,
 	int score, int ingame, const char *addr, int no_clan_link)
 {
-	char name[NAME_LENGTH], clan[NAME_LENGTH];
 	const char *specimg = "<img src=\"/images/spectator.png\" title=\"Spectator\"/>";
 	int spectator;
 
-	assert(hexname != NULL);
-	assert(hexclan != NULL);
+	assert(name != NULL);
+	assert(clan != NULL);
 
 	/* Spectators are less important */
 	spectator = onlinelist && !ingame;
@@ -536,17 +536,15 @@ static void player_list_entry(
 		html("<td>%u</td>", rank);
 
 	/* Name */
-	hexname_to_name(hexname, name);
-	html("<td>%s<a href=\"/players/%s\">%s</a></td>",
-	     spectator ? specimg : "", hexname, escape(name));
+	html("<td>%s<a href=\"/player/%s\">%s</a></td>",
+	     spectator ? specimg : "", url_encode(name), escape(name));
 
 	/* Clan */
-	hexname_to_name(hexclan, clan);
 	if (no_clan_link || *clan == '\0')
 		html("<td>%s</td>", escape(clan));
 	else
-		html("<td><a href=\"/clans/%s\">%s</a></td>",
-		     hexclan, escape(clan));
+		html("<td><a href=\"/clan/%s\">%s</a></td>",
+		     url_encode(clan), escape(clan));
 
 	/* Score (online-player-list only) */
 	if (onlinelist)
@@ -611,19 +609,16 @@ void html_end_clan_list(void)
 }
 
 void html_clan_list_entry(
-	unsigned pos, const char *hexname, unsigned nmembers)
+	unsigned pos, const char *name, unsigned nmembers)
 {
-	char name[NAME_LENGTH];
-
-	assert(hexname != NULL);
+	assert(name != NULL);
 
 	html("<tr>");
 
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	hexname_to_name(hexname, name);
-	html("<td><a href=\"/clans/%s\">%s</a></td>", hexname, escape(name));
+	html("<td><a href=\"/clan/%s\">%s</a></td>", url_encode(name), escape(name));
 
 	/* Members */
 	html("<td>%u</td>", nmembers);
@@ -661,14 +656,14 @@ void html_server_list_entry(unsigned pos, struct server *server)
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td><a href=\"/servers/%s\">%s</a></td>",
-	     build_addr(server->ip, server->port), server->name);
+	html("<td><a href=\"/server/%s\">%s</a></td>",
+	     build_addr(server->ip, server->port), escape(server->name));
 
 	/* Gametype */
-	html("<td>%s</td>", server->gametype);
+	html("<td>%s</td>", escape(server->gametype));
 
 	/* Map */
-	html("<td>%s</td>", server->map);
+	html("<td>%s</td>", escape(server->map));
 
 	/* Players */
 	html("<td>%u / %u</td>", server->num_clients, server->max_clients);
@@ -734,7 +729,7 @@ void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabv
 			html("<a class=\"enabled\">");
 		else
 			html("<a href=\"%s%s%s\">",
-			     tabs[i].url, squery ? "?q=" : "", squery ? squery : "");
+			     tabs[i].url, squery ? "?q=" : "", squery ? url_encode(squery) : "");
 
 		html("%s", tabs[i].title);
 

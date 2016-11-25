@@ -72,11 +72,9 @@ int compute_new_elo(struct player *player, struct player *players, unsigned leng
 
 static void print_elo_change(struct player *player, int elo)
 {
-	static char name[NAME_LENGTH];
-
-	hexname_to_name(player->name, name);
-	verbose("\t%-32s | %-16s | %d -> %d (%+d)\n", player->name, name,
-	        player->elo, elo, elo - player->elo);
+	verbose(
+		"\t%-16s | %d -> %d (%+d)\n",
+		player->name, player->elo, elo, elo - player->elo);
 }
 
 void compute_elos(struct player *players, unsigned length)

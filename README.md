@@ -63,10 +63,10 @@ CC="musl-gcc" CFLAGS="-static" make -B release
 ```
 
 You may not want to support deprecated URLs, disable them by setting
-`ROUTE_V2_URLS` to `0`.
+`ROUTE_V2_URLS` to `0` and `ROUTE_V3_URLS` to `0`.
 
 ```bash
-ROUTE_V2_URLS=0 make
+ROUTE_V2_URLS=0 ROUTE_V3_URLS=0 make
 ```
 
 When running `teerank-update`, set `TEERANK_ROOT` to change database

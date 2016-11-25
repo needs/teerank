@@ -91,7 +91,7 @@ struct server {
 	int num_clients;
 	int max_clients;
 	struct client {
-		char name[HEXNAME_LENGTH], clan[HEXNAME_LENGTH];
+		char name[NAME_LENGTH], clan[NAME_LENGTH];
 		int score;
 		int ingame;
 	} clients[MAX_CLIENTS];

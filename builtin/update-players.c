@@ -95,7 +95,7 @@ static void merge_delta(struct player *player, struct player_delta *delta)
 	 * write_player() succeed.
 	 */
 	if (strcmp(player->clan, delta->clan) != 0) {
-		char tmp[HEXNAME_LENGTH];
+		char tmp[NAME_LENGTH];
 		/* Put the old clan in the delta so we can use it later */
 		strcpy(tmp, player->clan);
 		set_clan(player, delta->clan);

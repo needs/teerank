@@ -62,7 +62,6 @@ struct search_info {
 	enum section_tab tab;
 	const char *sprefix;
 
-	int do_convert_query;
 	const char *count_query;
 	const char *search_query;
 };
@@ -77,7 +76,6 @@ static const struct search_info PLAYER_SINFO = {
 	PLAYERS_TAB,
 	"/players",
 
-	1,
 	"SELECT COUNT(1)"
 	" FROM players"
 	" WHERE" IS_RELEVANT("name")
@@ -100,7 +98,6 @@ static const struct search_info CLAN_SINFO = {
 	CLANS_TAB,
 	"/clans",
 
-	1,
 	"SELECT COUNT(DISTINCT clan)"
 	" FROM players"
 	" WHERE" IS_VALID_CLAN "AND" IS_RELEVANT("clan")
@@ -124,7 +121,6 @@ static const struct search_info SERVER_SINFO = {
 	SERVERS_TAB,
 	"/servers",
 
-	0,
 	"SELECT COUNT(1)"
 	" FROM servers"
 	" WHERE" IS_VANILLA_CTF_SERVER "AND" IS_RELEVANT("name")
@@ -165,17 +161,6 @@ static int search(const struct search_info *sinfo, const char *value)
 	return 1;
 }
 
-static const char *convert_query(char *query)
-{
-	static char buf[HEXNAME_LENGTH];
-
-	if (strlen(query) >= NAME_LENGTH - 1)
-		return NULL;
-
-	name_to_hexname(query, buf);
-	return buf;
-}
-
 int main_html_search(int argc, char **argv)
 {
 	unsigned tabvals[SECTION_TABS_COUNT];
@@ -201,18 +186,15 @@ int main_html_search(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (sinfo->do_convert_query)
-		squery = convert_query(argv[2]);
-	else
-		squery = argv[2];
+	squery = argv[2];
 
 	for (s = sinfos; *s; s++)
 		tabvals[(*s)->tab] = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);
 
 	CUSTOM_TAB.name = "Search results";
 	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, "Search results", sinfo->sprefix, argv[2]);
-	print_section_tabs(sinfo->tab, argv[2], tabvals);
+	html_header(&CUSTOM_TAB, "Search results", sinfo->sprefix, squery);
+	print_section_tabs(sinfo->tab, squery, tabvals);
 
 	if (!search(sinfo, squery))
 		return EXIT_FAILURE;

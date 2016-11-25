@@ -26,61 +26,6 @@ struct url {
 	struct arg args[MAX_ARGS];
 };
 
-static unsigned char hextodec(char c)
-{
-	switch (c) {
-	case '0': return 0;
-	case '1': return 1;
-	case '2': return 2;
-	case '3': return 3;
-	case '4': return 4;
-	case '5': return 5;
-	case '6': return 6;
-	case '7': return 7;
-	case '8': return 8;
-	case '9': return 9;
-	case 'A':
-	case 'a': return 10;
-	case 'B':
-	case 'b': return 11;
-	case 'C':
-	case 'c': return 12;
-	case 'D':
-	case 'd': return 13;
-	case 'E':
-	case 'e': return 14;
-	case 'F':
-	case 'f': return 15;
-	default: return 0;
-	}
-}
-
-static void url_decode(char *str)
-{
-	char *tmp = str;
-
-	while (*str) {
-		if (*str == '%') {
-			unsigned byte;
-
-			if (str[1] == '\0' || str[2] == '\0')
-				break;
-
-			byte = hextodec(str[1]) * 16 + hextodec(str[2]);
-			*tmp = *(char*)&byte;
-			str += 3;
-		} else {
-			if (*str == '+')
-				*tmp = ' ';
-			else
-				*tmp = *str;
-			str++;
-		}
-		tmp++;
-	}
-	*tmp = '\0';
-}
-
 struct url parse_url(char *uri, char *query)
 {
 	struct url url = {0};
@@ -106,6 +51,7 @@ struct url parse_url(char *uri, char *query)
 			if (url.ndirs == MAX_DIRS)
 				error(414, NULL);
 
+			url_decode(dir);
 			url.dirs[url.ndirs] = dir;
 			url.ndirs++;
 		} while ((dir = strtok(NULL, "/")));
@@ -246,13 +192,93 @@ static void setup_html_search(struct route *this, struct url *url)
 
 #if ROUTE_V2_URLS
 /* URLs for player list looked like "/pages/<pnum>.html" */
-static void setup_html_teerank2_player(struct route *this, struct url *url)
+static void setup_html_teerank2_player_list(struct route *this, struct url *url)
 {
 	redirect("/players?p=%s", url->dirs[url->ndirs - 1]);
 }
-static int main_html_teerank2_player(int argc, char **argv)
+static int main_html_teerank2_player_list(int argc, char **argv)
 {
 	return main_html_player_list(argc, argv);
+}
+#endif
+
+#if ROUTE_V3_URLS
+static const char *convert_hexname(char *hexname)
+{
+	char *hex = hexname;
+	char *name = hexname;
+
+	assert(hexname != NULL);
+
+	for (; hex[0] && hex[1]; hex += 2, name++)
+		*name = hextodec(hex[0]) * 16 + hextodec(hex[1]);
+
+	*name = '\0';
+	return hexname;
+}
+
+/* URLs for player looked like "/players/<hexname>" */
+static void setup_html_teerank3_player(struct route *this, struct url *url)
+{
+	redirect("/player/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
+}
+static int main_html_teerank3_player(int argc, char **argv)
+{
+	return main_html_player(argc, argv);
+}
+static void setup_json_teerank3_player(struct route *this, struct url *url)
+{
+	redirect("/player/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
+}
+static int main_json_teerank3_player(int argc, char **argv)
+{
+	return main_json_player(argc, argv);
+}
+
+/* URLs for player graph looked like "/players/<hexname>/elo+rank.svg" */
+static void setup_svg_teerank3_graph(struct route *this, struct url *url)
+{
+	redirect("/player/%s/historic.svg", url_encode(convert_hexname(url->dirs[url->ndirs - 2])));
+}
+static int main_svg_teerank3_graph(int argc, char **argv)
+{
+	return main_svg_graph(argc, argv);
+}
+
+/* URLs for clan looked like "/clans/<hexname>" */
+static void setup_html_teerank3_clan(struct route *this, struct url *url)
+{
+	redirect("/clan/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
+}
+static int main_html_teerank3_clan(int argc, char **argv)
+{
+	return main_html_clan(argc, argv);
+}
+static void setup_json_teerank3_clan(struct route *this, struct url *url)
+{
+	redirect("/clan/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
+}
+static int main_json_teerank3_clan(int argc, char **argv)
+{
+	return main_json_clan(argc, argv);
+}
+
+/* URLs for server looked like "/servers/<addr>" */
+static void setup_html_teerank3_server(struct route *this, struct url *url)
+{
+	redirect("/server/%s", url->dirs[url->ndirs - 1]);
+}
+static int main_html_teerank3_server(int argc, char **argv)
+{
+	return main_html_server(argc, argv);
+}
+static void setup_json_teerank3_server(struct route *this, struct url *url)
+{
+	redirect("/server/%s", url->dirs[url->ndirs - 1]);
+}
+static int main_json_teerank3_server(int argc, char **argv)
+{
+	return main_json_server(argc, argv);
 }
 #endif
 

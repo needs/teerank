@@ -16,6 +16,7 @@ PREVIOUS_DATABASE_VERSION = $(shell expr $(DATABASE_VERSION) - 1)
 # accidentaly break existing teerank installation.
 
 ROUTE_V2_URLS ?= 1
+ROUTE_V3_URLS ?= 1
 
 # We want to be C89 to make sure teerank can be built using almost any
 # compilers on almost any machines you can think of.
@@ -46,7 +47,8 @@ CFLAGS += \
 	-DSTABLE_VERSION=$(STABLE_VERSION) \
 	-DCURRENT_COMMIT=\"$(CURRENT_COMMIT)\" \
 	-DCURRENT_BRANCH=\"$(CURRENT_BRANCH)\" \
-	-DROUTE_V2_URLS=$(ROUTE_V2_URLS)
+	-DROUTE_V2_URLS=$(ROUTE_V2_URLS) \
+	-DROUTE_V3_URLS=$(ROUTE_V3_URLS)
 
 # Every scripts is prefixed with teerank-
 SCRIPTS += upgrade

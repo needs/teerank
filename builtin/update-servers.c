@@ -115,8 +115,8 @@ static long int unpack_int(struct unpacker *up)
 
 static int validate_client_info(struct client *client)
 {
-	char name[HEXNAME_LENGTH];
-	char clan[HEXNAME_LENGTH];
+	char name[NAME_LENGTH];
+	char clan[NAME_LENGTH];
 
 	assert(client != NULL);
 	assert(client->name != NULL);
@@ -127,9 +127,7 @@ static int validate_client_info(struct client *client)
 	if (strlen(client->clan) >= NAME_LENGTH)
 		return 0;
 
-	name_to_hexname(client->name, name);
 	strcpy(client->name, name);
-	name_to_hexname(client->clan, clan);
 	strcpy(client->clan, clan);
 
 	return 1;

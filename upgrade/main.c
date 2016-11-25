@@ -37,10 +37,49 @@ static int upgrade_historic(const char *pname, struct teerank6_historic *hist)
 	return 1;
 }
 
+static unsigned char hextodec(char c)
+{
+	switch (c) {
+	case '0': return 0;
+	case '1': return 1;
+	case '2': return 2;
+	case '3': return 3;
+	case '4': return 4;
+	case '5': return 5;
+	case '6': return 6;
+	case '7': return 7;
+	case '8': return 8;
+	case '9': return 9;
+	case 'A':
+	case 'a': return 10;
+	case 'B':
+	case 'b': return 11;
+	case 'C':
+	case 'c': return 12;
+	case 'D':
+	case 'd': return 13;
+	case 'E':
+	case 'e': return 14;
+	case 'F':
+	case 'f': return 15;
+	default: return 0;
+	}
+}
+
+static void hexname_to_name(const char *hex, char *name)
+{
+	size_t size;
+
+	for (size = 0; hex[0] && hex[1] && size < NAME_LENGTH; hex += 2, name++, size++)
+		*name = hextodec(hex[0]) * 16 + hextodec(hex[1]);
+
+	*(name - 1) = '\0';
+}
+
 static int upgrade_player(struct teerank6_player *old, struct player *new)
 {
-	memcpy(new->name, old->name, sizeof(new->name));
-	memcpy(new->clan, old->clan, sizeof(new->clan));
+	hexname_to_name(old->name, new->name);
+	hexname_to_name(old->clan, new->clan);
 
 	new->elo = old->elo;
 	new->rank = old->rank;
@@ -50,7 +89,7 @@ static int upgrade_player(struct teerank6_player *old, struct player *new)
 
 	new->lastseen = mktime(&old->lastseen);
 
-	return upgrade_historic(old->name, &old->hist);
+	return upgrade_historic(new->name, &old->hist);
 }
 
 static void upgrade_players(void)
@@ -105,8 +144,8 @@ static void upgrade_server(
 	new->max_clients = old->max_clients;
 
 	for (i = 0; i < new->num_clients; i++) {
-		strcpy(new->clients[i].name, old->clients[i].name);
-		strcpy(new->clients[i].clan, old->clients[i].clan);
+		hexname_to_name(old->clients[i].name, new->clients[i].name);
+		hexname_to_name(old->clients[i].clan, new->clients[i].clan);
 		new->clients[i].score = old->clients[i].score;
 		new->clients[i].ingame = old->clients[i].ingame;
 	}

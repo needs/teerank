@@ -138,6 +138,12 @@ int main_html_status(int argc, char **argv)
 	else
 		print_status(title, NULL, STATUS_DISABLED);
 
+	title = "Teerank 3.x backward compatibility";
+	if (ROUTE_V3_URLS)
+		print_status(title, NULL, STATUS_ENABLED);
+	else
+		print_status(title, NULL, STATUS_DISABLED);
+
 	show_masters_status(teerank_stopped);
 	html_footer(NULL, NULL);
 

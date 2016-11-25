@@ -64,9 +64,7 @@ int main_html_player_list(int argc, char **argv)
 	snprintf(query, sizeof(query), queryfmt, order->sortby, offset);
 
 	foreach_extended_player(query, &p)
-		html_player_list_entry(
-			p.name, p.clan, p.elo, p.rank, p.lastseen,
-			build_addr(p.server_ip, p.server_port), 0);
+		html_player_list_entry(&p, NULL, 0);
 
 	if (!res)
 		return EXIT_FAILURE;

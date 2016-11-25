@@ -41,9 +41,7 @@ void html_footer(const char *jsonanchor, const char *jsonurl);
 void html_start_player_list(int byrank, int bylastseen, unsigned pnum);
 void html_end_player_list(void);
 void html_player_list_entry(
-	const char *hexname, const char *hexclan,
-	int elo, unsigned rank, time_t lastseen,
-	const char *addr, int no_clan_link);
+	struct player *p, struct client *c, int no_clan_link);
 
 /* Online player list */
 void html_start_online_player_list(void);

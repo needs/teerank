@@ -511,82 +511,63 @@ void html_end_online_player_list(void)
 }
 
 static void player_list_entry(
-	int onlinelist,
-	const char *name, const char *clan,
-	int elo, unsigned rank, time_t lastseen,
-	int score, int ingame, const char *addr, int no_clan_link)
+	struct player *p, struct client *c, int no_clan_link)
 {
 	const char *specimg = "<img src=\"/images/spectator.png\" title=\"Spectator\"/>";
 	int spectator;
 
-	assert(name != NULL);
-	assert(clan != NULL);
-
 	/* Spectators are less important */
-	spectator = onlinelist && !ingame;
+	spectator = c && !c->ingame;
 	if (spectator)
 		html("<tr class=\"spectator\">");
 	else
 		html("<tr>");
 
 	/* Rank */
-	if (rank == UNRANKED)
+	if (p->rank == UNRANKED)
 		html("<td>?</td>");
 	else
-		html("<td>%u</td>", rank);
+		html("<td>%u</td>", p->rank);
 
 	/* Name */
 	html("<td>%s<a href=\"/player/%s\">%s</a></td>",
-	     spectator ? specimg : "", url_encode(name), escape(name));
+	     spectator ? specimg : "", url_encode(p->name), escape(p->name));
 
 	/* Clan */
-	if (no_clan_link || *clan == '\0')
-		html("<td>%s</td>", escape(clan));
+	if (no_clan_link || !p->clan[0])
+		html("<td>%s</td>", escape(p->clan));
 	else
 		html("<td><a href=\"/clan/%s\">%s</a></td>",
-		     url_encode(clan), escape(clan));
+		     url_encode(p->clan), escape(p->clan));
 
 	/* Score (online-player-list only) */
-	if (onlinelist)
-		html("<td>%d</td>", score);
+	if (c)
+		html("<td>%d</td>", c->score);
 
 	/* Elo */
-	if (elo == INVALID_ELO)
+	if (p->elo == INVALID_ELO)
 		html("<td>?</td>");
 	else
-		html("<td>%d</td>", elo);
+		html("<td>%d</td>", p->elo);
 
 	/* Last seen (not online-player-list only) */
 	html("<td>");
-	if (!onlinelist)
-		player_lastseen_link(lastseen, addr);
+	if (!c)
+		player_lastseen_link(p->lastseen, build_addr(p->server_ip, p->server_port));
 	html("</td>");
 
 	html("</tr>");
 }
 
 void html_player_list_entry(
-	const char *hexname, const char *hexclan,
-	int elo, unsigned rank, time_t lastseen,
-	const char *addr, int no_clan_link)
+	struct player *p, struct client *c, int no_clan_link)
 {
-	player_list_entry(0, hexname, hexclan, elo, rank, lastseen, 0, 0, addr, no_clan_link);
+	player_list_entry(p, c, no_clan_link);
 }
 
 void html_online_player_list_entry(struct player *p, struct client *c)
 {
-	int elo;
-	unsigned rank;
-
-	assert(c != NULL);
-
-	elo = p ? p->elo : INVALID_ELO;
-	rank = p ? p->rank : UNRANKED;
-
-	player_list_entry(
-		1, c->name, c->clan, elo, rank,
-		NEVER_SEEN, c->score, c->ingame,
-		NULL, 0);
+	player_list_entry(p, c, 0);
 }
 
 void html_start_clan_list(void)

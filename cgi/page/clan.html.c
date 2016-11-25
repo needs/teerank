@@ -40,9 +40,7 @@ int main_html_clan(int argc, char **argv)
 	html_start_player_list(1, 1, 0);
 
 	foreach_extended_player(query, &p, "s", cname)
-		html_player_list_entry(
-			p.name, p.clan, p.elo, p.rank, p.lastseen,
-			build_addr(p.server_ip, p.server_port), 1);
+		html_player_list_entry(&p, NULL, 1);
 
 	if (!res)
 		return EXIT_FAILURE;

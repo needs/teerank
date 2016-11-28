@@ -113,76 +113,52 @@ static long int unpack_int(struct unpacker *up)
 	return ret;
 }
 
-static int validate_client_info(struct client *client)
-{
-	assert(client != NULL);
-	assert(client->name != NULL);
-	assert(client->clan != NULL);
-
-	if (strlen(client->name) >= NAME_LENGTH)
-		return 0;
-	if (strlen(client->clan) >= NAME_LENGTH)
-		return 0;
-
-	return 1;
-}
-
-static int validate_clients_info(struct server *server)
-{
-	unsigned i;
-
-	assert(server != NULL);
-
-	for (i = 0; i < server->num_clients; i++)
-		if (!validate_client_info(&server->clients[i]))
-			return 0;
-	return 1;
-}
-
-static int unpack_packet_data(struct data *data, struct server *server)
+static int unpack_packet_data(struct data *data, struct server *sv)
 {
 	struct unpacker up;
 	unsigned i;
 
 	assert(data != NULL);
-	assert(server != NULL);
+	assert(sv != NULL);
 
 	init_unpacker(&up, data);
 
 	if (!can_unpack(&up, 10))
 		return 0;
 
-	skip_field(&up);     /* Token */
-	skip_field(&up);     /* Version */
-	unpack_string(&up, server->name, sizeof(server->name)); /* Name */
-	unpack_string(&up, server->map, sizeof(server->map)); /* Map */
-	unpack_string(&up, server->gametype, sizeof(server->gametype)); /* Gametype */
+	skip_field(&up); /* Token */
+	skip_field(&up); /* Version */
+	unpack_string(&up, sv->name,     sizeof(sv->name));     /* Name */
+	unpack_string(&up, sv->map,      sizeof(sv->map));      /* Map */
+	unpack_string(&up, sv->gametype, sizeof(sv->gametype)); /* Gametype */
 
-	skip_field(&up);     /* Flags */
-	skip_field(&up);     /* Player number */
-	skip_field(&up);     /* Player max number */
-	server->num_clients = unpack_int(&up); /* Client number */
-	server->max_clients = unpack_int(&up); /* Client max number */
+	skip_field(&up); /* Flags */
+	skip_field(&up); /* Player number */
+	skip_field(&up); /* Player max number */
+	sv->num_clients = unpack_int(&up); /* Client number */
+	sv->max_clients = unpack_int(&up); /* Client max number */
 
-	/* Players */
-	for (i = 0; i < server->num_clients; i++) {
-		struct client *client = &server->clients[i];
+	if (sv->num_clients > MAX_CLIENTS)
+		return 0;
+	if (sv->max_clients > MAX_CLIENTS)
+		return 0;
+	if (sv->num_clients > sv->max_clients)
+		return 0;
+
+	/* Clients */
+	for (i = 0; i < sv->num_clients; i++) {
+		struct client *cl = &sv->clients[i];
 
 		if (!can_unpack(&up, 5))
 			return 0;
 
-		/* Name */
-		unpack_string(&up, client->name, sizeof(client->name));
-		/* Clan */
-		unpack_string(&up, client->clan, sizeof(client->clan));
+		unpack_string(&up, cl->name, sizeof(cl->name)); /* Name */
+		unpack_string(&up, cl->clan, sizeof(cl->clan)); /* Clan */
 
 		skip_field(&up); /* Country */
-		client->score  = unpack_int(&up); /* Score */
-		client->ingame = unpack_int(&up); /* Ingame? */
+		cl->score  = unpack_int(&up); /* Score */
+		cl->ingame = unpack_int(&up); /* Ingame? */
 	}
-
-	if (!validate_clients_info(server))
-		return 0;
 
 	return 1;
 }

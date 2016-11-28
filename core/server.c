@@ -278,6 +278,12 @@ static int is_interesting_server(struct server *server)
 		server->num_clients, server->max_clients);
 }
 
+static unsigned rand_between(unsigned min, unsigned max)
+{
+	double mul = ((double)rand() / (double)RAND_MAX);
+	return min + (max - min) * mul;
+}
+
 void mark_server_online(struct server *server)
 {
 	time_t now;
@@ -289,7 +295,7 @@ void mark_server_online(struct server *server)
 	server->lastseen = now;
 
 	if (is_interesting_server(server)) {
-		server->expire = 0;
+		server->expire = now + rand_between(4 * 60, 6 * 60);
 	} else {
 		if (initsrand) {
 			initsrand = 0;
@@ -301,7 +307,7 @@ void mark_server_online(struct server *server)
 		 * one and a half hour to spread server updates over
 		 * mutliple run of update-server.
 		 */
-		server->expire = now + 1800 + 3600 * ((double)rand() / (double)RAND_MAX);
+		server->expire = now + rand_between(1800, 1800 + 3600);
 	}
 }
 

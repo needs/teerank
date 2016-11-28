@@ -5,9 +5,10 @@ set -e
 function update {
 	teerank-remove-offline-servers 1
 	teerank-add-new-servers
-	teerank-update-servers | teerank-update-players
 }
 
 while true; do
 	update & sleep "$TEERANK_UPDATE_DELAY"m
-done
+done &
+
+teerank-update-servers | teerank-update-players

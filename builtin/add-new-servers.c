@@ -192,7 +192,7 @@ static void fill_list(struct list *list)
 	struct pool pool;
 	struct pool_entry *entry;
 	struct sockets sockets;
-	struct data data;
+	struct data request, *data;
 	struct master_info *m;
 
 	assert(list != NULL);
@@ -203,9 +203,9 @@ static void fill_list(struct list *list)
 	if (!init_sockets(&sockets))
 		exit(EXIT_FAILURE);
 
-	data.size = sizeof(MSG_GETLIST);
-	memcpy(data.buffer, MSG_GETLIST, data.size);
-	init_pool(&pool, &sockets, &data);
+	request.size = sizeof(MSG_GETLIST);
+	memcpy(request.buffer, MSG_GETLIST, request.size);
+	init_pool(&pool, &sockets, &request);
 
 	for (m = masters; m->info.node[0]; m++) {
 		if (!get_sockaddr(m->info.node, m->info.service, &m->addr))
@@ -225,7 +225,8 @@ static void fill_list(struct list *list)
 	 * pool.
 	 */
 	while ((entry = poll_pool(&pool, &data)))
-		handle_data(&data, list, get_master(entry));
+		if (data)
+			handle_data(data, list, get_master(entry));
 
 	close_sockets(&sockets);
 }

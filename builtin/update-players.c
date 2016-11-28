@@ -150,8 +150,6 @@ int main(int argc, char **argv)
 		unsigned length = 0;
 		int rankedgame;
 
-		exec("BEGIN");
-
 		/* Load player (ignore fail) */
 		for (i = 0; i < delta.length; i++) {
 			struct player *player;
@@ -170,6 +168,8 @@ int main(int argc, char **argv)
 
 		if (rankedgame)
 			compute_elos(players, length);
+
+		exec("BEGIN");
 
 		for (i = 0; i < length; i++) {
 			set_lastseen(&players[i], delta.ip, delta.port);

@@ -47,6 +47,7 @@ struct pool {
 
 	struct sockets *sockets;
 	const struct data *request;
+	struct data databuf;
 };
 
 /**
@@ -90,16 +91,6 @@ void remove_pool_entry(struct pool *pool, struct pool_entry *pentry);
  *
  * @return Polled entry, NULL if any
  */
-struct pool_entry *poll_pool(struct pool *pool, struct data *answer);
-
-/**
- * Return each entry that hasn't been polled in time.
- *
- * @param pool Pool to get failed entries
- *
- * @return One failed entry after each other, until no failed entries remain,
- *         in that case it returns NULL.
- */
-struct pool_entry *foreach_failed_poll(struct pool *pool);
+struct pool_entry *poll_pool(struct pool *pool, struct data **data);
 
 #endif /* POOL_H */

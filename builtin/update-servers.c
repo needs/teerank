@@ -2,15 +2,14 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include <libgen.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/times.h>
 #include <sys/stat.h>
 #include <stddef.h>
 #include <errno.h>
 #include <limits.h>
-#include <dirent.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include <netinet/in.h>
 
@@ -20,6 +19,13 @@
 #include "config.h"
 #include "server.h"
 #include "player.h"
+#include "scheduler.h"
+
+static int stop;
+static void stop_gracefully(int sig)
+{
+	stop = 1;
+}
 
 static const uint8_t MSG_GETINFO[] = {
 	255, 255, 255, 255, 'g', 'i', 'e', '3'
@@ -167,6 +173,7 @@ struct netserver {
 	struct sockaddr_storage addr;
 	struct server server;
 	struct pool_entry entry;
+	struct job update;
 };
 
 struct netserver_list {
@@ -174,7 +181,7 @@ struct netserver_list {
 	struct netserver *netservers;
 };
 
-static int handle_data(struct pool *pool, struct data *data, struct netserver *ns)
+static void handle_data(struct pool *pool, struct data *data, struct netserver *ns)
 {
 	struct server old;
 	struct delta delta;
@@ -185,15 +192,13 @@ static int handle_data(struct pool *pool, struct data *data, struct netserver *n
 
 	/* In any cases, we expect only one answer */
 	remove_pool_entry(pool, &ns->entry);
-
+	mark_server_online(&ns->server);
 	old = ns->server;
 
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
-		return 0;
+		return;
 	if (!unpack_packet_data(data, &ns->server))
-		return 0;
-
-	mark_server_online(&ns->server);
+		return;
 
 	/*
 	 * A new server have an elapsed time set to zero, so it wont be
@@ -207,7 +212,7 @@ static int handle_data(struct pool *pool, struct data *data, struct netserver *n
 		elapsed = time(NULL) - old.lastseen;
 
 	delta = delta_servers(&old, &ns->server, elapsed);
-	return print_delta(&delta);
+	print_delta(&delta);
 }
 
 static int add_netserver(struct netserver_list *list, struct netserver *ns)
@@ -241,8 +246,6 @@ static int fill_netserver_list(struct netserver_list *list)
 	foreach_server(query, &ns.server) {
 		if (!read_server_clients(&ns.server))
 			continue;
-		if (!server_expired(&ns.server))
-			continue;
 		if (!get_sockaddr(ns.server.ip, ns.server.port, &ns.addr))
 			continue;
 		if (!add_netserver(list, &ns))
@@ -252,25 +255,27 @@ static int fill_netserver_list(struct netserver_list *list)
 	if (!res)
 		return 0;
 
-	verbose("%u servers found, %u will be refreshed\n",
-	        nrow, list->length);
+	verbose("%u servers loaded over %u\n", list->length, nrow);
 
 	return 1;
 }
 
-static struct netserver *get_netserver(struct pool_entry *entry)
-{
-	assert(entry != NULL);
-	return (struct netserver*)((char*)entry - offsetof(struct netserver, entry));
-}
+#define get_netserver(ptr, field) \
+	(void*)((char*)ptr - offsetof(struct netserver, field))
 
+/*
+ * This does only stops when 'stop' is set, by a signal.
+ */
 static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 {
 	struct pool pool;
-	struct pool_entry *entry;
-	struct data answer;
-	unsigned i, failed_count = 0, success_count = 0;
-	const struct data request = {
+	struct pool_entry *pentry;
+	struct data *data;
+	struct netserver *ns;
+	struct job *job;
+	unsigned i;
+
+	const struct data REQUEST = {
 		sizeof(MSG_GETINFO) + 1, {
 			MSG_GETINFO[0], MSG_GETINFO[1], MSG_GETINFO[2],
 			MSG_GETINFO[3], MSG_GETINFO[4], MSG_GETINFO[5],
@@ -281,37 +286,41 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 	assert(list != NULL);
 	assert(sockets != NULL);
 
-	init_pool(&pool, sockets, &request);
-	for (i = 0; i < list->length; i++)
-		add_pool_entry(
-			&pool, &list->netservers[i].entry,
-			&list->netservers[i].addr);
+	init_pool(&pool, sockets, &REQUEST);
 
-	while ((entry = poll_pool(&pool, &answer))) {
-		handle_data(&pool, &answer, get_netserver(entry));
-		success_count++;
-	}
-
-	while ((entry = foreach_failed_poll(&pool))) {
-		mark_server_offline(&(get_netserver(entry)->server));
-		failed_count++;
-	}
-
-	/*
-	 * Write servers in the database only now to batch every updates
-	 * in a single transaction, hence reducing lock contention on
-	 * the database.
-	 */
-	exec("BEGIN");
 	for (i = 0; i < list->length; i++) {
-		write_server(&list->netservers[i].server);
-		write_server_clients(&list->netservers[i].server);
+		ns = &list->netservers[i];
+		schedule(&ns->update, ns->server.expire);
 	}
-	exec("COMMIT");
 
-	verbose(
-		"Polling succeded for %u servers and failed for %u servers\n",
-		success_count, failed_count);
+	while (!stop) {
+		sleep(waiting_time());
+
+		while ((job = next_schedule())) {
+			ns = get_netserver(job, update);
+			add_pool_entry(&pool, &ns->entry, &ns->addr);
+		}
+
+		/*
+		 * Batch database queries because in the worst case,
+		 * every servers will be polled.  Doing more than 1000
+		 * individual transaction is very slow.
+		 */
+		exec("BEGIN");
+		while ((pentry = poll_pool(&pool, &data))) {
+			ns = get_netserver(pentry, entry);
+
+			if (data)
+				handle_data(&pool, data, ns);
+			else
+				mark_server_offline(&ns->server);
+
+			write_server(&ns->server);
+			write_server_clients(&ns->server);
+			schedule(&ns->update, ns->server.expire);
+		}
+		exec("COMMIT");
+	}
 }
 
 static const struct netserver_list NETSERVER_LIST_ZERO;
@@ -322,16 +331,20 @@ int main(int argc, char **argv)
 	struct netserver_list list = NETSERVER_LIST_ZERO;
 
 	load_config(1);
+
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	if (!fill_netserver_list(&list))
-		return EXIT_FAILURE;
+	signal(SIGINT,  stop_gracefully);
+	signal(SIGTERM, stop_gracefully);
 
 	if (!init_sockets(&sockets))
 		return EXIT_FAILURE;
+	if (!fill_netserver_list(&list))
+		return EXIT_FAILURE;
+
 	poll_servers(&list, &sockets);
 	close_sockets(&sockets);
 

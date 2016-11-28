@@ -210,50 +210,22 @@ static struct pool_entry *get_pending_entry(
 
 	list_foreach(pool->pending, entry, next)
 		if (is_same_addr(addr, entry->addr))
-			return entry;
+			break;
 
-	return NULL;
-}
-
-static void reset_pending_entry(struct pool_entry *entry)
-{
-	entry->polled = 1;
-	entry->start_time = times(NULL);
-}
-
-#include <stdio.h>
-
-struct pool_entry *poll_pool(struct pool *pool, struct data *answer)
-{
-	struct sockaddr_storage addr;
-	struct pool_entry *entry = NULL;
-
-	assert(pool != NULL);
-	assert(answer != NULL);
-
-	fill_pending_list(pool);
-
-	while (pool->pending) {
-		if (recv_data(pool->sockets, answer, &addr))
-			entry = get_pending_entry(pool, &addr);
-		else
-			entry = NULL;
-
-		if (entry) {
-			reset_pending_entry(entry);
-			return entry;
-		} else {
-			clean_expired_pending_entries(pool);
-			fill_pending_list(pool);
-		}
+	if (entry) {
+		entry->polled = 1;
+		entry->start_time = times(NULL);
 	}
 
-	return NULL;
+	return entry;
 }
 
-struct pool_entry *foreach_failed_poll(struct pool *pool)
+static struct pool_entry *next_failed_entry(struct pool *pool)
 {
 	struct pool_entry *entry;
+
+	clean_expired_pending_entries(pool);
+	fill_pending_list(pool);
 
 	if (!pool->failed)
 		return NULL;
@@ -262,4 +234,35 @@ struct pool_entry *foreach_failed_poll(struct pool *pool)
 	remove_entry(entry, &pool->failed, NULL);
 
 	return entry;
+}
+
+struct pool_entry *poll_pool(struct pool *pool, struct data **answer)
+{
+	struct sockaddr_storage addr;
+	struct pool_entry *entry = NULL;
+
+	assert(pool != NULL);
+	assert(answer != NULL);
+
+again:
+	fill_pending_list(pool);
+	if ((entry = next_failed_entry(pool))) {
+		*answer = NULL;
+		return entry;
+	}
+
+	if (pool->pending) {
+		if (recv_data(pool->sockets, &pool->databuf, &addr))
+			entry = get_pending_entry(pool, &addr);
+
+		if (entry) {
+			*answer = &pool->databuf;
+			return entry;
+		} else {
+			clean_expired_pending_entries(pool);
+			goto again;
+		}
+	}
+
+	return NULL;
 }

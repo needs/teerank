@@ -34,9 +34,9 @@
 	ALL_PLAYER_COLUMNS "," RANK_COLUMN
 
 #define SORT_BY_ELO \
-	" elo DESC, lastseen DESC, name "
+	" elo DESC, lastseen DESC, name DESC "
 #define SORT_BY_LASTSEEN \
-	" lastseen DESC, elo DESC, name "
+	" lastseen DESC, elo DESC, name DESC "
 
 #define foreach_player(query, p, ...) \
 	foreach_row(query, read_player, p, __VA_ARGS__)

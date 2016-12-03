@@ -47,10 +47,10 @@
 	(s).expire, (s).master_node, (s).master_service, (s).max_clients
 
 #define foreach_server(query, s, ...) \
-	foreach_row(query, read_server, s, __VA_ARGS__)
+	foreach_row((query), read_server, (s), __VA_ARGS__)
 
 #define foreach_extended_server(query, s, ...) \
-	foreach_row(query, read_extended_server, s, __VA_ARGS__)
+	foreach_row((query), read_extended_server, (s), __VA_ARGS__)
 
 void read_server(sqlite3_stmt *res, void *s);
 void read_extended_server(sqlite3_stmt *res, void *s);
@@ -65,7 +65,7 @@ void read_extended_server(sqlite3_stmt *res, void *s);
 	(s).ip, (s).port, (c).name, (c).clan, (c).score, (c).ingame
 
 #define foreach_server_client(query, c, ...) \
-	foreach_row(query, read_server_client, c, __VA_ARGS__)
+	foreach_row((query), read_server_client, (c), __VA_ARGS__)
 
 void read_server_client(sqlite3_stmt *res, void *c);
 

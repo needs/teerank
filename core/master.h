@@ -36,9 +36,9 @@ void read_master(sqlite3_stmt *res, void *m);
 void read_extended_master(sqlite3_stmt *res, void *m);
 
 #define foreach_master(query, m, ...) \
-	foreach_row(query, read_master, m, __VA_ARGS__)
+	foreach_row((query), read_master, (m), __VA_ARGS__)
 
 #define foreach_extended_master(query, m, ...) \
-	foreach_row(query, read_extended_master, m, __VA_ARGS__)
+	foreach_row((query), read_extended_master, (m), __VA_ARGS__)
 
 #endif /* MASTER_H */

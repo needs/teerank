@@ -39,10 +39,10 @@
 	" lastseen DESC, elo DESC, name DESC "
 
 #define foreach_player(query, p, ...) \
-	foreach_row(query, read_player, p, __VA_ARGS__)
+	foreach_row((query), read_player, (p), __VA_ARGS__)
 
 #define foreach_extended_player(query, p, ...) \
-	foreach_row(query, read_extended_player, p, __VA_ARGS__)
+	foreach_row((query), read_extended_player, (p), __VA_ARGS__)
 
 void read_player(sqlite3_stmt *res, void *p);
 void read_extended_player(sqlite3_stmt *res, void *p);
@@ -57,7 +57,7 @@ struct player_record {
 	" timestamp, elo, rank "
 
 #define foreach_player_record(query, r, ...) \
-	foreach_row(query, read_player_record, r, __VA_ARGS__)
+	foreach_row((query), read_player_record, (r), __VA_ARGS__)
 
 void read_player_record(sqlite3_stmt *res, void *p);
 

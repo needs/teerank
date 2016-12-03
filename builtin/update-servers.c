@@ -192,8 +192,8 @@ static void handle_data(struct pool *pool, struct data *data, struct netserver *
 
 	/* In any cases, we expect only one answer */
 	remove_pool_entry(pool, &ns->entry);
-	mark_server_online(&ns->server);
 	old = ns->server;
+	mark_server_online(&ns->server);
 
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
 		return;

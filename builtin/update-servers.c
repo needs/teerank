@@ -243,7 +243,7 @@ static struct netserver *new_netserver(void)
 		size_t newsize = sizeof(*tmp) * (nr_servers + STEP);
 
 		if (!(tmp = realloc(servers, newsize)))
-			return 0;
+			return NULL;
 
 		servers = tmp;
 	}
@@ -253,12 +253,31 @@ static struct netserver *new_netserver(void)
 
 static void trash_newest_netserver(void)
 {
+	assert(nr_servers > 0);
 	nr_servers--;
 }
 
-static int load_servers(void)
+static void add_netserver(struct server *server)
 {
-	struct netserver *ns;
+	struct netserver *ns = new_netserver();
+
+	if (!ns)
+		return;
+	if (!read_server_clients(server))
+		goto fail;
+	if (!get_sockaddr(server->ip, server->port, &ns->addr))
+		goto fail;
+
+	ns->server = *server;
+	return;
+
+fail:
+	trash_newest_netserver();
+}
+
+static void load_servers(void)
+{
+	struct server server;
 	sqlite3_stmt *res;
 	unsigned nrow;
 
@@ -266,19 +285,10 @@ static int load_servers(void)
 		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
-	foreach_server(query, &(ns = new_netserver())->server) {
-		if (!read_server_clients(&ns->server))
-			goto skip;
-		if (!get_sockaddr(ns->server.ip, ns->server.port, &ns->addr))
-			goto skip;
+	foreach_server(query, &server)
+		add_netserver(&server);
 
-		continue;
-	skip:
-		trash_newest_netserver();
-	}
-
-	verbose("%u servers loaded\n", nr_servers);
-	return res != NULL;
+	verbose("%u servers loaded (over %u)\n", nr_servers, nrow);
 }
 
 #define get_netserver(ptr, field) \
@@ -312,7 +322,7 @@ static void poll_servers(struct sockets *sockets)
 	for (i = 0; i < nr_servers; i++)
 		schedule(&servers[i].update, servers[i].server.expire);
 
-	while (!stop) {
+	while (!stop && nr_servers > 0) {
 		sleep(waiting_time());
 
 		while ((job = next_schedule())) {
@@ -360,8 +370,7 @@ int main(int argc, char **argv)
 
 	if (!init_sockets(&sockets))
 		return EXIT_FAILURE;
-	if (!load_servers())
-		return EXIT_FAILURE;
+	load_servers();
 
 	poll_servers(&sockets);
 	close_sockets(&sockets);

@@ -179,7 +179,7 @@ struct netserver {
 static struct netserver *servers;
 static unsigned nr_servers;
 
-static void handle_data(struct pool *pool, struct data *data, struct netserver *ns)
+static int handle_data(struct pool *pool, struct data *data, struct netserver *ns)
 {
 	struct server old;
 	struct delta delta;
@@ -194,9 +194,9 @@ static void handle_data(struct pool *pool, struct data *data, struct netserver *
 	mark_server_online(&ns->server);
 
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
-		return;
+		return 1;
 	if (!unpack_packet_data(data, &ns->server))
-		return;
+		return 1;
 
 	/*
 	 * A new server have an elapsed time set to zero, so it wont be
@@ -211,6 +211,27 @@ static void handle_data(struct pool *pool, struct data *data, struct netserver *
 
 	delta = delta_servers(&old, &ns->server, elapsed);
 	print_delta(&delta);
+
+	return 1;
+}
+
+static long elapsed_days(time_t t)
+{
+	if (t == NEVER_SEEN)
+		return 0;
+
+	return (time(NULL) - t) / (3600 * 24);
+}
+
+static int handle_no_data(struct netserver *ns)
+{
+	if (elapsed_days(ns->server.lastseen) >= 1) {
+		remove_server(ns->server.ip, ns->server.port);
+		return 0;
+	}
+
+	mark_server_offline(&ns->server);
+	return 1;
 }
 
 static struct netserver *new_netserver(void)
@@ -274,6 +295,7 @@ static void poll_servers(struct sockets *sockets)
 	struct netserver *ns;
 	struct job *job;
 	unsigned i;
+	int reschedule;
 
 	const struct data REQUEST = {
 		sizeof(MSG_GETINFO) + 1, {
@@ -308,13 +330,15 @@ static void poll_servers(struct sockets *sockets)
 			ns = get_netserver(pentry, entry);
 
 			if (data)
-				handle_data(&pool, data, ns);
+				reschedule = handle_data(&pool, data, ns);
 			else
-				mark_server_offline(&ns->server);
+				reschedule = handle_no_data(ns);
 
 			write_server(&ns->server);
 			write_server_clients(&ns->server);
-			schedule(&ns->update, ns->server.expire);
+
+			if (reschedule)
+				schedule(&ns->update, ns->server.expire);
 		}
 		exec("COMMIT");
 	}

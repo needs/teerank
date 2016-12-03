@@ -3,7 +3,6 @@
 set -e
 
 function update {
-	teerank-remove-offline-servers 1
 	teerank-add-new-servers
 }
 

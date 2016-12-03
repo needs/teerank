@@ -176,10 +176,8 @@ struct netserver {
 	struct job update;
 };
 
-struct netserver_list {
-	unsigned length;
-	struct netserver *netservers;
-};
+static struct netserver *servers;
+static unsigned nr_servers;
 
 static void handle_data(struct pool *pool, struct data *data, struct netserver *ns)
 {
@@ -204,7 +202,7 @@ static void handle_data(struct pool *pool, struct data *data, struct netserver *
 	 * A new server have an elapsed time set to zero, so it wont be
 	 * ranked.  If somehow it still try to be ranked, every players
 	 * will have NO_SCORE in the "old_score" field of the delta,
-	 * hence, no players will be ranked anyway.
+, no players will be ranked anyway.
 	 */
 	if (old.lastseen == NEVER_SEEN)
 		elapsed = 0;
@@ -215,27 +213,31 @@ static void handle_data(struct pool *pool, struct data *data, struct netserver *
 	print_delta(&delta);
 }
 
-static int add_netserver(struct netserver_list *list, struct netserver *ns)
+static struct netserver *new_netserver(void)
 {
-	static const unsigned OFFSET = 4096;
+	static const unsigned STEP = 4096;
 
-	if (list->length % OFFSET == 0) {
+	if (nr_servers % STEP == 0) {
 		struct netserver *tmp;
-		size_t newsize = sizeof(*tmp) * (list->length + OFFSET);
+		size_t newsize = sizeof(*tmp) * (nr_servers + STEP);
 
-		if (!(tmp = realloc(list->netservers, newsize)))
+		if (!(tmp = realloc(servers, newsize)))
 			return 0;
 
-		list->netservers = tmp;
+		servers = tmp;
 	}
 
-	list->netservers[list->length++] = *ns;
-	return 1;
+	return &servers[nr_servers++];
 }
 
-static int fill_netserver_list(struct netserver_list *list)
+static void trash_newest_netserver(void)
 {
-	struct netserver ns;
+	nr_servers--;
+}
+
+static int load_servers(void)
+{
+	struct netserver *ns;
 	sqlite3_stmt *res;
 	unsigned nrow;
 
@@ -243,21 +245,19 @@ static int fill_netserver_list(struct netserver_list *list)
 		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
-	foreach_server(query, &ns.server) {
-		if (!read_server_clients(&ns.server))
-			continue;
-		if (!get_sockaddr(ns.server.ip, ns.server.port, &ns.addr))
-			continue;
-		if (!add_netserver(list, &ns))
-			continue;
+	foreach_server(query, &(ns = new_netserver())->server) {
+		if (!read_server_clients(&ns->server))
+			goto skip;
+		if (!get_sockaddr(ns->server.ip, ns->server.port, &ns->addr))
+			goto skip;
+
+		continue;
+	skip:
+		trash_newest_netserver();
 	}
 
-	if (!res)
-		return 0;
-
-	verbose("%u servers loaded over %u\n", list->length, nrow);
-
-	return 1;
+	verbose("%u servers loaded\n", nr_servers);
+	return res != NULL;
 }
 
 #define get_netserver(ptr, field) \
@@ -266,7 +266,7 @@ static int fill_netserver_list(struct netserver_list *list)
 /*
  * This does only stops when 'stop' is set, by a signal.
  */
-static void poll_servers(struct netserver_list *list, struct sockets *sockets)
+static void poll_servers(struct sockets *sockets)
 {
 	struct pool pool;
 	struct pool_entry *pentry;
@@ -283,15 +283,12 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 		}
 	};
 
-	assert(list != NULL);
 	assert(sockets != NULL);
 
 	init_pool(&pool, sockets, &REQUEST);
 
-	for (i = 0; i < list->length; i++) {
-		ns = &list->netservers[i];
-		schedule(&ns->update, ns->server.expire);
-	}
+	for (i = 0; i < nr_servers; i++)
+		schedule(&servers[i].update, servers[i].server.expire);
 
 	while (!stop) {
 		sleep(waiting_time());
@@ -323,12 +320,9 @@ static void poll_servers(struct netserver_list *list, struct sockets *sockets)
 	}
 }
 
-static const struct netserver_list NETSERVER_LIST_ZERO;
-
 int main(int argc, char **argv)
 {
 	struct sockets sockets;
-	struct netserver_list list = NETSERVER_LIST_ZERO;
 
 	load_config(1);
 
@@ -342,10 +336,10 @@ int main(int argc, char **argv)
 
 	if (!init_sockets(&sockets))
 		return EXIT_FAILURE;
-	if (!fill_netserver_list(&list))
+	if (!load_servers())
 		return EXIT_FAILURE;
 
-	poll_servers(&list, &sockets);
+	poll_servers(&sockets);
 	close_sockets(&sockets);
 
 	return EXIT_SUCCESS;

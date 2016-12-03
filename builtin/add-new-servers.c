@@ -205,12 +205,12 @@ static void fill_list(struct list *list)
 
 	request.size = sizeof(MSG_GETLIST);
 	memcpy(request.buffer, MSG_GETLIST, request.size);
-	init_pool(&pool, &sockets, &request);
+	init_pool(&pool, &sockets);
 
 	for (m = masters; m->info.node[0]; m++) {
 		if (!get_sockaddr(m->info.node, m->info.service, &m->addr))
 			continue;
-		add_pool_entry(&pool, &m->pentry, &m->addr);
+		add_pool_entry(&pool, &m->pentry, &m->addr, &request);
 	}
 
 	/*

@@ -29,6 +29,8 @@
  */
 struct pool_entry {
 	struct sockaddr_storage *addr;
+	const struct data *request;
+
 	unsigned retries;
 	short polled;
 	clock_t start_time;
@@ -46,7 +48,6 @@ struct pool {
 	unsigned npending;
 
 	struct sockets *sockets;
-	const struct data *request;
 	struct data databuf;
 };
 
@@ -59,7 +60,7 @@ struct pool {
  * @param request Data to send to pool entries
  */
 void init_pool(
-	struct pool *pool, struct sockets *sockets, const struct data *request);
+	struct pool *pool, struct sockets *sockets);
 
 /**
  * Add a pool entry to the pool with the given adress.
@@ -70,7 +71,7 @@ void init_pool(
  */
 void add_pool_entry(
 	struct pool *pool, struct pool_entry *entry,
-	struct sockaddr_storage *addr);
+	struct sockaddr_storage *addr, const struct data *request);
 
 /**
  * Remove entry from the pool and the pending list

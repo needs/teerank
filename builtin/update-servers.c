@@ -285,7 +285,7 @@ static void poll_servers(struct sockets *sockets)
 
 	assert(sockets != NULL);
 
-	init_pool(&pool, sockets, &REQUEST);
+	init_pool(&pool, sockets);
 
 	for (i = 0; i < nr_servers; i++)
 		schedule(&servers[i].update, servers[i].server.expire);
@@ -295,7 +295,7 @@ static void poll_servers(struct sockets *sockets)
 
 		while ((job = next_schedule())) {
 			ns = get_netserver(job, update);
-			add_pool_entry(&pool, &ns->entry, &ns->addr);
+			add_pool_entry(&pool, &ns->entry, &ns->addr, &REQUEST);
 		}
 
 		/*

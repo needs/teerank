@@ -13,18 +13,16 @@
 #define MAX_PING 999
 
 void init_pool(
-	struct pool *pool, struct sockets *sockets, const struct data *request)
+	struct pool *pool, struct sockets *sockets)
 {
 	static const struct pool POOL_ZERO;
 
 	assert(pool != NULL);
 	assert(sockets != NULL);
-	assert(request != NULL);
 
 	*pool = POOL_ZERO;
 
 	pool->sockets = sockets;
-	pool->request = request;
 }
 
 /*
@@ -80,7 +78,7 @@ static void remove_entry(
 
 void add_pool_entry(
 	struct pool *pool, struct pool_entry *entry,
-	struct sockaddr_storage *addr)
+	struct sockaddr_storage *addr, const struct data *request)
 {
 	static const struct pool_entry POOL_ENTRY_ZERO;
 
@@ -90,6 +88,7 @@ void add_pool_entry(
 
 	*entry = POOL_ENTRY_ZERO;
 	entry->addr = addr;
+	entry->request = request;
 
 	insert_entry(entry, &pool->idle, &pool->idletail);
 }
@@ -115,7 +114,7 @@ static void add_pending_entry(struct pool *pool, struct pool_entry *entry)
 
 	remove_entry(entry, &pool->idle, &pool->idletail);
 
-	if (!send_data(pool->sockets, pool->request, entry->addr)) {
+	if (!send_data(pool->sockets, entry->request, entry->addr)) {
 		entry_expired(pool, entry);
 		return;
 	}

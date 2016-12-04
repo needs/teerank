@@ -179,7 +179,7 @@ struct netserver {
 static struct netserver *servers;
 static unsigned nr_servers;
 
-static int handle_data(struct pool *pool, struct data *data, struct netserver *ns)
+static int handle_data(struct data *data, struct netserver *ns)
 {
 	struct server old;
 	struct delta delta;
@@ -189,7 +189,7 @@ static int handle_data(struct pool *pool, struct data *data, struct netserver *n
 	assert(ns != NULL);
 
 	/* In any cases, we expect only one answer */
-	remove_pool_entry(pool, &ns->entry);
+	remove_pool_entry(&ns->entry);
 	old = ns->server;
 	mark_server_online(&ns->server);
 
@@ -299,7 +299,6 @@ static void load_servers(void)
  */
 static void poll_servers(struct sockets *sockets)
 {
-	struct pool pool;
 	struct pool_entry *pentry;
 	struct data *data;
 	struct netserver *ns;
@@ -317,8 +316,6 @@ static void poll_servers(struct sockets *sockets)
 
 	assert(sockets != NULL);
 
-	init_pool(&pool, sockets);
-
 	for (i = 0; i < nr_servers; i++)
 		schedule(&servers[i].update, servers[i].server.expire);
 
@@ -327,7 +324,7 @@ static void poll_servers(struct sockets *sockets)
 
 		while ((job = next_schedule())) {
 			ns = get_netserver(job, update);
-			add_pool_entry(&pool, &ns->entry, &ns->addr, &REQUEST);
+			add_pool_entry(&ns->entry, &ns->addr, &REQUEST);
 		}
 
 		/*
@@ -336,11 +333,11 @@ static void poll_servers(struct sockets *sockets)
 		 * individual transaction is very slow.
 		 */
 		exec("BEGIN");
-		while ((pentry = poll_pool(&pool, &data))) {
+		while ((pentry = poll_pool(sockets, &data))) {
 			ns = get_netserver(pentry, entry);
 
 			if (data)
-				reschedule = handle_data(&pool, data, ns);
+				reschedule = handle_data(data, ns);
 			else
 				reschedule = handle_no_data(ns);
 

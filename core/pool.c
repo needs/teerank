@@ -12,18 +12,10 @@
 #define MAX_RETRIES 2
 #define MAX_PING 999
 
-void init_pool(
-	struct pool *pool, struct sockets *sockets)
-{
-	static const struct pool POOL_ZERO;
-
-	assert(pool != NULL);
-	assert(sockets != NULL);
-
-	*pool = POOL_ZERO;
-
-	pool->sockets = sockets;
-}
+static struct pool_entry *idle, *idletail;
+static struct pool_entry *pending;
+static struct pool_entry *failed;
+static unsigned nr_pending;
 
 /*
  * Helpers to insert and remove a given entry from the given double
@@ -77,12 +69,11 @@ static void remove_entry(
 )
 
 void add_pool_entry(
-	struct pool *pool, struct pool_entry *entry,
+	struct pool_entry *entry,
 	struct sockaddr_storage *addr, const struct data *request)
 {
 	static const struct pool_entry POOL_ENTRY_ZERO;
 
-	assert(pool != NULL);
 	assert(entry != NULL);
 	assert(addr != NULL);
 
@@ -90,62 +81,57 @@ void add_pool_entry(
 	entry->addr = addr;
 	entry->request = request;
 
-	insert_entry(entry, &pool->idle, &pool->idletail);
+	insert_entry(entry, &idle, &idletail);
 }
 
-static void entry_expired(struct pool *pool, struct pool_entry *entry)
+static void entry_expired(struct pool_entry *entry)
 {
 	if (entry->polled)
 		return;
 
 	if (entry->retries == MAX_RETRIES) {
-		insert_entry(entry, &pool->failed, NULL);
+		insert_entry(entry, &failed, NULL);
 	} else {
-		insert_entry(entry, &pool->idle, &pool->idletail);
+		insert_entry(entry, &idle, &idletail);
 		entry->retries++;
 	}
 }
 
-static void add_pending_entry(struct pool *pool, struct pool_entry *entry)
+static void add_pending_entry(struct sockets *sockets, struct pool_entry *entry)
 {
-	assert(pool != NULL);
 	assert(entry != NULL);
-	assert(pool->npending < MAX_PENDING);
+	assert(nr_pending < MAX_PENDING);
 
-	remove_entry(entry, &pool->idle, &pool->idletail);
+	remove_entry(entry, &idle, &idletail);
 
-	if (!send_data(pool->sockets, entry->request, entry->addr)) {
-		entry_expired(pool, entry);
+	if (!send_data(sockets, entry->request, entry->addr)) {
+		entry_expired(entry);
 		return;
 	}
 
 	entry->start_time = times(NULL);
 
-	insert_entry(entry, &pool->pending, NULL);
-	pool->npending++;
+	insert_entry(entry, &pending, NULL);
+	nr_pending++;
 }
 
-void remove_pool_entry(struct pool *pool, struct pool_entry *entry)
+void remove_pool_entry(struct pool_entry *entry)
 {
-	remove_entry(entry, &pool->pending, NULL);
-	pool->npending--;
+	remove_entry(entry, &pending, NULL);
+	nr_pending--;
 }
 
-static void fill_pending_list(struct pool *pool)
+static void fill_pending_list(struct sockets *sockets)
 {
-	assert(pool != NULL);
-
-	while (pool->idletail && pool->npending < MAX_PENDING)
-		add_pending_entry(pool, pool->idletail);
+	while (idletail && nr_pending < MAX_PENDING)
+		add_pending_entry(sockets, idletail);
 }
 
-static void clean_expired_pending_entries(struct pool *pool)
+static void clean_expired_pending_entries(void)
 {
 	static long ticks_per_second = -1;
 	struct pool_entry *entry, *next;
 	clock_t now;
-
-	assert(pool != NULL);
 
 	/* Set ticks_per_seconds once for all */
 	if (ticks_per_second == -1)
@@ -154,14 +140,14 @@ static void clean_expired_pending_entries(struct pool *pool)
 
 	now = times(NULL);
 
-	list_foreach(pool->pending, entry, next) {
+	list_foreach(pending, entry, next) {
 		/* In seconds */
 		float elapsed = (now - entry->start_time) / ticks_per_second;
 
 		if (elapsed >= MAX_PING / 1000.0f) {
-			remove_entry(entry, &pool->pending, NULL);
-			pool->npending--;
-			entry_expired(pool, entry);
+			remove_entry(entry, &pending, NULL);
+			nr_pending--;
+			entry_expired(entry);
 		}
 	}
 }
@@ -200,14 +186,13 @@ static int is_same_addr(
 }
 
 static struct pool_entry *get_pending_entry(
-	struct pool *pool, struct sockaddr_storage *addr)
+	struct sockaddr_storage *addr)
 {
 	struct pool_entry *entry, *next;
 
-	assert(pool != NULL);
 	assert(addr != NULL);
 
-	list_foreach(pool->pending, entry, next)
+	list_foreach(pending, entry, next)
 		if (is_same_addr(addr, entry->addr))
 			break;
 
@@ -219,46 +204,46 @@ static struct pool_entry *get_pending_entry(
 	return entry;
 }
 
-static struct pool_entry *next_failed_entry(struct pool *pool)
+static struct pool_entry *next_failed_entry(struct sockets *sockets)
 {
 	struct pool_entry *entry;
 
-	clean_expired_pending_entries(pool);
-	fill_pending_list(pool);
+	clean_expired_pending_entries();
+	fill_pending_list(sockets);
 
-	if (!pool->failed)
+	if (!failed)
 		return NULL;
 
-	entry = pool->failed;
-	remove_entry(entry, &pool->failed, NULL);
+	entry = failed;
+	remove_entry(entry, &failed, NULL);
 
 	return entry;
 }
 
-struct pool_entry *poll_pool(struct pool *pool, struct data **answer)
+struct pool_entry *poll_pool(struct sockets *sockets, struct data **answer)
 {
+	static struct data databuf;
 	struct sockaddr_storage addr;
 	struct pool_entry *entry = NULL;
 
-	assert(pool != NULL);
 	assert(answer != NULL);
 
 again:
-	fill_pending_list(pool);
-	if ((entry = next_failed_entry(pool))) {
+	fill_pending_list(sockets);
+	if ((entry = next_failed_entry(sockets))) {
 		*answer = NULL;
 		return entry;
 	}
 
-	if (pool->pending) {
-		if (recv_data(pool->sockets, &pool->databuf, &addr))
-			entry = get_pending_entry(pool, &addr);
+	if (pending) {
+		if (recv_data(sockets, &databuf, &addr))
+			entry = get_pending_entry(&addr);
 
 		if (entry) {
-			*answer = &pool->databuf;
+			*answer = &databuf;
 			return entry;
 		} else {
-			clean_expired_pending_entries(pool);
+			clean_expired_pending_entries();
 			goto again;
 		}
 	}

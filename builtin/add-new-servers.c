@@ -189,7 +189,6 @@ static struct master_info *get_master(struct pool_entry *entry)
 
 static void fill_list(struct list *list)
 {
-	struct pool pool;
 	struct pool_entry *entry;
 	struct sockets sockets;
 	struct data request, *data;
@@ -205,12 +204,11 @@ static void fill_list(struct list *list)
 
 	request.size = sizeof(MSG_GETLIST);
 	memcpy(request.buffer, MSG_GETLIST, request.size);
-	init_pool(&pool, &sockets);
 
 	for (m = masters; m->info.node[0]; m++) {
 		if (!get_sockaddr(m->info.node, m->info.service, &m->addr))
 			continue;
-		add_pool_entry(&pool, &m->pentry, &m->addr, &request);
+		add_pool_entry(&m->pentry, &m->addr, &request);
 	}
 
 	/*
@@ -224,7 +222,7 @@ static void fill_list(struct list *list)
 	 * packets remains, we never manually remove a master from the
 	 * pool.
 	 */
-	while ((entry = poll_pool(&pool, &data)))
+	while ((entry = poll_pool(&sockets, &data)))
 		if (data)
 			handle_data(data, list, get_master(entry));
 

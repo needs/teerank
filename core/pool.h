@@ -39,30 +39,6 @@ struct pool_entry {
 };
 
 /**
- * @struct pool
- *
- * Hold pool states.
- */
-struct pool {
-	struct pool_entry *idle, *idletail, *pending, *failed;
-	unsigned npending;
-
-	struct sockets *sockets;
-	struct data databuf;
-};
-
-/**
- * Initialize a pool.  Because no memory is allocated at initialization and
- * during pool lifetime, there is no free function.
- *
- * @param pool Pool to initialize
- * @param sockets An initialized socket structure
- * @param request Data to send to pool entries
- */
-void init_pool(
-	struct pool *pool, struct sockets *sockets);
-
-/**
  * Add a pool entry to the pool with the given adress.
  *
  * @param pool Pool to add the entry to
@@ -70,7 +46,7 @@ void init_pool(
  * @param addr Network address for the given entry
  */
 void add_pool_entry(
-	struct pool *pool, struct pool_entry *entry,
+	struct pool_entry *entry,
 	struct sockaddr_storage *addr, const struct data *request);
 
 /**
@@ -79,7 +55,7 @@ void add_pool_entry(
  * @param pool Pool to remove entry from
  * @param pentry Entry to remove
  */
-void remove_pool_entry(struct pool *pool, struct pool_entry *pentry);
+void remove_pool_entry(struct pool_entry *pentry);
 
 /**
  * Poll the network and return the first entry we got an anwser from.
@@ -87,11 +63,11 @@ void remove_pool_entry(struct pool *pool, struct pool_entry *pentry);
  * If the retuned entry is not manually removed from the pool using
  * remove_pool_entry(), then it will be polled again until failure.
  *
- * @param pool Pool to poll
- * @param Received answer
+ * @param sockets Sockets to send to and receive from
+ * @param Received answer (if any) for the returned entry (if any)
  *
  * @return Polled entry, NULL if any
  */
-struct pool_entry *poll_pool(struct pool *pool, struct data **data);
+struct pool_entry *poll_pool(struct sockets *socket, struct data **data);
 
 #endif /* POOL_H */

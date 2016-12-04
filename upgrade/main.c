@@ -173,9 +173,12 @@ static void upgrade_servers(void)
 			continue;
 
 		teerank6_read_server(&old, dp->d_name);
-		upgrade_server(&old, &new);
-		write_server(&new);
-		write_server_clients(&new);
+
+		if (old.ip && old.port) {
+			upgrade_server(&old, &new);
+			write_server(&new);
+			write_server_clients(&new);
+		}
 	}
 
 	closedir(dir);

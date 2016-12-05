@@ -20,6 +20,7 @@
 #include "server.h"
 #include "player.h"
 #include "scheduler.h"
+#include "netclient.h"
 
 static int stop;
 static void stop_gracefully(int sig)
@@ -169,50 +170,46 @@ static int unpack_packet_data(struct data *data, struct server *sv)
 	return 1;
 }
 
-struct netserver {
-	struct sockaddr_storage addr;
-	struct server server;
-	struct pool_entry entry;
-	struct job update;
-};
-
-static struct netserver *servers;
-static unsigned nr_servers;
-
-static int handle_data(struct data *data, struct netserver *ns)
+static void handle_server_data(struct netclient *client, struct data *data)
 {
-	struct server old;
+	struct server old, *server;
 	struct delta delta;
 	int elapsed;
 
+	assert(client != NULL);
 	assert(data != NULL);
-	assert(ns != NULL);
 
 	/* In any cases, we expect only one answer */
-	remove_pool_entry(&ns->entry);
-	old = ns->server;
-	mark_server_online(&ns->server);
+	remove_pool_entry(&client->pentry);
+
+	server = &client->info.server;
+	old = *server;
+	mark_server_online(server);
 
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
-		return 1;
-	if (!unpack_packet_data(data, &ns->server))
-		return 1;
+		goto out;
+	if (!unpack_packet_data(data, server))
+		goto out;
 
 	/*
 	 * A new server have an elapsed time set to zero, so it wont be
 	 * ranked.  If somehow it still try to be ranked, every players
 	 * will have NO_SCORE in the "old_score" field of the delta,
-, no players will be ranked anyway.
+	 * no players will be ranked anyway.
 	 */
 	if (old.lastseen == NEVER_SEEN)
 		elapsed = 0;
 	else
 		elapsed = time(NULL) - old.lastseen;
 
-	delta = delta_servers(&old, &ns->server, elapsed);
+	delta = delta_servers(&old, server, elapsed);
 	print_delta(&delta);
 
-	return 1;
+	write_server_clients(server);
+
+out:
+	write_server(server);
+	schedule(&client->update, server->expire);
 }
 
 static long elapsed_days(time_t t)
@@ -223,61 +220,25 @@ static long elapsed_days(time_t t)
 	return (time(NULL) - t) / (3600 * 24);
 }
 
-static int handle_no_data(struct netserver *ns)
+static void handle_server_timeout(struct netclient *client)
 {
-	if (elapsed_days(ns->server.lastseen) >= 1) {
-		remove_server(ns->server.ip, ns->server.port);
-		return 0;
-	}
+	struct server *server = &client->info.server;
 
-	mark_server_offline(&ns->server);
-	return 1;
-}
-
-static struct netserver *new_netserver(void)
-{
-	static const unsigned STEP = 4096;
-
-	if (nr_servers % STEP == 0) {
-		struct netserver *tmp;
-		size_t newsize = sizeof(*tmp) * (nr_servers + STEP);
-
-		if (!(tmp = realloc(servers, newsize)))
-			return NULL;
-
-		servers = tmp;
-	}
-
-	return &servers[nr_servers++];
-}
-
-static void trash_newest_netserver(void)
-{
-	assert(nr_servers > 0);
-	nr_servers--;
-}
-
-static void add_netserver(struct server *server)
-{
-	struct netserver *ns = new_netserver();
-
-	if (!ns)
+	if (elapsed_days(server->lastseen) >= 1) {
+		remove_server(server->ip, server->port);
+		remove_netclient(client);
 		return;
-	if (!read_server_clients(server))
-		goto fail;
-	if (!get_sockaddr(server->ip, server->port, &ns->addr))
-		goto fail;
+	}
 
-	ns->server = *server;
-	return;
-
-fail:
-	trash_newest_netserver();
+	mark_server_offline(server);
+	schedule(&client->update, server->expire);
+	write_server(server);
 }
 
 static void load_servers(void)
 {
 	struct server server;
+	struct netclient *client;
 	sqlite3_stmt *res;
 	unsigned nrow;
 
@@ -285,26 +246,48 @@ static void load_servers(void)
 		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
-	foreach_server(query, &server)
-		add_netserver(&server);
-
-	verbose("%u servers loaded (over %u)\n", nr_servers, nrow);
+	foreach_server(query, &server) {
+		read_server_clients(&server);
+		if (client = add_netclient(NETCLIENT_TYPE_SERVER, &server))
+			schedule(&client->update, server.expire);
+	}
 }
 
-#define get_netserver(ptr, field) \
-	(void*)((char*)ptr - offsetof(struct netserver, field))
+static void handle_master_data(struct netclient *client, struct data *data) {};
+static void handle_master_timeout(struct netclient *client) {};
+
+static void handle(struct netclient *client, struct data *data)
+{
+	switch (client->type) {
+	case NETCLIENT_TYPE_SERVER:
+		if (data)
+			handle_server_data(client, data);
+		else
+			handle_server_timeout(client);
+		break;
+
+	case NETCLIENT_TYPE_MASTER:
+		if (data)
+			handle_master_data(client, data);
+		else
+			handle_master_timeout(client);
+		break;
+	}
+}
+
+#define get_netclient(ptr, field) \
+	(void*)((char*)ptr - offsetof(struct netclient, field))
 
 /*
- * This does only stops when 'stop' is set, by a signal.
+ * It stops when 'stop' is set (by a signal) or when there is no job
+ * scheduled.
  */
 static void poll_servers(struct sockets *sockets)
 {
 	struct pool_entry *pentry;
+	struct netclient *client;
 	struct data *data;
-	struct netserver *ns;
 	struct job *job;
-	unsigned i;
-	int reschedule;
 
 	const struct data REQUEST = {
 		sizeof(MSG_GETINFO) + 1, {
@@ -316,15 +299,12 @@ static void poll_servers(struct sockets *sockets)
 
 	assert(sockets != NULL);
 
-	for (i = 0; i < nr_servers; i++)
-		schedule(&servers[i].update, servers[i].server.expire);
-
-	while (!stop && nr_servers > 0) {
+	while (!stop && have_schedule()) {
 		sleep(waiting_time());
 
 		while ((job = next_schedule())) {
-			ns = get_netserver(job, update);
-			add_pool_entry(&ns->entry, &ns->addr, &REQUEST);
+			client = get_netclient(job, update);
+			add_pool_entry(&client->pentry, &client->addr, &REQUEST);
 		}
 
 		/*
@@ -333,20 +313,8 @@ static void poll_servers(struct sockets *sockets)
 		 * individual transaction is very slow.
 		 */
 		exec("BEGIN");
-		while ((pentry = poll_pool(sockets, &data))) {
-			ns = get_netserver(pentry, entry);
-
-			if (data)
-				reschedule = handle_data(data, ns);
-			else
-				reschedule = handle_no_data(ns);
-
-			write_server(&ns->server);
-			write_server_clients(&ns->server);
-
-			if (reschedule)
-				schedule(&ns->update, ns->server.expire);
-		}
+		while ((pentry = poll_pool(sockets, &data)))
+			handle(get_netclient(pentry, pentry), data);
 		exec("COMMIT");
 	}
 }

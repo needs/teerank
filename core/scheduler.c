@@ -41,3 +41,8 @@ time_t waiting_time(void)
 	else
 		return jobs->date - now;
 }
+
+int have_schedule(void)
+{
+	return jobs != NULL;
+}

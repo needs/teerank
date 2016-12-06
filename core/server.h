@@ -100,8 +100,7 @@ struct server {
 /**
  * Check if the given server info describe a vanilla ctf server
  */
-int is_vanilla_ctf_server(
-	const char *gametype, const char *map, int num_clients, int max_clients);
+int is_vanilla_ctf(char *gametype, char *map, unsigned max_clients);
 
 /**
  * Extract IP and port from a full address
@@ -179,20 +178,6 @@ struct server create_server(
  * @param port Server port
  */
 void remove_server(const char *ip, const char *port);
-
-/**
- * Update expiration date
- *
- * @param server Server to update
- */
-void mark_server_offline(struct server *server);
-
-/**
- * Update last-seen date and expiration date
- *
- * @param server Server to update
- */
-void mark_server_online(struct server *server);
 
 /**
  * Check if the given server expired.

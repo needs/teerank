@@ -12,8 +12,7 @@
 #include "config.h"
 #include "json.h"
 
-int is_vanilla_ctf_server(
-	const char *gametype, const char *map, int num_clients, int max_clients)
+int is_vanilla_ctf(char *gametype, char *map, unsigned max_clients)
 {
 	const char **maps = (const char*[]) {
 		"ctf1", "ctf2", "ctf3", "ctf4", "ctf5", "ctf6", "ctf7", NULL
@@ -22,8 +21,6 @@ int is_vanilla_ctf_server(
 	if (strcmp(gametype, "CTF") != 0)
 		return 0;
 
-	if (num_clients > MAX_CLIENTS)
-		return 0;
 	if (max_clients > MAX_CLIENTS)
 		return 0;
 
@@ -233,82 +230,6 @@ int server_expired(struct server *server)
 		return 1;
 
 	return now > server->expire;
-}
-
-static unsigned min(unsigned a, unsigned b)
-{
-	return a < b ? a : b;
-}
-
-void mark_server_offline(struct server *server)
-{
-	time_t now;
-
-	assert(server != NULL);
-
-	/*
-	 * We won't want to check an offline server too often, because it will
-	 * add a (probably) unnecessary 3 seconds delay when polling.  However
-	 * sometime the server is online but our UDP packets get lost 3 times
-	 * in a row, in this case we don't want to delay too much the next poll.
-	 *
-	 * To meet the requirements above, we schedule the next poll to:
-	 *
-	 * 	now + min(now - server->lastseen, 2 hours)
-	 *
-	 * So for example if the server was seen 5 minutes ago, the next poll
-	 * will be schedule in 5 minutes.  If the server is still offline 5
-	 * minutes later, then we schedule the next poll in 10 minutes...  Up
-	 * to a maximum of 2 hours.
-	 */
-
-	now = time(NULL);
-	server->expire = now + min(now - server->lastseen, 2 * 3600);
-}
-
-/*
- * An interesting server is a server that will be polled more often than
- * the others.  In our case we want to poll regularly vanilla CTF
- * servers because we only rank players of such servers.
- */
-static int is_interesting_server(struct server *server)
-{
-	return is_vanilla_ctf_server(
-		server->gametype, server->map,
-		server->num_clients, server->max_clients);
-}
-
-static unsigned rand_between(unsigned min, unsigned max)
-{
-	double mul = ((double)rand() / (double)RAND_MAX);
-	return min + (max - min) * mul;
-}
-
-void mark_server_online(struct server *server)
-{
-	time_t now;
-	static int initsrand = 1;
-
-	assert(server != NULL);
-
-	now = time(NULL);
-	server->lastseen = now;
-
-	if (is_interesting_server(server)) {
-		server->expire = now + rand_between(4 * 60, 6 * 60);
-	} else {
-		if (initsrand) {
-			initsrand = 0;
-			srand(now);
-		}
-
-		/*
-		 * We just choose a random value between a half hour and
-		 * one and a half hour to spread server updates over
-		 * mutliple run of update-server.
-		 */
-		server->expire = now + rand_between(1800, 1800 + 3600);
-	}
 }
 
 static void remove_server_clients(const char *ip, const char *port)

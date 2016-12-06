@@ -205,9 +205,7 @@ static unsigned mark_rankable_players(
 	if (delta->elapsed < 60)
 		return 0;
 
-	if (!is_vanilla_ctf_server(
-		    delta->gametype, delta->map,
-		    delta->num_clients, delta->max_clients))
+	if (!is_vanilla_ctf(delta->gametype, delta->map, delta->max_clients))
 		return 0;
 
 
@@ -358,32 +356,31 @@ static struct client *get_player(
 	return NULL;
 }
 
-static struct delta delta_servers(
-	struct server *old, struct server *new, int elapsed)
+static void delta_servers(
+	struct delta *delta, struct server *old, struct server *new, int elapsed)
 {
-	struct delta delta;
 	unsigned i;
 
 	assert(old != NULL);
 	assert(new != NULL);
 
-	strcpy(delta.ip, new->ip);
-	strcpy(delta.port, new->port);
+	strcpy(delta->ip, new->ip);
+	strcpy(delta->port, new->port);
 
-	strcpy(delta.gametype, new->gametype);
-	strcpy(delta.map, new->map);
+	strcpy(delta->gametype, new->gametype);
+	strcpy(delta->map, new->map);
 
-	delta.num_clients = new->num_clients;
-	delta.max_clients = new->max_clients;
+	delta->num_clients = new->num_clients;
+	delta->max_clients = new->max_clients;
 
-	delta.elapsed = elapsed;
-	delta.length = new->num_clients;
+	delta->elapsed = elapsed;
+	delta->length = new->num_clients;
 
 	for (i = 0; i < new->num_clients; i++) {
 		struct client *old_player, *new_player;
 		struct player_delta *player;
 
-		player = &delta.players[i];
+		player = &delta->players[i];
 		new_player = &new->clients[i];
 		old_player = get_player(old, new_player);
 
@@ -397,8 +394,42 @@ static struct delta delta_servers(
 		else
 			player->old_score = NO_SCORE;
 	}
+}
 
-	return delta;
+static time_t expire_in(time_t sec, time_t maxdist)
+{
+	double fact = ((double)rand() / (double)RAND_MAX);
+	time_t min = sec - maxdist;
+	time_t max = sec + maxdist;
+
+	return time(NULL) + min + (max - min) * fact;
+}
+
+/*
+ * We won't want to check an offline server too often, because it will
+ * add a (probably) unnecessary timeout delay when polling.  However
+ * sometime the server is online but our UDP packets got lost 3 times in
+ * a row, in this case we don't want to delay too much the next poll.
+ *
+ * So doubling the expiry date seems to be adequate.  If the server was
+ * seen 5 minutes ago, the next poll will be scheduled in 10 minutes,
+ * and so on up to a maximum of 2 hours.
+ */
+static time_t double_expiry_date(time_t lastexpire, time_t lastseen)
+{
+	time_t t;
+
+	if (lastexpire < lastseen)
+		t = 5 * 60;
+	else
+		t = lastexpire - lastseen;
+
+	if (t > 2 * 3600)
+		t = 2 * 3600;
+	else if (t < 5 * 60)
+		t = 5 * 60;
+
+	return expire_in(t, 0);
 }
 
 static void handle_server_data(struct netclient *client, struct data *data)
@@ -415,7 +446,6 @@ static void handle_server_data(struct netclient *client, struct data *data)
 
 	server = &client->info.server;
 	old = *server;
-	mark_server_online(server);
 
 	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
 		goto out;
@@ -433,12 +463,17 @@ static void handle_server_data(struct netclient *client, struct data *data)
 	else
 		elapsed = time(NULL) - old.lastseen;
 
-	delta = delta_servers(&old, server, elapsed);
+	delta_servers(&delta, &old, server, elapsed);
 	process_delta(&delta);
 
 	write_server_clients(server);
 
 out:
+	if (is_vanilla_ctf(server->gametype, server->map, server->max_clients))
+		server->expire = expire_in(5 * 60, 60);
+	else
+		server->expire = expire_in(3600, 5 * 60);
+
 	write_server(server);
 	schedule(&client->update, server->expire);
 }
@@ -461,7 +496,7 @@ static void handle_server_timeout(struct netclient *client)
 		return;
 	}
 
-	mark_server_offline(server);
+	server->expire = double_expiry_date(server->expire, server->lastseen);
 	schedule(&client->update, server->expire);
 	write_server(server);
 }
@@ -615,15 +650,6 @@ static void handle_master_data(struct netclient *client, struct data *data)
 	}
 }
 
-static time_t expire_in(time_t sec, time_t maxdist)
-{
-	double fact = ((double)rand() / (double)RAND_MAX);
-	time_t min = sec - maxdist;
-	time_t max = sec + maxdist;
-
-	return time(NULL) + min + (max - min) * fact;
-}
-
 /*
  * Eventually every masters will timeout because we never remove them
  * from the pool.  What matter is if whether or not they did sent data
@@ -638,12 +664,7 @@ static void handle_master_timeout(struct netclient *client)
 		master->lastseen = time(NULL);
 
 	} else { /* Offline */
-		time_t t = master->expire - master->lastseen;
-
-		if (t > 2 * 3600)
-			t = 2 * 3600;
-
-		master->expire = expire_in(t, 0);
+		master->expire = double_expiry_date(master->expire, master->lastseen);
 	}
 
 	write_master(master);

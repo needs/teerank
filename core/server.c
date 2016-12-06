@@ -336,7 +336,7 @@ void remove_server(const char *ip, const char *port)
 	exec(query, "ss", ip, port);
 }
 
-int create_server(
+struct server create_server(
 	const char *ip, const char *port,
 	const char *master_node, const char *master_service)
 {
@@ -351,7 +351,8 @@ int create_server(
 		"INSERT OR IGNORE INTO servers(" ALL_SERVER_COLUMNS ")"
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-	return exec(query, bind_server(s));
+	exec(query, bind_server(s));
+	return s;
 }
 
 unsigned count_vanilla_servers(void)

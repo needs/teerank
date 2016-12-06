@@ -86,10 +86,10 @@ static int init_masters_table(void)
 
 	const char *query =
 		"INSERT INTO masters"
-		" VALUES(?, ?, ?)";
+		" VALUES(?, ?, ?, ?)";
 
 	for (master = DEFAULT_MASTERS; *master->node; master++)
-		ret &= exec(query, "sst", master->node, master->service, NEVER_SEEN);
+		ret &= exec(query, "sstt", master->node, master->service, NEVER_SEEN, EXPIRE_NOW);
 
 	return ret;
 }
@@ -122,6 +122,7 @@ static int create_database(void)
 		" node TEXT,"
 		" service TEXT,"
 		" lastseen DATE,"
+		" expire DATE,"
 		" PRIMARY KEY(node, service))",
 
 		"CREATE TABLE servers("

@@ -166,9 +166,9 @@ int write_server_clients(struct server *server);
  * @param ip Master server node
  * @param port Master server service
  *
- * @return 1 on success, 0 on failure or when the server already exist.
+ * @return A server struct filled with the given values
  */
-int create_server(
+struct server create_server(
 	const char *ip, const char *port,
 	const char *master_node, const char *master_service);
 

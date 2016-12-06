@@ -86,9 +86,6 @@ void add_pool_entry(
 
 static void entry_expired(struct pool_entry *entry)
 {
-	if (entry->polled)
-		return;
-
 	if (entry->retries == MAX_RETRIES) {
 		insert_entry(entry, &failed, NULL);
 	} else {

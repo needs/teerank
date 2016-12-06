@@ -28,11 +28,22 @@ static void stop_gracefully(int sig)
 	stop = 1;
 }
 
-static const uint8_t MSG_GETINFO[] = {
-	255, 255, 255, 255, 'g', 'i', 'e', '3'
+static const struct data MSG_GETINFO = {
+	9, {
+		255, 255, 255, 255, 'g', 'i', 'e', '3', 0
+	}
 };
 static const uint8_t MSG_INFO[] = {
 	255, 255, 255, 255, 'i', 'n', 'f', '3'
+};
+
+static const struct data MSG_GETLIST = {
+	8, {
+		255, 255, 255, 255, 'r', 'e', 'q', '2'
+	}
+};
+static const uint8_t MSG_LIST[] = {
+	255, 255, 255, 255, 'l', 'i', 's', '2'
 };
 
 struct unpacker {
@@ -235,26 +246,189 @@ static void handle_server_timeout(struct netclient *client)
 	write_server(server);
 }
 
-static void load_servers(void)
+static void load_netclients(void)
 {
 	struct server server;
+	struct master master;
 	struct netclient *client;
+	const char *query;
+
 	sqlite3_stmt *res;
 	unsigned nrow;
 
-	const char *query =
+	query =
 		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
 	foreach_server(query, &server) {
 		read_server_clients(&server);
-		if (client = add_netclient(NETCLIENT_TYPE_SERVER, &server))
+		if ((client = add_netclient(NETCLIENT_TYPE_SERVER, &server)))
 			schedule(&client->update, server.expire);
+	}
+
+	query =
+		"SELECT" ALL_MASTER_COLUMNS
+		" FROM masters";
+
+	foreach_master(query, &master) {
+		if ((client = add_netclient(NETCLIENT_TYPE_MASTER, &master)))
+			schedule(&client->update, master.expire);
 	}
 }
 
-static void handle_master_data(struct netclient *client, struct data *data) {};
-static void handle_master_timeout(struct netclient *client) {};
+static void update_server(char *ip, char *port, struct master *master)
+{
+	unsigned nrow;
+	sqlite3_stmt *res;
+	struct server s;
+
+	const char *query =
+		"SELECT" ALL_SERVER_COLUMNS
+		" FROM servers"
+		" WHERE ip = ? AND port = ?";
+
+	foreach_server(query, &s, "ss", ip, port);
+
+	if (!res)
+		return;
+
+	if (!nrow) {
+		struct server server;
+		struct netclient *client;
+
+		server = create_server(ip, port, master->node, master->service);
+		client = add_netclient(NETCLIENT_TYPE_SERVER, &server);
+		if (client)
+			schedule(&client->update, 0);
+
+		return;
+	}
+
+	query =
+		"UPDATE servers"
+		" SET master_node = ?, master_service = ?"
+		" WHERE ip = ? AND port = ?";
+
+	exec(query, "ssss", master->node, master->service, ip, port);
+}
+
+struct server_addr_raw {
+	uint8_t ip[16];
+	uint8_t port[2];
+};
+
+static int is_ipv4(unsigned char *ip)
+{
+	static const unsigned char IPV4_HEADER[] = {
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0xFF, 0xFF
+	};
+
+	assert(ip != NULL);
+
+	return memcmp(ip, IPV4_HEADER, sizeof(IPV4_HEADER)) == 0;
+}
+
+static void raw_addr_to_strings(
+	struct server_addr_raw *raw, char **_ip, char **_port)
+{
+	char ip[IP_STRSIZE], port[PORT_STRSIZE];
+	uint16_t portnum;
+	int ret;
+
+	assert(raw != NULL);
+	assert(_ip != NULL);
+	assert(_port != NULL);
+
+	/* Convert raw adress to either ipv4 or ipv6 string format */
+	if (is_ipv4(raw->ip)) {
+		ret = snprintf(
+			ip, sizeof(ip), "%u.%u.%u.%u",
+			raw->ip[12], raw->ip[13], raw->ip[14], raw->ip[15]);
+	} else {
+		ret = snprintf(
+			ip, sizeof(ip),
+		        "%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x:%2x%2x",
+		        raw->ip[0], raw->ip[1], raw->ip[2], raw->ip[3],
+		        raw->ip[4], raw->ip[5], raw->ip[6], raw->ip[7],
+		        raw->ip[8], raw->ip[9], raw->ip[10], raw->ip[11],
+		        raw->ip[12], raw->ip[13], raw->ip[14], raw->ip[15]);
+	}
+
+	assert(ret > 0 && ret < sizeof(ip));
+
+	/* Unpack port and then write it in a string */
+	portnum = (raw->port[0] << 8) | raw->port[1];
+	ret = snprintf(port, sizeof(port), "%u", portnum);
+
+	assert(ret > 0 && ret < sizeof(port));
+	(void)ret; /* Don't raise a warning when assertions are disabled */
+
+	*_ip = ip;
+	*_port = port;
+}
+
+static void handle_master_data(struct netclient *client, struct data *data)
+{
+	unsigned char *buf;
+	int size;
+
+	assert(client != NULL);
+	assert(data != NULL);
+
+	if (!skip_header(data, MSG_LIST, sizeof(MSG_LIST)))
+		return;
+
+	size = data->size;
+	buf = data->buffer;
+
+	while (size >= sizeof(struct server_addr_raw)) {
+		struct server_addr_raw *raw = (struct server_addr_raw*)buf;
+		char *ip, *port;
+
+		raw_addr_to_strings(raw, &ip, &port);
+		update_server(ip, port, &client->info.master);
+
+		buf += sizeof(*raw);
+		size -= sizeof(*raw);
+	}
+}
+
+static time_t expire_in(time_t sec, time_t maxdist)
+{
+	double fact = ((double)rand() / (double)RAND_MAX);
+	time_t min = sec - maxdist;
+	time_t max = sec + maxdist;
+
+	return time(NULL) + min + (max - min) * fact;
+}
+
+/*
+ * Eventually every masters will timeout because we never remove them
+ * from the pool.  What matter is if whether or not they did sent data
+ * before going quiet.
+ */
+static void handle_master_timeout(struct netclient *client)
+{
+	struct master *master = &client->info.master;
+
+	if (client->pentry.polled) { /* Online */
+		master->expire = expire_in(5 * 60, 1 * 60);
+		master->lastseen = time(NULL);
+
+	} else { /* Offline */
+		time_t t = master->expire - master->lastseen;
+
+		if (t > 2 * 3600)
+			t = 2 * 3600;
+
+		master->expire = expire_in(t, 0);
+	}
+
+	write_master(master);
+	schedule(&client->update, master->expire);
+}
 
 static void handle(struct netclient *client, struct data *data)
 {
@@ -275,6 +449,37 @@ static void handle(struct netclient *client, struct data *data)
 	}
 }
 
+/*
+ * Called before polling the given master, so that server not referenced
+ * anymore don't keep a dangling reference to their old master.
+ */
+static void unreference_servers(struct master *master)
+{
+	const char *query =
+		"UPDATE servers"
+		" SET master_node = '', master_service = ''"
+		" WHERE master_node = ? AND master_service = ?";
+
+	exec(query, "ss", master->node, master->service);
+}
+
+static void add_to_pool(struct netclient *client)
+{
+	const struct data *request = NULL;
+
+	switch (client->type) {
+	case NETCLIENT_TYPE_SERVER:
+		request = &MSG_GETINFO;
+		break;
+	case NETCLIENT_TYPE_MASTER:
+		unreference_servers(&client->info.master);
+		request = &MSG_GETLIST;
+		break;
+	}
+
+	add_pool_entry(&client->pentry, &client->addr, request);
+}
+
 #define get_netclient(ptr, field) \
 	(void*)((char*)ptr - offsetof(struct netclient, field))
 
@@ -285,27 +490,16 @@ static void handle(struct netclient *client, struct data *data)
 static void poll_servers(struct sockets *sockets)
 {
 	struct pool_entry *pentry;
-	struct netclient *client;
 	struct data *data;
 	struct job *job;
-
-	const struct data REQUEST = {
-		sizeof(MSG_GETINFO) + 1, {
-			MSG_GETINFO[0], MSG_GETINFO[1], MSG_GETINFO[2],
-			MSG_GETINFO[3], MSG_GETINFO[4], MSG_GETINFO[5],
-			MSG_GETINFO[6], MSG_GETINFO[7], 0
-		}
-	};
 
 	assert(sockets != NULL);
 
 	while (!stop && have_schedule()) {
 		sleep(waiting_time());
 
-		while ((job = next_schedule())) {
-			client = get_netclient(job, update);
-			add_pool_entry(&client->pentry, &client->addr, &REQUEST);
-		}
+		while ((job = next_schedule()))
+			add_to_pool(get_netclient(job, update));
 
 		/*
 		 * Batch database queries because in the worst case,
@@ -335,7 +529,7 @@ int main(int argc, char **argv)
 
 	if (!init_sockets(&sockets))
 		return EXIT_FAILURE;
-	load_servers();
+	load_netclients();
 
 	poll_servers(&sockets);
 	close_sockets(&sockets);

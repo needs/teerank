@@ -7,7 +7,7 @@
 #define MAX_MASTERS 8
 
 #define ALL_MASTER_COLUMNS \
-	" node, service, lastseen "
+	" node, service, lastseen, expire "
 
 #define NSERVERS_COLUMN \
 	" (SELECT COUNT(1)" \
@@ -26,7 +26,7 @@ struct master {
 	char node[NODE_STRSIZE];
 	char service[SERVICE_STRSIZE];
 
-	time_t lastseen;
+	time_t lastseen, expire;
 	unsigned nservers;
 };
 
@@ -40,5 +40,7 @@ void read_extended_master(sqlite3_stmt *res, void *m);
 
 #define foreach_extended_master(query, m, ...) \
 	foreach_row((query), read_extended_master, (m), __VA_ARGS__)
+
+int write_master(struct master *master);
 
 #endif /* MASTER_H */

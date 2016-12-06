@@ -108,6 +108,13 @@ static const unsigned UNRANKED = 0;
 static const time_t NEVER_SEEN = 0;
 
 /**
+ * @def NEVER_SEEN
+ *
+ * Special time_t value used for player which has neveer been seen yet
+ */
+static const time_t EXPIRE_NOW = 0;
+
+/**
  * Create a player with the given name.
  *
  * The player is *not* written in the database, but it can be written

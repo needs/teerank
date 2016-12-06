@@ -35,7 +35,7 @@ http {
 		location @teerank {
 			include       fastcgi_params;
 
-			fastcgi_param TEERANK_ROOT    $document_root/../.teerank;
+			fastcgi_param TEERANK_DB      $document_root/../teerank.sqlite3;
 			fastcgi_param SCRIPT_FILENAME $document_root/../teerank.cgi;
 			fastcgi_pass  unix:/run/fcgiwrap.sock;
 		}
@@ -69,14 +69,14 @@ You may not want to support deprecated URLs, disable them by setting
 ROUTE_V2_URLS=0 ROUTE_V3_URLS=0 make
 ```
 
-When running `teerank-update`, set `TEERANK_ROOT` to change database
+When running `teerank-update`, set `TEERANK_DB` to change database
 location, and `TEERANK_VERBOSE` to `1` to enable verbose mode.
 
 Setting up a CGI for developpement may be cumbursome, you can actually
 simulate CGI environment with the command line, like so:
 
 ```bash
-DOCUMENT_URI="/search" QUERY_STRING="q=Nameless" ./teerank.cgi
+REQUEST_URI="/search?q=Nameless" ./teerank.cgi
 ```
 
 Upgrading from a previous version
@@ -97,6 +97,6 @@ Contributing
 
 Teerank is a free software under the GNU GPL v3.
 
-All the development take place on github.  Feel free to open issue on
-github or send pull-request.  If you don't want to use github you can
+All the development takes place on github.  Feel free to open issue on
+github or send pull-requests.  If you don't want to use github you can
 also send me an e-mail at needs@mailoo.org.

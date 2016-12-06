@@ -51,14 +51,13 @@ CFLAGS += \
 	-DROUTE_V3_URLS=$(ROUTE_V3_URLS)
 
 # Every scripts is prefixed with teerank-
-SCRIPTS += upgrade
 SCRIPTS += update
 SCRIPTS = $(addprefix teerank-,$(patsubst builtin/%.sh,%,$(wildcard builtin/*.sh)))
 
-BUILTINS_BINS = $(addprefix teerank-,update-servers update-players add-new-servers)
+BUILTINS_BINS = $(addprefix teerank-,update-servers update-players)
 
 # There is only one upgrade binary per release
-UPGRADE_BIN = teerank-upgrade-$(PREVIOUS_DATABASE_VERSION)-to-$(DATABASE_VERSION)
+UPGRADE_BIN = teerank-upgrade
 
 BINS = $(UPGRADE_BIN) $(BUILTINS_BINS)
 CGI = teerank.cgi

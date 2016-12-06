@@ -186,8 +186,29 @@ static void upgrade_servers(void)
 
 int main(int argc, char *argv[])
 {
+	/* Teerank 3.x use $TEERANK_ROOT to locate database */
+	setenv("TEERANK_ROOT", ".teerank", 0);
+
 	load_config(0);
 	teerank6_load_config(1);
+
+	/* Non-stable version may not be re-upgradable */
+	if (!STABLE_VERSION) {
+		char buf[] = "continue";
+
+		fprintf(stderr, "/!\\ WARNING /!\\\n\n");
+		fprintf(stderr, "Data are being upgraded to an unstable database format.\n");
+		fprintf(stderr, "This format may not be portable to newer stable release.\n\n");
+		fprintf(stderr, "Type \"%s\" to proceed: ", buf);
+		scanf("%8s", buf);
+
+		if (strcmp(buf, "continue") != 0) {
+			fprintf(stderr, "Upgrade canceled\n");
+			return EXIT_FAILURE;
+		}
+	}
+
+	printf("Upgrading from %u to %u\n", DATABASE_VERSION - 1, DATABASE_VERSION);
 
 	exec("BEGIN");
 
@@ -195,6 +216,8 @@ int main(int argc, char *argv[])
 	upgrade_servers();
 
 	exec("COMMIT");
+
+	printf("Success\n");
 
 	return EXIT_SUCCESS;
 }

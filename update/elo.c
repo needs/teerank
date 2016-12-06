@@ -5,7 +5,6 @@
 
 #include "elo.h"
 #include "player.h"
-#include "delta.h"
 #include "config.h"
 
 /* p() func as defined by Elo. */
@@ -59,7 +58,7 @@ int compute_new_elo(struct player *player, struct player *players, unsigned leng
 
 	assert(player != NULL);
 	assert(players != NULL);
-	assert(length <= MAX_PLAYERS);
+	assert(length <= MAX_CLIENTS);
 
 	for (i = 0; i < length; i++)
 		if (&players[i] != player && players[i].is_rankable)
@@ -79,11 +78,11 @@ static void print_elo_change(struct player *player, int elo)
 
 void compute_elos(struct player *players, unsigned length)
 {
-	int elos[MAX_PLAYERS];
+	int elos[MAX_CLIENTS];
 	unsigned i;
 
 	assert(players != NULL);
-	assert(length <= MAX_PLAYERS);
+	assert(length <= MAX_CLIENTS);
 
 	/*
 	 * Do it in two steps so that newly computed elos values do not

@@ -22,7 +22,7 @@ static void _read_master(sqlite3_stmt *res, void *_m, int extended)
 	m->expire = sqlite3_column_int64(res, 3);
 
 	if (extended)
-		m->nservers = sqlite3_column_int64(res, 3);
+		m->nservers = sqlite3_column_int64(res, 4);
 }
 
 void read_master(sqlite3_stmt *res, void *m)

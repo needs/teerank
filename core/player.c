@@ -11,7 +11,6 @@
 
 #include "player.h"
 #include "config.h"
-#include "elo.h"
 
 void init_player(struct player *player)
 {

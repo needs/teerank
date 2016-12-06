@@ -6,10 +6,12 @@
 #include <dirent.h>
 #include <string.h>
 
+/* prefix-header is buggy and didn't prefixed this constant */
+#define PACKET_HEADER_SIZE 6
+
 #include "config.h"
 #include "player.h"
 #include "server.h"
-#include "network.h" /* Because prefix-header is buggy */
 
 #include "teerank6/core/config.h"
 #include "teerank6/core/player.h"

@@ -14,16 +14,16 @@ static const uint8_t MSG_LIST[] = {
 };
 
 struct unpacker {
-	struct data *data;
+	struct packet *packet;
 	size_t offset;
 };
 
-static void init_unpacker(struct unpacker *up, struct data *data)
+static void init_unpacker(struct unpacker *up, struct packet *packet)
 {
 	assert(up != NULL);
-	assert(data != NULL);
+	assert(packet != NULL);
 
-	up->data = data;
+	up->packet = packet;
 	up->offset = 0;
 }
 
@@ -34,8 +34,8 @@ static int can_unpack(struct unpacker *up, unsigned length)
 	assert(up != NULL);
 	assert(length > 0);
 
-	for (offset = up->offset; offset < up->data->size; offset++)
-		if (up->data->buffer[offset] == 0)
+	for (offset = up->offset; offset < up->packet->size; offset++)
+		if (up->packet->buffer[offset] == 0)
 			if (--length == 0)
 				return 1;
 
@@ -49,17 +49,17 @@ static char *unpack(struct unpacker *up)
 	assert(up != NULL);
 
 	old_offset = up->offset;
-	while (up->offset < up->data->size
-	       && up->data->buffer[up->offset] != 0)
+	while (up->offset < up->packet->size
+	       && up->packet->buffer[up->offset] != 0)
 		up->offset++;
 
 	/* Skip the remaining 0 */
 	up->offset++;
 
 	/* can_unpack() should have been used */
-	assert(up->offset <= up->data->size);
+	assert(up->offset <= up->packet->size);
 
-	return (char*)&up->data->buffer[old_offset];
+	return (char*)&up->packet->buffer[old_offset];
 }
 
 static void skip_field(struct unpacker *up)
@@ -97,18 +97,18 @@ static long int unpack_int(struct unpacker *up)
 	return ret;
 }
 
-int unpack_server_info(struct data *data, struct server *sv)
+int unpack_server_info(struct packet *packet, struct server *sv)
 {
 	struct unpacker up;
 	unsigned i;
 
-	assert(data != NULL);
+	assert(packet != NULL);
 	assert(sv != NULL);
 
-	if (!skip_header(data, MSG_INFO, sizeof(MSG_INFO)))
+	if (!skip_header(packet, MSG_INFO, sizeof(MSG_INFO)))
 		return 0;
 
-	init_unpacker(&up, data);
+	init_unpacker(&up, packet);
 
 	if (!can_unpack(&up, 10))
 		return 0;
@@ -207,22 +207,22 @@ static void raw_addr_to_strings(
 	*_port = port;
 }
 
-int unpack_server_addr(struct data *data, char **ip, char **port, int *reset_context)
+int unpack_server_addr(struct packet *packet, char **ip, char **port, int *reset_context)
 {
 	static size_t size;
 	static unsigned char *buf;
 
-	assert(data != NULL);
+	assert(packet != NULL);
 	assert(ip != NULL);
 	assert(port != NULL);
 	assert(reset_context != NULL);
 
 	if (*reset_context) {
-		if (!skip_header(data, MSG_LIST, sizeof(MSG_LIST)))
+		if (!skip_header(packet, MSG_LIST, sizeof(MSG_LIST)))
 			return 0;
 
-		size = data->size;
-		buf = data->buffer;
+		size = packet->size;
+		buf = packet->buffer;
 		*reset_context = 0;
 	}
 

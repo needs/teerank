@@ -6,7 +6,7 @@
 #include <netdb.h>
 
 #include "pool.h"
-#include "network.h"
+#include "packet.h"
 
 #define MAX_PENDING 25
 #define MAX_RETRIES 2
@@ -70,7 +70,7 @@ static void remove_entry(
 
 void add_pool_entry(
 	struct pool_entry *entry,
-	struct sockaddr_storage *addr, const struct data *request)
+	struct sockaddr_storage *addr, const struct packet *request)
 {
 	static const struct pool_entry POOL_ENTRY_ZERO;
 
@@ -101,7 +101,7 @@ static void add_pending_entry(struct sockets *sockets, struct pool_entry *entry)
 
 	remove_entry(entry, &idle, &idletail);
 
-	if (!send_data(sockets, entry->request, entry->addr)) {
+	if (!send_packet(sockets, entry->request, entry->addr)) {
 		entry_expired(entry);
 		return;
 	}
@@ -217,27 +217,27 @@ static struct pool_entry *next_failed_entry(struct sockets *sockets)
 	return entry;
 }
 
-struct pool_entry *poll_pool(struct sockets *sockets, struct data **answer)
+struct pool_entry *poll_pool(struct sockets *sockets, struct packet **_packet)
 {
-	static struct data databuf;
+	static struct packet packet;
 	struct sockaddr_storage addr;
 	struct pool_entry *entry = NULL;
 
-	assert(answer != NULL);
+	assert(_packet != NULL);
 
 again:
 	fill_pending_list(sockets);
 	if ((entry = next_failed_entry(sockets))) {
-		*answer = NULL;
+		*_packet = NULL;
 		return entry;
 	}
 
 	if (pending) {
-		if (recv_data(sockets, &databuf, &addr))
+		if (recv_packet(sockets, &packet, &addr))
 			entry = get_pending_entry(&addr);
 
 		if (entry) {
-			*answer = &databuf;
+			*_packet = &packet;
 			return entry;
 		} else {
 			clean_expired_pending_entries();

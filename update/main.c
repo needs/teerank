@@ -13,7 +13,6 @@
 
 #include <netinet/in.h>
 
-#include "network.h"
 #include "pool.h"
 #include "config.h"
 #include "server.h"
@@ -21,6 +20,7 @@
 #include "scheduler.h"
 #include "netclient.h"
 #include "elo.h"
+#include "packet.h"
 #include "unpacker.h"
 
 static int stop;
@@ -29,12 +29,12 @@ static void stop_gracefully(int sig)
 	stop = 1;
 }
 
-static const struct data MSG_GETINFO = {
+static const struct packet MSG_GETINFO = {
 	9, {
 		255, 255, 255, 255, 'g', 'i', 'e', '3', 0
 	}
 };
-static const struct data MSG_GETLIST = {
+static const struct packet MSG_GETLIST = {
 	8, {
 		255, 255, 255, 255, 'r', 'e', 'q', '2'
 	}
@@ -291,14 +291,14 @@ static time_t double_expiry_date(time_t lastexpire, time_t lastseen)
 	return expire_in(t, 0);
 }
 
-static void handle_server_data(struct netclient *client, struct data *data)
+static void handle_server_packet(struct netclient *client, struct packet *packet)
 {
 	struct server old, *server;
 	struct delta delta;
 	int elapsed;
 
 	assert(client != NULL);
-	assert(data != NULL);
+	assert(packet != NULL);
 
 	/* In any cases, we expect only one answer */
 	remove_pool_entry(&client->pentry);
@@ -306,7 +306,7 @@ static void handle_server_data(struct netclient *client, struct data *data)
 	server = &client->info.server;
 	old = *server;
 
-	if (!unpack_server_info(data, server))
+	if (!unpack_server_info(packet, server))
 		goto out;
 
 	/*
@@ -424,21 +424,21 @@ static void update_server(char *ip, char *port, struct master *master)
 	exec(query, "ssss", master->node, master->service, ip, port);
 }
 
-static void handle_master_data(struct netclient *client, struct data *data)
+static void handle_master_packet(struct netclient *client, struct packet *packet)
 {
 	char *ip, *port;
 	int reset_context = 1;
 
 	assert(client != NULL);
-	assert(data != NULL);
+	assert(packet != NULL);
 
-	while (unpack_server_addr(data, &ip, &port, &reset_context))
+	while (unpack_server_addr(packet, &ip, &port, &reset_context))
 		update_server(ip, port, &client->info.master);
 }
 
 /*
  * Eventually every masters will timeout because we never remove them
- * from the pool.  What matter is if whether or not they did sent data
+ * from the pool.  What matter is if whether or not they did send data
  * before going quiet.
  */
 static void handle_master_timeout(struct netclient *client)
@@ -457,19 +457,19 @@ static void handle_master_timeout(struct netclient *client)
 	schedule(&client->update, master->expire);
 }
 
-static void handle(struct netclient *client, struct data *data)
+static void handle(struct netclient *client, struct packet *packet)
 {
 	switch (client->type) {
 	case NETCLIENT_TYPE_SERVER:
-		if (data)
-			handle_server_data(client, data);
+		if (packet)
+			handle_server_packet(client, packet);
 		else
 			handle_server_timeout(client);
 		break;
 
 	case NETCLIENT_TYPE_MASTER:
-		if (data)
-			handle_master_data(client, data);
+		if (packet)
+			handle_master_packet(client, packet);
 		else
 			handle_master_timeout(client);
 		break;
@@ -492,7 +492,7 @@ static void unreference_servers(struct master *master)
 
 static void add_to_pool(struct netclient *client)
 {
-	const struct data *request = NULL;
+	const struct packet *request = NULL;
 
 	switch (client->type) {
 	case NETCLIENT_TYPE_SERVER:
@@ -517,7 +517,7 @@ static void add_to_pool(struct netclient *client)
 static void poll_servers(struct sockets *sockets)
 {
 	struct pool_entry *pentry;
-	struct data *data;
+	struct packet *packet;
 	struct job *job;
 
 	assert(sockets != NULL);
@@ -534,8 +534,8 @@ static void poll_servers(struct sockets *sockets)
 		 * individual transaction is very slow.
 		 */
 		exec("BEGIN");
-		while ((pentry = poll_pool(sockets, &data)))
-			handle(get_netclient(pentry, pentry), data);
+		while ((pentry = poll_pool(sockets, &packet)))
+			handle(get_netclient(pentry, pentry), packet);
 		exec("COMMIT");
 	}
 }

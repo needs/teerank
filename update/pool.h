@@ -18,7 +18,7 @@
  * efficiently detect when a UDP packet have probably been lost.
  */
 
-#include "network.h"
+#include "packet.h"
 
 /**
  * @struct pool_entry
@@ -29,7 +29,7 @@
  */
 struct pool_entry {
 	struct sockaddr_storage *addr;
-	const struct data *request;
+	const struct packet *request;
 
 	unsigned retries;
 	short polled;
@@ -47,7 +47,7 @@ struct pool_entry {
  */
 void add_pool_entry(
 	struct pool_entry *entry,
-	struct sockaddr_storage *addr, const struct data *request);
+	struct sockaddr_storage *addr, const struct packet *request);
 
 /**
  * Remove entry from the pool and the pending list
@@ -68,6 +68,6 @@ void remove_pool_entry(struct pool_entry *pentry);
  *
  * @return Polled entry, NULL if any
  */
-struct pool_entry *poll_pool(struct sockets *socket, struct data **data);
+struct pool_entry *poll_pool(struct sockets *socket, struct packet **packet);
 
 #endif /* POOL_H */

@@ -2,9 +2,9 @@
 #define UNPACKER_H
 
 #include "server.h"
-#include "network.h"
+#include "packet.h"
 
-int unpack_server_info(struct data *data, struct server *sv);
-int unpack_server_addr(struct data *data, char **ip, char **port, int *reset_context);
+int unpack_server_info(struct packet *packet, struct server *sv);
+int unpack_server_addr(struct packet *packet, char **ip, char **port, int *reset_context);
 
 #endif /* UNPACKER_H */

@@ -9,7 +9,7 @@
 #include <netdb.h>
 #include <poll.h>
 
-#include "network.h"
+#include "packet.h"
 
 int init_sockets(struct sockets *sockets)
 {
@@ -38,20 +38,22 @@ void close_sockets(struct sockets *sockets)
 	close(sockets->ipv6.fd);
 }
 
-int send_data(
-	struct sockets *sockets, const struct data *data,
+int send_packet(
+	struct sockets *sockets, const struct packet *packet,
 	struct sockaddr_storage *addr)
 {
-	unsigned char packet[PACKET_SIZE];
-	int fd, ret;
+	unsigned char buf[CONNLESS_PACKET_SIZE];
+	size_t bufsize;
+	ssize_t ret;
+	int fd;
 
 	assert(sockets != NULL);
 	assert(sockets->ipv4.fd >= 0);
 	assert(sockets->ipv6.fd >= 0);
 
-	assert(data != NULL);
-	assert(data->size > 0);
-	assert(data->size <= sizeof(data->buffer));
+	assert(packet != NULL);
+	assert(packet->size > 0);
+	assert(packet->size <= sizeof(packet->buffer));
 
 	assert(addr != NULL);
 
@@ -61,44 +63,46 @@ int send_data(
 	 * We only use connless packets for our needs.  Connless packets
 	 * should have the first six bytes of packet's header set to 0xff.
 	 */
-	packet[0] = 0xff;
-	packet[1] = 0xff;
-	packet[2] = 0xff;
-	packet[3] = 0xff;
-	packet[4] = 0xff;
-	packet[5] = 0xff;
+	buf[0] = 0xff;
+	buf[1] = 0xff;
+	buf[2] = 0xff;
+	buf[3] = 0xff;
+	buf[4] = 0xff;
+	buf[5] = 0xff;
 
-	/* Just copy data as it is to the remaining space */
-	memcpy(packet + PACKET_HEADER_SIZE, data->buffer, data->size);
+	/* Just copy packet data as it is to the remaining space */
+	memcpy(buf + CONNLESS_PACKET_HEADER_SIZE, packet->buffer, packet->size);
 
-	ret = sendto(fd, packet, data->size + PACKET_HEADER_SIZE, 0,
-	             (struct sockaddr*)addr, sizeof(*addr));
+	bufsize = packet->size + CONNLESS_PACKET_HEADER_SIZE;
+	ret = sendto(fd, buf, bufsize, 0, (struct sockaddr*)addr, sizeof(*addr));
+
 	if (ret == -1) {
 		perror("send()");
 		return 0;
-	} else if (ret != data->size + PACKET_HEADER_SIZE) {
+	} else if (ret != bufsize) {
 		fprintf(stderr,
-		        "Data has not been fully sent (%d bytes over %d)\n",
-		        ret, data->size + PACKET_HEADER_SIZE);
+		        "Packet has not been fully sent (%zu bytes over %zu)\n",
+		        (size_t)ret, bufsize);
 		return 0;
 	}
 
 	return 1;
 }
 
-int recv_data(
-	struct sockets *sockets, struct data *data,
+int recv_packet(
+	struct sockets *sockets, struct packet *packet,
 	struct sockaddr_storage *addr)
 {
-	unsigned char packet[PACKET_SIZE];
-	int ret, fd;
+	unsigned char buf[CONNLESS_PACKET_SIZE];
 	socklen_t addrlen = sizeof(addr);
+	ssize_t ret;
+	int fd;
 
 	assert(sockets != NULL);
 	assert(sockets->ipv4.fd >= 0);
 	assert(sockets->ipv6.fd >= 0);
 
-	assert(data != NULL);
+	assert(packet != NULL);
 
 	/* Poll ipv4 and ipv6 sockets */
 	sockets->ipv4.events = POLLIN;
@@ -117,21 +121,21 @@ int recv_data(
 	else
 		fd = sockets->ipv6.fd;
 
-	ret = recvfrom(fd, packet, sizeof(packet), 0,
+	ret = recvfrom(fd, buf, sizeof(buf), 0,
 	               (struct sockaddr*)addr, addr ? &addrlen : NULL);
 	if (ret == -1) {
 		perror("recv()");
 		return 0;
-	} else if (ret < PACKET_HEADER_SIZE) {
+	} else if (ret < CONNLESS_PACKET_HEADER_SIZE) {
 		fprintf(stderr,
-		        "Packet too small (%d bytes required, %d received)\n",
-		        PACKET_HEADER_SIZE, ret);
+		        "Packet too small (%zu bytes required, %zu received)\n",
+		        (size_t)CONNLESS_PACKET_HEADER_SIZE, (size_t)ret);
 		return 0;
 	}
 
 	/* Skip packet header (six bytes) */
-	data->size = ret - PACKET_HEADER_SIZE;
-	memcpy(data->buffer, packet + PACKET_HEADER_SIZE, data->size);
+	packet->size = ret - CONNLESS_PACKET_HEADER_SIZE;
+	memcpy(packet->buffer, buf + CONNLESS_PACKET_HEADER_SIZE, packet->size);
 
 	return 1;
 }
@@ -164,18 +168,18 @@ int get_sockaddr(char *node, char *service, struct sockaddr_storage *addr)
 	return 1;
 }
 
-int skip_header(struct data *data, const uint8_t *header, size_t size)
+int skip_header(struct packet *packet, const uint8_t *header, size_t size)
 {
-	assert(data != NULL);
+	assert(packet != NULL);
 	assert(header != NULL);
 	assert(size > 0);
 
-	if (data->size < size)
+	if (packet->size < size)
 		return 0;
-	if (memcmp(data->buffer, header, size) != 0)
+	if (memcmp(packet->buffer, header, size) != 0)
 		return 0;
 
-	data->size -= size;
-	memmove(data->buffer, &data->buffer[size], data->size);
+	packet->size -= size;
+	memmove(packet->buffer, &packet->buffer[size], packet->size);
 	return 1;
 }

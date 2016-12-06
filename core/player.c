@@ -88,7 +88,6 @@ void set_clan(struct player *player, char *clan)
 	assert(clan != NULL);
 
 	strcpy(player->clan, clan);
-	player->clan_changed = 1;
 }
 
 void set_lastseen(struct player *player, const char *ip, const char *port)

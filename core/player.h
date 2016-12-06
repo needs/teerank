@@ -79,9 +79,6 @@ struct player {
 
 	struct player_delta *delta;
 
-	/* Used to notice update-clan when clan changed */
-	unsigned short clan_changed;
-
 	/* A marker used by elo rating system */
 	short is_rankable;
 };

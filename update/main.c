@@ -523,7 +523,7 @@ static void poll_servers(struct sockets *sockets)
 	assert(sockets != NULL);
 
 	while (!stop && have_schedule()) {
-		sleep(waiting_time());
+		wait_until_next_schedule();
 
 		while ((job = next_schedule()))
 			add_to_pool(get_netclient(job, update));

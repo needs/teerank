@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "scheduler.h"
 
 static struct job *jobs;
@@ -19,6 +21,16 @@ void schedule(struct job *job, time_t date)
 	*pp = job;
 }
 
+static time_t waiting_time(void)
+{
+	time_t now = time(NULL);
+
+	if (!jobs || now > jobs->date)
+		return 0;
+	else
+		return jobs->date - now;
+}
+
 struct job *next_schedule(void)
 {
 	struct job *job;
@@ -32,14 +44,9 @@ struct job *next_schedule(void)
 	return job;
 }
 
-time_t waiting_time(void)
+void wait_until_next_schedule(void)
 {
-	time_t now = time(NULL);
-
-	if (!jobs || now > jobs->date)
-		return 0;
-	else
-		return jobs->date - now;
+	sleep(waiting_time());
 }
 
 int have_schedule(void)

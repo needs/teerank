@@ -79,6 +79,35 @@ static time_t get_elapsed_time(struct server *old, struct server *new)
 		return new->lastseen - old->lastseen;
 }
 
+/*
+ * Detecting when 'old' and 'new' are two different games is not
+ * straightforward.  We have to rely on heuristics.  It is a new game if
+ * the difference between old score average and new score average is
+ * greater than 3.
+ */
+static int is_new_game(struct player *players)
+{
+	struct player *p;
+	unsigned i, nr_players = 0;
+	int oldtotal = 0, newtotal = 0;
+
+	_foreach_player(p) {
+		if (p->old && p->new) {
+			oldtotal += p->old->score;
+			newtotal += p->new->score;
+			nr_players++;
+		}
+	}
+
+	if (!nr_players)
+		return 0;
+
+	float oldavg = oldtotal / nr_players;
+	float newavg = newtotal / nr_players;
+
+	return oldavg - newavg > 3.0;
+}
+
 static void mark_rankable_players(
 	struct server *old, struct server *new, struct player *players)
 {
@@ -90,6 +119,9 @@ static void mark_rankable_players(
 
 	/* We don't rank non vanilla CTF servers for now */
 	if (!is_vanilla_ctf(new->gametype, new->map, new->max_clients))
+		goto dont_rank;
+
+	if (is_new_game(players))
 		goto dont_rank;
 
 	elapsed = get_elapsed_time(old, new);

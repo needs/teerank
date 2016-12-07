@@ -191,12 +191,12 @@ static int create_database(void)
 	}
 
 	/*
-	 * Batch create queries in a single immediate transaction so
-	 * that if someone else try to create the database at the same
-	 * time, one will quietly fail, assuming the other successfully
-	 * created the database.
+	 * Batch create queries in a single exclusive transaction so
+	 * that if someone else try to use the database at the same
+	 * time, one will quietly wait for the other to create the
+	 * database.
 	 */
-	if (sqlite3_exec(db, "BEGIN IMMEDIATE", 0, 0, 0) != SQLITE_OK)
+	if (sqlite3_exec(db, "BEGIN EXCLUSIVE", 0, 0, 0) != SQLITE_OK)
 		return 1;
 
 	for (query = queries; *query; query++) {

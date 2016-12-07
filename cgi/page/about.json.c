@@ -29,7 +29,8 @@ static int json_info(void)
 
 	const char query[] =
 		"SELECT" ALL_EXTENDED_MASTER_COLUMNS
-		" FROM masters";
+		" FROM masters"
+		" ORDER BY node";
 
 	putchar('{');
 

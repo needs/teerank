@@ -73,9 +73,10 @@ static int show_masters_status(int teerank_stopped)
 	char buf[16], comment[64];
 	unsigned nrow;
 
-	char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_MASTER_COLUMNS
-		" FROM masters";
+		" FROM masters"
+		" ORDER BY node";
 
 	html("<h2>Teeworlds</h2>");
 

@@ -77,10 +77,10 @@ struct player {
 	char server_ip[IP_STRSIZE];
 	char server_port[PORT_STRSIZE];
 
-	struct player_delta *delta;
-
-	/* A marker used by elo rating system */
-	short is_rankable;
+	/* Used by the ranking system */
+	struct client *old;
+	struct client *new;
+	int is_rankable;
 };
 
 /**

@@ -227,12 +227,13 @@ int unpack_server_addr(struct packet *packet, char **ip, char **port, int *reset
 	}
 
 	if (size >= sizeof(struct server_addr_raw)) {
-		struct server_addr_raw *raw = (struct server_addr_raw*)buf;
+		struct server_addr_raw raw;
 
-		raw_addr_to_strings(raw, ip, port);
+		memcpy(&raw, buf, sizeof(raw));
+		raw_addr_to_strings(&raw, ip, port);
 
-		buf += sizeof(*raw);
-		size -= sizeof(*raw);
+		buf += sizeof(raw);
+		size -= sizeof(raw);
 
 		return 1;
 	}

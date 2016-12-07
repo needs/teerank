@@ -269,7 +269,6 @@ static int dump(int status, const char *content_type, int fd, FILE *copy)
 		print_error(status);
 	} else {
 		printf("Content-Type: %s\n", content_type);
-		printf("Cache-Control: max-age=120\n");
 		printf("\n");
 	}
 

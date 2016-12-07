@@ -17,7 +17,7 @@
 	for (i = 0, p = players; i < MAX_CLIENTS; i++, p++) \
 		if (!p->new); else
 
-static struct client *find_client(struct server *server, char *pname)
+static struct client *find_client(struct server *server, const char *pname)
 {
 	unsigned i;
 
@@ -26,6 +26,18 @@ static struct client *find_client(struct server *server, char *pname)
 			return &server->clients[i];
 
 	return NULL;
+}
+
+static int is_already_loaded(struct player *players, const char *pname)
+{
+	unsigned i;
+	struct player *p;
+
+	_foreach_player(p)
+		if (strcmp(p->name, pname) == 0)
+			return 1;
+
+	return 0;
 }
 
 static void load_players(struct server *old, struct server *new, struct player *players)
@@ -41,8 +53,12 @@ static void load_players(struct server *old, struct server *new, struct player *
 
 	for (i = 0; i < new->num_clients; i++) {
 		pname = new->clients[i].name;
-		foreach_player(query, players, "s", pname);
 
+		/* Don't load duplicated players */
+		if (is_already_loaded(players, pname))
+			continue;
+
+		foreach_player(query, players, "s", pname);
 		if (!res)
 			continue;
 		if (!nrow)

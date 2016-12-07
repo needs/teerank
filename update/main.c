@@ -388,7 +388,7 @@ static void load_netclients(void)
 	}
 }
 
-static void update_server(char *ip, char *port, struct master *master)
+static void reference_server(char *ip, char *port, struct master *master)
 {
 	unsigned nrow;
 	sqlite3_stmt *res;
@@ -433,7 +433,7 @@ static void handle_master_packet(struct netclient *client, struct packet *packet
 	assert(packet != NULL);
 
 	while (unpack_server_addr(packet, &ip, &port, &reset_context))
-		update_server(ip, port, &client->info.master);
+		reference_server(ip, port, &client->info.master);
 }
 
 /*

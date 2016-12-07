@@ -195,11 +195,32 @@ static int compute_new_elo(struct player *player, struct player *players)
 	return player->elo + total;
 }
 
-static void print_elo_change(struct player *player, int elo)
+static void print_verbose_info(struct player *players, int *elos)
 {
-	verbose(
-		"\t%-16s | %d -> %d (%+d)\n",
-		player->name, player->elo, elo, elo - player->elo);
+	int haveinfo = 0;
+	struct player *p;
+	unsigned i, len = 0;
+
+	_foreach_player(p) {
+		if (p->is_rankable) {
+			haveinfo = 1;
+			len++;
+		}
+	}
+
+	if (!haveinfo)
+		return;
+
+	verbose("%u players ranked\n", len);
+
+	_foreach_player(p) {
+		if (p->is_rankable) {
+			verbose(
+				"\t%-16s | %-16s | %4d | %d -> %d (%+d)\n",
+				p->name, p->clan, p->new->score - p->old->score,
+				p->elo, elos[i], elos[i] - p->elo);
+		}
+	}
 }
 
 static void update_elos(struct player *players)
@@ -216,11 +237,11 @@ static void update_elos(struct player *players)
 	 */
 
 	_foreach_player(p) {
-		if (p->is_rankable) {
+		if (p->is_rankable)
 			elos[i] = compute_new_elo(p, players);
-			print_elo_change(p, elos[i]);
-		}
 	}
+
+	print_verbose_info(players, elos);
 
 	_foreach_player(p) {
 		if (p->is_rankable)

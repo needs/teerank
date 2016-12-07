@@ -171,7 +171,7 @@ static int is_ipv4(unsigned char *ip)
 static void raw_addr_to_strings(
 	struct server_addr_raw *raw, char **_ip, char **_port)
 {
-	char ip[IP_STRSIZE], port[PORT_STRSIZE];
+	static char ip[IP_STRSIZE], port[PORT_STRSIZE];
 	uint16_t portnum;
 	int ret;
 

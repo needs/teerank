@@ -456,7 +456,7 @@ int main(int argc, char **argv)
 	 * now it shouldn't be an issue since teerank users are almost
 	 * non-existent.
 	 */
-	load_config(1);
+	load_config(1, 1);
 
 	/*
 	 * A lot of route doesn't use cgi_config structure.  We still

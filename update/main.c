@@ -313,7 +313,7 @@ int main(int argc, char **argv)
 {
 	struct sockets sockets;
 
-	load_config(1);
+	load_config(1, 0);
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);

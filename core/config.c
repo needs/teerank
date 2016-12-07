@@ -23,7 +23,7 @@ struct config config = {
 #include "default_config.h"
 };
 
-void load_config(int check_version)
+void load_config(int check_version, int readonly)
 {
 	char *tmp;
 
@@ -59,7 +59,7 @@ void load_config(int check_version)
 	tzset();
 
 	/* Open database now so we can check it's version */
-	if (!init_database())
+	if (!init_database(readonly))
 		exit(EXIT_FAILURE);
 
 	/*

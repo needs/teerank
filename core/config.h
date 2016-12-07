@@ -42,8 +42,9 @@ extern struct config config;
  * opneing failed.
  *
  * @param check_version 1 to make sure database is up-to-date
+ * @param readonly 1 to make sure database cannot be modified
  */
-void load_config(int check_version);
+void load_config(int check_version, int readonly);
 
 void verbose(const char *fmt, ...);
 

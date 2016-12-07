@@ -219,12 +219,19 @@ fail:
 	return 0;
 }
 
-int init_database(void)
+int init_database(int readonly)
 {
-	const int FLAGS = SQLITE_OPEN_READWRITE;
+	int flags = SQLITE_OPEN_READWRITE;
 
-	if (sqlite3_open_v2(config.dbpath, &db, FLAGS, NULL) != SQLITE_OK)
-		return create_database();
+	if (readonly)
+		flags = SQLITE_OPEN_READONLY;
+
+	if (sqlite3_open_v2(config.dbpath, &db, flags, NULL) != SQLITE_OK) {
+		if (readonly)
+			return 0;
+		else
+			return create_database();
+	}
 
 	return 1;
 }

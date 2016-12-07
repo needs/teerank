@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <time.h>
+#include <assert.h>
+#include <string.h>
 
 #include "json.h"
 
@@ -41,4 +43,17 @@ const char *json_boolean(int boolean)
 		return "true";
 	else
 		return "false";
+}
+
+char *json_hexstring(char *str)
+{
+	static char buf[1024], *c;
+
+	assert(str != NULL);
+
+	for (c = buf; *str && c - buf < sizeof(buf) - 3; str++, c += 2)
+		sprintf(c, "%2x", *(unsigned char*)str);
+	strcpy(c, "00");
+
+	return buf;
 }

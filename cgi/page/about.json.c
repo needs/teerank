@@ -41,8 +41,11 @@ static int json_info(void)
 
 	printf("\"masters\":[");
 
-	foreach_extended_master(query, &master)
+	foreach_extended_master(query, &master) {
+		if (nrow)
+			putchar(',');
 		json_master(&master);
+	}
 
 	printf("],\"nmasters\":%u", nrow);
 	putchar('}');

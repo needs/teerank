@@ -12,8 +12,8 @@
 
 static void json_player(struct player *player)
 {
-	printf("\"name\":\"%s\",", json_escape(player->name));
-	printf("\"clan\":\"%s\",", json_escape(player->clan));
+	printf("\"name\":\"%s\",", json_hexstring(player->name));
+	printf("\"clan\":\"%s\",", json_hexstring(player->clan));
 	printf("\"elo\":%d,", player->elo);
 	printf("\"rank\":%u,", player->rank);
 	printf("\"lastseen\":\"%s\",", json_date(player->lastseen));
@@ -34,7 +34,7 @@ static int json_player_historic(const char *pname)
 		" WHERE name = ?"
 		" ORDER BY timestamp";
 
-	printf("\"historic\":{\"records\":[");
+	printf(",\"historic\":{\"records\":[");
 
 	foreach_player_record(query, &r, "s", pname) {
 		if (!nrow)

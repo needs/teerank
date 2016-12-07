@@ -9,19 +9,6 @@
 #include "json.h"
 #include "clan.h"
 
-static void json_player(struct player *player)
-{
-	putchar('{');
-	printf("\"name\":\"%s\",", json_escape(player->name));
-	printf("\"clan\":\"%s\",", json_escape(player->clan));
-	printf("\"elo\":%d,", player->elo);
-	printf("\"rank\":%u,", player->rank);
-	printf("\"lastseen\":\"%s\",", json_date(player->lastseen));
-	printf("\"server_ip\":\"%s\",", player->server_ip);
-	printf("\"server_port\":\"%s\"", player->server_port);
-	putchar('}');
-}
-
 int main_json_clan(int argc, char **argv)
 {
 	unsigned nrow;
@@ -41,8 +28,11 @@ int main_json_clan(int argc, char **argv)
 
 	printf("{\"members\":[");
 
-	foreach_extended_player(query, &p, "s", argv[1])
-		json_player(&p);
+	foreach_extended_player(query, &p, "s", argv[1]) {
+		if (nrow)
+			putchar(',');
+		printf("\"%s\"", json_hexstring(p.name));
+	}
 
 	printf("],\"nmembers\":%u}", nrow);
 

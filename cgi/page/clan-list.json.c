@@ -39,7 +39,7 @@ int main_json_clan_list(int argc, char **argv)
 			putchar(',');
 
 		putchar('{');
-		printf("\"name\":\"%s\",", json_escape(clan.name));
+		printf("\"name\":\"%s\",", json_hexstring(clan.name));
 		printf("\"nmembers\":\"%u\"", clan.nmembers);
 		putchar('}');
 	}

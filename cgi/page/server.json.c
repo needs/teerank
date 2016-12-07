@@ -41,8 +41,8 @@ static void json_server(struct server *server)
 			putchar(',');
 
 		putchar('{');
-		printf("\"name\":\"%s\",", json_escape(c.name));
-		printf("\"clan\":\"%s\",", json_escape(c.clan));
+		printf("\"name\":\"%s\",", json_hexstring(c.name));
+		printf("\"clan\":\"%s\",", json_hexstring(c.clan));
 		printf("\"score\":%d,", c.score);
 		printf("\"ingame\":%s", json_boolean(c.ingame));
 		putchar('}');

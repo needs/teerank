@@ -12,8 +12,8 @@
 
 static void json_player(struct player *player)
 {
-	printf("\"name\":\"%s\",", player->name);
-	printf("\"clan\":\"%s\",", player->clan);
+	printf("\"name\":\"%s\",", json_escape(player->name));
+	printf("\"clan\":\"%s\",", json_escape(player->clan));
 	printf("\"elo\":%d,", player->elo);
 	printf("\"rank\":%u,", player->rank);
 	printf("\"lastseen\":\"%s\",", json_date(player->lastseen));

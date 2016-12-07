@@ -14,8 +14,8 @@
 static void json_master(struct master *master)
 {
 	putchar('{');
-	printf("\"node\":\"%s\",", master->node);
-	printf("\"service\":\"%s\",", master->node);
+	printf("\"node\":\"%s\",", json_escape(master->node));
+	printf("\"service\":\"%s\",", json_escape(master->node));
 	printf("\"last_seen\":\"%s\",", json_date(master->lastseen));
 	printf("\"nservers\":%u", master->nservers);
 	putchar('}');

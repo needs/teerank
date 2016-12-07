@@ -5,8 +5,8 @@
 
 #include "config.h"
 #include "cgi.h"
-#include "player.h"
 #include "clan.h"
+#include "json.h"
 
 int main_json_clan_list(int argc, char **argv)
 {
@@ -39,7 +39,7 @@ int main_json_clan_list(int argc, char **argv)
 			putchar(',');
 
 		putchar('{');
-		printf("\"name\":\"%s\",", clan.name);
+		printf("\"name\":\"%s\",", json_escape(clan.name));
 		printf("\"nmembers\":\"%u\"", clan.nmembers);
 		putchar('}');
 	}

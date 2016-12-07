@@ -96,7 +96,7 @@ static void handle_server_packet(struct netclient *client, struct packet *packet
 	}
 
 	if (is_vanilla_ctf(new->gametype, new->map, new->max_clients))
-		new->expire = expire_in(5 * 60, 60);
+		new->expire = expire_in(5 * 60, 30);
 	else
 		new->expire = expire_in(3600, 5 * 60);
 

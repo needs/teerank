@@ -37,7 +37,7 @@ void read_extended_master(sqlite3_stmt *res, void *m)
 
 int write_master(struct master *m)
 {
-	const char query[] =
+	const char *query =
 		"INSERT OR REPLACE INTO masters"
 		" VALUES (?, ?, ?, ?)";
 

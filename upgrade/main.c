@@ -25,7 +25,7 @@ static int upgrade_historic(const char *pname, struct teerank6_historic *hist)
 {
 	struct teerank6_record *r;
 
-	const char query[] =
+	const char *query =
 		"INSERT INTO player_historic(name, timestamp, elo, rank)"
 		" VALUES (?, ?, ?, ?)";
 

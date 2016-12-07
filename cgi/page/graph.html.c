@@ -48,7 +48,7 @@ static int fill_datasets(
 	struct player_record r;
 	static const struct dataset DATASET_ZERO;
 
-	char query[] =
+	const char *query =
 		"SELECT" ALL_PLAYER_RECORD_COLUMNS
 		" FROM player_historic"
 		" WHERE name = ?"

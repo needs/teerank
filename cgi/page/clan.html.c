@@ -18,7 +18,7 @@ int main_html_clan(int argc, char **argv)
 	char *cname;
 	struct player p;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE clan = ? AND" IS_VALID_CLAN

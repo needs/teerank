@@ -72,7 +72,7 @@ void read_player_record(sqlite3_stmt *res, void *_r)
 
 int write_player(struct player *p)
 {
-	const char query[] =
+	const char *query =
 		"INSERT OR REPLACE INTO players"
 		" VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -101,7 +101,7 @@ void set_lastseen(struct player *player, const char *ip, const char *port)
 
 void record_elo_and_rank(struct player *p)
 {
-	const char query[] =
+	const char *query =
 		"INSERT OR REPLACE INTO player_historic"
 		" VALUES (?, ?, ?, ?)";
 
@@ -114,7 +114,7 @@ void record_elo_and_rank(struct player *p)
 
 unsigned count_players(void)
 {
-	char query[] =
+	const char *query =
 		"SELECT COUNT(1) FROM players";
 
 	return count_rows(query);

@@ -81,7 +81,7 @@ int read_server_clients(struct server *server)
 	unsigned nrow;
 	sqlite3_stmt *res;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_SERVER_CLIENT_COLUMNS
 		" FROM server_clients"
 		" WHERE ip = ? AND port = ?"
@@ -184,7 +184,7 @@ char *build_addr(const char *ip, const char *port)
 
 static int flush_server_clients(const char *ip, const char *port)
 {
-	const char query[] =
+	const char *query =
 		"DELETE FROM server_clients"
 		" WHERE ip = ? AND port = ?";
 
@@ -196,7 +196,7 @@ int write_server_clients(struct server *server)
 	struct client *client;
 	int ret = 1;
 
-	const char query[] =
+	const char *query =
 		"INSERT OR REPLACE INTO server_clients"
 		" VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -211,7 +211,7 @@ int write_server_clients(struct server *server)
 
 int write_server(struct server *server)
 {
-	const char query[] =
+	const char *query =
 		"INSERT OR REPLACE INTO servers"
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -234,7 +234,7 @@ int server_expired(struct server *server)
 
 static void remove_server_clients(const char *ip, const char *port)
 {
-	const char query[] =
+	const char *query =
 		"DELETE FROM server_clients"
 		" WHERE ip = ? AND port = ?";
 
@@ -246,7 +246,7 @@ static void remove_server_clients(const char *ip, const char *port)
 
 void remove_server(const char *ip, const char *port)
 {
-	const char query[] =
+	const char *query =
 		"DELETE FROM servers"
 		" WHERE ip = ? AND port = ?";
 
@@ -268,7 +268,7 @@ struct server create_server(
 	snprintf(s.master_node, sizeof(s.master_node), "%s", master_node);
 	snprintf(s.master_service, sizeof(s.master_service), "%s", master_service);
 
-	const char query[] =
+	const char *query =
 		"INSERT OR IGNORE INTO servers(" ALL_SERVER_COLUMNS ")"
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -278,7 +278,7 @@ struct server create_server(
 
 unsigned count_vanilla_servers(void)
 {
-	char query[] =
+	const char *query =
 		"SELECT COUNT(1) FROM servers WHERE" IS_VANILLA_CTF_SERVER;
 
 	return count_rows(query);

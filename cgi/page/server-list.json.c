@@ -28,7 +28,7 @@ int main_json_server_list(int argc, char **argv)
 	sqlite3_stmt *res;
 	struct server server;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 		" FROM servers"
 		" WHERE" IS_VANILLA_CTF_SERVER

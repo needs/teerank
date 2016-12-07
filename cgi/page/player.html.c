@@ -17,7 +17,7 @@ int main_html_player(int argc, char **argv)
 	sqlite3_stmt *res;
 	unsigned nrow;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE name = ?";

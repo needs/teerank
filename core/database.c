@@ -38,7 +38,7 @@ int database_version(void)
 
 static int init_version_table(void)
 {
-	const char query[] =
+	const char *query =
 		"INSERT INTO version"
 		" VALUES(?)";
 

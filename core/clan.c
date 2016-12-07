@@ -18,7 +18,7 @@ unsigned count_clans(void)
 	 * Turns out 'SELECT DISTINCT ...' is slower than 'SELECT
 	 * COUNT(1) FROM (SELECT DISTINCT ...)'.
 	 */
-	char query[] =
+	const char *query =
 		"SELECT COUNT(1)"
 		" FROM"
 		" (SELECT DISTINCT clan"

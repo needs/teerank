@@ -28,7 +28,7 @@ static int json_player_historic(const char *pname)
 	sqlite3_stmt *res;
 	struct player_record r;
 
-	char query[] =
+	const char *query =
 		"SELECT" ALL_PLAYER_RECORD_COLUMNS
 		" FROM player_historic"
 		" WHERE name = ?"
@@ -58,7 +58,7 @@ int main_json_player(int argc, char **argv)
 	sqlite3_stmt *res;
 	unsigned nrow;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE name = ?";

@@ -15,7 +15,7 @@ int main_json_clan(int argc, char **argv)
 	sqlite3_stmt *res;
 	struct player p;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE clan = ? AND " IS_VALID_CLAN

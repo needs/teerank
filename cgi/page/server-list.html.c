@@ -17,7 +17,7 @@ int main_html_server_list(int argc, char **argv)
 	unsigned pnum, offset, nrow;
 	sqlite3_stmt *res;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 		" FROM servers"
 		" WHERE" IS_VANILLA_CTF_SERVER

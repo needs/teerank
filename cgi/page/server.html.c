@@ -17,7 +17,7 @@ static void show_client_list(struct server *server)
 	struct player p;
 	struct client *client;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE name = ?";
@@ -50,7 +50,7 @@ int main_html_server(int argc, char **argv)
 	sqlite3_stmt *res;
 	unsigned nrow;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 		" FROM servers"
 		" WHERE ip = ? AND port = ?";

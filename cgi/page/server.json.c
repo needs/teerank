@@ -14,7 +14,7 @@ static void json_server(struct server *server)
 	sqlite3_stmt *res;
 	struct client c;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_SERVER_CLIENT_COLUMNS
 		" FROM server_clients"
 		" WHERE ip = ? AND port = ?"
@@ -59,7 +59,7 @@ int main_json_server(int argc, char **argv)
 	sqlite3_stmt *res;
 	unsigned nrow;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 		" FROM servers"
 		" WHERE ip = ? AND port = ?";

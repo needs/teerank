@@ -27,7 +27,7 @@ static int json_info(void)
 	sqlite3_stmt *res;
 	struct master master;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_EXTENDED_MASTER_COLUMNS
 		" FROM masters"
 		" ORDER BY node";

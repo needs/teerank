@@ -17,7 +17,7 @@ int main_html_clan_list(int argc, char **argv)
 	sqlite3_stmt *res;
 	struct clan clan;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_CLAN_COLUMNS
 		" FROM players"
 		" WHERE" IS_VALID_CLAN

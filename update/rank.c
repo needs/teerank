@@ -46,7 +46,7 @@ static void load_players(struct server *old, struct server *new, struct player *
 	sqlite3_stmt *res;
 	char *pname;
 
-	const char query[] =
+	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE name = ?";
@@ -293,7 +293,7 @@ static void record_rank(struct player *players)
 	sqlite3_stmt *res;
 	struct player *p;
 
-	const char query[] =
+	const char *query =
 		"SELECT" RANK_COLUMN
 		" FROM players"
 		" WHERE name = ?";

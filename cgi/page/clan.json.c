@@ -16,10 +16,10 @@ int main_json_clan(int argc, char **argv)
 	struct player p;
 
 	const char *query =
-		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE clan = ? AND " IS_VALID_CLAN
-		" ORDER BY" SORT_BY_ELO;
+		" ORDER BY" SORT_BY_RANK;
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <clan_name>\n", argv[0]);
@@ -28,7 +28,7 @@ int main_json_clan(int argc, char **argv)
 
 	printf("{\"members\":[");
 
-	foreach_extended_player(query, &p, "s", argv[1]) {
+	foreach_player(query, &p, "s", argv[1]) {
 		if (nrow)
 			putchar(',');
 		printf("\"%s\"", json_hexstring(p.name));

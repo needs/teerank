@@ -18,21 +18,10 @@
 #include "server.h"
 
 #define ALL_PLAYER_COLUMNS \
-	" name, clan, elo, lastseen, server_ip, server_port "
+	" name, clan, elo, rank, lastseen, server_ip, server_port "
 
-#define RANK_COLUMN \
-	" (SELECT COUNT(1) + 1" \
-	"  FROM players AS p2" \
-	"  WHERE players.elo < p2.elo" \
-	"   OR (players.elo = p2.elo" \
-	"    AND (players.lastseen < p2.lastseen" \
-	"     OR (players.lastseen = p2.lastseen" \
-	"      AND players.name < p2.name))))" \
-	" AS rank "
-
-#define ALL_EXTENDED_PLAYER_COLUMNS \
-	ALL_PLAYER_COLUMNS "," RANK_COLUMN
-
+#define SORT_BY_RANK \
+	" rank ASC "
 #define SORT_BY_ELO \
 	" elo DESC, lastseen DESC, name DESC "
 #define SORT_BY_LASTSEEN \
@@ -41,11 +30,7 @@
 #define foreach_player(query, p, ...) \
 	foreach_row((query), read_player, (p), __VA_ARGS__)
 
-#define foreach_extended_player(query, p, ...) \
-	foreach_row((query), read_extended_player, (p), __VA_ARGS__)
-
 void read_player(sqlite3_stmt *res, void *p);
-void read_extended_player(sqlite3_stmt *res, void *p);
 
 struct player_record {
 	time_t ts;

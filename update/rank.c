@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <math.h>
 #include <string.h>
 #include <assert.h>
@@ -294,7 +295,7 @@ static void record_rank(struct player *players)
 	struct player *p;
 
 	const char *query =
-		"SELECT" RANK_COLUMN
+		"SELECT rank"
 		" FROM players"
 		" WHERE name = ?";
 
@@ -305,6 +306,45 @@ static void record_rank(struct player *players)
 				record_elo_and_rank(p);
 		}
 	}
+}
+
+static void read_name(sqlite3_stmt *res, void *_name)
+{
+	char *name = _name;
+	snprintf(name, NAME_LENGTH, "%s", sqlite3_column_text(res, 0));
+}
+
+/*
+ * Computing ranks on the fly using self-join or row coutning is a
+ * quadratic operation.  It works well on small table - below 10k players -
+ * but it doesn't scale past to that point.
+ *
+ * While there are fast solution in other DBMS supporting variables or
+ * FIND_IN_SET(), I haven't found anything not quadratic in SQlite.
+ * displaying a list of 100 players in a database with 50 000 players
+ * takes already 2 seconds, just because of ranks computation.
+ *
+ * The solution I found is to recompute ranks each time we update
+ * players, and store them alongside the other player data.  It means
+ * that reading players is faster, but updating becomes much slower.
+ *
+ * This operation is expensive as it will rewrite the whole player
+ * table, so it must be done only when some elo points changed.  It will
+ * run as much queries as there are players.
+ */
+static void recompute_ranks(void)
+{
+	unsigned nrow;
+	sqlite3_stmt *res;
+	char name[NAME_LENGTH];
+
+	const char *query =
+		"SELECT name"
+		" FROM players"
+		" ORDER BY" SORT_BY_ELO;
+
+	foreach_row(query, read_name, name)
+		exec("UPDATE players SET rank = ? WHERE name = ?", "us", nrow+1, name);
 }
 
 void rank_players(struct server *old, struct server *new)
@@ -322,5 +362,7 @@ void rank_players(struct server *old, struct server *new)
 		write_player(p);
 	}
 
+	if (new->num_clients)
+		recompute_ranks();
 	record_rank(players);
 }

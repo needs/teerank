@@ -31,7 +31,7 @@ int main_json_player_list(int argc, char **argv)
 	struct player p;
 
 	char query[512], *queryfmt =
-		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM players"
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
@@ -45,7 +45,7 @@ int main_json_player_list(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 
 	if (strcmp(argv[2], "by-rank") == 0) {
-		sortby = SORT_BY_ELO;
+		sortby = SORT_BY_RANK;
 
 	} else if (strcmp(argv[2], "by-lastseen") == 0) {
 		sortby = SORT_BY_LASTSEEN;
@@ -60,7 +60,7 @@ int main_json_player_list(int argc, char **argv)
 
 	printf("{\"players\":[");
 
-	foreach_extended_player(query, &p) {
+	foreach_player(query, &p) {
 		if (nrow)
 			putchar(',');
 

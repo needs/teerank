@@ -67,7 +67,7 @@ struct search_info {
 static const struct search_info PLAYER_SINFO = {
 	start_player_list,
 	html_end_player_list,
-	read_extended_player,
+	read_player,
 	print_player,
 	"No players found",
 
@@ -79,7 +79,7 @@ static const struct search_info PLAYER_SINFO = {
 	" WHERE" IS_RELEVANT("name")
 	" LIMIT ?",
 
-	"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+	"SELECT" ALL_PLAYER_COLUMNS
 	" FROM players"
 	" WHERE" IS_RELEVANT("name")
 	" ORDER BY" RELEVANCE("name") ", elo"

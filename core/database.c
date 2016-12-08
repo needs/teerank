@@ -144,6 +144,7 @@ static int create_database(void)
 		" name TEXT,"
 		" clan TEXT,"
 		" elo INTEGER,"
+		" rank UNSIGNED,"
 		" lastseen DATE,"
 		" server_ip TEXT,"
 		" server_port TEXT,"

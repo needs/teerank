@@ -363,6 +363,7 @@ int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*,
 	int ret = sqlite3_step(*res);
 
 	if (ret == SQLITE_DONE) {
+		sqlite3_finalize(*res);
 		return 0;
 	} else if (ret == SQLITE_ROW) {
 		read_row(*res, data);

@@ -182,10 +182,10 @@ static int create_database(void)
 		"  REFERENCES players(name))",
 
 		"CREATE INDEX players_by_rank"
-		" ON players (elo DESC, lastseen DESC, name DESC)",
+		" ON players (rank DESC)",
 
 		"CREATE INDEX players_by_lastseen"
-		" ON players (lastseen DESC, elo DESC, name DESC)",
+		" ON players (lastseen DESC, rank DESC)",
 
 		"CREATE INDEX clan_index"
 		" ON players (clan)",

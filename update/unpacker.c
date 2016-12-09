@@ -102,6 +102,12 @@ int unpack_server_info(struct packet *packet, struct server *sv)
 	struct unpacker up;
 	unsigned i;
 
+	/*
+	 * Keep old data so that we an restore them in case of
+	 * failure.
+	 */
+	struct server old;
+
 	assert(packet != NULL);
 	assert(sv != NULL);
 
@@ -109,9 +115,10 @@ int unpack_server_info(struct packet *packet, struct server *sv)
 		return 0;
 
 	init_unpacker(&up, packet);
+	old = *sv;
 
 	if (!can_unpack(&up, 10))
-		return 0;
+		goto fail;
 
 	skip_field(&up); /* Token */
 	skip_field(&up); /* Version */
@@ -126,18 +133,18 @@ int unpack_server_info(struct packet *packet, struct server *sv)
 	sv->max_clients = unpack_int(&up); /* Client max number */
 
 	if (sv->num_clients > MAX_CLIENTS)
-		return 0;
+		goto fail;
 	if (sv->max_clients > MAX_CLIENTS)
-		return 0;
+		goto fail;
 	if (sv->num_clients > sv->max_clients)
-		return 0;
+		goto fail;
 
 	/* Clients */
 	for (i = 0; i < sv->num_clients; i++) {
 		struct client *cl = &sv->clients[i];
 
 		if (!can_unpack(&up, 5))
-			return 0;
+			goto fail;
 
 		unpack_string(&up, cl->name, sizeof(cl->name)); /* Name */
 		unpack_string(&up, cl->clan, sizeof(cl->clan)); /* Clan */
@@ -148,6 +155,9 @@ int unpack_server_info(struct packet *packet, struct server *sv)
 	}
 
 	return 1;
+fail:
+	*sv = old;
+	return 0;
 }
 
 struct server_addr_raw {

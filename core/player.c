@@ -85,10 +85,10 @@ void record_elo_and_rank(struct player *p)
 	exec(query, "stiu", p->name, time(NULL), p->elo, p->rank);
 }
 
-unsigned count_players(void)
+unsigned count_ranked_players(void)
 {
 	const char *query =
-		"SELECT COUNT(1) FROM players";
+		"SELECT COUNT(1) FROM players WHERE" IS_PLAYER_RANKED;
 
 	return count_rows(query);
 }

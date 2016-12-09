@@ -20,6 +20,9 @@
 #define ALL_PLAYER_COLUMNS \
 	" name, clan, elo, rank, lastseen, server_ip, server_port "
 
+#define IS_PLAYER_RANKED \
+	" rank > 0 "
+
 #define SORT_BY_RANK \
 	" rank ASC "
 #define SORT_BY_ELO \
@@ -129,8 +132,8 @@ int write_player(struct player *player);
 void record_elo_and_rank(struct player *player);
 
 /**
- * Count the number of players in the database
+ * Count the number of ranked players in the database
  */
-unsigned count_players(void);
+unsigned count_ranked_players(void);
 
 #endif /* PLAYER_H */

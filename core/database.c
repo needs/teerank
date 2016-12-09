@@ -366,7 +366,8 @@ int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*,
 	if (ret == SQLITE_DONE) {
 		return 0;
 	} else if (ret == SQLITE_ROW) {
-		read_row(*res, data);
+		if (read_row)
+			read_row(*res, data);
 		return 1;
 	} else {
 		errmsg("foreach_next", NULL);

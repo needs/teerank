@@ -109,6 +109,18 @@ static void errmsg(const char *func, const char *query)
 #endif
 }
 
+void create_rank_indices(void)
+{
+	exec("CREATE INDEX players_by_rank ON players (" SORT_BY_RANK ")");
+	exec("CREATE INDEX players_by_lastseen ON players (" SORT_BY_LASTSEEN ")");
+}
+
+void drop_rank_indices(void)
+{
+	exec("DROP INDEX players_by_rank");
+	exec("DROP INDEX players_by_lastseen");
+}
+
 static int create_database(void)
 {
 	const int FLAGS = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
@@ -181,14 +193,13 @@ static int create_database(void)
 		" FOREIGN KEY(name)"
 		"  REFERENCES players(name))",
 
-		"CREATE INDEX players_by_rank"
-		" ON players (rank DESC)",
-
-		"CREATE INDEX players_by_lastseen"
-		" ON players (lastseen DESC, rank DESC)",
+		"CREATE INDEX players_by_elo"
+		" ON players (" SORT_BY_ELO ")",
 
 		"CREATE INDEX clan_index"
 		" ON players (clan)",
+
+		/* Note: create_rank_indices() create indices as well */
 
 		NULL
 	};
@@ -211,6 +222,8 @@ static int create_database(void)
 		if (!exec(*query))
 			goto fail;
 	}
+
+	create_rank_indices();
 
 	if (!init_version_table())
 		goto fail;

@@ -417,11 +417,20 @@ void recompute_ranks(void)
 
 	flush_pending_elo_updates();
 
+	/*
+	 * Drop indices on 'rank' column because they will be updated at
+	 * each update, And this takes roughly 15% of the total time.
+	 * Of course, they are rebuilt just after.
+	 */
+	drop_rank_indices();
+
 	foreach_row(query, read_name_and_elo, &p) {
 		p.rank = nrow+1;
 		exec("UPDATE players SET rank = ? WHERE name = ?", "us", p.rank, p.name);
 		record_elo_and_rank(&p);
 	}
+
+	create_rank_indices();
 
 	clk = clock() - clk;
 	verbose(

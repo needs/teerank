@@ -26,11 +26,11 @@ DIR("players")
 	HTML("by-lastseen", player_list)
 	JSON("by-lastseen", player_list)
 
+	JSON("*", player)
 #if ROUTE_V3_URLS
 	DIR("*")
 		SVG("elo rank", teerank3_graph)
 	END()
-	JSON("*", teerank3_player)
 	HTML("*", teerank3_player)
 #endif
 
@@ -41,7 +41,6 @@ DIR("player")
 	DIR("*")
 		SVG("historic", graph)
 	END()
-	JSON("*", player)
 	HTML("*", player)
 END()
 
@@ -52,8 +51,8 @@ DIR("clans")
 	HTML("by-nmembers", clan_list)
 	JSON("by-nmembers", clan_list)
 
+	JSON("*", clan)
 #if ROUTE_V3_URLS
-	JSON("*", teerank3_clan)
 	HTML("*", teerank3_clan)
 #endif
 
@@ -61,7 +60,6 @@ END()
 HTML("clans", clan_list)
 
 DIR("clan")
-	JSON("*", clan)
 	HTML("*", clan)
 END()
 
@@ -72,8 +70,8 @@ DIR("servers")
 	HTML("by-nplayers", server_list)
 	JSON("by-nplayers", server_list)
 
+	JSON("*", server)
 #if ROUTE_V3_URLS
-	JSON("*", teerank3_server)
 	HTML("*", teerank3_server)
 #endif
 
@@ -81,7 +79,6 @@ END()
 HTML("servers", server_list)
 
 DIR("server")
-	JSON("*", server)
 	HTML("*", server)
 END()
 

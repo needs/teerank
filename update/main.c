@@ -337,8 +337,10 @@ static int update(void)
 	/*
 	 * Schedule rank recomputing at the start of the program so that
 	 * brand new databases quickly have a player list with ranks.
+	 * Schedule it after a little delay to let finish masters and
+	 * servers polling.
 	 */
-	schedule(&recompute_ranks_job, 0);
+	schedule(&recompute_ranks_job, expire_in(10, 0));
 
 	while (!stop) {
 		wait_until_next_schedule();

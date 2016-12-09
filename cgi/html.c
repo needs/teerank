@@ -530,7 +530,7 @@ static void player_list_entry(
 	if (p && p->rank != UNRANKED)
 		html("<td>%u</td>", p->rank);
 	else
-		html("<td>?</td>");
+		html("<td title=\"Will be calculated within the next minutes\">...</td>");
 
 	/* Name */
 	name = p ? p->name : c->name;

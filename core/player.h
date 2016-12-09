@@ -106,13 +106,11 @@ static const time_t EXPIRE_NOW = 0;
 /**
  * Create a player with the given name.
  *
- * The player is *not* written in the database, but it can be written
- * with write_player().
+ * The player *is* written in the database.
  *
- * @param player Player to be created
  * @param name Name of the new player
  */
-void create_player(struct player *player, const char *name);
+void create_player(const char *name, const char *clan);
 
 /**
  * Write a player to the database.
@@ -122,23 +120,6 @@ void create_player(struct player *player, const char *name);
  * @return 1 on success, 0 on failure
  */
 int write_player(struct player *player);
-
-/**
- * Change current clan of the given player.
- *
- * @param player Player to update clan
- * @param rank New clan string for the given player
- */
-void set_clan(struct player *player, char *clan);
-
-/**
- * Update lastseen date and set server port and IP
- *
- * @param player Player to update lastseen date
- * @param ip IP of the server player is actually playing on
- * @param port Port of the server player is actually playing on
- */
-void set_lastseen(struct player *player, const char *ip, const char *port);
 
 /**
  * Add an entry in player historic

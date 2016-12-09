@@ -18,21 +18,24 @@ void init_player(struct player *player)
 	*player = PLAYER_ZERO;
 }
 
-void create_player(struct player *player, const char *name)
+void create_player(const char *name, const char *clan)
 {
-	assert(player != NULL);
+	struct player p;
 
-	strcpy(player->name, name);
-	strcpy(player->clan, "00");
+	assert(name != NULL);
+	assert(clan != NULL);
 
-	player->elo = DEFAULT_ELO;
-	player->rank = UNRANKED;
+	snprintf(p.name, sizeof(p.name), "%s", name);
+	snprintf(p.clan, sizeof(p.clan), "%s", clan);
 
-	player->lastseen = time(NULL);
-	strcpy(player->server_ip, "");
-	strcpy(player->server_port, "");
+	p.elo = DEFAULT_ELO;
+	p.rank = UNRANKED;
 
-	player->is_rankable = 0;
+	p.lastseen = time(NULL);
+	strcpy(p.server_ip, "");
+	strcpy(p.server_port, "");
+
+	write_player(&p);
 }
 
 void read_player(sqlite3_stmt *res, void *_p)
@@ -67,23 +70,6 @@ int write_player(struct player *p)
 		return SUCCESS;
 	else
 		return FAILURE;
-}
-
-void set_clan(struct player *player, char *clan)
-{
-	assert(player != NULL);
-	assert(clan != NULL);
-
-	strcpy(player->clan, clan);
-}
-
-void set_lastseen(struct player *player, const char *ip, const char *port)
-{
-	assert(player != NULL);
-
-	player->lastseen = time(NULL);
-	strcpy(player->server_ip, ip);
-	strcpy(player->server_port, port);
 }
 
 void record_elo_and_rank(struct player *p)

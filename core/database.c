@@ -174,6 +174,13 @@ static int create_database(void)
 		" FOREIGN KEY(name)"
 		"  REFERENCES players(name))",
 
+		"CREATE TABLE pending("
+		" name TEXT,"
+		" elo INTEGER,"
+		" PRIMARY KEY(name),"
+		" FOREIGN KEY(name)"
+		"  REFERENCES players(name))",
+
 		"CREATE INDEX players_by_rank"
 		" ON players (elo DESC, lastseen DESC, name DESC)",
 

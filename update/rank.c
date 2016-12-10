@@ -434,6 +434,6 @@ void recompute_ranks(void)
 
 	clk = clock() - clk;
 	verbose(
-		"Recomputing ranks for %u players tooks %ums\n",
-		nrow, (unsigned)((double)clk / (double)CLOCKS_PER_SEC * 1000.0));
+		"Recomputing ranks for %u players took %ums\n",
+		nrow, (unsigned)((double)clk / CLOCKS_PER_SEC * 1000.0));
 }

@@ -212,12 +212,14 @@ int main(int argc, char *argv[])
 
 	printf("Upgrading from %u to %u\n", DATABASE_VERSION - 1, DATABASE_VERSION);
 
+	drop_all_indices();
 	exec("BEGIN");
 
 	upgrade_players();
 	upgrade_servers();
 
 	exec("COMMIT");
+	create_all_indices();
 
 	printf("Success\n");
 

@@ -53,4 +53,11 @@ int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*,
 void create_rank_indices(void);
 void drop_rank_indices(void);
 
+/*
+ * And those functions are used when upgrading a database, so that index
+ * are not re-calculated for each inserted entries in whatever table.
+ */
+void create_all_indices(void);
+void drop_all_indices(void);
+
 #endif /* DATABASE_H */

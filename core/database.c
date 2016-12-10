@@ -292,6 +292,15 @@ fail:
 	return 0;
 }
 
+static void close_database(void)
+{
+	/* Using NULL as a query free internal buffers exec() may keep */
+	exec(NULL);
+
+	if (sqlite3_close(db) != SQLITE_OK)
+		errmsg("close_database", NULL);
+}
+
 int init_database(int readonly)
 {
 	int flags = SQLITE_OPEN_READWRITE;
@@ -305,8 +314,16 @@ int init_database(int readonly)
 			return 0;
 		}
 
-		return create_database();
+		if (!create_database())
+			return 0;
 	}
+
+	/*
+	 * We want to properly close the database connexion so that
+	 * extra files created by SQlite are removed.  Also this may
+	 * trigger a WAL checkpoint.
+	 */
+	atexit(close_database);
 
 	return 1;
 }
@@ -376,6 +393,13 @@ prepare:
 	return 1;
 }
 
+static void destroy_query(const char **prevquery, sqlite3_stmt **res)
+{
+	sqlite3_finalize(*res);
+	*prevquery = NULL;
+	*res = NULL;
+}
+
 int _exec(const char *query, const char *bindfmt, ...)
 {
 	static const char *prevquery;
@@ -384,7 +408,14 @@ int _exec(const char *query, const char *bindfmt, ...)
 	va_list ap;
 	int ret;
 
-	assert(query != NULL);
+	/*
+	 * NULL as a query allow to clean any prepared statement so that
+	 * sqlite3_close() will not return SQLITE3_BUSY.
+	 */
+	if (!query) {
+		destroy_query(&prevquery, &res);
+		return 1;
+	}
 
 	if (!prepare_query(query, &prevquery, &res))
 		goto fail;

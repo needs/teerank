@@ -43,7 +43,11 @@ http {
 }
 ```
 
-Once that's done, check `localhost:8000` or whatever location you
+The CGI require write persmissions on the database file, as well as any
+files created by sqlite itself.  This is because we are using
+[WAL](https://www.sqlite.org/wal.html) for performances reasons.
+
+Once everything is set up, check `localhost:8000` or whatever location you
 choosed and you should be good to go.
 
 Advanced use

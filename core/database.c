@@ -210,6 +210,22 @@ static int create_database(void)
 	}
 
 	/*
+	 * By default, while recomputing_ranks() is running, the CGI
+	 * cannot access the database.  This is a problem since it can
+	 * take more than 10 seconds!
+	 *
+	 * That line enable Write-Ahead Logging, wich basically allow
+	 * readers and writers to use the database at the same time.
+	 * For us this is handy: CGI can access the database no matter
+	 * what changes are made to the database.
+	 *
+	 * One drawback is that the CGI requires write access permission
+	 * to the database and all extra file created by sqlite.  But as
+	 * long as recompute_ranks() is slow, WAL is almost mandatory.
+	 */
+	exec("PRAGMA journal_mode=WAL");
+
+	/*
 	 * Batch create queries in a single exclusive transaction so
 	 * that if someone else try to use the database at the same
 	 * time, one will quietly wait for the other to create the

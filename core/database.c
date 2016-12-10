@@ -248,10 +248,12 @@ int init_database(int readonly)
 		flags = SQLITE_OPEN_READONLY;
 
 	if (sqlite3_open_v2(config.dbpath, &db, flags, NULL) != SQLITE_OK) {
-		if (readonly)
+		if (readonly) {
+			errmsg("init_database", NULL);
 			return 0;
-		else
-			return create_database();
+		}
+
+		return create_database();
 	}
 
 	return 1;

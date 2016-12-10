@@ -6,7 +6,6 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include <sys/stat.h>
 
 #include "config.h"
 #include "database.h"
@@ -94,14 +93,4 @@ void verbose(const char *fmt, ...)
 		va_end(ap);
 		putchar('\n');
 	}
-}
-
-time_t last_database_update(void)
-{
-	struct stat st;
-
-	if (stat(config.dbpath, &st) == -1)
-		return 0;
-
-	return st.st_mtim.tv_sec;
 }

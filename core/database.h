@@ -13,6 +13,9 @@ int init_database(int readonly);
  */
 int database_version(void);
 
+/* Last time the database was updated */
+time_t last_database_update(void);
+
 /*
  * Helper to return the result of query counting rows.  hence queries
  * should look like: "SELECT COUNT(1) FROM ...".

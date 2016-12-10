@@ -48,6 +48,4 @@ void load_config(int check_version, int readonly);
 
 void verbose(const char *fmt, ...);
 
-time_t last_database_update(void);
-
 #endif /* CONFIG_H */

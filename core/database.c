@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <time.h>
+#include <sys/stat.h>
 
 #include "database.h"
 #include "config.h"
@@ -34,6 +36,32 @@ int database_version(void)
 	}
 
 	return version;
+}
+
+/*
+ * In WAL mode, database really have two file with relevant data that
+ * can be read from.  The main file and the WAL file.  We need to check
+ * both file to get the last modification date.
+ */
+time_t last_database_update(void)
+{
+	static char walfile[PATH_MAX];
+	struct stat st;
+	time_t db = 0, wal = 0;
+
+	/*
+	 * 'config.dbpath' isn't supposed to change, so set 'walfile'
+	 * once for all.
+	 */
+	if (!walfile[0])
+		snprintf(walfile, sizeof(walfile), "%s-wal", config.dbpath);
+
+	if (stat(config.dbpath, &st) != -1)
+		db = st.st_mtim.tv_sec;
+	if (stat(walfile, &st) != -1)
+		wal = st.st_mtim.tv_sec;
+
+	return wal > db ? wal : db;
 }
 
 static int init_version_table(void)

@@ -149,7 +149,6 @@ int main_html_about_json_api(int argc, char **argv)
 	html("<h1 id=\"player\">Player</h1>");
 
 	jsonurl("players/<em>player_id</em>.json");
-	jsonurl("player/<em>url_encode(player_name)</em>.json");
 
 	start_jsondesc_table();
 
@@ -179,7 +178,6 @@ int main_html_about_json_api(int argc, char **argv)
 	end_jsondesc_table();
 
 	jsonurl("players/<em>player_id</em>.json?short");
-	jsonurl("player/<em>url_encode(player_name)</em>.json?short");
 
 	start_jsondesc_table();
 
@@ -233,7 +231,6 @@ int main_html_about_json_api(int argc, char **argv)
 	html("<h1 id=\"clan\">Clan</h1>");
 
 	jsonurl("clans/<em>clan_id</em>.json");
-	jsonurl("clan/<em>url_encode(clan_id)</em>.json");
 
 	start_jsondesc_table();
 
@@ -282,7 +279,6 @@ int main_html_about_json_api(int argc, char **argv)
 	html("<h1 id=\"server\">Server</h1>");
 
 	jsonurl("servers/<em>server_addr</em>.json");
-	jsonurl("server/<em>url_encode(server_addr)</em>.json");
 
 	start_jsondesc_table();
 

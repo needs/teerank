@@ -8,6 +8,7 @@
 #include "database.h"
 #include "html.h"
 #include "player.h"
+#include "json.h"
 
 int main_html_player(int argc, char **argv)
 {
@@ -18,7 +19,7 @@ int main_html_player(int argc, char **argv)
 	unsigned nrow;
 
 	const char *query =
-		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE name = ?";
 
@@ -29,7 +30,7 @@ int main_html_player(int argc, char **argv)
 
 	pname = argv[1];
 
-	foreach_extended_player(query, &player, "s", pname);
+	foreach_player(query, &player, "s", pname);
 	if (!res)
 		return EXIT_FAILURE;
 	if (!nrow)
@@ -65,7 +66,7 @@ int main_html_player(int argc, char **argv)
 	html("<object data=\"/player/%s/historic.svg\" type=\"image/svg+xml\"></object>",
 	     url_encode(pname));
 
-	html_footer("player", relurl("/player/%s.json", url_encode(pname)));
+	html_footer("player", relurl("/players/%s.json", json_hexstring(pname)));
 
 	return EXIT_SUCCESS;
 }

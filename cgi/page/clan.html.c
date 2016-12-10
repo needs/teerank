@@ -10,6 +10,7 @@
 #include "html.h"
 #include "player.h"
 #include "clan.h"
+#include "json.h"
 
 int main_html_clan(int argc, char **argv)
 {
@@ -19,10 +20,10 @@ int main_html_clan(int argc, char **argv)
 	struct player p;
 
 	const char *query =
-		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE clan = ? AND" IS_VALID_CLAN
-		" ORDER BY" SORT_BY_ELO;
+		" ORDER BY" SORT_BY_RANK;
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <clan_name>\n", argv[0]);
@@ -39,7 +40,7 @@ int main_html_clan(int argc, char **argv)
 
 	html_start_player_list(1, 1, 0);
 
-	foreach_extended_player(query, &p, "s", cname)
+	foreach_player(query, &p, "s", cname)
 		html_player_list_entry(&p, NULL, 1);
 
 	if (!res)
@@ -48,7 +49,7 @@ int main_html_clan(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 
 	html_end_player_list();
-	html_footer("clan", relurl("/clan/%s.json", url_encode(cname)));
+	html_footer("clan", relurl("/clans/%s.json", json_hexstring(cname)));
 
 	return EXIT_SUCCESS;
 }

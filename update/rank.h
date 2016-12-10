@@ -4,9 +4,16 @@
 #include "server.h"
 
 /*
- * Given two server state, rank players, write the updated player in the
- * database.  This is Teerank's core functionality.
+ * Given two server state, rank players and set pending elo updates, if
+ * any.  Use recompute_ranks() to actually commit those updates and
+ * compute ranks as well.  This is Teerank's core functionality.
  */
 void rank_players(struct server *old, struct server *new);
+
+/*
+ * Process pending elo updates and compute ranks for every players in
+ * the database.
+ */
+void recompute_ranks(void);
 
 #endif /* RANK_H */

@@ -1,6 +1,51 @@
+/*
+ * Let's talk about relational databases and ranking.
+ *
+ * Given a player, it is easy to compute it's rank.  One could do a
+ * self-join on the players table, or one could count the number of
+ * players with a higher elo score.  Both are common and I couldn't
+ * find any better way, at least using what SQlite has to offer.
+ *
+ * Those methods are not without issues tho.  They still require a full
+ * database scanning to compute rank.  Hence a O(n) complexity.  For
+ * instance, ranking 100 players in a database with 50 000 players took
+ * 2 seconds.
+ *
+ * This leads to the the fact that we cant really compute ranks on the
+ * fly.  We have to precompute it at some point.  The first attempts
+ * showed that rank calculation is quite an expensive process: we can't
+ * do it for each database insert/update.
+ *
+ * For instance, computing rank of 50 000 players took 1 second on my
+ * computer.  Not that slow, but slow enough so that it's not something
+ * we can afford at every database update.
+ *
+ * hence we had to do it at regular intervals.  It's quite sad that we
+ * came back to this method and gave up on the real time ranking.  But
+ * on the other side it makes pages load much faster, and allow to scale
+ * past 50 000 players.
+ *
+ * There is something not trivial when delaying ranks calculation: elo
+ * scores and rank has to be consistent for the end user.  Wich means
+ * that if we delay rank calculation but not elo scores, it could
+ * results in inconsistencies where you have a better rank than someone
+ * who have more elo points, and vice-versa.
+ *
+ * So we also need to wait for the rank calculation process before
+ * writing new elo scores in the database.  What we do is to store new
+ * elo scores in a special table, and then the rank calculation process
+ * will flush this table at the same time it writes ranks.
+ *
+ * I'm not really familiar with relational databases yet so I could have
+ * missed an obvious solution.  For now, this seems to work better than
+ * everything else I tried.  Fingers crossed.
+ */
+
+#include <stdio.h>
 #include <math.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 #include "config.h"
 #include "rank.h"
@@ -40,6 +85,43 @@ static int is_already_loaded(struct player *players, const char *pname)
 	return 0;
 }
 
+struct pending {
+	const char *name;
+	int elo;
+};
+
+static void read_pending(struct sqlite3_stmt *res, void *_p)
+{
+	struct pending *p = _p;
+	p->name = (char*)sqlite3_column_text(res, 0);
+	p->elo = sqlite3_column_int(res, 1);
+}
+
+/* Returns pending elo, if any */
+static int get_latest_elo(struct player *player)
+{
+	unsigned nrow;
+	sqlite3_stmt *res;
+	struct pending pending;
+
+	const char *query =
+		"SELECT name, elo"
+		" FROM pending"
+		" WHERE name = ?";
+
+	foreach_row(query, read_pending, &pending, "s", player->name);
+	if (!res || !nrow)
+		return player->elo;
+	else
+		return pending.elo;
+}
+
+/*
+ * This loads every players in the "new" server.  One subtlety tho: we
+ * are gonna rank those players, and for this purpose, we needs the
+ * latest elo score available.  That's why we retrieve the elo score
+ * from the "pending" table, if any.
+ */
 static void load_players(struct server *old, struct server *new, struct player *players)
 {
 	unsigned i, nrow;
@@ -59,13 +141,12 @@ static void load_players(struct server *old, struct server *new, struct player *
 			continue;
 
 		foreach_player(query, players, "s", pname);
-		if (!res)
+		if (!res || !nrow)
 			continue;
-		if (!nrow)
-			create_player(players, pname);
 
 		players->new = &new->clients[i];
 		players->old = find_client(old, pname);
+		players->elo = get_latest_elo(players);
 
 		players++;
 	}
@@ -227,100 +308,132 @@ static int compute_new_elo(struct player *player, struct player *players)
 	return player->elo + total;
 }
 
-static void print_verbose_info(struct player *players, int *elos)
+static void verbose_elo_updates_header(struct player *players)
 {
-	int haveinfo = 0;
-	struct player *p;
-	unsigned i, len = 0;
-
-	_foreach_player(p) {
-		if (p->is_rankable) {
-			haveinfo = 1;
-			len++;
-		}
-	}
-
-	if (!haveinfo)
-		return;
-
-	verbose("%u players ranked\n", len);
-
-	_foreach_player(p) {
-		if (p->is_rankable) {
-			verbose(
-				"\t%-16s | %-16s | %4d | %d -> %d (%+d)\n",
-				p->name, p->clan, p->new->score - p->old->score,
-				p->elo, elos[i], elos[i] - p->elo);
-		}
-	}
-}
-
-static void update_elos(struct player *players)
-{
-	int elos[MAX_CLIENTS];
+	int ranked = 0;
 	struct player *p;
 	unsigned i;
 
-	assert(players != NULL);
-
-	/*
-	 * Do it in two steps so that newly computed elos values do not
-	 * interfer with the computing of the next ones.
-	 */
-
+	/* There will be elo updates if there are ranked players */
 	_foreach_player(p) {
 		if (p->is_rankable)
-			elos[i] = compute_new_elo(p, players);
+			ranked++;
 	}
 
-	print_verbose_info(players, elos);
-
-	_foreach_player(p) {
-		if (p->is_rankable)
-			p->elo = elos[i];
-	}
+	if (ranked)
+		verbose("%u players ranked\n", ranked);
 }
 
-static void read_rank(sqlite3_stmt *res, void *_rank)
+static void verbose_elo_update(struct player *p, int newelo)
 {
-	unsigned *rank = _rank;
-	*rank = sqlite3_column_int64(res, 0);
+	verbose(
+		"\t%-16s | %-16s | %4d | %d -> %d (%+d)\n",
+		p->name, p->clan, p->new->score - p->old->score,
+		p->elo, newelo, newelo - p->elo);
 }
 
-static void record_rank(struct player *players)
+/*
+ * This does calculate new elos and store them in the "pending" table.
+ * To actually make them visible to the end user, one have to call
+ * recompute_ranks().
+ */
+static void update_elos(struct player *players)
 {
-	unsigned i, nrow;
-	sqlite3_stmt *res;
 	struct player *p;
+	unsigned i;
 
 	const char *query =
-		"SELECT" RANK_COLUMN
-		" FROM players"
-		" WHERE name = ?";
+		"INSERT OR REPLACE INTO pending VALUES (?, ?)";
+
+	assert(players != NULL);
+
+	verbose_elo_updates_header(players);
 
 	_foreach_player(p) {
 		if (p->is_rankable) {
-			foreach_row(query, read_rank, &p->rank, "s", p->name);
-			if (res && nrow)
-				record_elo_and_rank(p);
+			int elo = compute_new_elo(p, players);
+			exec(query, "si", p->name, elo);
+			verbose_elo_update(p, elo);
 		}
 	}
 }
 
 void rank_players(struct server *old, struct server *new)
 {
-	struct player players[MAX_CLIENTS] = { 0 }, *p;
-	unsigned i;
+	struct player players[MAX_CLIENTS] = { 0 };
 
 	load_players(old, new, players);
 	mark_rankable_players(old, new, players);
 	update_elos(players);
+}
 
-	_foreach_player(p) {
-		set_lastseen(p, new->ip, new->port);
-		set_clan(p, p->new->clan);
-		write_player(p);
+/*
+ * Took every pending changes in the "pending" table and definitively
+ * commit them in the database.
+ */
+static void flush_pending_elo_updates(void)
+{
+	unsigned nrow;
+	sqlite3_stmt *res;
+	struct pending p;
+
+	const char *query =
+		"SELECT name, elo"
+		" FROM pending";
+
+	foreach_row(query, read_pending, &p)
+		exec("UPDATE players SET elo = ? WHERE name = ?", "is", p.elo, p.name);
+
+	if (res)
+		exec("DELETE FROM pending");
+}
+
+static void read_name_and_elo(sqlite3_stmt *res, void *_p)
+{
+	struct player *p = _p;
+	snprintf(p->name, sizeof(p->name), "%s", sqlite3_column_text(res, 0));
+	p->elo = sqlite3_column_int(res, 1);
+}
+
+/*
+ * This is were we actually recompute ranks of every players in the
+ * database.  Not sure yet if it is the faster way to do it.  Verbose
+ * time consumed because this is easily the most expensive query in the
+ * whole project.
+ */
+void recompute_ranks(void)
+{
+	unsigned nrow;
+	sqlite3_stmt *res;
+	struct player p;
+	clock_t clk;
+
+	const char *query =
+		"SELECT name, elo"
+		" FROM players"
+		" ORDER BY" SORT_BY_ELO;
+
+	clk = clock();
+
+	flush_pending_elo_updates();
+
+	/*
+	 * Drop indices on 'rank' column because they will be updated at
+	 * each update, And this takes roughly 15% of the total time.
+	 * Of course, they are rebuilt just after.
+	 */
+	drop_rank_indices();
+
+	foreach_row(query, read_name_and_elo, &p) {
+		p.rank = nrow+1;
+		exec("UPDATE players SET rank = ? WHERE name = ?", "us", p.rank, p.name);
+		record_elo_and_rank(&p);
 	}
 
-	record_rank(players);
+	create_rank_indices();
+
+	clk = clock() - clk;
+	verbose(
+		"Recomputing ranks for %u players tooks %ums\n",
+		nrow, (unsigned)((double)clk / (double)CLOCKS_PER_SEC * 1000.0));
 }

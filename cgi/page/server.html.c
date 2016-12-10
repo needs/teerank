@@ -18,7 +18,7 @@ static void show_client_list(struct server *server)
 	struct client *client;
 
 	const char *query =
-		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM players"
 		" WHERE name = ?";
 
@@ -30,7 +30,7 @@ static void show_client_list(struct server *server)
 	for (i = 0; i < server->num_clients; i++) {
 		client = &server->clients[i];
 
-		foreach_extended_player(query, &p, "s", client->name);
+		foreach_player(query, &p, "s", client->name);
 
 		if (res && nrow)
 			html_online_player_list_entry(&p, client);

@@ -109,6 +109,18 @@ static void errmsg(const char *func, const char *query)
 #endif
 }
 
+void create_rank_indices(void)
+{
+	exec("CREATE INDEX players_by_rank ON players (" SORT_BY_RANK ")");
+	exec("CREATE INDEX players_by_lastseen ON players (" SORT_BY_LASTSEEN ")");
+}
+
+void drop_rank_indices(void)
+{
+	exec("DROP INDEX players_by_rank");
+	exec("DROP INDEX players_by_lastseen");
+}
+
 static int create_database(void)
 {
 	const int FLAGS = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
@@ -144,6 +156,7 @@ static int create_database(void)
 		" name TEXT,"
 		" clan TEXT,"
 		" elo INTEGER,"
+		" rank UNSIGNED,"
 		" lastseen DATE,"
 		" server_ip TEXT,"
 		" server_port TEXT,"
@@ -173,14 +186,20 @@ static int create_database(void)
 		" FOREIGN KEY(name)"
 		"  REFERENCES players(name))",
 
-		"CREATE INDEX players_by_rank"
-		" ON players (elo DESC, lastseen DESC, name DESC)",
+		"CREATE TABLE pending("
+		" name TEXT,"
+		" elo INTEGER,"
+		" PRIMARY KEY(name),"
+		" FOREIGN KEY(name)"
+		"  REFERENCES players(name))",
 
-		"CREATE INDEX players_by_lastseen"
-		" ON players (lastseen DESC, elo DESC, name DESC)",
+		"CREATE INDEX players_by_elo"
+		" ON players (" SORT_BY_ELO ")",
 
 		"CREATE INDEX clan_index"
 		" ON players (clan)",
+
+		/* Note: create_rank_indices() create indices as well */
 
 		NULL
 	};
@@ -203,6 +222,8 @@ static int create_database(void)
 		if (!exec(*query))
 			goto fail;
 	}
+
+	create_rank_indices();
 
 	if (!init_version_table())
 		goto fail;
@@ -366,7 +387,8 @@ int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*,
 		sqlite3_finalize(*res);
 		return 0;
 	} else if (ret == SQLITE_ROW) {
-		read_row(*res, data);
+		if (read_row)
+			read_row(*res, data);
 		return 1;
 	} else {
 		errmsg("foreach_next", NULL);

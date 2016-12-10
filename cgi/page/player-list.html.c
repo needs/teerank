@@ -15,7 +15,7 @@
 static const struct order {
 	char *sortby, *urlprefix;
 } BY_RANK = {
-	SORT_BY_ELO, "/players"
+	SORT_BY_RANK, "/players"
 }, BY_LASTSEEN = {
 	SORT_BY_LASTSEEN, "/players/by-lastseen"
 };
@@ -30,8 +30,9 @@ int main_html_player_list(int argc, char **argv)
 	unsigned nrow;
 
 	char query[512], *queryfmt =
-		"SELECT" ALL_EXTENDED_PLAYER_COLUMNS
+		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM players"
+		" WHERE" IS_PLAYER_RANKED
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 
@@ -63,7 +64,7 @@ int main_html_player_list(int argc, char **argv)
 	offset = (pnum - 1) * 100;
 	snprintf(query, sizeof(query), queryfmt, order->sortby, offset);
 
-	foreach_extended_player(query, &p)
+	foreach_player(query, &p)
 		html_player_list_entry(&p, NULL, 0);
 
 	if (!res)
@@ -72,7 +73,7 @@ int main_html_player_list(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 
 	html_end_player_list();
-	print_page_nav(order->urlprefix, pnum, count_players() / 100 + 1);
+	print_page_nav(order->urlprefix, pnum, count_ranked_players() / 100 + 1);
 	html_footer("player-list", relurl("/players/%s.json?p=%u", argv[2], pnum));
 
 	return EXIT_SUCCESS;

@@ -34,7 +34,7 @@ static int json_info(void)
 
 	putchar('{');
 
-	printf("\"nplayers\":%u,", count_players());
+	printf("\"nplayers\":%u,", count_ranked_players());
 	printf("\"nclans\":%u,",   count_clans());
 	printf("\"nservers\":%u,", count_vanilla_servers());
 	printf("\"last_update\":\"%s\",", json_date(last_database_update()));

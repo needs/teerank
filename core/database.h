@@ -43,4 +43,11 @@ int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*,
 /* Should be used instead of break; to exit foreach_row() loop */
 #define break_foreach { sqlite3_finalize(res); break; }
 
+/*
+ * Those functions are used by the ranking system to speed up ranks
+ * re-calculation.
+ */
+void create_rank_indices(void);
+void drop_rank_indices(void);
+
 #endif /* DATABASE_H */

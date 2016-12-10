@@ -76,6 +76,33 @@ static time_t double_expiry_date(time_t lastexpire, time_t lastseen)
 	return expire_in(t, 0);
 }
 
+/* Update clan and lastseen date of connected clients */
+static void update_players(struct server *sv)
+{
+	struct client *c;
+	unsigned i, nrow;
+	struct sqlite3_stmt *res;
+
+	const char *exist =
+		"SELECT * FROM players WHERE name = ?";
+
+	const char *update =
+		"UPDATE players"
+		" SET clan = ?, lastseen = ?, server_ip = ?, server_port = ?"
+		" WHERE name = ?";
+
+	for (i = 0; i < sv->num_clients; i++) {
+		c = &sv->clients[i];
+
+		foreach_row(exist, NULL, NULL, "s", c->name);
+
+		if (res && nrow)
+			exec(update, "stsss", c->clan, time(NULL), sv->ip, sv->port, c->name);
+		else if (res)
+			create_player(c->name, c->clan);
+	}
+}
+
 static void handle_server_packet(struct netclient *client, struct packet *packet)
 {
 	struct server old, *new;
@@ -91,6 +118,9 @@ static void handle_server_packet(struct netclient *client, struct packet *packet
 	new->lastseen = time(NULL);
 
 	if (unpack_server_info(packet, new)) {
+		/* Update players before ranking them so that new
+		 * players are created */
+		update_players(new);
 		rank_players(&old, new);
 		write_server_clients(new);
 	}
@@ -127,6 +157,7 @@ static void handle_server_timeout(struct netclient *client)
 	write_server(server);
 }
 
+/* Load netclients and schedule them right away */
 static void load_netclients(void)
 {
 	struct server server;
@@ -157,6 +188,10 @@ static void load_netclients(void)
 	}
 }
 
+/*
+ * Set master node and service on the given server.  If the server
+ * doesn't exist, create it and schedule it.
+ */
 static void reference_server(char *ip, char *port, struct master *master)
 {
 	unsigned nrow;
@@ -280,22 +315,42 @@ static void add_to_pool(struct netclient *client)
 	(void*)((char*)ptr - offsetof(struct netclient, field))
 
 /*
- * It stops when 'stop' is set (by a signal) or when there is no job
- * scheduled.
+ * Don't do anything if there are no jobs scheduled.  Once in the main
+ * loop, stops when 'stop' is set.
  */
-static void poll_servers(struct sockets *sockets)
+static int update(void)
 {
 	struct pool_entry *pentry;
 	struct packet *packet;
 	struct job *job;
 
-	assert(sockets != NULL);
+	struct sockets sockets;
 
-	while (!stop && have_schedule()) {
+	struct job recompute_ranks_job;
+	int do_recompute_ranks = 0;
+
+	if (!have_schedule())
+		return EXIT_SUCCESS;
+	if (!init_sockets(&sockets))
+		return EXIT_FAILURE;
+
+	/*
+	 * Schedule rank recomputing at the start of the program so that
+	 * brand new databases quickly have a player list with ranks.
+	 * Schedule it after a little delay to let finish masters and
+	 * servers polling.
+	 */
+	schedule(&recompute_ranks_job, expire_in(10, 0));
+
+	while (!stop) {
 		wait_until_next_schedule();
 
-		while ((job = next_schedule()))
-			add_to_pool(get_netclient(job, update));
+		while ((job = next_schedule())) {
+			if (job == &recompute_ranks_job)
+				do_recompute_ranks = 1;
+			else
+				add_to_pool(get_netclient(job, update));
+		}
 
 		/*
 		 * Batch database queries because in the worst case,
@@ -303,32 +358,35 @@ static void poll_servers(struct sockets *sockets)
 		 * individual transaction is very slow.
 		 */
 		exec("BEGIN");
-		while ((pentry = poll_pool(sockets, &packet)))
+
+		while ((pentry = poll_pool(&sockets, &packet)))
 			handle(get_netclient(pentry, pentry), packet);
+
+		if (do_recompute_ranks) {
+			do_recompute_ranks = 0;
+			recompute_ranks();
+			schedule(&recompute_ranks_job, expire_in(5 * 60, 0));
+		}
+
 		exec("COMMIT");
 	}
+
+	close_sockets(&sockets);
+	return EXIT_SUCCESS;
 }
 
 int main(int argc, char **argv)
 {
-	struct sockets sockets;
-
-	load_config(1, 0);
-
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
+	load_config(1, 0);
+
 	signal(SIGINT,  stop_gracefully);
 	signal(SIGTERM, stop_gracefully);
 
-	if (!init_sockets(&sockets))
-		return EXIT_FAILURE;
 	load_netclients();
-
-	poll_servers(&sockets);
-	close_sockets(&sockets);
-
-	return EXIT_SUCCESS;
+	return update();
 }

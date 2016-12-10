@@ -86,6 +86,20 @@ struct url parse_url(char *uri, char *query)
 	return url;
 }
 
+static char *convert_hexname(char *hexname)
+{
+	char *hex = hexname;
+	char *name = hexname;
+
+	assert(hexname != NULL);
+
+	for (; hex[0] && hex[1]; hex += 2, name++)
+		*name = hextodec(hex[0]) * 16 + hextodec(hex[1]);
+
+	*name = '\0';
+	return hexname;
+}
+
 /*
  * Parse url arguments to get page number, and set page arguments with
  * the found sort order and page number.  Player list, clan list and
@@ -140,7 +154,7 @@ static void setup_html_player(struct route *this, struct url *url)
 }
 static void setup_json_player(struct route *this, struct url *url)
 {
-	this->args[1] = url->dirs[url->ndirs - 1];
+	this->args[1] = convert_hexname(url->dirs[url->ndirs - 1]);
 
 	if (url->nargs == 0)
 		this->args[2] = "full";
@@ -155,7 +169,7 @@ static void setup_html_clan(struct route *this, struct url *url)
 }
 static void setup_json_clan(struct route *this, struct url *url)
 {
-	this->args[1] = url->dirs[url->ndirs - 1];
+	this->args[1] = convert_hexname(url->dirs[url->ndirs - 1]);
 }
 static void setup_html_server(struct route *this, struct url *url)
 {
@@ -203,20 +217,6 @@ static int main_html_teerank2_player_list(int argc, char **argv)
 #endif
 
 #if ROUTE_V3_URLS
-static const char *convert_hexname(char *hexname)
-{
-	char *hex = hexname;
-	char *name = hexname;
-
-	assert(hexname != NULL);
-
-	for (; hex[0] && hex[1]; hex += 2, name++)
-		*name = hextodec(hex[0]) * 16 + hextodec(hex[1]);
-
-	*name = '\0';
-	return hexname;
-}
-
 /* URLs for player looked like "/players/<hexname>" */
 static void setup_html_teerank3_player(struct route *this, struct url *url)
 {
@@ -225,14 +225,6 @@ static void setup_html_teerank3_player(struct route *this, struct url *url)
 static int main_html_teerank3_player(int argc, char **argv)
 {
 	return main_html_player(argc, argv);
-}
-static void setup_json_teerank3_player(struct route *this, struct url *url)
-{
-	redirect("/player/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
-}
-static int main_json_teerank3_player(int argc, char **argv)
-{
-	return main_json_player(argc, argv);
 }
 
 /* URLs for player graph looked like "/players/<hexname>/elo+rank.svg" */
@@ -254,14 +246,6 @@ static int main_html_teerank3_clan(int argc, char **argv)
 {
 	return main_html_clan(argc, argv);
 }
-static void setup_json_teerank3_clan(struct route *this, struct url *url)
-{
-	redirect("/clan/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
-}
-static int main_json_teerank3_clan(int argc, char **argv)
-{
-	return main_json_clan(argc, argv);
-}
 
 /* URLs for server looked like "/servers/<addr>" */
 static void setup_html_teerank3_server(struct route *this, struct url *url)
@@ -271,14 +255,6 @@ static void setup_html_teerank3_server(struct route *this, struct url *url)
 static int main_html_teerank3_server(int argc, char **argv)
 {
 	return main_html_server(argc, argv);
-}
-static void setup_json_teerank3_server(struct route *this, struct url *url)
-{
-	redirect("/server/%s", url->dirs[url->ndirs - 1]);
-}
-static int main_json_teerank3_server(int argc, char **argv)
-{
-	return main_json_server(argc, argv);
 }
 #endif
 

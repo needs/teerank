@@ -514,7 +514,10 @@ static void player_list_entry(
 	struct player *p, struct client *c, int no_clan_link)
 {
 	const char *specimg = "<img src=\"/images/spectator.png\" title=\"Spectator\"/>";
+	char *name, *clan;
 	int spectator;
+
+	assert(p || c);
 
 	/* Spectators are less important */
 	spectator = c && !c->ingame;
@@ -524,35 +527,37 @@ static void player_list_entry(
 		html("<tr>");
 
 	/* Rank */
-	if (p->rank == UNRANKED)
-		html("<td>?</td>");
-	else
+	if (p && p->rank != UNRANKED)
 		html("<td>%u</td>", p->rank);
+	else
+		html("<td title=\"Will be calculated within the next minutes\">...</td>");
 
 	/* Name */
+	name = p ? p->name : c->name;
 	html("<td>%s<a href=\"/player/%s\">%s</a></td>",
-	     spectator ? specimg : "", url_encode(p->name), escape(p->name));
+	     spectator ? specimg : "", url_encode(name), escape(name));
 
 	/* Clan */
-	if (no_clan_link || !p->clan[0])
-		html("<td>%s</td>", escape(p->clan));
+	clan = p ? p->clan : c->clan;
+	if (no_clan_link || !clan[0])
+		html("<td>%s</td>", escape(clan));
 	else
 		html("<td><a href=\"/clan/%s\">%s</a></td>",
-		     url_encode(p->clan), escape(p->clan));
+		     url_encode(clan), escape(clan));
 
 	/* Score (online-player-list only) */
 	if (c)
 		html("<td>%d</td>", c->score);
 
 	/* Elo */
-	if (p->elo == INVALID_ELO)
-		html("<td>?</td>");
-	else
+	if (p && p->elo != INVALID_ELO)
 		html("<td>%d</td>", p->elo);
+	else
+		html("<td>?</td>");
 
 	/* Last seen (not online-player-list only) */
 	html("<td>");
-	if (!c)
+	if (p && !c)
 		player_lastseen_link(p->lastseen, build_addr(p->server_ip, p->server_port));
 	html("</td>");
 
@@ -698,7 +703,7 @@ void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabv
 		tabs[1].num = tabvals[1];
 		tabs[2].num = tabvals[2];
 	} else {
-		tabs[0].num = round(count_players());
+		tabs[0].num = round(count_ranked_players());
 		tabs[1].num = round(count_clans());
 		tabs[2].num = round(count_vanilla_servers());
 	}

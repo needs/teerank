@@ -319,7 +319,7 @@ static int generate(struct route *route)
 
 	assert(route != NULL);
 
-	verbose("Generating data with '%s'\n", route->args[0]);
+	verbose("Generating data with '%s'", route->args[0]);
 
 	/*
 	 * Create a pipe to redirect stdout and stderr to.  It is

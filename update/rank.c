@@ -321,13 +321,13 @@ static void verbose_elo_updates_header(struct player *players)
 	}
 
 	if (ranked)
-		verbose("%u players ranked\n", ranked);
+		verbose("%u players ranked", ranked);
 }
 
 static void verbose_elo_update(struct player *p, int newelo)
 {
 	verbose(
-		"\t%-16s | %-16s | %4d | %d -> %d (%+d)\n",
+		"\t%-16s | %-16s | %4d | %d -> %d (%+d)",
 		p->name, p->clan, p->new->score - p->old->score,
 		p->elo, newelo, newelo - p->elo);
 }
@@ -434,6 +434,6 @@ void recompute_ranks(void)
 
 	clk = clock() - clk;
 	verbose(
-		"Recomputing ranks for %u players took %ums\n",
+		"Recomputing ranks for %u players took %ums",
 		nrow, (unsigned)((double)clk / CLOCKS_PER_SEC * 1000.0));
 }

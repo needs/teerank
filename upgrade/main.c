@@ -32,6 +32,12 @@ static int upgrade_historic(const char *pname, struct teerank6_historic *hist)
 	for (r = hist->first; r; r = r->next) {
 		struct teerank6_player_record *data = teerank6_record_data(hist, r);
 
+		/* New database only expect valid values */
+		if (data->elo == TEERANK6_INVALID_ELO)
+			continue;
+		if (data->rank == TEERANK6_UNRANKED)
+			continue;
+
 		if (!exec(query, "stiu", pname, r->time, data->elo, data->rank))
 			return 0;
 	}
@@ -83,7 +89,12 @@ static int upgrade_player(struct teerank6_player *old, struct player *new)
 	hexname_to_name(old->name, new->name);
 	hexname_to_name(old->clan, new->clan);
 
-	new->elo = old->elo;
+	/* New database always expect valid elo points */
+	if (old->elo == TEERANK6_INVALID_ELO)
+		new->elo = DEFAULT_ELO;
+	else
+		new->elo = old->elo;
+
 	new->rank = old->rank;
 
 	strcpy(new->server_ip, old->server_ip);

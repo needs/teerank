@@ -79,13 +79,6 @@ struct player {
 static const int DEFAULT_ELO = 1500;
 
 /**
- * @def INVALID_ELO
- *
- * Value used to mark the absence of ELO points.
- */
-static const int INVALID_ELO = INT_MIN;
-
-/**
  * @def UNRANKED
  *
  * Value used to mark the absence of any rank.

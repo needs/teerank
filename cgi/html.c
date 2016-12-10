@@ -550,7 +550,7 @@ static void player_list_entry(
 		html("<td>%d</td>", c->score);
 
 	/* Elo */
-	if (p && p->elo != INVALID_ELO)
+	if (p)
 		html("<td>%d</td>", p->elo);
 	else
 		html("<td>?</td>");

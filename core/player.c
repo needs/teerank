@@ -79,7 +79,6 @@ void record_elo_and_rank(struct player *p)
 		" VALUES (?, ?, ?, ?)";
 
 	assert(p != NULL);
-	assert(p->elo != INVALID_ELO);
 	assert(p->rank != UNRANKED);
 
 	exec(query, "stiu", p->name, time(NULL), p->elo, p->rank);

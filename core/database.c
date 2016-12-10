@@ -137,30 +137,20 @@ static void errmsg(const char *func, const char *query)
 #endif
 }
 
-void create_rank_indices(void)
+void create_all_indices(void)
 {
 	exec("CREATE INDEX players_by_rank ON players (" SORT_BY_RANK ")");
 	exec("CREATE INDEX players_by_lastseen ON players (" SORT_BY_LASTSEEN ")");
-}
-
-void drop_rank_indices(void)
-{
-	exec("DROP INDEX players_by_rank");
-	exec("DROP INDEX players_by_lastseen");
-}
-
-void create_all_indices(void)
-{
 	exec("CREATE INDEX players_by_elo ON players (" SORT_BY_ELO ")");
 	exec("CREATE INDEX players_by_clan ON players (clan)");
-	create_rank_indices();
 }
 
 void drop_all_indices(void)
 {
+	exec("DROP INDEX players_by_rank");
+	exec("DROP INDEX players_by_lastseen");
 	exec("DROP INDEX players_by_elo");
 	exec("DROP INDEX players_by_clan");
-	drop_rank_indices();
 }
 
 static int create_database(void)

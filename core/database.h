@@ -47,15 +47,9 @@ int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*,
 #define break_foreach { sqlite3_finalize(res); break; }
 
 /*
- * Those functions are used by the ranking system to speed up ranks
- * re-calculation.
- */
-void create_rank_indices(void);
-void drop_rank_indices(void);
-
-/*
- * And those functions are used when upgrading a database, so that index
- * are not re-calculated for each inserted entries in whatever table.
+ * The following functions are used when doing bulk insert/update.
+ * Droping index in such cases helps to increase performances because
+ * indices are not re-calculated at each insert/update.
  */
 void create_all_indices(void);
 void drop_all_indices(void);

@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 
 #include "database.h"
-#include "config.h"
+#include "teerank.h"
 #include "master.h"
 #include "player.h"
 

@@ -4,7 +4,7 @@
 #include <errno.h>
 
 #include "cgi.h"
-#include "config.h"
+#include "teerank.h"
 #include "server.h"
 #include "json.h"
 

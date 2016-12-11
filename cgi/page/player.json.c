@@ -6,7 +6,7 @@
 #include <errno.h>
 
 #include "cgi.h"
-#include "config.h"
+#include "teerank.h"
 #include "player.h"
 #include "json.h"
 

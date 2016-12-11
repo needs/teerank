@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "cgi.h"
-#include "config.h"
+#include "teerank.h"
 #include "database.h"
 #include "html.h"
 #include "player.h"

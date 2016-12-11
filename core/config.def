@@ -8,7 +8,6 @@
  * without any extra steps.
  */
 STRING("TEERANK_DB", "teerank.sqlite3", dbpath)
-UNSIGNED("TEERANK_UPDATE_DELAY", 5, update_delay)
 BOOL("TEERANK_VERBOSE", 0, verbose)
 
 #undef STRING

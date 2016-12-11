@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "config.h"
+#include "teerank.h"
 #include "html.h"
 
 int main_html_about(int argc, char **argv)

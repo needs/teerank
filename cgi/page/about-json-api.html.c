@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "cgi.h"
-#include "config.h"
+#include "teerank.h"
 #include "html.h"
 
 static void start_jsondesc_table(void)

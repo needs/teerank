@@ -9,7 +9,7 @@
 /* prefix-header is buggy and didn't prefixed this constant */
 #define PACKET_HEADER_SIZE 6
 
-#include "config.h"
+#include "teerank.h"
 #include "player.h"
 #include "server.h"
 
@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 	/* Teerank 3.x use $TEERANK_ROOT to locate database */
 	setenv("TEERANK_ROOT", ".teerank", 0);
 
-	load_config(1, 0);
+	init_teerank(0);
 	teerank6_load_config(1);
 
 	/* Non-stable version may not be re-upgradable */

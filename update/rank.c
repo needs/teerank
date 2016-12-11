@@ -47,7 +47,7 @@
 #include <assert.h>
 #include <time.h>
 
-#include "config.h"
+#include "teerank.h"
 #include "rank.h"
 #include "player.h"
 #include "database.h"

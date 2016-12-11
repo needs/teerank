@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include "player.h"
-#include "config.h"
+#include "teerank.h"
 
 void init_player(struct player *player)
 {

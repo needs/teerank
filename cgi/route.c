@@ -7,7 +7,7 @@
 #include <limits.h>
 #include <dirent.h>
 
-#include "config.h"
+#include "teerank.h"
 #include "route.h"
 #include "cgi.h"
 

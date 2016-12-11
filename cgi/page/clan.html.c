@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include "cgi.h"
-#include "config.h"
+#include "teerank.h"
 #include "html.h"
 #include "player.h"
 #include "clan.h"

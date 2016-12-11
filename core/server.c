@@ -9,7 +9,7 @@
 #include <ctype.h>
 
 #include "server.h"
-#include "config.h"
+#include "teerank.h"
 #include "json.h"
 
 int is_vanilla_ctf(char *gametype, char *map, unsigned max_clients)

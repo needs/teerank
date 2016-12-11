@@ -7,7 +7,7 @@
 #include <errno.h>
 
 #include "cgi.h"
-#include "config.h"
+#include "teerank.h"
 #include "html.h"
 #include "database.h"
 #include "player.h"

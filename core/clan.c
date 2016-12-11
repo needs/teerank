@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 #include "clan.h"
-#include "config.h"
+#include "teerank.h"
 
 void read_clan(sqlite3_stmt *res, void *_c)
 {

@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <errno.h>
 
-#include "config.h"
+#include "teerank.h"
 #include "cgi.h"
 #include "clan.h"
 #include "json.h"

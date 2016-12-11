@@ -14,7 +14,7 @@
 #include <netinet/in.h>
 
 #include "pool.h"
-#include "config.h"
+#include "teerank.h"
 #include "server.h"
 #include "player.h"
 #include "scheduler.h"
@@ -382,7 +382,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	load_config(1, 0);
+	init_teerank(0);
 
 	signal(SIGINT,  stop_gracefully);
 	signal(SIGTERM, stop_gracefully);

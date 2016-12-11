@@ -14,7 +14,7 @@
 #include <libgen.h>
 #include <ctype.h>
 
-#include "config.h"
+#include "teerank.h"
 #include "route.h"
 #include "cgi.h"
 
@@ -421,7 +421,8 @@ static int load_path_and_query(char **_path, char **_query)
 	return 1;
 }
 
-static void load_cgi_config(void)
+/* Load extra environment variables set by the webserver */
+static void init_cgi(void)
 {
 	const char *tmp, *port = NULL;
 	int ret;
@@ -450,20 +451,11 @@ int main(int argc, char **argv)
 	char *path, *query;
 
 	/*
-	 * I'm not sure we do want to check database version because
-	 * CGI can be called often.  And as long it is not a fast-cgi,
-	 * version checking will happen every time.  But I guess for
-	 * now it shouldn't be an issue since teerank users are almost
-	 * non-existent.
+	 * We want to use read only mode to prevent any security exploit
+	 * to be able to write the database.
 	 */
-	load_config(1, 1);
-
-	/*
-	 * A lot of route doesn't use cgi_config structure.  We still
-	 * load it because that way a mis-configuration are catched as
-	 * soon as possible.
-	 */
-	load_cgi_config();
+	init_teerank(1);
+	init_cgi();
 
 	if (argc != 1 || !load_path_and_query(&path, &query)) {
 		fprintf(stderr, "usage: %s\n", argv[0]);

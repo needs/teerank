@@ -7,7 +7,7 @@
 #include "player.h"
 #include "clan.h"
 #include "server.h"
-#include "config.h"
+#include "teerank.h"
 #include "html.h"
 
 #ifdef NDEBUG
@@ -181,22 +181,10 @@ char *escape(const char *str)
 	return buf;
 }
 
-/*
- * Depending on config.update_delay, we may have a nice way to represent
- * minutes.  If the delay is even, then we make minutes even too.  If
- * the delay if 5, then we make minutes ending by 0 or 5.  It is purely
- * cosmetic.
- */
+/* Minutes looks nice when they only ends by '0' or '5' */
 static unsigned pretiffy_minutes(unsigned minutes)
 {
-	const unsigned delay = config.update_delay;
-
-	if (delay % 2 == 0)
-		return minutes - (minutes % 2);
-	else if (delay == 5)
-		return minutes - (minutes % 5);
-	else
-		return minutes;
+	return minutes - (minutes % 5);
 }
 
 /*
@@ -254,17 +242,10 @@ unsigned elapsed_time(time_t t, char **timescale, char *text, size_t textsize)
 	time_t now = time(NULL);
 	time_t elapsed_seconds;
 	struct tm elapsed;
-	unsigned update_delay;
 	char *dummy;
 
 	if (!timescale)
 		timescale = &dummy;
-
-	/*
-	 * Add one minute to compensate uneven running time of the
-	 * update process.
-	 */
-	update_delay = config.update_delay + 1;
 
 	/* Make sure elapsed time is positive */
 	if (now < t)
@@ -290,7 +271,7 @@ unsigned elapsed_time(time_t t, char **timescale, char *text, size_t textsize)
 		set_text_and_timescale("hour", elapsed.tm_hour);
 		return elapsed.tm_hour;
 	}
-	if (elapsed.tm_min >= update_delay) {
+	if (elapsed.tm_min >= 5) {
 		set_text_and_timescale("minute", pretiffy_minutes(elapsed.tm_min));
 		return elapsed.tm_min;
 	}

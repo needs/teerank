@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "config.h"
+#include "teerank.h"
 #include "html.h"
 
 #define MAX_DATA 48

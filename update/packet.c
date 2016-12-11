@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -110,7 +111,8 @@ int recv_packet(
 	ret = poll((struct pollfd*)sockets, 2, 1000);
 
 	if (ret == -1) {
-		perror("poll()");
+		if (errno != EINTR)
+			perror("poll()");
 		return 0;
 	} else if (ret == 0) {
 		return 0;

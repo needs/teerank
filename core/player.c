@@ -72,16 +72,25 @@ int write_player(struct player *p)
 		return FAILURE;
 }
 
-void record_elo_and_rank(struct player *p)
+void record_elo_and_rank(const char *pname)
 {
-	const char *query =
+	struct player p;
+	unsigned nrow;
+	sqlite3_stmt *res;
+
+	const char *select =
+		"SELECT" ALL_PLAYER_COLUMNS
+		" FROM players"
+		" WHERE name = ?";
+
+	const char *insert =
 		"INSERT OR REPLACE INTO player_historic"
 		" VALUES (?, ?, ?, ?)";
 
-	assert(p != NULL);
-	assert(p->rank != UNRANKED);
+	assert(pname != NULL);
 
-	exec(query, "stiu", p->name, time(NULL), p->elo, p->rank);
+	foreach_player(select, &p, "s", pname)
+		exec(insert, "stiu", p.name, time(NULL), p.elo, p.rank);
 }
 
 unsigned count_ranked_players(void)

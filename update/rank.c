@@ -368,10 +368,10 @@ void rank_players(struct server *old, struct server *new)
 }
 
 /*
- * Took every pending changes in the "pending" table and definitively
+ * Take every pending changes in the "pending" table and definitively
  * commit them in the database.
  */
-static void flush_pending_elo_updates(void)
+static void apply_pending_elo(void)
 {
 	unsigned nrow;
 	sqlite3_stmt *res;
@@ -383,8 +383,27 @@ static void flush_pending_elo_updates(void)
 
 	foreach_row(query, read_pending, &p)
 		exec("UPDATE players SET elo = ? WHERE name = ?", "is", p.elo, p.name);
+}
 
-	if (res)
+/*
+ * For each player with pending change, record their new elo and rank,
+ * then flush the pending table.  This does not write new elo in players
+ * records, this is done by apply_pending_elo().
+ */
+static void record_changes(void)
+{
+	unsigned nrow;
+	sqlite3_stmt *res;
+	struct pending p;
+
+	const char *query =
+		"SELECT name, elo"
+		" FROM pending";
+
+	foreach_row(query, read_pending, &p)
+		record_elo_and_rank(p.name);
+
+	if (res && nrow)
 		exec("DELETE FROM pending");
 }
 
@@ -415,7 +434,7 @@ void recompute_ranks(void)
 
 	clk = clock();
 
-	flush_pending_elo_updates();
+	apply_pending_elo();
 
 	/*
 	 * Drop indices because they will be updated at each update, And
@@ -427,10 +446,11 @@ void recompute_ranks(void)
 	foreach_row(query, read_name_and_elo, &p) {
 		p.rank = nrow+1;
 		exec("UPDATE players SET rank = ? WHERE name = ?", "us", p.rank, p.name);
-		record_elo_and_rank(&p);
 	}
 
 	create_all_indices();
+
+	record_changes();
 
 	clk = clock() - clk;
 	verbose(

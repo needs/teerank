@@ -120,9 +120,9 @@ int write_player(struct player *player);
 /**
  * Add an entry in player historic
  *
- * @param player Player to update
+ * @param pname Player's name
  */
-void record_elo_and_rank(struct player *player);
+void record_elo_and_rank(const char *pname);
 
 /**
  * Count the number of ranked players in the database

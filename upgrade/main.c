@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 	/* Teerank 3.x use $TEERANK_ROOT to locate database */
 	setenv("TEERANK_ROOT", ".teerank", 0);
 
-	load_config(0, 0);
+	load_config(1, 0);
 	teerank6_load_config(1);
 
 	/* Non-stable version may not be re-upgradable */

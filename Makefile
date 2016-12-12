@@ -1,7 +1,7 @@
 TEERANK_VERSION = 4
 TEERANK_SUBVERSION = 0
 DATABASE_VERSION = 7
-STABLE_VERSION = 0
+STABLE_VERSION = 1
 
 # Used to make a direct URL to github
 CURRENT_COMMIT = $(shell git rev-parse HEAD)

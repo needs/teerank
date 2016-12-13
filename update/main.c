@@ -369,6 +369,15 @@ static int update(void)
 		}
 
 		exec("COMMIT");
+
+		/*
+		 * Force a WAL checkpoint after recomputing ranks
+		 * because a lot of data are written in the wal wfile
+		 * and we don't want it to grow without bounds.  Doesn't
+		 * seem to work tho...
+		 */
+		if (do_recompute_ranks)
+			exec("PRAGMA wal_checkpoint");
 	}
 
 	close_sockets(&sockets);

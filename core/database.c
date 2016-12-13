@@ -252,6 +252,12 @@ static int create_database(void)
 	exec("PRAGMA journal_mode=WAL");
 
 	/*
+	 * When in WAL mode, SQlite documentation explicitely advise
+	 * using NORMAL instead of the default FULL.
+	 */
+	exec("PRAGMA synchronous=NORMAL");
+
+	/*
 	 * Batch create queries in a single exclusive transaction so
 	 * that if someone else try to use the database at the same
 	 * time, one will quietly wait for the other to create the

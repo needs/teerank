@@ -123,69 +123,77 @@ static void set_pagelist_args(
 		this->args[2] = order;
 }
 
-static void setup_html_player_list(struct route *this, struct url *url)
+/*
+ * Page setup callback should all have the same function prototype.  For
+ * clarity and readability we introduce this macro to quickly declare a
+ * setup callback.
+ */
+#define PAGE_SETUP(name) \
+static void setup_##name(struct route *route, struct url *url)
+
+PAGE_SETUP(html_player_list)
 {
-	set_pagelist_args(this, url, "by-rank");
+	set_pagelist_args(route, url, "by-rank");
 }
-static void setup_json_player_list(struct route *this, struct url *url)
+PAGE_SETUP(json_player_list)
 {
-	set_pagelist_args(this, url, "by-rank");
+	set_pagelist_args(route, url, "by-rank");
 }
-static void setup_html_clan_list(struct route *this, struct url *url)
+PAGE_SETUP(html_clan_list)
 {
-	set_pagelist_args(this, url, "by-nmembers");
+	set_pagelist_args(route, url, "by-nmembers");
 }
-static void setup_json_clan_list(struct route *this, struct url *url)
+PAGE_SETUP(json_clan_list)
 {
-	set_pagelist_args(this, url, "by-nmembers");
+	set_pagelist_args(route, url, "by-nmembers");
 }
-static void setup_html_server_list(struct route *this, struct url *url)
+PAGE_SETUP(html_server_list)
 {
-	set_pagelist_args(this, url, "by-nplayers");
+	set_pagelist_args(route, url, "by-nplayers");
 }
-static void setup_json_server_list(struct route *this, struct url *url)
+PAGE_SETUP(json_server_list)
 {
-	set_pagelist_args(this, url, "by-nplayers");
+	set_pagelist_args(route, url, "by-nplayers");
 }
 
-static void setup_html_player(struct route *this, struct url *url)
+PAGE_SETUP(html_player)
 {
-	this->args[1] = url->dirs[url->ndirs - 1];
+	route->args[1] = url->dirs[url->ndirs - 1];
 }
-static void setup_json_player(struct route *this, struct url *url)
+PAGE_SETUP(json_player)
 {
-	this->args[1] = convert_hexname(url->dirs[url->ndirs - 1]);
+	route->args[1] = convert_hexname(url->dirs[url->ndirs - 1]);
 
 	if (url->nargs == 0)
-		this->args[2] = "full";
+		route->args[2] = "full";
 	else if (url->nargs == 1 && strcmp(url->args[0].name, "short") == 0)
-		this->args[2] = "short";
+		route->args[2] = "short";
 	else
 		error(400, "Optional parameter name should be \"short\"");
 }
-static void setup_html_clan(struct route *this, struct url *url)
+PAGE_SETUP(html_clan)
 {
-	this->args[1] = url->dirs[url->ndirs - 1];
+	route->args[1] = url->dirs[url->ndirs - 1];
 }
-static void setup_json_clan(struct route *this, struct url *url)
+PAGE_SETUP(json_clan)
 {
-	this->args[1] = convert_hexname(url->dirs[url->ndirs - 1]);
+	route->args[1] = convert_hexname(url->dirs[url->ndirs - 1]);
 }
-static void setup_html_server(struct route *this, struct url *url)
+PAGE_SETUP(html_server)
 {
-	this->args[1] = url->dirs[url->ndirs - 1];
+	route->args[1] = url->dirs[url->ndirs - 1];
 }
-static void setup_json_server(struct route *this, struct url *url)
+PAGE_SETUP(json_server)
 {
-	this->args[1] = url->dirs[url->ndirs - 1];
-}
-
-static void setup_svg_graph(struct route *this, struct url *url)
-{
-	this->args[1] = url->dirs[url->ndirs - 2];
+	route->args[1] = url->dirs[url->ndirs - 1];
 }
 
-static void setup_html_search(struct route *this, struct url *url)
+PAGE_SETUP(svg_graph)
+{
+	route->args[1] = url->dirs[url->ndirs - 2];
+}
+
+PAGE_SETUP(html_search)
 {
 	char *q = NULL;
 	unsigned i;
@@ -198,14 +206,14 @@ static void setup_html_search(struct route *this, struct url *url)
 		error(400, "Missing 'q' parameter\n");
 
 	if (url->ndirs == 1)
-		this->args[1] = "players";
+		route->args[1] = "players";
 	else
-		this->args[1] = url->dirs[0];
-	this->args[2] = q;
+		route->args[1] = url->dirs[0];
+	route->args[2] = q;
 }
 
 /* URLs for player list looked like "/pages/<pnum>.html" */
-static void setup_html_teerank2_player_list(struct route *this, struct url *url)
+PAGE_SETUP(html_teerank2_player_list)
 {
 	redirect("/players?p=%s", url->dirs[url->ndirs - 1]);
 }
@@ -215,7 +223,7 @@ static int main_html_teerank2_player_list(int argc, char **argv)
 }
 
 /* URLs for player looked like "/players/<hexname>" */
-static void setup_html_teerank3_player(struct route *this, struct url *url)
+PAGE_SETUP(html_teerank3_player)
 {
 	redirect("/player/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
 }
@@ -225,7 +233,7 @@ static int main_html_teerank3_player(int argc, char **argv)
 }
 
 /* URLs for player graph looked like "/players/<hexname>/elo+rank.svg" */
-static void setup_svg_teerank3_graph(struct route *this, struct url *url)
+PAGE_SETUP(svg_teerank3_graph)
 {
 	redirect("/player/%s/historic.svg", url_encode(convert_hexname(url->dirs[url->ndirs - 2])));
 }
@@ -235,7 +243,7 @@ static int main_svg_teerank3_graph(int argc, char **argv)
 }
 
 /* URLs for clan looked like "/clans/<hexname>" */
-static void setup_html_teerank3_clan(struct route *this, struct url *url)
+PAGE_SETUP(html_teerank3_clan)
 {
 	redirect("/clan/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
 }
@@ -245,7 +253,7 @@ static int main_html_teerank3_clan(int argc, char **argv)
 }
 
 /* URLs for server looked like "/servers/<addr>" */
-static void setup_html_teerank3_server(struct route *this, struct url *url)
+PAGE_SETUP(html_teerank3_server)
 {
 	redirect("/server/%s", url->dirs[url->ndirs - 1]);
 }
@@ -254,13 +262,13 @@ static int main_html_teerank3_server(int argc, char **argv)
 	return main_html_server(argc, argv);
 }
 
-/* Empty setup handlers */
-static void setup_html_about_json_api(struct route *this, struct url *url) {};
-static void setup_html_about(struct route *this, struct url *url) {};
-static void setup_json_about(struct route *this, struct url *url) {};
-static void setup_html_status(struct route *this, struct url *url) {};
-static void setup_txt_robots(struct route *this, struct url *url) {};
-static void setup_xml_sitemap(struct route *this, struct url *url) {};
+/* Empty setup callbacks */
+PAGE_SETUP(html_about_json_api) {}
+PAGE_SETUP(html_about) {}
+PAGE_SETUP(json_about) {}
+PAGE_SETUP(html_status) {}
+PAGE_SETUP(txt_robots) {}
+PAGE_SETUP(xml_sitemap) {}
 
 /*
  * Build the root tree given data in "routes.def".

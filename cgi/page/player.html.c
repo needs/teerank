@@ -36,9 +36,7 @@ int main_html_player(int argc, char **argv)
 	if (!nrow)
 		return EXIT_NOT_FOUND;
 
-	CUSTOM_TAB.name = escape(pname);
-	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, pname, "/players", NULL);
+	html_header(pname, pname, "/players", NULL);
 
 	/* Print player logo, name, clan, rank and elo */
 	html("<header id=\"player_header\">");

@@ -173,7 +173,7 @@ body > main {
 	text-decoration: none;
 }
 
-#toptabs > a:first-child {
+#toptabs > a:nth-child(3) {
 	margin-right: auto;
 }
 #bottabs > a:first-child {

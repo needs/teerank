@@ -150,10 +150,6 @@ void css(const char *fmt, ...)
 
 #endif  /* NDEBUG */
 
-const struct tab CTF_TAB = { "CTF", "/" };
-const struct tab ABOUT_TAB = { "About", "/about" };
-struct tab CUSTOM_TAB = { NULL, NULL };
-
 char *escape(const char *str)
 {
 	static char buf[1024];
@@ -310,20 +306,69 @@ void player_lastseen_link(time_t lastseen, const char *addr)
 		html("<span class=\"%s\">%s</span>", timescale, text);
 }
 
+struct tab CTF_TAB = { "CTF", "/" };
+struct tab DM_TAB  = { "DM",  "/" };
+struct tab TDM_TAB = { "TDM", "/" };
+struct tab ABOUT_TAB = { "About", "/about" };
+
+static void print_top_tabs(void *active)
+{
+	struct tab **tabs;
+	struct tab CUSTOM_TAB;
+
+	assert(active != NULL);
+
+	html("<nav id=\"toptabs\">");
+
+	/*
+	 * If "active" don't point to one of the fixed tabs, we add an
+	 * extra tab before the about tab and use the data pointed by
+	 * "active" as the tab name.
+	 */
+	if (
+		active == &CTF_TAB ||
+		active == &DM_TAB ||
+		active == &TDM_TAB ||
+		active == &ABOUT_TAB) {
+
+		tabs = (struct tab *[]){
+			&CTF_TAB, &DM_TAB, &TDM_TAB, &ABOUT_TAB, NULL
+		};
+	} else {
+		CUSTOM_TAB.name = escape(active);
+		tabs = (struct tab *[]){
+			&CTF_TAB, &DM_TAB, &TDM_TAB, &CUSTOM_TAB, &ABOUT_TAB, NULL
+		};
+		active = &CUSTOM_TAB;
+	}
+
+	for (; *tabs; tabs++) {
+		const struct tab *tab = *tabs;
+		char *class = "";
+
+		if (tab == active && tab == &CUSTOM_TAB)
+			class = " class=\"active custom\"";
+		else if (tab == active && tab != &CUSTOM_TAB)
+			class = " class=\"active\"";
+
+		if (tab == active)
+			html("<a%s>%s</a>", class, tab->name);
+		else
+			html("<a href=\"%s\"%s>%s</a>",
+			       tab->href, class, tab->name);
+	}
+
+	html("</nav>");
+}
+
 void html_header(
-	const struct tab *active, const char *title,
+	void *active, const char *title,
 	const char *sprefix, const char *query)
 {
 	char text[64];
 
-	assert(active != NULL);
 	assert(title != NULL);
 	assert(sprefix != NULL);
-
-	if (active == &CUSTOM_TAB) {
-		assert(active->name != NULL);
-		assert(active->href != NULL);
-	}
 
 	html("<!doctype html>");
 	html("<html>");
@@ -359,32 +404,7 @@ void html_header(
 
 	html("</header>");
 	html("<main>");
-	html("<nav id=\"toptabs\">");
-
-	const struct tab **tabs = (const struct tab*[]){
-		&CTF_TAB, &CUSTOM_TAB, &ABOUT_TAB, NULL
-	};
-
-	for (; *tabs; tabs++) {
-		const struct tab *tab = *tabs;
-		char *class = "";
-
-		if (tab == &CUSTOM_TAB && tab != active)
-			continue;
-
-		if (tab == active && active == &CUSTOM_TAB)
-			class = " class=\"active custom\"";
-		else if (tab == active && active != &CUSTOM_TAB)
-			class = " class=\"active\"";
-
-		if (tab == active)
-			html("<a%s>%s</a>", class, tab->name);
-		else
-			html("<a href=\"%s\"%s>%s</a>",
-			       tab->href, class, tab->name);
-	}
-
-	html("</nav>");
+	print_top_tabs(active);
 	html("<section>");
 }
 

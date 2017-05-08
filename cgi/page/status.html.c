@@ -118,9 +118,7 @@ int main_html_status(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	CUSTOM_TAB.name = "Status";
-	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, "Status", "", NULL);
+	html_header("Status", "Status", "", NULL);
 
 	html("<h2>Teerank</h2>");
 

@@ -74,9 +74,7 @@ static void jsonurl(const char *url)
 
 int main_html_about_json_api(int argc, char **argv)
 {
-	CUSTOM_TAB.name = "JSON API Overview";
-	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, "JSON API Overview", "", NULL);
+	html_header("JSON API Overview", "JSON API Overview", "", NULL);
 
 	/* Index */
 

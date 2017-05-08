@@ -189,9 +189,7 @@ int main_html_search(int argc, char **argv)
 	for (s = sinfos; *s; s++)
 		tabvals[(*s)->tab] = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);
 
-	CUSTOM_TAB.name = "Search results";
-	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, "Search results", sinfo->sprefix, squery);
+	html_header("Search results", "Search results", sinfo->sprefix, squery);
 	print_section_tabs(sinfo->tab, squery, tabvals);
 
 	if (!search(sinfo, squery))

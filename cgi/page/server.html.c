@@ -75,9 +75,7 @@ int main_html_server(int argc, char **argv)
 		server.clients[i].ingame ? playing++ : spectating++;
 
 	/* Eventually, print them */
-	CUSTOM_TAB.name = escape(server.name);
-	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, server.name, "/servers", NULL);
+	html_header(server.name, server.name, "/servers", NULL);
 	html("<header id=\"server_header\">");
 	html("<section id=\"serverinfo\">");
 	html("<h2>%s</h2>", escape(server.name));

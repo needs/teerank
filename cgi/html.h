@@ -30,10 +30,10 @@ void player_lastseen_link(time_t _lastseen, const char *addr);
 struct tab {
 	char *name, *href;
 };
-extern const struct tab CTF_TAB, ABOUT_TAB;
-extern struct tab CUSTOM_TAB;
+extern struct tab CTF_TAB, DM_TAB, TDM_TAB, ABOUT_TAB;
+
 void html_header(
-	const struct tab *active, const char *title,
+	void *active, const char *title,
 	const char *sprefix, const char *query);
 void html_footer(const char *jsonanchor, const char *jsonurl);
 

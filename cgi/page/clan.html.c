@@ -33,9 +33,7 @@ int main_html_clan(int argc, char **argv)
 	cname = argv[1];
 
 	/* Eventually, print them */
-	CUSTOM_TAB.name = escape(cname);
-	CUSTOM_TAB.href = "";
-	html_header(&CUSTOM_TAB, cname, "/clans", NULL);
+	html_header(cname, cname, "/clans", NULL);
 	html("<h2>%s</h2>", escape(cname));
 
 	html_start_player_list(1, 1, 0);

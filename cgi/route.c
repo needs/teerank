@@ -204,7 +204,6 @@ static void setup_html_search(struct route *this, struct url *url)
 	this->args[2] = q;
 }
 
-#if ROUTE_V2_URLS
 /* URLs for player list looked like "/pages/<pnum>.html" */
 static void setup_html_teerank2_player_list(struct route *this, struct url *url)
 {
@@ -214,9 +213,7 @@ static int main_html_teerank2_player_list(int argc, char **argv)
 {
 	return main_html_player_list(argc, argv);
 }
-#endif
 
-#if ROUTE_V3_URLS
 /* URLs for player looked like "/players/<hexname>" */
 static void setup_html_teerank3_player(struct route *this, struct url *url)
 {
@@ -256,7 +253,6 @@ static int main_html_teerank3_server(int argc, char **argv)
 {
 	return main_html_server(argc, argv);
 }
-#endif
 
 /* Empty setup handlers */
 static void setup_html_about_json_api(struct route *this, struct url *url) {};

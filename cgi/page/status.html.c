@@ -131,18 +131,6 @@ int main_html_status(int argc, char **argv)
 		print_status(title, NULL, STATUS_OK);
 	}
 
-	title = "2.x backward compatibility";
-	if (ROUTE_V2_URLS)
-		print_status(title, NULL, STATUS_ENABLED);
-	else
-		print_status(title, NULL, STATUS_DISABLED);
-
-	title = "3.x backward compatibility";
-	if (ROUTE_V3_URLS)
-		print_status(title, NULL, STATUS_ENABLED);
-	else
-		print_status(title, NULL, STATUS_DISABLED);
-
 	show_masters_status(teerank_stopped);
 	html_footer(NULL, NULL);
 

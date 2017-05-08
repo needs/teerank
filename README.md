@@ -66,13 +66,6 @@ statically linked binaries for instance:
 CC="musl-gcc" CFLAGS="-static" make -B release
 ```
 
-You may not want to support deprecated URLs, disable them by setting
-`ROUTE_V2_URLS` to `0` and `ROUTE_V3_URLS` to `0`.
-
-```bash
-ROUTE_V2_URLS=0 ROUTE_V3_URLS=0 make
-```
-
 When running `teerank-update`, set `TEERANK_DB` to change database
 location, and `TEERANK_VERBOSE` to `1` to enable verbose mode.
 

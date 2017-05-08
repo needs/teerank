@@ -7,13 +7,6 @@ STABLE_VERSION = 0
 CURRENT_COMMIT = $(shell git rev-parse HEAD)
 CURRENT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 
-# This can be set to zero in the command line by the user to remove the
-# support of old URLs.  By default we support them to make sure we don't
-# accidentaly break existing teerank installations.
-
-ROUTE_V2_URLS ?= 1
-ROUTE_V3_URLS ?= 1
-
 # We want to be C89 to make sure teerank can be built using almost any
 # compilers on almost any machines you can think of.
 #
@@ -42,8 +35,6 @@ CFLAGS += \
 	-DSTABLE_VERSION=$(STABLE_VERSION) \
 	-DCURRENT_COMMIT=\"$(CURRENT_COMMIT)\" \
 	-DCURRENT_BRANCH=\"$(CURRENT_BRANCH)\" \
-	-DROUTE_V2_URLS=$(ROUTE_V2_URLS) \
-	-DROUTE_V3_URLS=$(ROUTE_V3_URLS)
 
 UPDATE_BIN = teerank-update
 UPGRADE_BIN = teerank-upgrade
@@ -104,9 +95,9 @@ clean:
 # Install
 #
 
-install: TEERANK_ROOT       = $(prefix)/var/lib/teerank
-install: TEERANK_DATA_ROOT  = $(prefix)/usr/share/webapps/teerank
-install: TEERANK_BIN_ROOT   = $(prefix)/usr/bin
+install: TEERANK_ROOT      = $(prefix)/var/lib/teerank
+install: TEERANK_DATA_ROOT = $(prefix)/usr/share/webapps/teerank
+install: TEERANK_BIN_ROOT  = $(prefix)/usr/bin
 install:
 	mkdir -p $(TEERANK_ROOT)
 	mkdir -p $(TEERANK_DATA_ROOT)

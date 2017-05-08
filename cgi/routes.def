@@ -11,11 +11,9 @@ TXT("robots", robots)
 XML("sitemap", sitemap)
 HTML("search", search)
 
-#if ROUTE_V2_URLS
 DIR("pages")
 	HTML("*", teerank2_player_list)
 END()
-#endif
 
 /* Players */
 
@@ -27,13 +25,10 @@ DIR("players")
 	JSON("by-lastseen", player_list)
 
 	JSON("*", player)
-#if ROUTE_V3_URLS
 	DIR("*")
 		SVG("elo rank", teerank3_graph)
 	END()
 	HTML("*", teerank3_player)
-#endif
-
 END()
 HTML("players", player_list)
 
@@ -52,10 +47,7 @@ DIR("clans")
 	JSON("by-nmembers", clan_list)
 
 	JSON("*", clan)
-#if ROUTE_V3_URLS
 	HTML("*", teerank3_clan)
-#endif
-
 END()
 HTML("clans", clan_list)
 
@@ -71,10 +63,7 @@ DIR("servers")
 	JSON("by-nplayers", server_list)
 
 	JSON("*", server)
-#if ROUTE_V3_URLS
 	HTML("*", teerank3_server)
-#endif
-
 END()
 HTML("servers", server_list)
 

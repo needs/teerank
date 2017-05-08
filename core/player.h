@@ -18,23 +18,57 @@
 #include "server.h"
 
 #define ALL_PLAYER_COLUMNS \
-	" name, clan, elo, rank, lastseen, server_ip, server_port "
+	" players.name, clan, lastseen, server_ip, server_port, gametype, map, elo, rank "
 
-#define IS_PLAYER_RANKED \
-	" rank > 0 "
+#define RANKED_PLAYERS_TABLE \
+	" players JOIN ranks ON players.name = ranks.name "
 
 #define SORT_BY_RANK \
 	" rank ASC "
 #define SORT_BY_LASTSEEN \
 	" lastseen DESC, rank DESC "
 #define SORT_BY_ELO \
-	" elo DESC, lastseen DESC, name DESC "
+	" elo DESC, lastseen DESC, ranks.name DESC "
+
+/* Placeholder for ranks not yet calculated */
+static const unsigned UNRANKED = 0;
+
+/* Data imported from older database didn't recorded last seen date */
+static const time_t NEVER_SEEN = 0;
+
+/*
+ * Even if the "players" table only contain data up to "server_port", we
+ * never want a player without his elo and rank.  So we merge the two
+ * information, considering that the "players" table will always be
+ * joined with the "ranks" table.
+ */
+struct player {
+	char name[NAME_LENGTH];
+	char clan[NAME_LENGTH];
+
+	time_t lastseen;
+
+	char server_ip[IP_STRSIZE];
+	char server_port[PORT_STRSIZE];
+
+	char gametype[GAMETYPE_STRSIZE];
+	char map[MAP_STRSIZE];
+	int elo;
+	unsigned rank;
+};
 
 #define foreach_player(query, p, ...) \
 	foreach_row((query), read_player, (p), __VA_ARGS__)
 
 void read_player(sqlite3_stmt *res, void *p);
 
+/* Create in the database a player with the given name and clan */
+void create_player(const char *name, const char *clan);
+
+/* Count the number of ranked players in the database */
+unsigned count_ranked_players(const char *gametype, const char *map);
+
+/* For each player we also record his rank and elo over time */
 struct player_record {
 	time_t ts;
 	int elo;
@@ -42,91 +76,11 @@ struct player_record {
 };
 
 #define ALL_PLAYER_RECORD_COLUMNS \
-	" timestamp, elo, rank "
+	" ts, elo, rank "
 
 #define foreach_player_record(query, r, ...) \
 	foreach_row((query), read_player_record, (r), __VA_ARGS__)
 
 void read_player_record(sqlite3_stmt *res, void *p);
-
-/**
- * @struct player
- *
- * Holds a complete set of data of a player.
- */
-struct player {
-	char name[NAME_LENGTH];
-	char clan[NAME_LENGTH];
-
-	int elo;
-	unsigned rank;
-	time_t lastseen;
-
-	char server_ip[IP_STRSIZE];
-	char server_port[PORT_STRSIZE];
-
-	/* Used by the ranking system */
-	struct client *old;
-	struct client *new;
-	int is_rankable;
-};
-
-/**
- * @def DEFAULT_ELO
- *
- * Number of elo points new players starts with
- */
-static const int DEFAULT_ELO = 1500;
-
-/**
- * @def UNRANKED
- *
- * Value used to mark the absence of any rank.
- */
-static const unsigned UNRANKED = 0;
-
-/**
- * @def NEVER_SEEN
- *
- * Special time_t value used for player which has neveer been seen yet
- */
-static const time_t NEVER_SEEN = 0;
-
-/**
- * @def NEVER_SEEN
- *
- * Special time_t value used for player which has neveer been seen yet
- */
-static const time_t EXPIRE_NOW = 0;
-
-/**
- * Create a player with the given name.
- *
- * The player *is* written in the database.
- *
- * @param name Name of the new player
- */
-void create_player(const char *name, const char *clan);
-
-/**
- * Write a player to the database.
- *
- * @param player Player to write
- *
- * @return 1 on success, 0 on failure
- */
-int write_player(struct player *player);
-
-/**
- * Add an entry in player historic
- *
- * @param pname Player's name
- */
-void record_elo_and_rank(const char *pname);
-
-/**
- * Count the number of ranked players in the database
- */
-unsigned count_ranked_players(void);
 
 #endif /* PLAYER_H */

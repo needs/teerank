@@ -684,7 +684,7 @@ void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabv
 		tabs[1].num = tabvals[1];
 		tabs[2].num = tabvals[2];
 	} else {
-		tabs[0].num = round(count_ranked_players());
+		tabs[0].num = round(count_ranked_players("", ""));
 		tabs[1].num = round(count_clans());
 		tabs[2].num = round(count_vanilla_servers());
 	}

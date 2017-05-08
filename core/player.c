@@ -12,15 +12,12 @@
 #include "player.h"
 #include "teerank.h"
 
-void init_player(struct player *player)
-{
-	static const struct player PLAYER_ZERO;
-	*player = PLAYER_ZERO;
-}
-
 void create_player(const char *name, const char *clan)
 {
 	struct player p;
+
+	const char *query =
+		"INSERT INTO players VALUES(?, ?, ?, '', '')";
 
 	assert(name != NULL);
 	assert(clan != NULL);
@@ -28,14 +25,11 @@ void create_player(const char *name, const char *clan)
 	snprintf(p.name, sizeof(p.name), "%s", name);
 	snprintf(p.clan, sizeof(p.clan), "%s", clan);
 
-	p.elo = DEFAULT_ELO;
-	p.rank = UNRANKED;
-
 	p.lastseen = time(NULL);
 	strcpy(p.server_ip, "");
 	strcpy(p.server_port, "");
 
-	write_player(&p);
+	exec(query, "sst", p.name, p.clan, p.lastseen);
 }
 
 void read_player(sqlite3_stmt *res, void *_p)
@@ -44,11 +38,14 @@ void read_player(sqlite3_stmt *res, void *_p)
 
 	snprintf(p->name, sizeof(p->name), "%s", sqlite3_column_text(res, 0));
 	snprintf(p->clan, sizeof(p->clan), "%s", sqlite3_column_text(res, 1));
-	p->elo = sqlite3_column_int(res, 2);
-	p->rank = sqlite3_column_int64(res, 3);
-	p->lastseen = sqlite3_column_int64(res, 4);
-	snprintf(p->server_ip, sizeof(p->server_ip), "%s", sqlite3_column_text(res, 5));
-	snprintf(p->server_port, sizeof(p->server_port), "%s", sqlite3_column_text(res, 6));
+	p->lastseen = sqlite3_column_int64(res, 2);
+	snprintf(p->server_ip, sizeof(p->server_ip), "%s", sqlite3_column_text(res, 3));
+	snprintf(p->server_port, sizeof(p->server_port), "%s", sqlite3_column_text(res, 4));
+
+	snprintf(p->gametype, sizeof(p->gametype), "%s", sqlite3_column_text(res, 5));
+	snprintf(p->map, sizeof(p->map), "%s", sqlite3_column_text(res, 6));
+	p->elo = sqlite3_column_int(res, 7);
+	p->rank = sqlite3_column_int64(res, 8);
 }
 
 void read_player_record(sqlite3_stmt *res, void *_r)
@@ -60,43 +57,12 @@ void read_player_record(sqlite3_stmt *res, void *_r)
 	r->rank = sqlite3_column_int64(res, 2);
 }
 
-int write_player(struct player *p)
+unsigned count_ranked_players(const char *gametype, const char *map)
 {
 	const char *query =
-		"INSERT OR REPLACE INTO players"
-		" VALUES (?, ?, ?, ?, ?, ?, ?)";
+		"SELECT COUNT(1)"
+		" FROM" RANKED_PLAYERS_TABLE
+		" WHERE gametype = ? AND map = ?";
 
-	if (exec(query, "ssiutss", p->name, p->clan, p->elo, p->rank, p->lastseen, p->server_ip, p->server_port))
-		return SUCCESS;
-	else
-		return FAILURE;
-}
-
-void record_elo_and_rank(const char *pname)
-{
-	struct player p;
-	unsigned nrow;
-	sqlite3_stmt *res;
-
-	const char *select =
-		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM players"
-		" WHERE name = ?";
-
-	const char *insert =
-		"INSERT OR REPLACE INTO player_historic"
-		" VALUES (?, ?, ?, ?)";
-
-	assert(pname != NULL);
-
-	foreach_player(select, &p, "s", pname)
-		exec(insert, "stiu", p.name, time(NULL), p.elo, p.rank);
-}
-
-unsigned count_ranked_players(void)
-{
-	const char *query =
-		"SELECT COUNT(1) FROM players WHERE" IS_PLAYER_RANKED;
-
-	return count_rows(query);
+	return count_rows(query, "ss", gametype, map);
 }

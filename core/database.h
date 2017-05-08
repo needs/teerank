@@ -2,10 +2,14 @@
 #define DATABASE_H
 
 #include <stdarg.h>
+#include <time.h>
 #include <sqlite3.h>
 
 extern sqlite3 *db;
 int init_database(int readonly);
+
+/* Describe each table columns, used when creating a table */
+#include "database.def"
 
 /*
  * Query database version.  It does require database handle to be

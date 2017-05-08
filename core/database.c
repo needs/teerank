@@ -11,6 +11,7 @@
 
 sqlite3 *db = NULL;
 
+
 static void read_version(sqlite3_stmt *res, void *_version)
 {
 	int *version = _version;
@@ -139,18 +140,53 @@ static void errmsg(const char *func, const char *query)
 
 void create_all_indices(void)
 {
-	exec("CREATE INDEX players_by_rank ON players (" SORT_BY_RANK ")");
-	exec("CREATE INDEX players_by_lastseen ON players (" SORT_BY_LASTSEEN ")");
-	exec("CREATE INDEX players_by_elo ON players (" SORT_BY_ELO ")");
+	exec("CREATE INDEX ranks_by_gametype ON ranks (gametype, map, rank)");
 	exec("CREATE INDEX players_by_clan ON players (clan)");
 }
 
+#define MAX_QUERY_STRSIZE (sizeof("DROP INDEX") + 32)
+
+static void read_index_name(sqlite3_stmt *res, void *_query)
+{
+	char *query = _query;
+	const char *name = (const char*)sqlite3_column_text(res, 0);
+	snprintf(query, MAX_QUERY_STRSIZE, "DROP INDEX %s", name);
+}
+
+#define MAX_INDICES 16
+
+/*
+ * We want to drop old indices even unknown ones from an old database.
+ * Thankfully Sqlite provide a way to query all indices names.  However,
+ * we can't delete them while iterating on them.  So we need to store
+ * them and then proceed to remove them.
+ */
 void drop_all_indices(void)
 {
-	exec("DROP INDEX players_by_rank");
-	exec("DROP INDEX players_by_lastseen");
-	exec("DROP INDEX players_by_elo");
-	exec("DROP INDEX players_by_clan");
+	sqlite3_stmt *res;
+	unsigned nrow;
+
+	char queries[MAX_INDICES][MAX_QUERY_STRSIZE];
+
+	/*
+	 * Avoid indices starting by "sqlite" because they are
+	 * autoindex created for each table.
+	 */
+	const char *select =
+		"SELECT name"
+		" FROM sqlite_master"
+		" WHERE type == 'index'"
+		"  AND name NOT LIKE 'sqlite%'";
+
+	foreach_row(select, read_index_name, queries[nrow]) {
+		if (nrow + 1 == MAX_INDICES) {
+			nrow++;
+			break_foreach;
+		}
+	}
+
+	while (nrow --> 0)
+		exec(queries[nrow]);
 }
 
 static int create_database(void)
@@ -158,75 +194,16 @@ static int create_database(void)
 	const int FLAGS = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 
 	const char **query = NULL, *queries[] = {
-		"CREATE TABLE version("
-		" version INTEGER,"
-		" PRIMARY KEY(version))",
-
-		"CREATE TABLE masters("
-		" node TEXT,"
-		" service TEXT,"
-		" lastseen DATE,"
-		" expire DATE,"
-		" PRIMARY KEY(node, service))",
-
-		"CREATE TABLE servers("
-		" ip TEXT,"
-		" port TEXT,"
-		" name TEXT,"
-		" gametype TEXT,"
-		" map TEXT,"
-		" lastseen DATE,"
-		" expire DATE,"
-		" master_node TEXT,"
-		" master_service TEXT,"
-		" max_clients INTEGER,"
-		" PRIMARY KEY(ip, port),"
-		" FOREIGN KEY(master_node, master_service)"
-		"  REFERENCES masters(node, service))",
-
-		"CREATE TABLE players("
-		" name TEXT,"
-		" clan TEXT,"
-		" elo INTEGER,"
-		" rank UNSIGNED,"
-		" lastseen DATE,"
-		" server_ip TEXT,"
-		" server_port TEXT,"
-		" PRIMARY KEY(name),"
-		" FOREIGN KEY(server_ip, server_port)"
-		"  REFERENCES servers(ip, port))",
-
-		"CREATE TABLE server_clients("
-		" ip TEXT,"
-		" port TEXT,"
-		" name TEXT,"
-		" clan TEXT,"
-		" score INTEGER,"
-		" ingame BOOLEAN,"
-		" PRIMARY KEY(ip, port, name),"
-		" FOREIGN KEY(ip, port)"
-		"  REFERENCES servers(ip, port)"
-		" FOREIGN KEY(name)"
-		"  REFERENCES players(name))",
-
-		"CREATE TABLE player_historic("
-		" name TEXT,"
-		" timestamp DATE,"
-		" elo INTEGER,"
-		" rank INTEGER,"
-		" PRIMARY KEY(name, timestamp),"
-		" FOREIGN KEY(name)"
-		"  REFERENCES players(name))",
-
-		"CREATE TABLE pending("
-		" name TEXT,"
-		" elo INTEGER,"
-		" PRIMARY KEY(name),"
-		" FOREIGN KEY(name)"
-		"  REFERENCES players(name))",
+		"CREATE TABLE version" TABLE_DESC_VERSION,
+		"CREATE TABLE masters" TABLE_DESC_MASTERS,
+		"CREATE TABLE servers" TABLE_DESC_SERVERS,
+		"CREATE TABLE players" TABLE_DESC_PLAYERS,
+		"CREATE TABLE server_clients" TABLE_DESC_SERVER_CLIENTS,
+		"CREATE TABLE ranks" TABLE_DESC_RANKS,
+		"CREATE TABLE ranks_historic" TABLE_DESC_RANK_HISTORIC,
+		"CREATE TABLE pending" TABLE_DESC_PENDING,
 
 		/* Note: Indices are created in create_all_indices() */
-
 		NULL
 	};
 

@@ -32,8 +32,8 @@ int main_json_player_list(int argc, char **argv)
 
 	char query[512], *queryfmt =
 		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM players"
-		" WHERE" IS_PLAYER_RANKED
+		" FROM" RANKED_PLAYERS_TABLE
+		" WHERE gametype = '' AND map = ''"
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 

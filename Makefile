@@ -1,15 +1,11 @@
-TEERANK_VERSION = 4
+TEERANK_VERSION = 5
 TEERANK_SUBVERSION = 0
-DATABASE_VERSION = 7
-STABLE_VERSION = 1
+DATABASE_VERSION = 8
+STABLE_VERSION = 0
 
 # Used to make a direct URL to github
 CURRENT_COMMIT = $(shell git rev-parse HEAD)
 CURRENT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
-
-# Thoses are used later to build the previous teerank version
-PREVIOUS_VERSION = $(shell expr $(TEERANK_VERSION) - 1)
-PREVIOUS_DATABASE_VERSION = $(shell expr $(DATABASE_VERSION) - 1)
 
 # This can be set to zero in the command line by the user to remove the
 # support of old URLs.  By default we support them to make sure we don't
@@ -74,10 +70,10 @@ update_objs  = $(patsubst %.c,%.o,$(wildcard update/*.c))
 upgrade_objs = $(patsubst %.c,%.o,$(wildcard upgrade/*.c))
 
 # Header files
-core_headers    = $(wildcard core/*.h)
+core_headers    = $(wildcard core/*.h core/*.def)
 update_headers  = $(wildcard update/*.h)
 upgrade_headers = $(wildcard upgrade/*.h)
-cgi_headers     = $(wildcard cgi/*.h)
+cgi_headers     = $(wildcard cgi/*.h cgi/*.def)
 
 # Header files dependencies
 $(core_objs):    $(core_headers)
@@ -92,40 +88,6 @@ $(CGI):         $(core_objs) $(cgi_objs)
 
 $(BINS):
 	$(CC) $(CFLAGS) -o $@ $^
-
-# The upgrade binary need in order to be built a static library of the
-# *previous* teerank version.  In order to get it, we will extract the
-# previous teerank version from the git historic.  Built it, and
-# finally, make sure exported symbols in core header files are prefixed
-# to avoid name clashes with our current code.
-
-PREVIOUS_LIB = libteerank$(PREVIOUS_DATABASE_VERSION).a
-PREVIOUS_BRANCH = teerank-$(PREVIOUS_VERSION).y
-
-# Header files needs to be prefixed
-build/prefix-header: build/prefix-header.o
-	$(CC) -o $@ $(CFLAGS) $^
-
-$(PREVIOUS_LIB): dest = .build/teerank$(PREVIOUS_DATABASE_VERSION)
-$(PREVIOUS_LIB): .git/refs/heads/$(PREVIOUS_BRANCH) build/prefix-header
-	mkdir -p $(dest)
-	git archive $(PREVIOUS_BRANCH) | tar x -C $(dest)
-	CFLAGS="$(CFLAGS_EXTRA)" $(MAKE) -C $(dest) $(PREVIOUS_LIB)
-	cp $(dest)/$(PREVIOUS_LIB) .
-
-	# Prefix every header file in core
-	for i in $(dest)/core/*.h; do \
-		./build/prefix-header teerank$(PREVIOUS_DATABASE_VERSION)_ <"$$i" >"$$i".tmp; \
-		mv "$$i".tmp "$$i"; \
-	done
-
-# Upgrade binary just need the static library of the previous teerank
-# version as well as a path the the previous header files as well.
-
-$(upgrade_objs) $(UPGRADE_BIN): CFLAGS += -I.build
-$(upgrade_objs): $(PREVIOUS_LIB)
-$(UPGRADE_BIN): $(PREVIOUS_LIB)
-
 
 #
 # Clean

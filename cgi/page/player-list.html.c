@@ -31,8 +31,8 @@ int main_html_player_list(int argc, char **argv)
 
 	char query[512], *queryfmt =
 		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM players"
-		" WHERE" IS_PLAYER_RANKED
+		" FROM" RANKED_PLAYERS_TABLE
+		" WHERE gametype = '' AND map = ''"
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 
@@ -64,7 +64,7 @@ int main_html_player_list(int argc, char **argv)
 	offset = (pnum - 1) * 100;
 	snprintf(query, sizeof(query), queryfmt, order->sortby, offset);
 
-	foreach_player(query, &p)
+	foreach_player(query, &p, "", "")
 		html_player_list_entry(&p, NULL, 0);
 
 	if (!res)
@@ -73,7 +73,7 @@ int main_html_player_list(int argc, char **argv)
 		return EXIT_NOT_FOUND;
 
 	html_end_player_list();
-	print_page_nav(order->urlprefix, pnum, count_ranked_players() / 100 + 1);
+	print_page_nav(order->urlprefix, pnum, count_ranked_players("", "") / 100 + 1);
 	html_footer("player-list", relurl("/players/%s.json?p=%u", argv[2], pnum));
 
 	return EXIT_SUCCESS;

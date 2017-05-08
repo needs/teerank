@@ -36,6 +36,12 @@
  * elo scores in a special table, and then the rank calculation process
  * will flush this table at the same time it writes ranks.
  *
+ * Last but not least, we record ranks per maps, per gametypes, as well
+ * as a global rank, wich is like a combination of every maps for every
+ * gametype.  You will encounter an array with 3 entries while reading
+ * the code, that is to store temporary values for each of these ranking
+ * categories.
+ *
  * I'm not really familiar with relational databases yet so I could have
  * missed an obvious solution.  For now, this seems to work better than
  * everything else I tried.  Fingers crossed.
@@ -48,9 +54,22 @@
 #include <time.h>
 
 #include "teerank.h"
-#include "rank.h"
-#include "player.h"
 #include "database.h"
+#include "rank.h"
+#include "server.h"
+
+/* Contains necessarry info to rank a player */
+struct player_info {
+	char name[NAME_LENGTH];
+
+	struct {
+		int elo;
+		unsigned rank;
+	} all, gametype, map;
+
+	int is_rankable;
+	struct client *old, *new;
+};
 
 /*
  * We carry a player array through those functions, but we actually
@@ -58,7 +77,7 @@
  * reached the end or when a player is not loaded.  Its quite long and
  * verbose so put it in a macro for convenience.
  */
-#define _foreach_player(p) \
+#define foreach_player_info(p) \
 	for (i = 0, p = players; i < MAX_CLIENTS; i++, p++) \
 		if (!p->new); else
 
@@ -73,82 +92,101 @@ static struct client *find_client(struct server *server, const char *pname)
 	return NULL;
 }
 
-static int is_already_loaded(struct player *players, const char *pname)
+static int is_already_loaded(struct player_info *players, const char *pname)
 {
 	unsigned i;
-	struct player *p;
+	struct player_info *p;
 
-	_foreach_player(p)
+	foreach_player_info(p)
 		if (strcmp(p->name, pname) == 0)
 			return 1;
 
 	return 0;
 }
 
-struct pending {
-	const char *name;
-	int elo;
-};
-
-static void read_pending(struct sqlite3_stmt *res, void *_p)
+static void read_elo(struct sqlite3_stmt *res, void *_elo)
 {
-	struct pending *p = _p;
-	p->name = (char*)sqlite3_column_text(res, 0);
-	p->elo = sqlite3_column_int(res, 1);
-}
-
-/* Returns pending elo, if any */
-static int get_latest_elo(struct player *player)
-{
-	unsigned nrow;
-	sqlite3_stmt *res;
-	struct pending pending;
-
-	const char *query =
-		"SELECT name, elo"
-		" FROM pending"
-		" WHERE name = ?";
-
-	foreach_row(query, read_pending, &pending, "s", player->name);
-	if (!res || !nrow)
-		return player->elo;
-	else
-		return pending.elo;
+	int *elo = _elo;
+	*elo = sqlite3_column_int(res, 0);
 }
 
 /*
- * This loads every players in the "new" server.  One subtlety tho: we
- * are gonna rank those players, and for this purpose, we needs the
- * latest elo score available.  That's why we retrieve the elo score
- * from the "pending" table, if any.
+ * When an elo score cannot be loaded for some reasons, use this special
+ * value to skip the player for this ranking session.
  */
-static void load_players(struct server *old, struct server *new, struct player *players)
-{
-	unsigned i, nrow;
-	sqlite3_stmt *res;
-	char *pname;
+static const int ERROR_NO_ELO = INT_MIN;
 
-	const char *query =
-		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM players"
-		" WHERE name = ?";
+/*
+ * When ranking players, we need the latest score available.  Taking the
+ * score from the "ranks" table is not enough because there could be
+ * newer elo waiting in "pending".  So query "pending" first, and then
+ * "ranks".
+ */
+static int latest_elo(const char *pname, const char *gametype, const char *map)
+{
+	unsigned nrow;
+	sqlite3_stmt *res;
+	int elo;
+
+	const char *in_pending =
+		"SELECT elo"
+		" FROM pending"
+		" WHERE name = ? AND gametype = ? AND map = ?";
+
+	const char *in_ranks =
+		"SELECT elo"
+		" FROM ranks"
+		" WHERE name = ? AND gametype = ? AND map = ?";
+
+	foreach_row(in_pending, read_elo, &elo, "sss", pname, gametype, map);
+
+	if (res && nrow)
+		return elo;
+
+	foreach_row(in_ranks, read_elo, &elo, "sss", pname, gametype, map);
+
+	/*
+	 * We don't return DEFAULT_ELO on error, because we don't want
+	 * to overide the old elo score.
+	 */
+	if (res && nrow)
+		return elo;
+	else if (res)
+		return DEFAULT_ELO;
+	else
+		return ERROR_NO_ELO;
+}
+
+/* Load every unique players and query their latest elo score */
+static void load_players(struct server *old, struct server *new, struct player_info *players)
+{
+	struct player_info *p = players;
+	unsigned i;
+	char *pname;
 
 	for (i = 0; i < new->num_clients; i++) {
 		pname = new->clients[i].name;
 
-		/* Don't load duplicated players */
+		/* Avoid duplicates */
 		if (is_already_loaded(players, pname))
 			continue;
 
-		foreach_player(query, players, "s", pname);
-		if (!res || !nrow)
+		p->all.elo      = latest_elo(pname, "", "");
+		p->gametype.elo = latest_elo(pname, new->gametype, "");
+		p->map.elo      = latest_elo(pname, new->gametype, new->map);
+
+		/* If an elo could not be acquired, ignore the player */
+		if (
+			p->all.elo      == ERROR_NO_ELO ||
+			p->gametype.elo == ERROR_NO_ELO ||
+			p->map.elo      == ERROR_NO_ELO)
 			continue;
 
-		players->new = &new->clients[i];
-		players->old = find_client(old, pname);
-		players->elo = get_latest_elo(players);
+		snprintf(p->name, sizeof(p->name), "%s", pname);
+		p->new = &new->clients[i];
+		p->old = find_client(old, pname);
 
-		players++;
+		p++;
 	}
 }
 
@@ -166,13 +204,13 @@ static time_t get_elapsed_time(struct server *old, struct server *new)
  * the difference between old score average and new score average is
  * greater than 3.
  */
-static int is_new_game(struct player *players)
+static int is_new_game(struct player_info *players)
 {
-	struct player *p;
+	struct player_info *p;
 	unsigned i, nr_players = 0;
 	int oldtotal = 0, newtotal = 0;
 
-	_foreach_player(p) {
+	foreach_player_info(p) {
 		if (p->old && p->new) {
 			oldtotal += p->old->score;
 			newtotal += p->new->score;
@@ -190,19 +228,29 @@ static int is_new_game(struct player *players)
 }
 
 static void mark_rankable_players(
-	struct server *old, struct server *new, struct player *players)
+	struct server *old, struct server *new, struct player_info *players)
 {
 	unsigned i, rankable = 0;
-	struct player *p;
+	struct player_info *p;
 	time_t elapsed;
 
 	assert(players != NULL);
 
-	/* We don't rank non vanilla CTF servers for now */
-	if (!is_vanilla_ctf(new->gametype, new->map, new->max_clients))
+	/* We don't rank non vanilla servers for now */
+	if (!is_vanilla(new->gametype, new->map, new->max_clients))
 		goto dont_rank;
 
+	/* New games don't have a meaningful "old" state to rank against */
 	if (is_new_game(players))
+		goto dont_rank;
+
+	/*
+	 * Map and gametype should not have changed, otherwise it's like
+	 * a new game.
+	 */
+	if (
+		strcmp(new->gametype, old->gametype) != 0 ||
+		strcmp(new->map, old->map) != 0)
 		goto dont_rank;
 
 	elapsed = get_elapsed_time(old, new);
@@ -222,7 +270,7 @@ static void mark_rankable_players(
 		goto dont_rank;
 
 	/* Mark rankable players */
-	_foreach_player(p) {
+	foreach_player_info(p) {
 		if (p->old && p->new->ingame) {
 			p->is_rankable = 1;
 			rankable++;
@@ -239,7 +287,7 @@ static void mark_rankable_players(
 	return;
 
 dont_rank:
-	_foreach_player(p)
+	foreach_player_info(p)
 		p->is_rankable = 0;
 }
 
@@ -255,9 +303,9 @@ static double p(double delta)
 }
 
 /* Classic Elo formula for two players */
-static int compute_elo_delta(struct player *p1, struct player *p2)
+static void compute_elo_delta(struct player_info *p1, struct player_info *p2, int *delta)
 {
-	static const unsigned K = 25;
+	const unsigned K = 25;
 	int d1, d2;
 	double W;
 
@@ -275,7 +323,9 @@ static int compute_elo_delta(struct player *p1, struct player *p2)
 	else
 		W = 1.0;
 
-	return K * (W - p(p1->elo - p2->elo));
+	delta[0] = K * (W - p(p1->all.elo      - p2->all.elo));
+	delta[1] = K * (W - p(p1->gametype.elo - p2->gametype.elo));
+	delta[2] = K * (W - p(p1->map.elo      - p2->map.elo));
 }
 
 /*
@@ -287,49 +337,41 @@ static int compute_elo_delta(struct player *p1, struct player *p2)
  * other players and we make the average of every Elo deltas.  The Elo
  * delta is then added to the player's Elo points.
  */
-static int compute_new_elo(struct player *player, struct player *players)
+static void compute_new_elo(struct player_info *player, struct player_info *players, int *elo)
 {
-	struct player *p;
+	struct player_info *p;
 	unsigned i;
-	int count = 0, total = 0;
+
+	int count = 0;
+	int delta[3], total[3] = { 0 };
 
 	assert(player != NULL);
 	assert(players != NULL);
+	assert(elo != NULL);
 
-	_foreach_player(p) {
+	foreach_player_info(p) {
 		if (p != player && p->is_rankable) {
-			total += compute_elo_delta(player, p);
+			compute_elo_delta(player, p, delta);
+			total[0] += delta[0];
+			total[1] += delta[1];
+			total[2] += delta[2];
 			count++;
 		}
 	}
 
-	total = total / count;
-
-	return player->elo + total;
+	elo[0] = player->all.elo      + total[0] / count;
+	elo[1] = player->gametype.elo + total[1] / count;
+	elo[2] = player->map.elo      + total[2] / count;
 }
 
-static void verbose_elo_updates_header(struct player *players)
-{
-	int ranked = 0;
-	struct player *p;
-	unsigned i;
-
-	/* There will be elo updates if there are ranked players */
-	_foreach_player(p) {
-		if (p->is_rankable)
-			ranked++;
-	}
-
-	if (ranked)
-		verbose("%u players ranked", ranked);
-}
-
-static void verbose_elo_update(struct player *p, int newelo)
+static void verbose_elo_update(struct player_info *p, int *newelo)
 {
 	verbose(
-		"\t%-16s | %-16s | %4d | %d -> %d (%+d)",
-		p->name, p->clan, p->new->score - p->old->score,
-		p->elo, newelo, newelo - p->elo);
+		"\t%-16s | %4d | %4d %+3d | %4d %+3d | %4d %+3d",
+		p->name, p->new->score - p->old->score,
+		newelo[0], newelo[0] - p->all.elo,
+		newelo[1], newelo[1] - p->gametype.elo,
+		newelo[2], newelo[2] - p->map.elo);
 }
 
 /*
@@ -337,22 +379,37 @@ static void verbose_elo_update(struct player *p, int newelo)
  * To actually make them visible to the end user, one have to call
  * recompute_ranks().
  */
-static void update_elos(struct player *players)
+static void update_elos(
+	struct player_info *players, const char *gametype,
+	const char *map, const char *addr)
 {
-	struct player *p;
+	struct player_info *p;
 	unsigned i;
+	int elo[3];
+	unsigned ranked = 0;
 
 	const char *query =
-		"INSERT OR REPLACE INTO pending VALUES (?, ?)";
+		"INSERT OR REPLACE INTO pending VALUES(?, ?, ?, ?)";
 
 	assert(players != NULL);
+	assert(gametype != NULL);
+	assert(map != NULL);
+	assert(addr != NULL);
 
-	verbose_elo_updates_header(players);
+	foreach_player_info(p) {
+		if (p->is_rankable)
+			ranked++;
+	}
 
-	_foreach_player(p) {
+	if (ranked)
+		verbose("%s: %u players ranked, %s, %s", addr, ranked, gametype, map);
+
+	foreach_player_info(p) {
 		if (p->is_rankable) {
-			int elo = compute_new_elo(p, players);
-			exec(query, "si", p->name, elo);
+			compute_new_elo(p, players, elo);
+			exec(query, "sssi", p->name, "", "", elo[0]);
+			exec(query, "sssi", p->name, gametype, "", elo[1]);
+			exec(query, "sssi", p->name, gametype, map, elo[2]);
 			verbose_elo_update(p, elo);
 		}
 	}
@@ -360,58 +417,91 @@ static void update_elos(struct player *players)
 
 void rank_players(struct server *old, struct server *new)
 {
-	struct player players[MAX_CLIENTS] = { 0 };
+	struct player_info players[MAX_CLIENTS] = { 0 };
 
 	load_players(old, new, players);
 	mark_rankable_players(old, new, players);
-	update_elos(players);
+	update_elos(players, new->gametype, new->map, build_addr(new->ip, new->port));
 }
 
 /*
  * Take every pending changes in the "pending" table and definitively
- * commit them in the database.
+ * commit them in the database.  Ranks will be computed just after so
+ * don't bother keeping them.
  */
 static void apply_pending_elo(void)
 {
-	unsigned nrow;
-	sqlite3_stmt *res;
-	struct pending p;
-
 	const char *query =
-		"SELECT name, elo"
-		" FROM pending";
+		"INSERT OR REPLACE INTO ranks"
+		" (name, gametype, map, elo, rank)"
+		"  SELECT p.name, p.gametype, p.map, p.elo, '0' as rank"
+		"  FROM pending AS p";
 
-	foreach_row(query, read_pending, &p)
-		exec("UPDATE players SET elo = ? WHERE name = ?", "is", p.elo, p.name);
+	exec(query);
 }
 
 /*
  * For each player with pending change, record their new elo and rank,
- * then flush the pending table.  This does not write new elo in players
- * records, this is done by apply_pending_elo().
+ * then flush the pending table.  Elo and ranks should have been
+ * computed before calling this function.
  */
 static void record_changes(void)
 {
-	unsigned nrow;
-	sqlite3_stmt *res;
-	struct pending p;
-
+	/* Turns out we can do this in a single query */
 	const char *query =
-		"SELECT name, elo"
-		" FROM pending";
+		"INSERT OR REPLACE INTO ranks_historic"
+		" (name, ts, gametype, map, elo, rank)"
+		"  SELECT ranks.name, time('now'), ranks.gametype, ranks.map, ranks.elo, ranks.rank"
+		"  FROM pending JOIN ranks"
+		"   ON pending.name = ranks.name"
+		"    AND pending.gametype = ranks.gametype"
+		"    AND pending.map = ranks.map";
 
-	foreach_row(query, read_pending, &p)
-		record_elo_and_rank(p.name);
-
-	if (res && nrow)
+	if (exec(query));
 		exec("DELETE FROM pending");
 }
 
-static void read_name_and_elo(sqlite3_stmt *res, void *_p)
+struct pending {
+	const char *name;
+	const char *gametype;
+	const char *map;
+	int elo;
+};
+
+static void read_pending(struct sqlite3_stmt *res, void *_p)
 {
-	struct player *p = _p;
-	snprintf(p->name, sizeof(p->name), "%s", sqlite3_column_text(res, 0));
-	p->elo = sqlite3_column_int(res, 1);
+	struct pending *p = _p;
+	p->name = (char*)sqlite3_column_text(res, 0);
+	p->gametype = (char*)sqlite3_column_text(res, 1);
+	p->map = (char*)sqlite3_column_text(res, 2);
+	p->elo = sqlite3_column_int(res, 3);
+}
+
+/*
+ * This does only compute ranks of player given one gametype and one
+ * map.  It is then called multiple times by recompute_ranks() for each
+ * gametype and maps that needs ranks to be recomputed.
+ */
+static void do_recompute_ranks(const char *gametype, const char *map)
+{
+	unsigned nrow, rank = 0;
+	sqlite3_stmt *res;
+	struct pending p;
+
+	/* Reuse read_pending() by selecting the same set of fields */
+	const char *select =
+		"SELECT ranks.name, gametype, map, elo"
+		" FROM" RANKED_PLAYERS_TABLE
+		" WHERE gametype = ? AND map = ?"
+		" ORDER BY" SORT_BY_ELO;
+
+	const char *update =
+		"UPDATE ranks"
+		" SET rank = ?"
+		" WHERE name = ? AND gametype = ? AND map = ?";
+
+	foreach_row(select, read_pending, &p, "ss", gametype, map)
+		exec(update, "usss", ++rank, p.name, gametype, map);
 }
 
 /*
@@ -424,17 +514,24 @@ void recompute_ranks(void)
 {
 	unsigned nrow;
 	sqlite3_stmt *res;
-	struct player p;
+	struct pending p;
 	clock_t clk;
 
+	/*
+	 * We don't want to recompute ranks of every possible
+	 * combinations of gametype and maps.  That would be way too
+	 * expensive.  We only want to update ranks of the combinations
+	 * for wich there are changes.
+	 *
+	 * To query those changes, we can look for gametype and map in
+	 * the "pending" table.
+	 */
 	const char *query =
-		"SELECT name, elo"
-		" FROM players"
-		" ORDER BY" SORT_BY_ELO;
+		"SELECT name, gametype, map, elo"
+		" FROM pending"
+		" GROUP BY gametype, map";
 
 	clk = clock();
-
-	apply_pending_elo();
 
 	/*
 	 * Drop indices because they will be updated at each update, And
@@ -443,17 +540,20 @@ void recompute_ranks(void)
 	 */
 	drop_all_indices();
 
-	foreach_row(query, read_name_and_elo, &p) {
-		p.rank = nrow+1;
-		exec("UPDATE players SET rank = ? WHERE name = ?", "us", p.rank, p.name);
-	}
+	/* Commit pending changes in the database */
+	apply_pending_elo();
+
+	/* Update ranks */
+	foreach_row(query, read_pending, &p)
+		do_recompute_ranks(p.gametype, p.map);
+
+	/* Eventually, record new ranks */
+	record_changes();
 
 	create_all_indices();
 
-	record_changes();
-
 	clk = clock() - clk;
 	verbose(
-		"Recomputing ranks for %u players took %ums",
+		"Recomputing ranks of %u leagues took %ums",
 		nrow, (unsigned)((double)clk / CLOCKS_PER_SEC * 1000.0));
 }

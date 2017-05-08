@@ -30,9 +30,9 @@ static int json_player_historic(const char *pname)
 
 	const char *query =
 		"SELECT" ALL_PLAYER_RECORD_COLUMNS
-		" FROM player_historic"
+		" FROM ranks_historic"
 		" WHERE name = ?"
-		" ORDER BY timestamp";
+		" ORDER BY ts";
 
 	printf(",\"historic\":{\"records\":[");
 
@@ -60,8 +60,8 @@ int main_json_player(int argc, char **argv)
 
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM players"
-		" WHERE name = ?";
+		" FROM" RANKED_PLAYERS_TABLE
+		" WHERE players.name = ? AND gametype = '' AND map = ''";
 
 	if (argc != 3) {
 		fprintf(stderr, "usage: %s <player_name> full|short\n", argv[0]);

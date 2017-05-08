@@ -69,6 +69,9 @@ void read_extended_server(sqlite3_stmt *res, void *s);
 
 void read_server_client(sqlite3_stmt *res, void *c);
 
+/* Used when we want to immediately update a server */
+static const time_t EXPIRE_NOW = 0;
+
 /**
  * @struct server
  *
@@ -98,9 +101,9 @@ struct server {
 };
 
 /**
- * Check if the given server info describe a vanilla ctf server
+ * Check if the given server info describe a vanilla server
  */
-int is_vanilla_ctf(char *gametype, char *map, unsigned max_clients);
+int is_vanilla(char *gametype, char *map, unsigned max_clients);
 
 /**
  * Extract IP and port from a full address

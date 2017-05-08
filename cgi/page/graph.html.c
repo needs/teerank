@@ -50,9 +50,9 @@ static int fill_datasets(
 
 	const char *query =
 		"SELECT" ALL_PLAYER_RECORD_COLUMNS
-		" FROM player_historic"
+		" FROM ranks_historic"
 		" WHERE name = ?"
-		" ORDER BY timestamp"
+		" ORDER BY ts"
 		" LIMIT ?";
 
 	*dselo = DATASET_ZERO;

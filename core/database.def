@@ -1,0 +1,86 @@
+#define TABLE_DESC_VERSION "("                                          \
+	" version INTEGER,"                                             \
+	" PRIMARY KEY(version)"                                         \
+	")"
+
+#define TABLE_DESC_MASTERS "("                                          \
+	" node TEXT,"                                                   \
+	" service TEXT,"                                                \
+	" lastseen DATE,"                                               \
+	" expire DATE,"                                                 \
+	" PRIMARY KEY(node, service)"                                   \
+	")"
+
+#define TABLE_DESC_SERVERS "("                                          \
+	" ip TEXT,"                                                     \
+	" port TEXT,"                                                   \
+	" name TEXT,"                                                   \
+	" gametype TEXT,"                                               \
+	" map TEXT,"                                                    \
+	" lastseen DATE,"                                               \
+	" expire DATE,"                                                 \
+	" master_node TEXT,"                                            \
+	" master_service TEXT,"                                         \
+	" max_clients INTEGER,"                                         \
+	" PRIMARY KEY(ip, port),"                                       \
+	" FOREIGN KEY(master_node, master_service)"                     \
+	"  REFERENCES masters(node, service)"                           \
+	")"
+
+#define TABLE_DESC_PLAYERS "("                                          \
+	" name TEXT,"                                                   \
+	" clan TEXT,"                                                   \
+	" lastseen DATE,"                                               \
+	" server_ip TEXT,"                                              \
+	" server_port TEXT,"                                            \
+	" PRIMARY KEY(name),"                                           \
+	" FOREIGN KEY(server_ip, server_port)"                          \
+	"  REFERENCES servers(ip, port)"                                \
+	")"
+
+#define TABLE_DESC_SERVER_CLIENTS "("                                   \
+	" ip TEXT,"                                                     \
+	" port TEXT,"                                                   \
+	" name TEXT,"                                                   \
+	" clan TEXT,"                                                   \
+	" score INTEGER,"                                               \
+	" ingame BOOLEAN,"                                              \
+	" PRIMARY KEY(ip, port, name),"                                 \
+	" FOREIGN KEY(ip, port)"                                        \
+	"  REFERENCES servers(ip, port)"                                \
+	" FOREIGN KEY(name)"                                            \
+	"  REFERENCES players(name)"                                    \
+	")"
+
+#define TABLE_DESC_RANKS "("                                            \
+	" name TEXT,"                                                   \
+	" gametype TEXT,"                                               \
+	" map TEXT,"                                                    \
+	" elo INTEGER,"                                                 \
+	" rank UNSIGNED,"                                               \
+	" PRIMARY KEY(name, gametype, map),"                            \
+	" FOREIGN KEY(name)"                                            \
+	"  REFERENCES players(name)"                                    \
+	")"
+
+#define TABLE_DESC_RANK_HISTORIC "("                                    \
+	" name TEXT,"                                                   \
+	" ts DATE,"                                                     \
+	" gametype TEXT,"                                               \
+	" map TEXT,"                                                    \
+	" elo INTEGER,"                                                 \
+	" rank INTEGER,"                                                \
+	" PRIMARY KEY(name, ts, gametype, map),"                        \
+	" FOREIGN KEY(name)"                                            \
+	"  REFERENCES players(name)"                                    \
+	")"
+
+#define TABLE_DESC_PENDING "("                                          \
+	" name TEXT,"                                                   \
+	" gametype TEXT,"                                               \
+	" map TEXT,"                                                    \
+	" elo INTEGER,"                                                 \
+	" PRIMARY KEY(name, gametype, map),"                            \
+	" FOREIGN KEY(name)"                                            \
+	"  REFERENCES players(name)"                                    \
+	")"

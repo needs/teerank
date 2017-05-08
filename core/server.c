@@ -12,21 +12,29 @@
 #include "teerank.h"
 #include "json.h"
 
-int is_vanilla_ctf(char *gametype, char *map, unsigned max_clients)
+int is_vanilla(char *gametype, char *map, unsigned max_clients)
 {
 	const char **maps = (const char*[]) {
-		"ctf1", "ctf2", "ctf3", "ctf4", "ctf5", "ctf6", "ctf7", NULL
+		"ctf1", "ctf2", "ctf3", "ctf4", "ctf5", "ctf6", "ctf7",
+		"dm1", "dm2", "dm6", "dm7", "dm8", "dm9",
+		NULL
 	};
 
-	if (strcmp(gametype, "CTF") != 0)
-		return 0;
+	const char **gametypes = (const char*[]) {
+		"CTF", "DM", "TDM",
+		NULL
+	};
 
 	if (max_clients > MAX_CLIENTS)
 		return 0;
 
+	while (*gametypes && strcmp(gametype, *gametypes) != 0)
+		gametypes++;
+	if (!*gametypes)
+		return 0;
+
 	while (*maps && strcmp(map, *maps) != 0)
 		maps++;
-
 	if (!*maps)
 		return 0;
 

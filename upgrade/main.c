@@ -1,238 +1,142 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <limits.h>
-#include <errno.h>
-#include <dirent.h>
-#include <string.h>
 
-/* prefix-header is buggy and didn't prefixed this constant */
-#define PACKET_HEADER_SIZE 6
-
+#include "database.h"
 #include "teerank.h"
-#include "player.h"
-#include "server.h"
 
-#include "teerank6/core/config.h"
-#include "teerank6/core/player.h"
-#include "teerank6/core/server.h"
-#include "teerank6/core/clan.h"
+struct old_player {
+	const char *name;
+	const char *clan;
+	int elo;
+	unsigned rank;
+	time_t lastseen;
+	const char *server_ip;
+	const char *server_port;
+};
 
-/*
- * Copy the whole historic in the table "player_historic".
- */
-static int upgrade_historic(const char *pname, struct teerank6_historic *hist)
+static void read_old_player(sqlite3_stmt *res, void *_p)
 {
-	struct teerank6_record *r;
+	struct old_player *p = _p;
 
+	p->name = (char*)sqlite3_column_text(res, 0);
+	p->clan = (char*)sqlite3_column_text(res, 1);
+
+	p->elo = sqlite3_column_int(res, 2);
+	p->rank = sqlite3_column_int64(res, 3);
+
+	p->lastseen = sqlite3_column_int64(res, 4);
+	p->server_ip = (char*)sqlite3_column_text(res, 5);
+	p->server_port = (char*)sqlite3_column_text(res, 6);
+}
+
+static int upgrade_player(struct old_player *oldp)
+{
 	const char *query =
-		"INSERT INTO player_historic(name, timestamp, elo, rank)"
-		" VALUES (?, ?, ?, ?)";
+		"INSERT INTO _players"
+		" VALUES(?, ?, ?, ?, ?)";
 
-	for (r = hist->first; r; r = r->next) {
-		struct teerank6_player_record *data = teerank6_record_data(hist, r);
+#define bind_old_player(p) "sstss", \
+	(p)->name, (p)->clan, (p)->lastseen, (p)->server_ip, (p)->server_port
 
-		/* New database only expect valid values */
-		if (data->elo == TEERANK6_INVALID_ELO)
-			continue;
-		if (data->rank == TEERANK6_UNRANKED)
-			continue;
-
-		if (!exec(query, "stiu", pname, r->time, data->elo, data->rank))
-			return 0;
-	}
-
-	return 1;
-}
-
-static unsigned char hextodec(char c)
-{
-	switch (c) {
-	case '0': return 0;
-	case '1': return 1;
-	case '2': return 2;
-	case '3': return 3;
-	case '4': return 4;
-	case '5': return 5;
-	case '6': return 6;
-	case '7': return 7;
-	case '8': return 8;
-	case '9': return 9;
-	case 'A':
-	case 'a': return 10;
-	case 'B':
-	case 'b': return 11;
-	case 'C':
-	case 'c': return 12;
-	case 'D':
-	case 'd': return 13;
-	case 'E':
-	case 'e': return 14;
-	case 'F':
-	case 'f': return 15;
-	default: return 0;
-	}
-}
-
-static void hexname_to_name(const char *hex, char *name)
-{
-	size_t size;
-
-	for (size = 0; hex[0] && hex[1] && size < NAME_LENGTH; hex += 2, name++, size++)
-		*name = hextodec(hex[0]) * 16 + hextodec(hex[1]);
-
-	*(name - 1) = '\0';
-}
-
-static int upgrade_player(struct teerank6_player *old, struct player *new)
-{
-	hexname_to_name(old->name, new->name);
-	hexname_to_name(old->clan, new->clan);
-
-	/* New database always expect valid elo points */
-	if (old->elo == TEERANK6_INVALID_ELO)
-		new->elo = DEFAULT_ELO;
-	else
-		new->elo = old->elo;
-
-	new->rank = old->rank;
-
-	strcpy(new->server_ip, old->server_ip);
-	strcpy(new->server_port, old->server_port);
-
-	new->lastseen = mktime(&old->lastseen);
-
-	return upgrade_historic(new->name, &old->hist);
+	return exec(query, bind_old_player(oldp));
 }
 
 static void upgrade_players(void)
 {
-	struct teerank6_player old;
-	struct player new;
+	int ret = 0;
+	unsigned nrow;
+	sqlite3_stmt *res;
 
-	char path[PATH_MAX];
-	struct dirent *dp;
-	DIR *dir;
+	struct old_player oldp;
 
-	if (!teerank6_dbpath(path, PATH_MAX, "players"))
+	const char *select_old_players =
+		"SELECT *"
+		" FROM players";
+
+	const char *add_rank =
+		"INSERT INTO ranks"
+		" VALUES(?, ?, ?, ?, ?)";
+
+	if (!exec("CREATE TABLE _players" TABLE_DESC_PLAYERS))
 		exit(EXIT_FAILURE);
 
-	if ((dir = opendir(path)) == NULL) {
-		perror(path);
+	foreach_row(select_old_players, read_old_player, &oldp) {
+		ret |= upgrade_player(&oldp);
+
+#define bind_rank(oldp, gametype) "sssiu", \
+	(oldp).name, (gametype), "", (oldp).elo, (oldp).rank
+
+		/* Since we upgraded all players, ranks remain meaningful */
+		ret |= exec(add_rank, bind_rank(oldp, ""));
+		ret |= exec(add_rank, bind_rank(oldp, "CTF"));
+	}
+
+	ret |= exec("DROP TABLE players");
+	ret |= exec("ALTER TABLE _players RENAME TO players");
+
+	if (!res || !ret)
 		exit(EXIT_FAILURE);
-	}
-
-	teerank6_init_player(&old);
-
-	while ((dp = readdir(dir))) {
-		if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
-			continue;
-
-		teerank6_read_player(&old, dp->d_name);
-		if (upgrade_player(&old, &new))
-			write_player(&new);
-	}
-
-	closedir(dir);
 }
 
-static void upgrade_server(
-	struct teerank6_server *old, struct server *new)
+struct pending {
+	const char *name;
+	int elo;
+};
+
+static void read_pending(sqlite3_stmt *res, void *_p)
 {
-	unsigned i;
-
-	strcpy(new->ip, old->ip);
-	strcpy(new->port, old->port);
-	strcpy(new->name, old->name);
-	strcpy(new->gametype, old->gametype);
-	strcpy(new->map, old->map);
-
-	new->lastseen = old->lastseen;
-	new->expire = old->expire;
-
-	strcpy(new->master_node, "");
-	strcpy(new->master_service, "");
-
-	new->num_clients = old->num_clients;
-	new->max_clients = old->max_clients;
-
-	for (i = 0; i < new->num_clients; i++) {
-		hexname_to_name(old->clients[i].name, new->clients[i].name);
-		hexname_to_name(old->clients[i].clan, new->clients[i].clan);
-		new->clients[i].score = old->clients[i].score;
-		new->clients[i].ingame = old->clients[i].ingame;
-	}
+	struct pending *p = _p;
+	p->name = (char*)sqlite3_column_text(res, 0);
+	p->elo = sqlite3_column_int(res, 1);
 }
 
-static void upgrade_servers(void)
+/* "pending" table now have two new columns: "gametype" and "maps" */
+static void upgrade_pending(void)
 {
-	struct teerank6_server old;
-	struct server new;
+	unsigned nrow;
+	sqlite3_stmt *res;
+	struct pending p;
 
-	char path[PATH_MAX];
-	struct dirent *dp;
-	DIR *dir;
+	const char *select_pendings =
+		"SELECT name, elo FROM pending";
 
-	if (!teerank6_dbpath(path, PATH_MAX, "servers"))
-		exit(EXIT_FAILURE);
+	const char *add_pending =
+		"INSERT INTO _pending VALUES(?, 'CTF', '', ?)";
 
-	if ((dir = opendir(path)) == NULL) {
-		perror(path);
-		exit(EXIT_FAILURE);
-	}
+	if (!exec("CREATE TABLE _pending" TABLE_DESC_PENDING))
+		return;
 
-	while ((dp = readdir(dir))) {
-		if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
-			continue;
+	foreach_row(select_pendings, read_pending, &p)
+		exec(add_pending, "si", p.name, p.elo);
 
-		teerank6_read_server(&old, dp->d_name);
-
-		if (old.ip && old.port) {
-			upgrade_server(&old, &new);
-			write_server(&new);
-			write_server_clients(&new);
-		}
-	}
-
-	closedir(dir);
+	exec("DROP TABLE pending");
+	exec("ALTER TABLE _pending RENAME TO pending");
 }
 
 int main(int argc, char *argv[])
 {
-	/* Teerank 3.x use $TEERANK_ROOT to locate database */
-	setenv("TEERANK_ROOT", ".teerank", 0);
-
-	init_teerank(0);
-	teerank6_load_config(1);
-
-	/* Non-stable version may not be re-upgradable */
-	if (!STABLE_VERSION) {
-		char buf[] = "continue";
-
-		fprintf(stderr, "/!\\ WARNING /!\\\n\n");
-		fprintf(stderr, "Data are being upgraded to an unstable database format.\n");
-		fprintf(stderr, "This format may not be portable to newer stable release.\n\n");
-		fprintf(stderr, "Type \"%s\" to proceed: ", buf);
-		scanf("%8s", buf);
-
-		if (strcmp(buf, "continue") != 0) {
-			fprintf(stderr, "Upgrade canceled\n");
-			return EXIT_FAILURE;
-		}
+	if (argc != 1) {
+		fprintf(stderr, "usage: %s\n", argv[0]);
+		return EXIT_FAILURE;
 	}
 
-	printf("Upgrading from %u to %u\n", DATABASE_VERSION - 1, DATABASE_VERSION);
+	init_teerank(UPGRADABLE);
 
-	drop_all_indices();
 	exec("BEGIN");
 
-	upgrade_players();
-	upgrade_servers();
+	drop_all_indices();
 
-	exec("COMMIT");
+	exec("CREATE TABLE ranks" TABLE_DESC_RANKS);
+	exec("CREATE TABLE ranks_historic" TABLE_DESC_RANK_HISTORIC);
+
+	upgrade_pending();
+	upgrade_players();
+
 	create_all_indices();
 
-	printf("Success\n");
+	exec("UPDATE version SET version = ?", "i", DATABASE_VERSION);
+
+	exec("COMMIT");
 
 	return EXIT_SUCCESS;
 }

@@ -20,8 +20,8 @@ int main_html_player(int argc, char **argv)
 
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM players"
-		" WHERE name = ?";
+		" FROM" RANKED_PLAYERS_TABLE
+		" WHERE players.name = ? AND gametype = '' AND map = ''";
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s <player_name>\n", argv[0]);

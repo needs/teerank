@@ -3,6 +3,9 @@
 
 #include "server.h"
 
+/* Number of points new players start with */
+static const int DEFAULT_ELO = 1500;
+
 /*
  * Given two server state, rank players and set pending elo updates, if
  * any.  Use recompute_ranks() to actually commit those updates and

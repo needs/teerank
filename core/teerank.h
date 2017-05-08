@@ -25,12 +25,18 @@ struct config {
 
 extern struct config config;
 
+/* Flags for init_teerank() */
+enum {
+	READ_ONLY  = (1 << 0),
+	UPGRADABLE = (1 << 1)
+};
+
 /*
  * Load configuration from the environment, open the database and
  * perform some check as well.  Failure are fatal at this step so it
  * exit(EXIT_FAILURE) right away.
  */
-void init_teerank(int readonly);
+void init_teerank(int flags);
 
 /* Print the message only when TEERANK_VERBOSE is set */
 void verbose(const char *fmt, ...);

@@ -20,7 +20,7 @@ struct config config = {
 #include "config.def"
 };
 
-void init_teerank(int readonly)
+void init_teerank(int flags)
 {
 	char *tmp;
 
@@ -38,7 +38,7 @@ void init_teerank(int readonly)
 	tzset();
 
 	/* Open database now so we can check it's version */
-	if (!init_database(readonly))
+	if (!init_database(flags & READ_ONLY))
 		exit(EXIT_FAILURE);
 
 	/*
@@ -52,14 +52,26 @@ void init_teerank(int readonly)
 	/* Checks database version against our */
 	int version = database_version();
 
-	if (version > DATABASE_VERSION) {
-		fprintf(stderr, "%s: Database too modern, upgrade your teerank installation\n",
-		        config.dbpath);
-		exit(EXIT_FAILURE);
-	} else if (version < DATABASE_VERSION) {
-		fprintf(stderr, "%s: Database outdated, upgrade it with teerank-upgrade\n",
-		        config.dbpath);
-		exit(EXIT_FAILURE);
+	if (flags & UPGRADABLE) {
+		if (version < DATABASE_VERSION - 1) {
+			fprintf(stderr, "%s: Database too old to be upgraded\n",
+			        config.dbpath);
+			exit(EXIT_FAILURE);
+		} else if (version > DATABASE_VERSION - 1) {
+			fprintf(stderr, "%s: Database already upgraded\n",
+			        config.dbpath);
+			exit(EXIT_FAILURE);
+		}
+	} else {
+		if (version > DATABASE_VERSION) {
+			fprintf(stderr, "%s: Database too modern, upgrade your teerank installation\n",
+			        config.dbpath);
+			exit(EXIT_FAILURE);
+		} else if (version < DATABASE_VERSION) {
+			fprintf(stderr, "%s: Database outdated, upgrade it with teerank-upgrade\n",
+			        config.dbpath);
+			exit(EXIT_FAILURE);
+		}
 	}
 }
 

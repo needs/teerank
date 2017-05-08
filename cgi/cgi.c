@@ -454,7 +454,7 @@ int main(int argc, char **argv)
 	 * We want to use read only mode to prevent any security exploit
 	 * to be able to write the database.
 	 */
-	init_teerank(1);
+	init_teerank(READ_ONLY);
 	init_cgi();
 
 	if (argc != 1 || !load_path_and_query(&path, &query)) {

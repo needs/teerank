@@ -16,7 +16,9 @@ CURRENT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 CFLAGS += \
 	-std=c89 \
 	-Wall -Werror \
-	-Icore -Icgi \
+	-Icore -Icgi
+
+LDFLAGS += \
 	-lm \
 	-lsqlite3
 
@@ -42,17 +44,13 @@ CGI = teerank.cgi
 
 BINS = $(UPGRADE_BIN) $(UPDATE_BIN) $(CGI)
 
-$(shell mkdir -p generated)
-
 # Add debugging symbols and optimizations to check for more warnings
 debug: CFLAGS += -O -g
-debug: CFLAGS_EXTRA = -O -g
-debug: $(BINS) $(CGI)
+debug: $(BINS)
 
 # Remove assertions and enable optimizations
 release: CFLAGS += -DNDEBUG -O2
-release: CFLAGS_EXTRA = -DNDEBUG -O2
-release: $(BINS) $(CGI)
+release: $(BINS)
 
 # Object files
 core_objs    = $(patsubst %.c,%.o,$(wildcard core/*.c))
@@ -85,11 +83,11 @@ $(BINS):
 #
 
 clean:
-	rm -f core/*.o update/*.o upgrade/*.o cgi/*.o cgi/page/*.o build/*.o
-	rm -f $(BINS)
-	rm -f $(PREVIOUS_LIB)
-	rm -f build/prefix-header
-	rm -rf .build/
+	@rm -f $(core_objs)
+	@rm -f $(update_objs)
+	@rm -f $(upgrade_objs)
+	@rm -f $(cgi_objs)
+	@rm -f $(BINS)
 
 #
 # Install

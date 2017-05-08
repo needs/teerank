@@ -75,8 +75,13 @@ $(UPDATE_BIN):  $(core_objs) $(update_objs)
 $(UPGRADE_BIN): $(core_objs) $(upgrade_objs)
 $(CGI):         $(core_objs) $(cgi_objs)
 
+%.o: %.c
+	@$(CC) $(CFLAGS) -c -o $@ $<
+	@echo "BUILD $@"
+
 $(BINS):
-	$(CC) $(CFLAGS) -o $@ $^
+	@$(CC) $(LDFLAGS) -o $@ $^
+	@echo "LINK $@"
 
 #
 # Clean

@@ -21,12 +21,6 @@ static char *order;
 static unsigned offset;
 static unsigned pnum;
 
-enum pcs {
-	PCS_PLAYER,
-	PCS_CLAN,
-	PCS_SERVER
-};
-
 static int print_player_list(void)
 {
 	struct player player;
@@ -125,31 +119,9 @@ int main_html_list(int argc, char **argv)
 	enum pcs pcs;
 	int ret = EXIT_FAILURE;
 
-	if (argc != 6) {
-		fprintf(
-			stderr, "usage: %s players|clans|servers"
-			" <gametype> <map> <sort_order> <page_number>\n",
-			argv[0]);
-		return EXIT_FAILURE;
-	}
-
-	if (strcmp(argv[1], "players") == 0)
-		pcs = PCS_PLAYER;
-	else if (strcmp(argv[1], "clans") == 0)
-		pcs = PCS_CLAN;
-	else if (strcmp(argv[1], "servers") == 0)
-		pcs = PCS_SERVER;
-	else {
-		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", argv[1]);
-		return EXIT_FAILURE;
-	}
-
-	gametype = argv[2];
-	map = argv[3];
-	order = argv[4];
-
-	if (!parse_pnum(argv[5], &pnum))
-		return EXIT_FAILURE;
+	ret = parse_list_args(argc, argv, &pcs, &gametype, &map, &order, &pnum);
+	if (ret != EXIT_SUCCESS)
+		return ret;
 
 	offset = (pnum - 1) * 100;
 

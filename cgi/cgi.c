@@ -48,6 +48,39 @@ int parse_pnum(const char *str, unsigned *pnum)
 	return 1;
 }
 
+int parse_list_args(
+	int argc, char **argv,
+	enum pcs *pcs, char **gametype, char **map, char **order, unsigned *pnum)
+{
+	if (argc != 6) {
+		fprintf(
+			stderr, "usage: %s players|clans|servers"
+			" <gametype> <map> <sort_order> <page_number>\n",
+			argv[0]);
+		return EXIT_FAILURE;
+	}
+
+	if (strcmp(argv[1], "players") == 0)
+		*pcs = PCS_PLAYER;
+	else if (strcmp(argv[1], "clans") == 0)
+		*pcs = PCS_CLAN;
+	else if (strcmp(argv[1], "servers") == 0)
+		*pcs = PCS_SERVER;
+	else {
+		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", argv[1]);
+		return EXIT_FAILURE;
+	}
+
+	*gametype = argv[2];
+	*map = argv[3];
+	*order = argv[4];
+
+	if (!parse_pnum(argv[5], pnum))
+		return EXIT_FAILURE;
+
+	return EXIT_SUCCESS;
+}
+
 static int safe_for_urls(char c)
 {
 	if (isalnum(c))

@@ -22,8 +22,18 @@ extern struct cgi_config {
 #define CLANS_PER_PAGE   100;
 #define SERVERS_PER_PAGE 100;
 
-/* Parse page number (used by *-list) */
+/* PCS stands for Player Clan Server */
+enum pcs {
+	PCS_PLAYER,
+	PCS_CLAN,
+	PCS_SERVER
+};
+
 int parse_pnum(const char *str, unsigned *pnum);
+
+int parse_list_args(
+	int argc, char **argv,
+	enum pcs *pcs, char **gametype, char **map, char **order, unsigned *pnum);
 
 unsigned char hextodec(char c);
 

@@ -149,17 +149,9 @@ PAGE_SETUP(html_list)
 {
 	set_list_args(route, url, "rank");
 }
-PAGE_SETUP(json_player_list)
+PAGE_SETUP(json_list)
 {
 	set_list_args(route, url, "rank");
-}
-PAGE_SETUP(json_clan_list)
-{
-	set_list_args(route, url, "nmembers");
-}
-PAGE_SETUP(json_server_list)
-{
-	set_list_args(route, url, "nplayers");
 }
 
 PAGE_SETUP(html_player)

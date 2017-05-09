@@ -62,9 +62,7 @@ int main_html_server(int argc, char **argv);
 int main_json_server(int argc, char **argv);
 
 int main_html_list(int argc, char **argv);
-int main_json_player_list(int argc, char **argv);
-int main_json_clan_list(int argc, char **argv);
-int main_json_server_list(int argc, char **argv);
+int main_json_list(int argc, char **argv);
 
 int main_txt_robots(int argc, char **argv);
 int main_xml_sitemap(int argc, char **argv);

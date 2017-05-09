@@ -21,14 +21,17 @@ DIR("player")
 	DIR("*")
 		SVG("historic", graph)
 	END()
+	JSON("*", player)
 	HTML("*", player)
 END()
 
 DIR("clan")
+	JSON("*", clan)
 	HTML("*", clan)
 END()
 
 DIR("server")
+	JSON("*", server)
 	HTML("*", server)
 END()
 
@@ -39,14 +42,14 @@ END()
 #define LIST(name)                                                      \
 DIR(#name "s")                                                          \
 	DIR("*")                                                        \
+		JSON("*", list)                                         \
 		HTML("*", list)                                         \
-		JSON("*", name##_list)                                  \
 	END()                                                           \
-	JSON("*", name)                                                 \
+	JSON("*", list)                                                 \
 	HTML("*", list)                                                 \
 END()                                                                   \
 HTML(#name "s", list)                                                   \
-JSON(#name "s", name##_list)
+JSON(#name "s", list)
 
 LIST(player)
 LIST(clan)

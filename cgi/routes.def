@@ -39,13 +39,13 @@ END()
 #define LIST(name)                                                      \
 DIR(#name "s")                                                          \
 	DIR("*")                                                        \
-		HTML("*", name##_list)                                  \
+		HTML("*", list)                                         \
 		JSON("*", name##_list)                                  \
 	END()                                                           \
 	JSON("*", name)                                                 \
-	HTML("*", name##_list)                                          \
+	HTML("*", list)                                                 \
 END()                                                                   \
-HTML(#name "s", name##_list)                                            \
+HTML(#name "s", list)                                                   \
 JSON(#name "s", name##_list)
 
 LIST(player)
@@ -59,7 +59,7 @@ DIR("players")
 END()
 
 /* Root */
-HTML("", player_list)
+HTML("", list)
 
 #undef DIR
 #undef END

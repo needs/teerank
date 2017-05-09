@@ -105,9 +105,10 @@ static char *convert_hexname(char *hexname)
  * the found sort order and page number.  Player list, clan list and
  * server list share this pattern.
  */
-static void set_pagelist_args(
+static void set_list_args(
 	struct route *route, struct url *url, char *order)
 {
+	char *pcs = "players";
 	char *p = "1";
 	char *map = "";
 	char *gametype = "CTF";
@@ -122,15 +123,18 @@ static void set_pagelist_args(
 			order = url->args[i].val;
 	}
 
+	if (url->ndirs > 0)
+		pcs = url->dirs[0];
 	if (url->ndirs > 1)
 		gametype = url->dirs[1];
 	if (url->ndirs > 2)
 		map = url->dirs[2];
 
-	route->args[1] = gametype;
-	route->args[2] = map;
-	route->args[3] = order;
-	route->args[4] = p;
+	route->args[1] = pcs;
+	route->args[2] = gametype;
+	route->args[3] = map;
+	route->args[4] = order;
+	route->args[5] = p;
 }
 
 /*
@@ -141,29 +145,21 @@ static void set_pagelist_args(
 #define PAGE_SETUP(name) \
 static void setup_##name(struct route *route, struct url *url)
 
-PAGE_SETUP(html_player_list)
+PAGE_SETUP(html_list)
 {
-	set_pagelist_args(route, url, "rank");
+	set_list_args(route, url, "rank");
 }
 PAGE_SETUP(json_player_list)
 {
-	set_pagelist_args(route, url, "rank");
-}
-PAGE_SETUP(html_clan_list)
-{
-	set_pagelist_args(route, url, "nmembers");
+	set_list_args(route, url, "rank");
 }
 PAGE_SETUP(json_clan_list)
 {
-	set_pagelist_args(route, url, "nmembers");
-}
-PAGE_SETUP(html_server_list)
-{
-	set_pagelist_args(route, url, "nplayers");
+	set_list_args(route, url, "nmembers");
 }
 PAGE_SETUP(json_server_list)
 {
-	set_pagelist_args(route, url, "nplayers");
+	set_list_args(route, url, "nplayers");
 }
 
 PAGE_SETUP(html_player)
@@ -229,7 +225,7 @@ PAGE_SETUP(html_teerank2_player_list)
 }
 static int main_html_teerank2_player_list(int argc, char **argv)
 {
-	return main_html_player_list(argc, argv);
+	return EXIT_NOT_FOUND;
 }
 
 /* URLs for player graph looked like "/players/<hexname>/elo+rank.svg" */

@@ -18,7 +18,7 @@
 
 static void start_player_list(void)
 {
-	html_start_player_list(1, 1, 0);
+	html_start_player_list(NULL, 0, NULL);
 }
 
 static void print_player(unsigned pos, void *data)

@@ -34,15 +34,14 @@ static int print_player_list(void)
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 
-	if (strcmp(order, "rank") == 0) {
-		html_start_player_list(1, 0, pnum);
+	if (strcmp(order, "rank") == 0)
 		sortby = SORT_BY_RANK;
-	} else if (strcmp(order, "lastseen") == 0) {
-		html_start_player_list(0, 1, pnum);
+	else if (strcmp(order, "lastseen") == 0)
 		sortby = SORT_BY_LASTSEEN;
-	} else {
+	else
 		return EXIT_FAILURE;
-	}
+
+	html_start_player_list("/players", pnum, order);
 
 	snprintf(query, sizeof(query), queryfmt, sortby, (pnum - 1) * 100);
 	foreach_player(query, &player, "ss", gametype, map)

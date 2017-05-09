@@ -38,7 +38,7 @@ void html_header(
 void html_footer(const char *jsonanchor, const char *jsonurl);
 
 /* Player list */
-void html_start_player_list(int byrank, int bylastseen, unsigned pnum);
+void html_start_player_list(char *listurl, unsigned pnum, char *order);
 void html_end_player_list(void);
 void html_player_list_entry(
 	struct player *p, struct client *c, int no_clan_link);

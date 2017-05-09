@@ -442,46 +442,29 @@ void html_footer(const char *jsonanchor, const char *jsonurl)
 	html("</html>");
 }
 
-static void start_player_list(
-	int onlinelist, int byrank, int bylastseen, unsigned pnum)
+struct colinfo {
+	char *name;
+	char *order;
+};
+
+static void html_list_header(
+	char *class, char *listurl, unsigned pnum, char *order, struct colinfo *col)
 {
-	const char *selected = "<img src=\"/images/downarrow.png\"/>";
-	const char *unselected = "<img src=\"/images/dash.png\"/>";
+	const char *down = "<img src=\"/images/downarrow.png\"/>";
+	const char *dash = "<img src=\"/images/dash.png\"/>";
 
-	assert(onlinelist || byrank || bylastseen);
-
-	if (byrank && bylastseen)
-		selected = unselected = "";
-
-	html("<table class=\"playerlist\">");
+	html("<table class=\"%s\">", class);
 	html("<thead>");
 	html("<tr>");
-	html("<th></th>");
-	html("<th>Name</th>");
-	html("<th>Clan</th>");
 
-	/* Online player also have a score */
-	if (onlinelist)
-		html("<th>Score</th>");
-
-	if (onlinelist)
-		html("<th>Elo</th>");
-	else if (byrank)
-		html("<th>Elo%s</th>", selected);
-	else
-		html("<th><a href=\"/players?p=%u\">Elo%s</a></th>",
-		     pnum, unselected);
-
-	/*
-	 * No need to display the last seen date if all players on the
-	 * list are expected to be online
-	 */
-	if (!onlinelist) {
-		if (bylastseen)
-			html("<th>Last seen%s</th>", selected);
+	for (; col->name; col++) {
+		if (!col->order || !order)
+			html("<th>%s</th>", col->name);
+		else if (strcmp(order, col->order) == 0)
+			html("<th>%s%s</th>", col->name, down);
 		else
-			html("<th><a href=\"/players/by-lastseen?p=%u\">Last seen%s</a></th>",
-			     pnum, unselected);
+			html("<th><a href=\"%s?sort=%s&p=%u\">%s%s</a></th>",
+			     listurl, col->order, pnum, col->name, dash);
 	}
 
 	html("</tr>");
@@ -489,26 +472,49 @@ static void start_player_list(
 	html("<tbody>");
 }
 
-void html_start_player_list(int byrank, int bylastseen, unsigned pnum)
+static void html_list_footer(void)
 {
-	start_player_list(0, byrank, bylastseen, pnum);
+	html("</tbody>");
+	html("</table>");
+}
+
+void html_start_player_list(char *listurl, unsigned pnum, char *order)
+{
+	struct colinfo colinfo[] = {
+		{ "" },
+		{ "Name" },
+		{ "Clan" },
+		{ "Elo", "rank" },
+		{ "Last seen", "lastseen" },
+		{ NULL }
+	};
+
+	html_list_header("playerlist", listurl, pnum, order, colinfo);
 }
 
 void html_start_online_player_list(void)
 {
-	start_player_list(1, 0, 0, 0);
+	struct colinfo colinfo[] = {
+		{ "" },
+		{ "Name" },
+		{ "Clan" },
+		{ "Score" },
+		{ "Elo" },
+		{ "Last seen" },
+		{ NULL }
+	};
+
+	html_list_header("playerlist", "", 0, "", colinfo);
 }
 
 void html_end_player_list(void)
 {
-	html("</tbody>");
-	html("</table>");
+	html_list_footer();
 }
 
 void html_end_online_player_list(void)
 {
-	html("</tbody>");
-	html("</table>");
+	html_list_footer();
 }
 
 static void player_list_entry(
@@ -578,21 +584,19 @@ void html_online_player_list_entry(struct player *p, struct client *c)
 
 void html_start_clan_list(void)
 {
-	html("<table class=\"clanlist\">");
-	html("<thead>");
-	html("<tr>");
-	html("<th></th>");
-	html("<th>Name</th>");
-	html("<th>Members</th>");
-	html("</tr>");
-	html("</thead>");
-	html("<tbody>");
+	struct colinfo colinfo[] = {
+		{ "" },
+		{ "Name" },
+		{ "Members" },
+		{ NULL }
+	};
+
+	html_list_header("clanlist", "", 0, "", colinfo);
 }
 
 void html_end_clan_list(void)
 {
-	html("</tbody>");
-	html("</table>");
+	html_list_footer();
 }
 
 void html_clan_list_entry(
@@ -615,23 +619,21 @@ void html_clan_list_entry(
 
 void html_start_server_list(void)
 {
-	html("<table class=\"serverlist\">");
-	html("<thead>");
-	html("<tr>");
-	html("<th></th>");
-	html("<th>Name</th>");
-	html("<th>Gametype</th>");
-	html("<th>Map</th>");
-	html("<th>Players</th>");
-	html("</tr>");
-	html("</thead>");
-	html("<tbody>");
+	struct colinfo colinfo[] = {
+		{ "" },
+		{ "Name" },
+		{ "Gametype" },
+		{ "Map" },
+		{ "Players" },
+		{ NULL }
+	};
+
+	html_list_header("serverlist", "", 0, "", colinfo);
 }
 
 void html_end_server_list(void)
 {
-	html("</tbody>");
-	html("</table>");
+	html_list_footer();
 }
 
 void html_server_list_entry(unsigned pos, struct server *server)

@@ -36,7 +36,7 @@ int main_html_clan(int argc, char **argv)
 	html_header(cname, cname, "/clans", NULL);
 	html("<h2>%s</h2>", escape(cname));
 
-	html_start_player_list(1, 1, 0);
+	html_start_player_list(NULL, 0, NULL);
 
 	foreach_player(query, &p, "s", cname)
 		html_player_list_entry(&p, NULL, 1);

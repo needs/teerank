@@ -306,9 +306,9 @@ void player_lastseen_link(time_t lastseen, const char *addr)
 		html("<span class=\"%s\">%s</span>", timescale, text);
 }
 
-struct tab CTF_TAB = { "CTF", "/" };
-struct tab DM_TAB  = { "DM",  "/" };
-struct tab TDM_TAB = { "TDM", "/" };
+struct tab CTF_TAB = { "CTF", "/players/CTF" };
+struct tab DM_TAB  = { "DM",  "/players/DM"  };
+struct tab TDM_TAB = { "TDM", "/players/TDM" };
 struct tab ABOUT_TAB = { "About", "/about" };
 
 static void print_top_tabs(void *active)
@@ -392,7 +392,7 @@ void html_header(
 	if (elapsed_time(last_database_update(), NULL, text, sizeof(text)))
 		html("<a id=\"alert\" href=\"/status\">Not updated since %s</a>", text);
 
-	html("<form action=\"%s/search\" id=\"searchform\">", sprefix);
+	html("<form action=\"search%s\" id=\"searchform\">", sprefix);
 	html("<input name=\"q\" type=\"text\" placeholder=\"Search\"%s%s%s/>",
 	     query ? " value=\"" : "",
 	     query ? escape(query) : "",

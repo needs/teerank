@@ -106,21 +106,31 @@ static char *convert_hexname(char *hexname)
  * server list share this pattern.
  */
 static void set_pagelist_args(
-	struct route *this, struct url *url, char *order)
+	struct route *route, struct url *url, char *order)
 {
 	char *p = "1";
+	char *map = "";
+	char *gametype = "CTF";
 	unsigned i;
 
-	for (i = 0; i < url->nargs; i++)
+	assert(order != NULL);
+
+	for (i = 0; i < url->nargs; i++) {
 		if (strcmp(url->args[i].name, "p") == 0 && url->args[i].val)
 			p = url->args[i].val;
+		if (strcmp(url->args[i].name, "sort") == 0 && url->args[i].val)
+			order = url->args[i].val;
+	}
 
-	this->args[1] = p;
+	if (url->ndirs > 1)
+		gametype = url->dirs[1];
+	if (url->ndirs > 2)
+		map = url->dirs[2];
 
-	if (url->ndirs == 2)
-		this->args[2] = url->dirs[1];
-	else
-		this->args[2] = order;
+	route->args[1] = gametype;
+	route->args[2] = map;
+	route->args[3] = order;
+	route->args[4] = p;
 }
 
 /*
@@ -133,27 +143,27 @@ static void setup_##name(struct route *route, struct url *url)
 
 PAGE_SETUP(html_player_list)
 {
-	set_pagelist_args(route, url, "by-rank");
+	set_pagelist_args(route, url, "rank");
 }
 PAGE_SETUP(json_player_list)
 {
-	set_pagelist_args(route, url, "by-rank");
+	set_pagelist_args(route, url, "rank");
 }
 PAGE_SETUP(html_clan_list)
 {
-	set_pagelist_args(route, url, "by-nmembers");
+	set_pagelist_args(route, url, "nmembers");
 }
 PAGE_SETUP(json_clan_list)
 {
-	set_pagelist_args(route, url, "by-nmembers");
+	set_pagelist_args(route, url, "nmembers");
 }
 PAGE_SETUP(html_server_list)
 {
-	set_pagelist_args(route, url, "by-nplayers");
+	set_pagelist_args(route, url, "nplayers");
 }
 PAGE_SETUP(json_server_list)
 {
-	set_pagelist_args(route, url, "by-nplayers");
+	set_pagelist_args(route, url, "nplayers");
 }
 
 PAGE_SETUP(html_player)
@@ -205,10 +215,10 @@ PAGE_SETUP(html_search)
 	if (!q)
 		error(400, "Missing 'q' parameter\n");
 
-	if (url->ndirs == 1)
-		route->args[1] = "players";
+	if (url->ndirs == 2)
+		route->args[1] = url->dirs[1];
 	else
-		route->args[1] = url->dirs[0];
+		route->args[1] = "players";
 	route->args[2] = q;
 }
 
@@ -222,16 +232,6 @@ static int main_html_teerank2_player_list(int argc, char **argv)
 	return main_html_player_list(argc, argv);
 }
 
-/* URLs for player looked like "/players/<hexname>" */
-PAGE_SETUP(html_teerank3_player)
-{
-	redirect("/player/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
-}
-static int main_html_teerank3_player(int argc, char **argv)
-{
-	return main_html_player(argc, argv);
-}
-
 /* URLs for player graph looked like "/players/<hexname>/elo+rank.svg" */
 PAGE_SETUP(svg_teerank3_graph)
 {
@@ -240,26 +240,6 @@ PAGE_SETUP(svg_teerank3_graph)
 static int main_svg_teerank3_graph(int argc, char **argv)
 {
 	return main_svg_graph(argc, argv);
-}
-
-/* URLs for clan looked like "/clans/<hexname>" */
-PAGE_SETUP(html_teerank3_clan)
-{
-	redirect("/clan/%s", url_encode(convert_hexname(url->dirs[url->ndirs - 1])));
-}
-static int main_html_teerank3_clan(int argc, char **argv)
-{
-	return main_html_clan(argc, argv);
-}
-
-/* URLs for server looked like "/servers/<addr>" */
-PAGE_SETUP(html_teerank3_server)
-{
-	redirect("/server/%s", url->dirs[url->ndirs - 1]);
-}
-static int main_html_teerank3_server(int argc, char **argv)
-{
-	return main_html_server(argc, argv);
 }
 
 /* Empty setup callbacks */

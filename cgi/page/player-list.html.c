@@ -22,6 +22,7 @@ static const struct order {
 
 int main_html_player_list(int argc, char **argv)
 {
+	char *map, *gametype;
 	const struct order *order;
 	unsigned pnum, offset;
 	struct player p;
@@ -32,28 +33,42 @@ int main_html_player_list(int argc, char **argv)
 	char query[512], *queryfmt =
 		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM" RANKED_PLAYERS_TABLE
-		" WHERE gametype = '' AND map = ''"
+		" WHERE gametype = ? AND map LIKE ?"
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 
-	if (argc != 3) {
-		fprintf(stderr, "usage: %s <page_number> by-rank|by-lastseen\n", argv[0]);
+	if (argc != 5) {
+		fprintf(stderr, "usage: %s <gametype> <map> rank|lastseen <page_number>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	if (!parse_pnum(argv[1], &pnum))
-		return EXIT_FAILURE;
+	gametype = argv[1];
+	map = argv[2];
 
-	if (strcmp(argv[2], "by-rank") == 0) {
+	if (strcmp(argv[3], "rank") == 0) {
 		order = &BY_RANK;
-	} else if (strcmp(argv[2], "by-lastseen") == 0) {
+	} else if (strcmp(argv[3], "lastseen") == 0) {
 		order = &BY_LASTSEEN;
 	} else {
-		fprintf(stderr, "%s: Should be either \"by-rank\" or \"by-lastseen\"\n", argv[2]);
+		fprintf(stderr, "%s: Should be either \"rank\" or \"lastseen\"\n", argv[3]);
 		return EXIT_FAILURE;
 	}
 
-	html_header(&CTF_TAB, "CTF", "/players", NULL);
+	if (!parse_pnum(argv[4], &pnum))
+		return EXIT_FAILURE;
+
+	if (strcmp(gametype, "CTF") == 0)
+		html_header(&CTF_TAB, "CTF", "/players", NULL);
+	else if (strcmp(gametype, "DM") == 0)
+		html_header(&DM_TAB, "DM", "/players", NULL);
+	else if (strcmp(gametype, "TDM") == 0)
+		html_header(&TDM_TAB, "TDM", "/players", NULL);
+	else
+		html_header(gametype, gametype, "/players", NULL);
+
+	/* Map is unused for now */
+	(void)map;
+
 	print_section_tabs(PLAYERS_TAB, NULL, NULL);
 
 	if (order == &BY_RANK)
@@ -64,7 +79,7 @@ int main_html_player_list(int argc, char **argv)
 	offset = (pnum - 1) * 100;
 	snprintf(query, sizeof(query), queryfmt, order->sortby, offset);
 
-	foreach_player(query, &p, "", "")
+	foreach_player(query, &p, "ss", gametype, map)
 		html_player_list_entry(&p, NULL, 0);
 
 	if (!res)

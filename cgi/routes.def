@@ -9,28 +9,13 @@ HTML("about", about)
 JSON("about", about)
 TXT("robots", robots)
 XML("sitemap", sitemap)
+
+DIR("search")
+	HTML("players", search)
+	HTML("clans",   search)
+	HTML("servers", search)
+END()
 HTML("search", search)
-
-DIR("pages")
-	HTML("*", teerank2_player_list)
-END()
-
-/* Players */
-
-DIR("players")
-	HTML("search", search)
-	HTML("by-rank", player_list)
-	JSON("by-rank", player_list)
-	HTML("by-lastseen", player_list)
-	JSON("by-lastseen", player_list)
-
-	JSON("*", player)
-	DIR("*")
-		SVG("elo rank", teerank3_graph)
-	END()
-	HTML("*", teerank3_player)
-END()
-HTML("players", player_list)
 
 DIR("player")
 	DIR("*")
@@ -39,36 +24,38 @@ DIR("player")
 	HTML("*", player)
 END()
 
-/* Clans */
-
-DIR("clans")
-	HTML("search", search)
-	HTML("by-nmembers", clan_list)
-	JSON("by-nmembers", clan_list)
-
-	JSON("*", clan)
-	HTML("*", teerank3_clan)
-END()
-HTML("clans", clan_list)
-
 DIR("clan")
 	HTML("*", clan)
 END()
 
-/* Servers */
-
-DIR("servers")
-	HTML("search", search)
-	HTML("by-nplayers", server_list)
-	JSON("by-nplayers", server_list)
-
-	JSON("*", server)
-	HTML("*", teerank3_server)
-END()
-HTML("servers", server_list)
-
 DIR("server")
 	HTML("*", server)
+END()
+
+DIR("pages")
+	HTML("*", teerank2_player_list)
+END()
+
+#define LIST(name)                                                      \
+DIR(#name "s")                                                          \
+	DIR("*")                                                        \
+		HTML("*", name##_list)                                  \
+		JSON("*", name##_list)                                  \
+	END()                                                           \
+	JSON("*", name)                                                 \
+	HTML("*", name##_list)                                          \
+END()                                                                   \
+HTML(#name "s", name##_list)                                            \
+JSON(#name "s", name##_list)
+
+LIST(player)
+LIST(clan)
+LIST(server)
+
+DIR("players")
+	DIR("*")
+		SVG("elo rank", teerank3_graph)
+	END()
 END()
 
 /* Root */

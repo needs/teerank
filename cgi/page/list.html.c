@@ -18,7 +18,6 @@
 static char *gametype;
 static char *map;
 static char *order;
-static unsigned offset;
 static unsigned pnum;
 
 static int print_player_list(void)
@@ -45,13 +44,13 @@ static int print_player_list(void)
 		return EXIT_FAILURE;
 	}
 
-	snprintf(query, sizeof(query), queryfmt, sortby, offset);
+	snprintf(query, sizeof(query), queryfmt, sortby, (pnum - 1) * 100);
 	foreach_player(query, &player, "ss", gametype, map)
 		html_player_list_entry(&player, NULL, 0);
 
 	if (!res)
 		return EXIT_FAILURE;
-	if (!nrow && offset > 0)
+	if (!nrow && pnum > 1)
 		return EXIT_NOT_FOUND;
 
 	html_end_player_list();
@@ -62,7 +61,7 @@ static int print_clan_list(void)
 {
 	struct clan clan;
 	struct sqlite3_stmt *res;
-	unsigned nrow;
+	unsigned offset, nrow;
 
 	const char *query =
 		"SELECT" ALL_CLAN_COLUMNS
@@ -74,6 +73,7 @@ static int print_clan_list(void)
 
 	html_start_clan_list();
 
+	offset = (pnum - 1) * 100;
 	foreach_clan(query, &clan, "u", offset)
 		html_clan_list_entry(++offset, clan.name, clan.nmembers);
 
@@ -90,7 +90,7 @@ static int print_server_list(void)
 {
 	struct server server;
 	struct sqlite3_stmt *res;
-	unsigned nrow;
+	unsigned offset, nrow;
 
 	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
@@ -122,8 +122,6 @@ int main_html_list(int argc, char **argv)
 	ret = parse_list_args(argc, argv, &pcs, &gametype, &map, &order, &pnum);
 	if (ret != EXIT_SUCCESS)
 		return ret;
-
-	offset = (pnum - 1) * 100;
 
 	if (strcmp(gametype, "CTF") == 0)
 		html_header(&CTF_TAB, "CTF", "/players", NULL);

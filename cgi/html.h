@@ -49,13 +49,13 @@ void html_end_online_player_list(void);
 void html_online_player_list_entry(struct player *player, struct client *client);
 
 /* Clan list */
-void html_start_clan_list(void);
+void html_start_clan_list(char *listurl, unsigned pnum, char *order);
 void html_end_clan_list(void);
 void html_clan_list_entry(
 	unsigned pos, const char *hexname, unsigned nmembers);
 
 /* Server list */
-void html_start_server_list(void);
+void html_start_server_list(char *listurl, unsigned pnum, char *order);
 void html_end_server_list(void);
 void html_server_list_entry(unsigned pos, struct server *server);
 

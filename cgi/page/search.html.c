@@ -21,6 +21,16 @@ static void start_player_list(void)
 	html_start_player_list(NULL, 0, NULL);
 }
 
+static void start_clan_list(void)
+{
+	html_start_clan_list(NULL, 0, NULL);
+}
+
+static void start_server_list(void)
+{
+	html_start_server_list(NULL, 0, NULL);
+}
+
 static void print_player(unsigned pos, void *data)
 {
 	struct player *p = data;
@@ -87,7 +97,7 @@ static const struct search_info PLAYER_SINFO = {
 };
 
 static const struct search_info CLAN_SINFO = {
-	html_start_clan_list,
+	start_clan_list,
 	html_end_clan_list,
 	read_clan,
 	print_clan,
@@ -110,7 +120,7 @@ static const struct search_info CLAN_SINFO = {
 };
 
 static const struct search_info SERVER_SINFO = {
-	html_start_server_list,
+	start_server_list,
 	html_end_server_list,
 	read_extended_server,
 	print_server,

@@ -582,7 +582,7 @@ void html_online_player_list_entry(struct player *p, struct client *c)
 	player_list_entry(p, c, 0);
 }
 
-void html_start_clan_list(void)
+void html_start_clan_list(char *listurl, unsigned pnum, char *order)
 {
 	struct colinfo colinfo[] = {
 		{ "" },
@@ -591,7 +591,7 @@ void html_start_clan_list(void)
 		{ NULL }
 	};
 
-	html_list_header("clanlist", "", 0, "", colinfo);
+	html_list_header("clanlist", listurl, pnum, order, colinfo);
 }
 
 void html_end_clan_list(void)
@@ -617,7 +617,7 @@ void html_clan_list_entry(
 	html("</tr>");
 }
 
-void html_start_server_list(void)
+void html_start_server_list(char *listurl, unsigned pnum, char *order)
 {
 	struct colinfo colinfo[] = {
 		{ "" },
@@ -628,7 +628,7 @@ void html_start_server_list(void)
 		{ NULL }
 	};
 
-	html_list_header("serverlist", "", 0, "", colinfo);
+	html_list_header("serverlist", listurl, pnum, order, colinfo);
 }
 
 void html_end_server_list(void)

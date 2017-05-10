@@ -41,7 +41,7 @@ static int print_player_list(void)
 	else
 		return EXIT_FAILURE;
 
-	html_start_player_list("/players", pnum, order);
+	html_start_player_list(relurl("/players/%s/%s", gametype, map), pnum, order);
 
 	snprintf(query, sizeof(query), queryfmt, sortby, (pnum - 1) * 100);
 	foreach_player(query, &player, "ss", gametype, map)
@@ -70,7 +70,7 @@ static int print_clan_list(void)
 		" ORDER BY nmembers DESC, clan"
 		" LIMIT 100 OFFSET ?";
 
-	html_start_clan_list();
+	html_start_clan_list(relurl("/clans/%s/%s", gametype, map), pnum, NULL);
 
 	offset = (pnum - 1) * 100;
 	foreach_clan(query, &clan, "u", offset)
@@ -98,7 +98,7 @@ static int print_server_list(void)
 		" ORDER BY num_clients DESC"
 		" LIMIT 100 OFFSET ?";
 
-	html_start_server_list();
+	html_start_server_list(relurl("/servers/%s/%s", gametype, map), pnum, NULL);
 
 	offset = (pnum - 1) * 100;
 	foreach_extended_server(query, &server, "u", offset)

@@ -724,13 +724,20 @@ static unsigned min(unsigned a, unsigned b)
 	return a < b ? a : b;
 }
 
-void print_page_nav(const char *url, unsigned pnum, unsigned npages)
+static char *url(const char *urlfmt, unsigned pnum)
+{
+	static char ret[128];
+	snprintf(ret, sizeof(ret), urlfmt, pnum);
+	return ret;
+}
+
+void print_page_nav(const char *fmt, unsigned pnum, unsigned npages)
 {
 	/* Number of pages shown before and after the current page */
 	static const unsigned extra = 3;
 	unsigned i;
 
-	assert(url != NULL);
+	assert(fmt != NULL);
 
 	html("<nav class=\"pages\">");
 
@@ -738,35 +745,35 @@ void print_page_nav(const char *url, unsigned pnum, unsigned npages)
 	if (pnum == 1)
 		html("<a class=\"previous\">Previous</a>");
 	else
-		html("<a class=\"previous\" href=\"%s?p=%u\">Previous</a>", url, pnum - 1);
+		html("<a class=\"previous\" href=\"%s\">Previous</a>", url(fmt, pnum-1));
 
 	/* Link to first page */
 	if (pnum > extra + 1)
-		html("<a href=\"%s?p=1\">1</a>", url);
+		html("<a href=\"%s\">1</a>", url(fmt, 1));
 	if (pnum > extra + 2)
 		html("<span>...</span>");
 
 	/* Extra pages before */
 	for (i = min(extra, pnum - 1); i > 0; i--)
-		html("<a href=\"%s?p=%u\">%u</a>", url, pnum - i, pnum - i);
+		html("<a href=\"%s\">%u</a>", url(fmt, pnum-i), pnum - i);
 
 	html("<a class=\"current\">%u</a>", pnum);
 
 	/* Extra pages after */
 	for (i = 1; i <= min(extra, npages - pnum); i++)
-		html("<a href=\"%s?p=%u\">%u</a>", url, pnum + i, pnum + i);
+		html("<a href=\"%s\">%u</a>", url(fmt, pnum+i), pnum + i);
 
 	/* Link to last page */
 	if (pnum + extra + 1 < npages)
 		html("<span>...</span>");
 	if (pnum + extra < npages)
-		html("<a href=\"%s?p=%u\">%u</a>", url, npages, npages);
+		html("<a href=\"%s\">%u</a>", url(fmt, npages), npages);
 
 	/* Next button */
 	if (pnum == npages)
 		html("<a class=\"next\">Next</a>");
 	else
-		html("<a class=\"next\" href=\"%s?p=%u\">Next</a>", url, pnum + 1);
+		html("<a class=\"next\" href=\"%s\">Next</a>", url(fmt, pnum+1));
 
 	html("</nav>");
 }

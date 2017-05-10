@@ -116,7 +116,7 @@ static int print_server_list(void)
 int main_html_list(int argc, char **argv)
 {
 	enum pcs pcs;
-	char *urlformat;
+	char *urlfmt;
 	unsigned tabvals[3];
 	int ret = EXIT_FAILURE;
 
@@ -133,26 +133,29 @@ int main_html_list(int argc, char **argv)
 	else
 		html_header(gametype, gametype, "/players", NULL);
 
-	urlformat = relurl("/%%s/%s/%s", gametype, map);
+	urlfmt = relurl("/%%s/%s/%s", gametype, map);
 	tabvals[0] = count_ranked_players("", "");
 	tabvals[1] = count_clans();
 	tabvals[2] = count_vanilla_servers();
 
 	switch (pcs) {
 	case PCS_PLAYER:
-		print_section_tabs(PLAYERS_TAB, urlformat, tabvals);
+		print_section_tabs(PLAYERS_TAB, urlfmt, tabvals);
 		ret = print_player_list();
-		print_page_nav("players", pnum, count_ranked_players("", "") / 100 + 1);
+		urlfmt = relurl("/players/%s/%s?sort=%s&p=%%u", gametype, map, order);
+		print_page_nav(urlfmt, pnum, tabvals[0] / 100 + 1);
 		break;
 	case PCS_CLAN:
-		print_section_tabs(CLANS_TAB, urlformat, tabvals);
+		print_section_tabs(CLANS_TAB, urlfmt, tabvals);
 		ret = print_clan_list();
-		print_page_nav("clans", pnum, count_clans() / 100 + 1);
+		urlfmt = relurl("/clans/%s/%s?sort=%s&p=%%u", gametype, map, order);
+		print_page_nav(urlfmt, pnum, tabvals[1] / 100 + 1);
 		break;
 	case PCS_SERVER:
-		print_section_tabs(SERVERS_TAB, urlformat, tabvals);
+		print_section_tabs(SERVERS_TAB, urlfmt, tabvals);
 		ret = print_server_list();
-		print_page_nav("servers", pnum, count_vanilla_servers() / 100 + 1);
+		urlfmt = relurl("/servers/%s/%s?sort=%s&p=%%u", gametype, map, order);
+		print_page_nav(urlfmt, pnum, tabvals[2] / 100 + 1);
 		break;
 	}
 

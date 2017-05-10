@@ -64,7 +64,6 @@ enum section_tab {
 };
 
 void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabvals);
-
-void print_page_nav(const char *url, unsigned pnum, unsigned npages);
+void print_page_nav(const char *urlfmt, unsigned pnum, unsigned npages);
 
 #endif /* HTML_H */

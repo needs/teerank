@@ -20,7 +20,7 @@ static void show_client_list(struct server *server)
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM players"
-		" WHERE name = ?";
+		" WHERE name = ? AND gametype = ? AND map = ?";
 
 	if (!server->num_clients)
 		return;
@@ -30,7 +30,7 @@ static void show_client_list(struct server *server)
 	for (i = 0; i < server->num_clients; i++) {
 		client = &server->clients[i];
 
-		foreach_player(query, &p, "s", client->name);
+		foreach_player(query, &p, "sss", client->name, server->gametype, server->map);
 
 		if (res && nrow)
 			html_online_player_list_entry(&p, client);

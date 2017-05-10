@@ -172,6 +172,7 @@ static int search(const struct search_info *sinfo, const char *value)
 int main_html_search(int argc, char **argv)
 {
 	unsigned tabvals[SECTION_TABS_COUNT];
+	char urlfmt[128];
 	const char *squery;
 
 	const struct search_info *sinfo, **s, *sinfos[] = {
@@ -200,7 +201,9 @@ int main_html_search(int argc, char **argv)
 		tabvals[(*s)->tab] = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);
 
 	html_header("Search results", "Search results", sinfo->sprefix, squery);
-	print_section_tabs(sinfo->tab, squery, tabvals);
+
+	snprintf(urlfmt, sizeof(urlfmt), "/search/%%s?q=%s", squery);
+	print_section_tabs(sinfo->tab, urlfmt, tabvals);
 
 	if (!search(sinfo, squery))
 		return EXIT_FAILURE;

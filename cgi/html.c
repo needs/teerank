@@ -678,52 +678,40 @@ static unsigned round(unsigned n)
 	return n - (n % mod);
 }
 
-void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabvals)
+void print_section_tabs(enum section_tab tab, const char *format, unsigned *tabvals)
 {
 	unsigned i;
 
 	struct {
 		const char *title;
 		const char *url;
-		unsigned num;
-	} default_tabs[] = {
-		{ "Players", "/players", 0 },
-		{ "Clans", "/clans", 0 },
-		{ "Servers", "/servers", 0 }
-	}, search_tabs[] = {
-		{ "Players", "/players/search", 0 },
-		{ "Clans", "/clans/search", 0 },
-		{ "Servers", "/servers/search", 0 }
-	}, *tabs;
+	} tabs[] = {
+		{ "Players", "players" },
+		{ "Clans",   "clans" },
+		{ "Servers", "servers" }
+	};
 
-	if (squery)
-		tabs = search_tabs;
-	else
-		tabs = default_tabs;
+	assert(tabvals != NULL);
+	assert(format != NULL);
 
-	if (tabvals) {
-		tabs[0].num = tabvals[0];
-		tabs[1].num = tabvals[1];
-		tabs[2].num = tabvals[2];
-	} else {
-		tabs[0].num = round(count_ranked_players("", ""));
-		tabs[1].num = round(count_clans());
-		tabs[2].num = round(count_vanilla_servers());
-	}
+	tabvals[0] = round(tabvals[0]);
+	tabvals[1] = round(tabvals[1]);
+	tabvals[2] = round(tabvals[2]);
 
 	html("<nav class=\"section_tabs\">");
 
 	for (i = 0; i < SECTION_TABS_COUNT; i++) {
+		char url[128];
+		snprintf(url, sizeof(url), format, tabs[i].url);
+
 		if (i == tab)
 			html("<a class=\"enabled\">");
 		else
-			html("<a href=\"%s%s%s\">",
-			     tabs[i].url, squery ? "?q=" : "", squery ? url_encode(squery) : "");
+			html("<a href=\"%s\">", url);
 
 		html("%s", tabs[i].title);
-
-		if (tabs[i].num)
-			html("<small>%u</small>", tabs[i].num);
+		if (tabvals[i])
+			html("<small>%u</small>", tabvals[i]);
 
 		html("</a>");
 	}

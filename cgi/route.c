@@ -44,6 +44,25 @@ static int main_svg_teerank3_graph(struct url *url)
 }
 
 /*
+ * The routes tree refers to pages "main()" callbacks.  So we need to
+ * declare them before buliding the tree.
+ */
+#define DIR(name)
+#define END()
+#define HTML(name, func)                                                \
+	int main_html_##func(struct url *url);
+#define JSON(name, func)                                                \
+	int main_json_##func(struct url *url);
+#define TXT(name, func)                                                 \
+	int main_txt_##func(struct url *url);
+#define XML(name, func)                                                 \
+	int main_xml_##func(struct url *url);
+#define SVG(name, func)                                                 \
+	int main_svg_##func(struct url *url);
+
+#include "routes.def"
+
+/*
  * Build the root tree given data in "routes.def".
  */
 

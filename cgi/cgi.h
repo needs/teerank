@@ -1,6 +1,7 @@
 #ifndef CGI_H
 #define CGI_H
 
+#include "route.h"
 #include <stdlib.h>
 
 /* Used by pages */
@@ -18,10 +19,6 @@ extern struct cgi_config {
 	char domain[MAX_DOMAIN_LENGTH];
 } cgi_config;
 
-#define PLAYERS_PER_PAGE 100;
-#define CLANS_PER_PAGE   100;
-#define SERVERS_PER_PAGE 100;
-
 /* PCS stands for Player Clan Server */
 enum pcs {
 	PCS_PLAYER,
@@ -29,10 +26,10 @@ enum pcs {
 	PCS_SERVER
 };
 
-int parse_pnum(const char *str, unsigned *pnum);
+int parse_pnum(char *str, unsigned *pnum);
 
 int parse_list_args(
-	int argc, char **argv,
+	struct url *url,
 	enum pcs *pcs, char **gametype, char **map, char **order, unsigned *pnum);
 
 unsigned char hextodec(char c);
@@ -43,28 +40,28 @@ void url_decode(char *str);
 char *relurl(const char *fmt, ...);
 char *absurl(const char *fmt, ...);
 
-int main_html_status(int argc, char **argv);
+int main_html_status(struct url *url);
 
-int main_html_about(int argc, char **argv);
-int main_json_about(int argc, char **argv);
+int main_html_about(struct url *url);
+int main_json_about(struct url *url);
 
-int main_html_about_json_api(int argc, char **argv);
-int main_html_search(int argc, char **argv);
-int main_svg_graph(int argc, char **argv);
+int main_html_about_json_api(struct url *url);
+int main_html_search(struct url *url);
+int main_svg_graph(struct url *url);
 
-int main_html_player(int argc, char **argv);
-int main_json_player(int argc, char **argv);
+int main_html_player(struct url *url);
+int main_json_player(struct url *url);
 
-int main_html_clan(int argc, char **argv);
-int main_json_clan(int argc, char **argv);
+int main_html_clan(struct url *url);
+int main_json_clan(struct url *url);
 
-int main_html_server(int argc, char **argv);
-int main_json_server(int argc, char **argv);
+int main_html_server(struct url *url);
+int main_json_server(struct url *url);
 
-int main_html_list(int argc, char **argv);
-int main_json_list(int argc, char **argv);
+int main_html_list(struct url *url);
+int main_json_list(struct url *url);
 
-int main_txt_robots(int argc, char **argv);
-int main_xml_sitemap(int argc, char **argv);
+int main_txt_robots(struct url *url);
+int main_xml_sitemap(struct url *url);
 
 #endif /* CGI_H */

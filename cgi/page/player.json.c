@@ -50,10 +50,12 @@ static int json_player_historic(const char *pname)
 	return res != NULL;
 }
 
-int main_json_player(int argc, char **argv)
+int main_json_player(struct url *url)
 {
 	struct player player;
-	int full;
+	char *pname;
+	int full = 0;
+	unsigned i;
 
 	sqlite3_stmt *res;
 	unsigned nrow;
@@ -63,21 +65,13 @@ int main_json_player(int argc, char **argv)
 		" FROM" RANKED_PLAYERS_TABLE
 		" WHERE players.name = ? AND gametype = '' AND map = ''";
 
-	if (argc != 3) {
-		fprintf(stderr, "usage: %s <player_name> full|short\n", argv[0]);
-		return EXIT_FAILURE;
-	}
+	for (i = 0; i < url->nargs; i++)
+		if (strcmp(url->args[i].name, "short") == 0)
+			full = 0;
 
-	if (strcmp(argv[2], "full") == 0)
-		full = 1;
-	else if (strcmp(argv[2], "short") == 0)
-		full = 0;
-	else {
-		fprintf(stderr, "%s: Should be either \"full\" or \"short\"\n", argv[2]);
-		return EXIT_FAILURE;
-	}
+	pname = url->dirs[1];
 
-	foreach_player(query, &player, "s", argv[1]);
+	foreach_player(query, &player, "s", pname);
 	if (!res)
 		return EXIT_FAILURE;
 	if (!nrow)

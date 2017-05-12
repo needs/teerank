@@ -2,9 +2,10 @@
 #include <stdlib.h>
 
 #include "teerank.h"
+#include "cgi.h"
 #include "html.h"
 
-int main_html_about(int argc, char **argv)
+int main_html_about(struct url *url)
 {
 	html_header(&ABOUT_TAB, "About", "", NULL);
 

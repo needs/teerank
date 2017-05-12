@@ -149,12 +149,12 @@ static int print_server_list(void)
 	return EXIT_SUCCESS;
 }
 
-int main_json_list(int argc, char **argv)
+int main_json_list(struct url *url)
 {
 	enum pcs pcs;
 	int ret;
 
-	ret = parse_list_args(argc, argv, &pcs, &gametype, &map, &order, &pnum);
+	ret = parse_list_args(url, &pcs, &gametype, &map, &order, &pnum);
 	if (ret != EXIT_SUCCESS)
 		return ret;
 

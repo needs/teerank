@@ -10,7 +10,7 @@
 #include "player.h"
 #include "json.h"
 
-int main_html_player(int argc, char **argv)
+int main_html_player(struct url *url)
 {
 	char *pname;
 	struct player player;
@@ -23,12 +23,7 @@ int main_html_player(int argc, char **argv)
 		" FROM" RANKED_PLAYERS_TABLE
 		" WHERE players.name = ? AND gametype = '' AND map = ''";
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <player_name>\n", argv[0]);
-		return EXIT_FAILURE;
-	}
-
-	pname = argv[1];
+	pname = url->dirs[1];
 
 	foreach_player(query, &player, "s", pname);
 	if (!res)

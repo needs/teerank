@@ -41,7 +41,7 @@ static void show_client_list(struct server *server)
 	html_end_online_player_list();
 }
 
-int main_html_server(int argc, char **argv)
+int main_html_server(struct url *url)
 {
 	struct server server;
 	unsigned i, playing = 0, spectating = 0;
@@ -55,12 +55,7 @@ int main_html_server(int argc, char **argv)
 		" FROM servers"
 		" WHERE ip = ? AND port = ?";
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <server_addr>\n", argv[0]);
-		return EXIT_FAILURE;
-	}
-
-	if (!parse_addr(argv[1], &ip, &port))
+	if (!parse_addr(url->dirs[1], &ip, &port))
 		return EXIT_NOT_FOUND;
 
 	foreach_extended_server(query, &server, "ss", ip, port);

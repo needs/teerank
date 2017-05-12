@@ -12,7 +12,7 @@
 #include "clan.h"
 #include "json.h"
 
-int main_html_clan(int argc, char **argv)
+int main_html_clan(struct url *url)
 {
 	unsigned nrow;
 	sqlite3_stmt *res;
@@ -25,12 +25,7 @@ int main_html_clan(int argc, char **argv)
 		" WHERE clan = ? AND" IS_VALID_CLAN
 		" ORDER BY" SORT_BY_RANK;
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <clan_name>\n", argv[0]);
-		return EXIT_FAILURE;
-	}
-
-	cname = argv[1];
+	cname = url->dirs[1];
 
 	/* Eventually, print them */
 	html_header(cname, cname, "/clans", NULL);

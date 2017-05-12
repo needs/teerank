@@ -169,33 +169,42 @@ static int search(const struct search_info *sinfo, const char *value)
 	return 1;
 }
 
-int main_html_search(int argc, char **argv)
+int main_html_search(struct url *url)
 {
 	unsigned tabvals[SECTION_TABS_COUNT];
 	char urlfmt[128];
-	const char *squery;
+	char *squery = NULL;
+	char *pcs;
+	unsigned i;
 
 	const struct search_info *sinfo, **s, *sinfos[] = {
 		&PLAYER_SINFO, &CLAN_SINFO, &SERVER_SINFO, NULL
 	};
 
-	if (argc != 3) {
-		fprintf(stderr, "usage: %s players|clans|servers <query>\n", argv[0]);
-		return EXIT_FAILURE;
-	}
+	if (url->ndirs == 2)
+		pcs = url->dirs[1];
+	else
+		pcs = "players";
 
-	if (strcmp(argv[1], "players") == 0)
+	if (strcmp(pcs, "players") == 0)
 		sinfo = &PLAYER_SINFO;
-	else if (strcmp(argv[1], "clans") == 0)
+	else if (strcmp(pcs, "clans") == 0)
 		sinfo = &CLAN_SINFO;
-	else if (strcmp(argv[1], "servers") == 0)
+	else if (strcmp(pcs, "servers") == 0)
 		sinfo = &SERVER_SINFO;
 	else {
-		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", argv[1]);
+		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", pcs);
 		return EXIT_FAILURE;
 	}
 
-	squery = argv[2];
+	for (i = 0; i < url->nargs; i++)
+		if (strcmp(url->args[i].name, "q") == 0)
+			squery = url->args[i].val ? url->args[i].val : "";
+
+	if (!squery) {
+		fprintf(stderr, "Missing 'q' parameter\n");
+		return EXIT_FAILURE;
+	}
 
 	for (s = sinfos; *s; s++)
 		tabvals[(*s)->tab] = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);

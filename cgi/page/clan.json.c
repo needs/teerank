@@ -9,11 +9,12 @@
 #include "json.h"
 #include "clan.h"
 
-int main_json_clan(int argc, char **argv)
+int main_json_clan(struct url *url)
 {
 	unsigned nrow;
 	sqlite3_stmt *res;
 	struct player p;
+	char *cname;
 
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
@@ -21,14 +22,11 @@ int main_json_clan(int argc, char **argv)
 		" WHERE clan = ? AND " IS_VALID_CLAN
 		" ORDER BY" SORT_BY_RANK;
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <clan_name>\n", argv[0]);
-		return EXIT_FAILURE;
-	}
+	cname = url->dirs[1];
 
 	printf("{\"members\":[");
 
-	foreach_player(query, &p, "s", argv[1]) {
+	foreach_player(query, &p, "s", cname) {
 		if (nrow)
 			putchar(',');
 		printf("\"%s\"", json_hexstring(p.name));

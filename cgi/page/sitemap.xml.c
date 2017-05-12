@@ -4,7 +4,7 @@
 #include "cgi.h"
 #include "html.h"
 
-int main_xml_sitemap(int argc, char **argv)
+int main_xml_sitemap(struct url *url)
 {
 	xml("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 	xml("<urlset");

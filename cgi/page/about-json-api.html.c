@@ -72,7 +72,7 @@ static void jsonurl(const char *url)
 	html("</p>");
 }
 
-int main_html_about_json_api(int argc, char **argv)
+int main_html_about_json_api(struct url *url)
 {
 	html_header("JSON API Overview", "JSON API Overview", "", NULL);
 

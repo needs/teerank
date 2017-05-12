@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "teerank.h"
+#include "route.h"
 #include "html.h"
 
 #define MAX_DATA 48
@@ -775,17 +776,12 @@ end:
 	svg("</svg>");
 }
 
-int main_svg_graph(int argc, char **argv)
+int main_svg_graph(struct url *url)
 {
 	struct graph graph = { 0 };
 	struct dataset dselo, dsrank;
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s <player_name>\n", argv[0]);
-		return EXIT_FAILURE;
-	}
-
-	fill_datasets(&dselo, &dsrank, argv[1]);
+	fill_datasets(&dselo, &dsrank, url->dirs[1]);
 
 	add_curve(&graph, &dselo, 0, "#970", "#725800", "Elo");
 	add_curve(&graph, &dsrank, 1, "#aaa", "#888", "Rank");

@@ -22,7 +22,7 @@ struct cgi_config cgi_config = {
 	"teerank.com", "80"
 };
 
-int parse_pnum(const char *str, unsigned *pnum)
+int parse_pnum(char *str, unsigned *pnum)
 {
 	long ret;
 
@@ -49,33 +49,44 @@ int parse_pnum(const char *str, unsigned *pnum)
 }
 
 int parse_list_args(
-	int argc, char **argv,
+	struct url *url,
 	enum pcs *pcs, char **gametype, char **map, char **order, unsigned *pnum)
 {
-	if (argc != 6) {
-		fprintf(
-			stderr, "usage: %s players|clans|servers"
-			" <gametype> <map> <sort_order> <page_number>\n",
-			argv[0]);
-		return EXIT_FAILURE;
+	char *pcs_, *pnum_;
+	unsigned i;
+
+	pnum_ = "1";
+	pcs_ = "players";
+	*gametype = "CTF";
+	*map = "";
+	*order = "rank";
+
+	for (i = 0; i < url->nargs; i++) {
+		if (strcmp(url->args[i].name, "p") == 0 && url->args[i].val)
+			pnum_ = url->args[i].val;
+		if (strcmp(url->args[i].name, "sort") == 0 && url->args[i].val)
+			*order = url->args[i].val;
 	}
 
-	if (strcmp(argv[1], "players") == 0)
+	if (url->ndirs > 0)
+		pcs_ = url->dirs[0];
+	if (url->ndirs > 1)
+		*gametype = url->dirs[1];
+	if (url->ndirs > 2)
+		*map = url->dirs[2];
+
+	if (strcmp(pcs_, "players") == 0)
 		*pcs = PCS_PLAYER;
-	else if (strcmp(argv[1], "clans") == 0)
+	else if (strcmp(pcs_, "clans") == 0)
 		*pcs = PCS_CLAN;
-	else if (strcmp(argv[1], "servers") == 0)
+	else if (strcmp(pcs_, "servers") == 0)
 		*pcs = PCS_SERVER;
 	else {
-		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", argv[1]);
+		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", pcs_);
 		return EXIT_FAILURE;
 	}
 
-	*gametype = argv[2];
-	*map = argv[3];
-	*order = argv[4];
-
-	if (!parse_pnum(argv[5], pnum))
+	if (!parse_pnum(pnum_, pnum))
 		return EXIT_FAILURE;
 
 	return EXIT_SUCCESS;
@@ -263,6 +274,11 @@ void error(int code, char *fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
+/*
+ * FIXME! redirect() is now called within the page, and their is no way
+ * for a page to forward specific headers in HTTP response.  So this
+ * function as it is will not work as intented.
+ */
 void redirect(const char *fmt, ...)
 {
 	va_list ap;
@@ -279,8 +295,6 @@ void redirect(const char *fmt, ...)
 
 	putchar('\n');
 	putchar('\n');
-
-	exit(EXIT_FAILURE);
 }
 
 /*
@@ -334,17 +348,7 @@ static void raw_dump(int fd, FILE *dst)
 	close(fd);
 }
 
-static int route_argc(struct route *route)
-{
-	int i;
-
-	for (i = 0; i < MAX_ARGS && route->args[i]; i++)
-		;
-
-	return i;
-}
-
-static int generate(struct route *route)
+static int generate(struct route *route, struct url *url)
 {
 	int out[2], err[2];
 	int stdout_save, stderr_save;
@@ -352,7 +356,7 @@ static int generate(struct route *route)
 
 	assert(route != NULL);
 
-	verbose("Generating data with '%s'", route->args[0]);
+	verbose("Generating route '%s'", route->name);
 
 	/*
 	 * Create a pipe to redirect stdout and stderr to.  It is
@@ -388,7 +392,7 @@ static int generate(struct route *route)
 	close(err[1]);
 
 	/* Run route generation */
-	ret = route->main(route_argc(route), route->args);
+	ret = route->main(url);
 
 	/*
 	 * Some data may not be written yet to the pipe.  Dumping data
@@ -410,16 +414,18 @@ static int generate(struct route *route)
 	close(stdout_save);
 	close(stderr_save);
 
-	if (ret == EXIT_SUCCESS) {
+	switch (ret) {
+	case EXIT_SUCCESS:
 		raw_dump(err[0], stderr);
 		return dump(200, route->content_type, out[0], NULL);
-	}
-	if (ret == EXIT_FAILURE)
-		return dump(500, NULL, err[0], stderr);
-	if (ret == EXIT_NOT_FOUND)
+
+	case EXIT_NOT_FOUND:
 		return dump(404, NULL, err[0], stderr);
 
-	return dump(500, NULL, err[0], stderr);
+	case EXIT_FAILURE:
+	default:
+		return dump(500, NULL, err[0], stderr);
+	}
 }
 
 static int load_path_and_query(char **_path, char **_query)
@@ -479,9 +485,71 @@ static void init_cgi(void)
 		error(414, "%s: Server name too long", cgi_config.name);
 }
 
+static struct url parse_url(char *uri, char *query)
+{
+	struct url url = {0};
+	char *dir, *name;
+	unsigned i;
+
+	if (!(dir = strtok(uri, "/"))) {
+		/*
+		 * strtok() never return an empty string.  And that's
+		 * what we usually want, because "/players/" will be
+		 * handled the same than "/players".
+		 *
+		 * However, the root route doesn't have a name, hence
+		 * the default page doesn't either.  So to allow default
+		 * page for root directory, we make a special case and
+		 * use an empty string.
+		 */
+		strcpy(uri, "");
+		url.dirs[0] = uri;
+		url.ndirs = 1;
+	} else {
+		do {
+			if (url.ndirs == MAX_DIRS)
+				error(414, NULL);
+
+			url_decode(dir);
+			url.dirs[url.ndirs] = dir;
+			url.ndirs++;
+		} while ((dir = strtok(NULL, "/")));
+	}
+
+	/*
+	 * Load arg 'name' and 'val' in two steps to not mix up strtok()
+	 * instances.
+	 */
+
+	if (query[0] == '\0')
+		return url;
+
+	name = strtok(query, "&");
+	while (name) {
+		if (url.nargs == MAX_ARGS)
+			error(414, NULL);
+
+		url.args[url.nargs].name = name;
+		url.nargs++;
+		name = strtok(NULL, "&");
+	}
+
+	for (i = 0; i < url.nargs; i++) {
+		strtok(url.args[i].name, "=");
+		url.args[i].val = strtok(NULL, "=");
+
+		if (url.args[i].val)
+			url_decode(url.args[i].val);
+	}
+
+	return url;
+}
+
 int main(int argc, char **argv)
 {
 	char *path, *query;
+	struct url url;
+	struct route *route;
 
 	/*
 	 * We want to use read only mode to prevent any security exploit
@@ -496,7 +564,9 @@ int main(int argc, char **argv)
 		error(500, NULL);
 	}
 
-	generate(do_route(path, query));
+	url = parse_url(path, query);
+	route = do_route(&url);
+	generate(route, &url);
 
 	return EXIT_SUCCESS;
 }

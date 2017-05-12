@@ -21,7 +21,7 @@ static void json_master(struct master *master)
 	putchar('}');
 }
 
-static int json_info(void)
+int main_json_about(struct url *url)
 {
 	unsigned nrow = 0;
 	sqlite3_stmt *res;
@@ -51,14 +51,4 @@ static int json_info(void)
 	putchar('}');
 
 	return res ? SUCCESS : FAILURE;
-}
-
-int main_json_about(int argc, char **argv)
-{
-	if (argc != 1) {
-		fprintf(stderr, "usage: %s\n", argv[0]);
-		return EXIT_FAILURE;
-	}
-
-	return json_info();
 }

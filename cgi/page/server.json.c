@@ -52,7 +52,7 @@ static void json_server(struct server *server)
 	putchar('}');
 }
 
-int main_json_server(int argc, char **argv)
+int main_json_server(struct url *url)
 {
 	char *ip, *port;
 	struct server server;
@@ -64,12 +64,7 @@ int main_json_server(int argc, char **argv)
 		" FROM servers"
 		" WHERE ip = ? AND port = ?";
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <server_addr>\n", argv[0]);
-		return EXIT_FAILURE;
-	}
-
-	if (!parse_addr(argv[1], &ip, &port))
+	if (!parse_addr(url->dirs[1], &ip, &port))
 		return EXIT_NOT_FOUND;
 
 	foreach_extended_server(query, &server, "ss", ip, port);

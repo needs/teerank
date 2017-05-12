@@ -113,14 +113,14 @@ static int print_server_list(void)
 	return EXIT_SUCCESS;
 }
 
-int main_html_list(int argc, char **argv)
+int main_html_list(struct url *url)
 {
 	enum pcs pcs;
 	char *urlfmt;
 	unsigned tabvals[3];
 	int ret = EXIT_FAILURE;
 
-	ret = parse_list_args(argc, argv, &pcs, &gametype, &map, &order, &pnum);
+	ret = parse_list_args(url, &pcs, &gametype, &map, &order, &pnum);
 	if (ret != EXIT_SUCCESS)
 		return ret;
 
@@ -159,7 +159,7 @@ int main_html_list(int argc, char **argv)
 		break;
 	}
 
-	html_footer("player-list", relurl("/players/%s.json?p=%u", argv[2], pnum));
+	html_footer("player-list", relurl("/players/%s.json?p=%u", gametype, pnum));
 
 	return ret;
 }

@@ -107,16 +107,11 @@ static int show_masters_status(int teerank_stopped)
 	return 0;
 }
 
-int main_html_status(int argc, char **argv)
+int main_html_status(struct url *url)
 {
 	const char *title;
 	char buf[16], comment[64];
 	short teerank_stopped = 0;
-
-	if (argc != 1) {
-		fprintf(stderr, "usage: %s\n", argv[0]);
-		return EXIT_FAILURE;
-	}
 
 	html_header("Status", "Status", "", NULL);
 

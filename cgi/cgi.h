@@ -28,10 +28,6 @@ enum pcs {
 
 int parse_pnum(char *str, unsigned *pnum);
 
-int parse_list_args(
-	struct url *url,
-	enum pcs *pcs, char **gametype, char **map, char **order, unsigned *pnum);
-
 unsigned char hextodec(char c);
 
 char *url_encode(const char *str);

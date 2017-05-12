@@ -48,50 +48,6 @@ int parse_pnum(char *str, unsigned *pnum)
 	return 1;
 }
 
-int parse_list_args(
-	struct url *url,
-	enum pcs *pcs, char **gametype, char **map, char **order, unsigned *pnum)
-{
-	char *pcs_, *pnum_;
-	unsigned i;
-
-	pnum_ = "1";
-	pcs_ = "players";
-	*gametype = "CTF";
-	*map = "";
-	*order = "rank";
-
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "p") == 0 && url->args[i].val)
-			pnum_ = url->args[i].val;
-		if (strcmp(url->args[i].name, "sort") == 0 && url->args[i].val)
-			*order = url->args[i].val;
-	}
-
-	if (url->ndirs > 0)
-		pcs_ = url->dirs[0];
-	if (url->ndirs > 1)
-		*gametype = url->dirs[1];
-	if (url->ndirs > 2)
-		*map = url->dirs[2];
-
-	if (strcmp(pcs_, "players") == 0)
-		*pcs = PCS_PLAYER;
-	else if (strcmp(pcs_, "clans") == 0)
-		*pcs = PCS_CLAN;
-	else if (strcmp(pcs_, "servers") == 0)
-		*pcs = PCS_SERVER;
-	else {
-		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", pcs_);
-		return EXIT_FAILURE;
-	}
-
-	if (!parse_pnum(pnum_, pnum))
-		return EXIT_FAILURE;
-
-	return EXIT_SUCCESS;
-}
-
 static int safe_for_urls(char c)
 {
 	if (isalnum(c))

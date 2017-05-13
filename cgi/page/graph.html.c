@@ -311,7 +311,7 @@ static void print_axes(struct graph *graph)
 		const float y = y_coord(graph, curve, data);
 
 		/* Line */
-		svg("<line class=\"axe\" x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
+		svg("<line class=\"axe\" x1=\"%f%%\" y1=\"%f%%\" x2=\"%f%%\" y2=\"%f%%\"/>",
 		    x_start, y , x_end, y);
 	}
 	svg("");
@@ -337,7 +337,7 @@ static void print_axes(struct graph *graph)
 				x = 100.0;
 			}
 
-			svg("<text class=\"axe_label %s\" x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",
+			svg("<text class=\"axe_label %S\" x=\"%f%%\" y=\"%f%%\">%I</text>",
 			    class, x, y, data);
 		}
 	}
@@ -390,7 +390,7 @@ static void print_path(struct graph *graph, struct curve *curve)
 			c = 'L';
 
 		p = init_point(graph, curve, &curve->ds->data[i]);
-		svg("%c %.1f %.1f", c, p.x, p.y);
+		svg("%c %f %f", c, p.x, p.y);
 
 	}
 	svg("\" vector-effect=\"non-scaling-stroke\"/>");
@@ -502,16 +502,16 @@ static void print_zone(struct graph *graph, struct data *data, struct point p)
 		zone_width = gap;
 	}
 
-	svg("<rect class=\"zone\" x=\"%.1f%%\" y=\"0%%\" width=\"%.1f%%\" height=\"100%%\"/>",
+	svg("<rect class=\"zone\" x=\"%f%%\" y=\"0%%\" width=\"%f%%\" height=\"100%%\"/>",
 	    zone_start, zone_width);
 }
 
 static void print_label(
 	struct point p, struct data *data, const char *label_pos, unsigned curve_index)
 {
-	svg("<circle class=\"curve%u_hover\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
+	svg("<circle class=\"curve%u_hover\" cx=\"%f%%\" cy=\"%f%%\" r=\"4\"/>",
 	    curve_index, p.x, p.y);
-	svg("<text class=\"%s\" x=\"%.1f%%\" y=\"%.1f%%\">%ld</text>",
+	svg("<text class=\"%S\" x=\"%f%%\" y=\"%f%%\">%I</text>",
 	    label_pos, p.x, p.y, data->value);
 }
 
@@ -532,7 +532,7 @@ static void print_labels(struct graph *graph)
 		print_zone(graph, data, p);
 
 		svg("<g class=\"labels\">");
-		svg("<line x1=\"%.1f%%\" y1=\"%.1f%%\" x2=\"%.1f%%\" y2=\"%.1f%%\"/>",
+		svg("<line x1=\"%f%%\" y1=\"%f%%\" x2=\"%f%%\" y2=\"%f%%\"/>",
 		    p.x, pad_y(graph, 0.0), p.x, 100.0);
 
 		for (j = 0; j < graph->ncurves; j++) {
@@ -552,7 +552,7 @@ static void print_labels(struct graph *graph)
 			class = "left";
 
 		/* X label */
-		svg("<text class=\"axe_label time %s\" x=\"%.1f%%\" y=\"100%%\">%s</text>",
+		svg("<text class=\"axe_label time %S\" x=\"%f%%\" y=\"100%%\">%s</text>",
 		    class, p.x, buf);
 
 		svg("</g>");
@@ -576,7 +576,7 @@ static void print_point(
 	 * points, don't draw them anymore.
 	 */
 	if (islast || curve->ds->ndata <= 24)
-		svg("<circle class=\"curve%u\" cx=\"%.1f%%\" cy=\"%.1f%%\" r=\"4\"/>",
+		svg("<circle class=\"curve%u\" cx=\"%f%%\" cy=\"%f%%\" r=\"4\"/>",
 		    curve - graph->curves, p.x, p.y);
 }
 
@@ -630,7 +630,7 @@ static void print_name(struct graph *graph, struct curve *curve)
 	y += y_coord(graph, curve, axe_data(curve, axe + 1));
 	y /= 2.0;
 
-	svg("<text class=\"curve%u axe_label %s\" x=\"%.1f%%\" y=\"%.1f%%\" style=\"font-weight: bold;\">%s</text>",
+	svg("<text class=\"curve%u axe_label %S\" x=\"%f%%\" y=\"%f%%\" style=\"font-weight: bold;\">%s</text>",
 	    curve_index, class, x, y, curve->name);
 }
 

@@ -29,7 +29,7 @@ int main_html_clan(struct url *url)
 
 	/* Eventually, print them */
 	html_header(cname, cname, "/clans", NULL);
-	html("<h2>%s</h2>", escape(cname));
+	html("<h2>%s</h2>", cname);
 
 	html_start_player_list(NULL, 0, NULL);
 

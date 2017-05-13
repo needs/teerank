@@ -13,25 +13,25 @@ int main_xml_sitemap(struct url *url)
 	xml(" xsi:schemaLocation=\"http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd\">");
 
 	xml("<url>");
-	xml("<loc>http://%s/players</loc>", cgi_config.domain);
+	xml("<loc>http://%S/players</loc>", cgi_config.domain);
 	xml("<priority>1.00</priority>");
 	xml("<changefreq>hourly</changefreq>");
 	xml("</url>");
 
 	xml("<url>");
-	xml("<loc>http://%s/clans</loc>", cgi_config.domain);
+	xml("<loc>http://%S/clans</loc>", cgi_config.domain);
 	xml("<priority>1.00</priority>");
 	xml("<changefreq>hourly</changefreq>");
 	xml("</url>");
 
 	xml("<url>");
-	xml("<loc>http://%s/servers</loc>", cgi_config.domain);
+	xml("<loc>http://%S/servers</loc>", cgi_config.domain);
 	xml("<priority>1.00</priority>");
 	xml("<changefreq>hourly</changefreq>");
 	xml("</url>");
 
 	xml("<url>");
-	xml("<loc>http://%s/about</loc>", cgi_config.domain);
+	xml("<loc>http://%S/about</loc>", cgi_config.domain);
 	xml("<priority>1.00</priority>");
 	xml("<changefreq>hourly</changefreq>");
 	xml("</url>");

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #include "cgi.h"
 #include "player.h"
@@ -10,171 +11,123 @@
 #include "teerank.h"
 #include "html.h"
 
-#ifdef NDEBUG
-void html(const char *fmt, ...)
+static void print_unlocked(const char *str)
 {
+	for (; *str; str++)
+		putchar_unlocked(*str);
+}
+
+static void print_value(const char *fmt, ...)
+{
+	char buf[16];
 	va_list ap;
 
 	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-}
-
-void xml(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-}
-
-void svg(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-}
-
-void css(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-}
-
-#else  /* NDEBUG */
-
-/*
- * Indentation level is shared so that nested languages (CSS in HTML
- * for instance) are not mis-indented.
- */
-static int indent = 0;
-
-static void print(const char *fmt, va_list ap)
-{
-	unsigned i;
-
-	for (i = 0; i < indent; i++)
-		putchar('\t');
-
-	vprintf(fmt, ap);
-	putchar('\n');
-}
-
-static void _xml(const char *fmt, va_list ap)
-{
-	int opening_tag = 0, closing_tag = 0;
-	size_t len = strlen(fmt);
-
-	if (*fmt == '\0')
-		goto print;
-
-	/* It it start with "<" then we have an opening_tag */
-	if (fmt[0] == '<' && fmt[1] != '/' && fmt[1] != '!' && fmt[1] != '?')
-		opening_tag = 1;
-
-	/*
-	 * If it end with "/>" or if the last tag start with "</" then
-	 * we have a closing tag.
-	 */
-	if (fmt[len - 1] == '>' && fmt[len - 2] == '/') {
-		closing_tag = 1;
-	} else {
-		const char *s = &fmt[len];
-
-		while (s != fmt && *s != '<')
-			s--;
-
-		if (*s == '<' && *(s + 1) == '/')
-			closing_tag = 1;
-	}
-
-print:
-	if (!opening_tag && closing_tag) {
-		assert(indent > 0);
-		indent--;
-	}
-
-	print(fmt, ap);
-
-	if (opening_tag && !closing_tag)
-		indent++;
-}
-
-void html(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	_xml(fmt, ap);
-	va_end(ap);
-}
-
-void xml(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	_xml(fmt, ap);
-	va_end(ap);
-}
-
-void svg(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	_xml(fmt, ap);
-	va_end(ap);
-}
-
-void css(const char *fmt, ...)
-{
-	va_list ap;
-
-	if (fmt[0] == '}')
-		indent--;
-
-	va_start(ap, fmt);
-	print(fmt, ap);
+	vsnprintf(buf, sizeof(buf), fmt, ap);
 	va_end(ap);
 
-	if (fmt[strlen(fmt) - 1] == '{')
-		indent++;
+	print_unlocked(buf);
 }
 
-#endif  /* NDEBUG */
-
-char *escape(const char *str)
+static void print(void (*print_escaped)(const char *str), const char *fmt, va_list ap)
 {
-	static char buf[1024];
-	char *ret = buf;
+	for (; *fmt; fmt++) {
+		if (*fmt != '%') {
+			putchar_unlocked(*fmt);
+			continue;
+		}
 
-	assert(str != NULL);
-	assert(strlen(str) <= sizeof(buf));
-
-	for (; *str; str++) {
-		switch (*str) {
-		case '<':
-			ret = stpcpy(ret, "&lt;"); break;
-		case '>':
-			ret = stpcpy(ret, "&gt;"); break;
-		case '&':
-			ret = stpcpy(ret, "&amp;"); break;
-		case '"':
-			ret = stpcpy(ret, "&quot;"); break;
+		switch (*++fmt) {
+		case 's':
+			print_escaped(va_arg(ap, char *));
+			break;
+		case 'S':
+			print_unlocked(va_arg(ap, char *));
+			break;
+		case 'i':
+			print_value("%i", va_arg(ap, int));
+			break;
+		case 'I':
+			print_value("%li", va_arg(ap, long));
+			break;
+		case 'u':
+			print_value("%u", va_arg(ap, unsigned));
+			break;
+		case 'U':
+			print_value("%lu", va_arg(ap, long unsigned));
+			break;
+		case 'c':
+			putchar_unlocked((char)va_arg(ap, int));
+			break;
+		case 'f':
+			print_value("%.1f", va_arg(ap, double));
+			break;
+		case '%':
+			putchar_unlocked('%');
+			break;
 		default:
-			*ret++ = *str;
+			fprintf(stderr, "Unknown conversion specifier '%%%c'\n", *fmt);
+			abort();
 		}
 	}
+}
 
-	*ret = '\0';
-	return buf;
+static void print_escaped_xml(const char *str)
+{
+	for (; *str; str++) {
+		switch (*str) {
+		case '&':
+			print_unlocked("&amp;");
+			break;
+		case '<':
+			print_unlocked("&lt;");
+			break;
+		case '>':
+			print_unlocked("&gt;");
+			break;
+		case '\"':
+			print_unlocked("&quot;");
+			break;
+		case '\'':
+			print_unlocked("&#39;");
+			break;
+		default:
+			putchar_unlocked(*str);
+			break;
+		}
+	}
+}
+
+void html(const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	print(print_escaped_xml, fmt, ap);
+	va_end(ap);
+}
+
+void xml(const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	print(print_escaped_xml, fmt, ap);
+	va_end(ap);
+}
+
+void svg(const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	print(print_escaped_xml, fmt, ap);
+	va_end(ap);
+}
+
+void css(const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	print(print_unlocked, fmt, ap);
+	va_end(ap);
 }
 
 /* Minutes looks nice when they only ends by '0' or '5' */
@@ -335,7 +288,7 @@ static void print_top_tabs(void *active)
 			&CTF_TAB, &DM_TAB, &TDM_TAB, &ABOUT_TAB, NULL
 		};
 	} else {
-		CUSTOM_TAB.name = escape(active);
+		CUSTOM_TAB.name = active;
 		tabs = (struct tab *[]){
 			&CTF_TAB, &DM_TAB, &TDM_TAB, &CUSTOM_TAB, &ABOUT_TAB, NULL
 		};
@@ -352,9 +305,9 @@ static void print_top_tabs(void *active)
 			class = " class=\"active\"";
 
 		if (tab == active)
-			html("<a%s>%s</a>", class, tab->name);
+			html("<a%S>%s</a>", class, tab->name);
 		else
-			html("<a href=\"%s\"%s>%s</a>",
+			html("<a href=\"%s\"%S>%s</a>",
 			       tab->href, class, tab->name);
 	}
 
@@ -374,7 +327,7 @@ void html_header(
 	html("<html>");
 	html("<head>");
 	html("<meta charset=\"utf-8\"/>");
-	html("<title>%s - Teerank</title>", escape(title));
+	html("<title>%s - Teerank</title>", title);
 
 	html("<meta name=\"description\" content=\"Teerank is a simple and fast ranking system for teeworlds.\"/>");
 	html("<link rel=\"stylesheet\" href=\"/style.css\"/>");
@@ -392,11 +345,11 @@ void html_header(
 	if (elapsed_time(last_database_update(), NULL, text, sizeof(text)))
 		html("<a id=\"alert\" href=\"/status\">Not updated since %s</a>", text);
 
-	html("<form action=\"search%s\" id=\"searchform\">", sprefix);
-	html("<input name=\"q\" type=\"text\" placeholder=\"Search\"%s%s%s/>",
-	     query ? " value=\"" : "",
-	     query ? escape(query) : "",
-	     query ? "\"" : "");
+	html("<form action=\"search%S\" id=\"searchform\">", sprefix);
+	html("<input name=\"q\" type=\"text\" placeholder=\"Search\"");
+	if (query)
+		html(" value=\"%s\"", query);
+	html("/>");
 
 	html("<input type=\"submit\" value=\"\"/>");
 	html("</form>");
@@ -416,8 +369,8 @@ void html_footer(const char *jsonanchor, const char *jsonurl)
 
 	if (jsonanchor && jsonurl) {
 		html("<nav id=\"bottabs\">");
-		html("<a href=\"%s\">JSON</a>", jsonurl);
-		html("<a href=\"/about-json-api#%s\">JSON Doc</a>", jsonanchor);
+		html("<a href=\"%S\">JSON</a>", jsonurl);
+		html("<a href=\"/about-json-api#%S\">JSON Doc</a>", jsonanchor);
 		html("<a class=\"active\">HTML</a>");
 		html("</nav>");
 	}
@@ -427,10 +380,10 @@ void html_footer(const char *jsonanchor, const char *jsonurl)
 	html("<footer id=\"footer\">");
 	html("<ul>");
 	html("<li>");
-	html("<a href=\"https://github.com/needs/teerank/commit/%s\">Teerank %d.%d</a>",
+	html("<a href=\"https://github.com/needs/teerank/commit/%S\">Teerank %i.%i</a>",
 	     CURRENT_COMMIT, TEERANK_VERSION, TEERANK_SUBVERSION);
 	html(" ");
-	html("<a href=\"https://github.com/needs/teerank/tree/%s\">(%s)</a>",
+	html("<a href=\"https://github.com/needs/teerank/tree/%S\">(%s)</a>",
 	     CURRENT_BRANCH, STABLE_VERSION ? "stable" : "unstable");
 	html("</li>");
 	html("<li><a href=\"/status\">Status</a></li>");
@@ -461,9 +414,9 @@ static void html_list_header(
 		if (!col->order || !order)
 			html("<th>%s</th>", col->name);
 		else if (strcmp(order, col->order) == 0)
-			html("<th>%s%s</th>", col->name, down);
+			html("<th>%s%S</th>", col->name, down);
 		else
-			html("<th><a href=\"%s?sort=%s&p=%u\">%s%s</a></th>",
+			html("<th><a href=\"%S?sort=%S&p=%u\">%s%S</a></th>",
 			     listurl, col->order, pnum, col->name, dash);
 	}
 
@@ -541,24 +494,24 @@ static void player_list_entry(
 
 	/* Name */
 	name = p ? p->name : c->name;
-	html("<td>%s<a href=\"/player/%s\">%s</a></td>",
-	     spectator ? specimg : "", url_encode(name), escape(name));
+	html("<td>%s<a href=\"/player/%S\">%s</a></td>",
+	     spectator ? specimg : "", url_encode(name), name);
 
 	/* Clan */
 	clan = p ? p->clan : c->clan;
 	if (no_clan_link || !clan[0])
-		html("<td>%s</td>", escape(clan));
+		html("<td>%s</td>", clan);
 	else
-		html("<td><a href=\"/clan/%s\">%s</a></td>",
-		     url_encode(clan), escape(clan));
+		html("<td><a href=\"/clan/%S\">%s</a></td>",
+		     url_encode(clan), clan);
 
 	/* Score (online-player-list only) */
 	if (c)
-		html("<td>%d</td>", c->score);
+		html("<td>%i</td>", c->score);
 
 	/* Elo */
 	if (p)
-		html("<td>%d</td>", p->elo);
+		html("<td>%i</td>", p->elo);
 	else
 		html("<td>?</td>");
 
@@ -609,7 +562,7 @@ void html_clan_list_entry(
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td><a href=\"/clan/%s\">%s</a></td>", url_encode(name), escape(name));
+	html("<td><a href=\"/clan/%S\">%s</a></td>", url_encode(name), name);
 
 	/* Members */
 	html("<td>%u</td>", nmembers);
@@ -645,14 +598,14 @@ void html_server_list_entry(unsigned pos, struct server *server)
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td><a href=\"/server/%s\">%s</a></td>",
-	     build_addr(server->ip, server->port), escape(server->name));
+	html("<td><a href=\"/server/%S\">%s</a></td>",
+	     build_addr(server->ip, server->port), server->name);
 
 	/* Gametype */
-	html("<td>%s</td>", escape(server->gametype));
+	html("<td>%s</td>", server->gametype);
 
 	/* Map */
-	html("<td>%s</td>", escape(server->map));
+	html("<td>%s</td>", server->map);
 
 	/* Players */
 	html("<td>%u / %u</td>", server->num_clients, server->max_clients);
@@ -707,7 +660,7 @@ void print_section_tabs(enum section_tab tab, const char *format, unsigned *tabv
 		if (i == tab)
 			html("<a class=\"enabled\">");
 		else
-			html("<a href=\"%s\">", url);
+			html("<a href=\"%S\">", url);
 
 		html("%s", tabs[i].title);
 		if (tabvals[i])
@@ -745,35 +698,35 @@ void print_page_nav(const char *fmt, unsigned pnum, unsigned npages)
 	if (pnum == 1)
 		html("<a class=\"previous\">Previous</a>");
 	else
-		html("<a class=\"previous\" href=\"%s\">Previous</a>", url(fmt, pnum-1));
+		html("<a class=\"previous\" href=\"%S\">Previous</a>", url(fmt, pnum-1));
 
 	/* Link to first page */
 	if (pnum > extra + 1)
-		html("<a href=\"%s\">1</a>", url(fmt, 1));
+		html("<a href=\"%S\">1</a>", url(fmt, 1));
 	if (pnum > extra + 2)
 		html("<span>...</span>");
 
 	/* Extra pages before */
 	for (i = min(extra, pnum - 1); i > 0; i--)
-		html("<a href=\"%s\">%u</a>", url(fmt, pnum-i), pnum - i);
+		html("<a href=\"%S\">%u</a>", url(fmt, pnum-i), pnum - i);
 
 	html("<a class=\"current\">%u</a>", pnum);
 
 	/* Extra pages after */
 	for (i = 1; i <= min(extra, npages - pnum); i++)
-		html("<a href=\"%s\">%u</a>", url(fmt, pnum+i), pnum + i);
+		html("<a href=\"%S\">%u</a>", url(fmt, pnum+i), pnum + i);
 
 	/* Link to last page */
 	if (pnum + extra + 1 < npages)
 		html("<span>...</span>");
 	if (pnum + extra < npages)
-		html("<a href=\"%s\">%u</a>", url(fmt, npages), npages);
+		html("<a href=\"%S\">%u</a>", url(fmt, npages), npages);
 
 	/* Next button */
 	if (pnum == npages)
 		html("<a class=\"next\">Next</a>");
 	else
-		html("<a class=\"next\" href=\"%s\">Next</a>", url(fmt, pnum+1));
+		html("<a class=\"next\" href=\"%S\">Next</a>", url(fmt, pnum+1));
 
 	html("</nav>");
 }

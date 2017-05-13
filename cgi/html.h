@@ -10,8 +10,6 @@ void xml(const char *fmt, ...);
 void svg(const char *fmt, ...);
 void css(const char *fmt, ...);
 
-char *escape(const char *str);
-
 /*
  * Compute the number of minutes, hours, days, months and years from the
  * given date to now.  Set the most significant timescale and return a

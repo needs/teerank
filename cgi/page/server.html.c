@@ -73,7 +73,7 @@ int main_html_server(struct url *url)
 	html_header(server.name, server.name, "/servers", NULL);
 	html("<header id=\"server_header\">");
 	html("<section id=\"serverinfo\">");
-	html("<h2>%s</h2>", escape(server.name));
+	html("<h2>%s</h2>", server.name);
 
 	html("<ul>");
 	html("<li>%s</li><li>%s</li>", server.gametype, server.map);

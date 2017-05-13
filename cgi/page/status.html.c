@@ -58,7 +58,7 @@ static void print_status(const char *title, const char *comment, int status)
 {
 	assert(title != NULL);
 
-	html("<section class=\"status status_%s\">", status_class(status));
+	html("<section class=\"status status_%S\">", status_class(status));
 	html("<span>%s</span>", title);
 	if (comment)
 		html("<span class=\"comment\">%s</span>", comment);

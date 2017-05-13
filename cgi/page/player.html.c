@@ -37,16 +37,16 @@ int main_html_player(struct url *url)
 	html("<header id=\"player_header\">");
 	html("<img src=\"/images/player.png\"/>");
 	html("<div>");
-	html("<h1 id=\"player_name\">%s</h1>", escape(pname));
+	html("<h1 id=\"player_name\">%s</h1>", pname);
 
 	if (*player.clan)
-		html("<p id=\"player_clan\"><a href=\"/clan/%s\">%s</a></p>",
+		html("<p id=\"player_clan\"><a href=\"/clan/%S\">%s</a></p>",
 		     url_encode(player.clan), player.clan);
 
 	html("</div>");
 
 	html("<div>");
-	html("<p id=\"player_rank\">#%u (%d ELO)</p>", player.rank, player.elo);
+	html("<p id=\"player_rank\">#%u (%i ELO)</p>", player.rank, player.elo);
 	html("<p id=\"player_lastseen\">");
 	player_lastseen_link(
 		player.lastseen, build_addr(player.server_ip, player.server_port));
@@ -56,7 +56,7 @@ int main_html_player(struct url *url)
 	html("</header>");
 	html("");
 	html("<h2>Historic</h2>");
-	html("<object data=\"/player/%s/historic.svg\" type=\"image/svg+xml\"></object>",
+	html("<object data=\"/player/%S/historic.svg\" type=\"image/svg+xml\"></object>",
 	     url_encode(pname));
 
 	html_footer("player", relurl("/players/%s.json", json_hexstring(pname)));

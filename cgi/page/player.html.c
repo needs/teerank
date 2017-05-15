@@ -40,8 +40,8 @@ int main_html_player(struct url *url)
 	html("<h1 id=\"player_name\">%s</h1>", pname);
 
 	if (*player.clan)
-		html("<p id=\"player_clan\"><a href=\"/clan/%S\">%s</a></p>",
-		     url_encode(player.clan), player.clan);
+		html("<p id=\"player_clan\"><a href=\"%S\">%s</a></p>",
+		     URL("/clan/%s", player.clan), player.clan);
 
 	html("</div>");
 
@@ -56,10 +56,10 @@ int main_html_player(struct url *url)
 	html("</header>");
 	html("");
 	html("<h2>Historic</h2>");
-	html("<object data=\"/player/%S/historic.svg\" type=\"image/svg+xml\"></object>",
-	     url_encode(pname));
+	html("<object data=\"%S\" type=\"image/svg+xml\"></object>",
+	     URL("/player/%S/historic.svg", pname));
 
-	html_footer("player", relurl("/players/%s.json", json_hexstring(pname)));
+	html_footer("player", URL("/players/%s.json", json_hexstring(pname)));
 
 	return EXIT_SUCCESS;
 }

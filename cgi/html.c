@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <ctype.h>
+#include <unistd.h>
 
 #include "cgi.h"
 #include "player.h"
@@ -11,98 +13,136 @@
 #include "teerank.h"
 #include "html.h"
 
-static void print_unlocked(const char *str)
+static void sputc(char **buf, int *n, char c)
 {
-	for (; *str; str++)
-		putchar_unlocked(*str);
+	if (*n) {
+		**buf = c;
+		*buf = *buf + 1;
+		*n = *n - 1;
+	}
 }
 
-static void print_value(const char *fmt, ...)
+static void sputs(char **buf, int *n, const char *str)
 {
-	char buf[16];
-	va_list ap;
+	while (*n && *str) {
+		sputc(buf, n, *str);
+		str++;
+	}
+}
 
+static void sprint(char **buf, int *n, const char *fmt, ...)
+{
+	char tmp[16];
+	va_list ap;
+	int ret;
+
+	/*
+	 * We don't put the result directly in *buf because we don't
+	 * want the ending nul character.
+	 */
 	va_start(ap, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, ap);
+	ret = vsnprintf(tmp, sizeof(tmp), fmt, ap);
 	va_end(ap);
 
-	print_unlocked(buf);
+	if (ret >= sizeof(tmp))
+		ret = sizeof(tmp) - 1;
+	if (ret > *n)
+		ret = *n;
+
+	memcpy(*buf, tmp, ret);
+
+	*n = *n - ret;
+	*buf = *buf + ret;
 }
 
-static void print(void (*print_escaped)(const char *str), const char *fmt, va_list ap)
+typedef void (*escape_func_t)(char **buf, int *n, const char *str);
+
+static int print(char *buf, int size, escape_func_t escape, const char *fmt, va_list ap)
 {
-	for (; *fmt; fmt++) {
+	int n = size;
+
+	for (; *fmt && n; fmt++) {
 		if (*fmt != '%') {
-			putchar_unlocked(*fmt);
+			sputc(&buf, &n, *fmt);
 			continue;
 		}
 
 		switch (*++fmt) {
 		case 's':
-			print_escaped(va_arg(ap, char *));
+			escape(&buf, &n, va_arg(ap, char *));
 			break;
 		case 'S':
-			print_unlocked(va_arg(ap, char *));
+			sputs(&buf, &n, va_arg(ap, char *));
 			break;
 		case 'i':
-			print_value("%i", va_arg(ap, int));
+			sprint(&buf, &n, "%i", va_arg(ap, int));
 			break;
 		case 'I':
-			print_value("%li", va_arg(ap, long));
+			sprint(&buf, &n, "%li", va_arg(ap, long));
 			break;
 		case 'u':
-			print_value("%u", va_arg(ap, unsigned));
+			sprint(&buf, &n, "%u", va_arg(ap, unsigned));
 			break;
 		case 'U':
-			print_value("%lu", va_arg(ap, long unsigned));
-			break;
-		case 'c':
-			putchar_unlocked((char)va_arg(ap, int));
+			sprint(&buf, &n, "%lu", va_arg(ap, long unsigned));
 			break;
 		case 'f':
-			print_value("%.1f", va_arg(ap, double));
+			sprint(&buf, &n, "%.1f", va_arg(ap, double));
+			break;
+		case 'c':
+			sputc(&buf, &n, va_arg(ap, int));
 			break;
 		case '%':
-			putchar_unlocked('%');
+			sputc(&buf, &n, '%');
 			break;
 		default:
 			fprintf(stderr, "Unknown conversion specifier '%%%c'\n", *fmt);
 			abort();
 		}
 	}
+
+	return size - n;
 }
 
-static void print_escaped_xml(const char *str)
+static void escape_xml(char **buf, int *n, const char *str)
 {
-	for (; *str; str++) {
+	for (; *str && *n; str++) {
 		switch (*str) {
 		case '&':
-			print_unlocked("&amp;");
+			sputs(buf, n, "&amp;");
 			break;
 		case '<':
-			print_unlocked("&lt;");
+			sputs(buf, n, "&lt;");
 			break;
 		case '>':
-			print_unlocked("&gt;");
+			sputs(buf, n, "&gt;");
 			break;
 		case '\"':
-			print_unlocked("&quot;");
+			sputs(buf, n, "&quot;");
 			break;
 		case '\'':
-			print_unlocked("&#39;");
+			sputs(buf, n, "&#39;");
 			break;
 		default:
-			putchar_unlocked(*str);
+			sputc(buf, n, *str);
 			break;
 		}
 	}
+}
+
+/* Store the result in a static buffer and print it right away */
+static void _print(escape_func_t escape, const char *fmt, va_list ap)
+{
+	static char buf[1024];
+	int ret = print(buf, sizeof(buf), escape, fmt, ap);
+	fwrite(buf, ret, 1, stdout);
 }
 
 void html(const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	print(print_escaped_xml, fmt, ap);
+	_print(escape_xml, fmt, ap);
 	va_end(ap);
 }
 
@@ -110,7 +150,7 @@ void xml(const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	print(print_escaped_xml, fmt, ap);
+	_print(escape_xml, fmt, ap);
 	va_end(ap);
 }
 
@@ -118,7 +158,7 @@ void svg(const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	print(print_escaped_xml, fmt, ap);
+	_print(escape_xml, fmt, ap);
 	va_end(ap);
 }
 
@@ -126,9 +166,89 @@ void css(const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	print(print_unlocked, fmt, ap);
+	_print(sputs, fmt, ap);
 	va_end(ap);
 }
+
+static char dectohex(char dec)
+{
+	switch (dec) {
+	case 0: return '0';
+	case 1: return '1';
+	case 2: return '2';
+	case 3: return '3';
+	case 4: return '4';
+	case 5: return '5';
+	case 6: return '6';
+	case 7: return '7';
+	case 8: return '8';
+	case 9: return '9';
+	case 10: return 'A';
+	case 11: return 'B';
+	case 12: return 'C';
+	case 13: return 'D';
+	case 14: return 'E';
+	case 15: return 'F';
+	default: return '0';
+	}
+}
+
+/*
+ * We only let through alpha-numeric characters as well as '-', '_', '.'
+ * and '~'.  Every other characters must be encoded.
+ */
+static bool safe_url_char(char c)
+{
+	if (isalnum(c))
+		return 1;
+
+	return strchr("-_.~", c) != NULL;
+}
+
+static void url_encode(char **buf, int *n, const char *str)
+{
+	for (; *str && *n; str++) {
+		if (safe_url_char(*str)) {
+			sputc(buf, n, *str);
+		} else {
+			unsigned char c = *(unsigned char*)str;
+			sputc(buf, n, '%');
+			sputc(buf, n, dectohex(c / 16));
+			sputc(buf, n, dectohex(c % 16));
+		}
+	}
+}
+
+#define NBUF 4
+#define BUFSIZE 1024
+
+char *URL(const char *fmt, ...)
+{
+	static char bufs[NBUF][BUFSIZE];
+	static int i = 0;
+
+	char *buf;
+	va_list ap;
+	int ret;
+
+	/*
+	 * Rotates buffers so this function can be called multiple time
+	 * in a row and will returns different buffers.
+	 */
+	buf = bufs[i];
+	i = (i + 1) % NBUF;
+
+	/* Reserve one byte for the final '\0' */
+	va_start(ap, fmt);
+	ret = print(buf, BUFSIZE-1, url_encode, fmt, ap);
+	va_end(ap);
+
+	buf[ret] = '\0';
+	return buf;
+}
+
+#undef BUFSIZE
+#undef NBUF
 
 /* Minutes looks nice when they only ends by '0' or '5' */
 static unsigned pretiffy_minutes(unsigned minutes)
@@ -494,16 +614,15 @@ static void player_list_entry(
 
 	/* Name */
 	name = p ? p->name : c->name;
-	html("<td>%s<a href=\"/player/%S\">%s</a></td>",
-	     spectator ? specimg : "", url_encode(name), name);
+	html("<td>%s<a href=\"%S\">%s</a></td>",
+	     spectator ? specimg : "", URL("/player/%s", name), name);
 
 	/* Clan */
 	clan = p ? p->clan : c->clan;
 	if (no_clan_link || !clan[0])
 		html("<td>%s</td>", clan);
 	else
-		html("<td><a href=\"/clan/%S\">%s</a></td>",
-		     url_encode(clan), clan);
+		html("<td><a href=\"%S\">%s</a></td>", URL("/clan/%s", clan), clan);
 
 	/* Score (online-player-list only) */
 	if (c)
@@ -562,7 +681,7 @@ void html_clan_list_entry(
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td><a href=\"/clan/%S\">%s</a></td>", url_encode(name), name);
+	html("<td><a href=\"%S\">%s</a></td>", URL("/clan/%s", name), name);
 
 	/* Members */
 	html("<td>%u</td>", nmembers);

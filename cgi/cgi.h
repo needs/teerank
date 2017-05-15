@@ -8,7 +8,7 @@
 #define EXIT_NOT_FOUND 2
 
 void error(int code, char *fmt, ...);
-void redirect(const char *fmt, ...);
+void redirect(char *url);
 
 #define MAX_DOMAIN_LENGTH 1024
 
@@ -30,10 +30,6 @@ int parse_pnum(char *str, unsigned *pnum);
 
 unsigned char hextodec(char c);
 
-char *url_encode(const char *str);
 void url_decode(char *str);
-
-char *relurl(const char *fmt, ...);
-char *absurl(const char *fmt, ...);
 
 #endif /* CGI_H */

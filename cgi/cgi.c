@@ -48,63 +48,6 @@ int parse_pnum(char *str, unsigned *pnum)
 	return 1;
 }
 
-static int safe_for_urls(char c)
-{
-	if (isalnum(c))
-		return 1;
-
-	return strchr("-_.~", c) != NULL;
-}
-
-static char dectohex(char dec)
-{
-	switch (dec) {
-	case 0: return '0';
-	case 1: return '1';
-	case 2: return '2';
-	case 3: return '3';
-	case 4: return '4';
-	case 5: return '5';
-	case 6: return '6';
-	case 7: return '7';
-	case 8: return '8';
-	case 9: return '9';
-	case 10: return 'A';
-	case 11: return 'B';
-	case 12: return 'C';
-	case 13: return 'D';
-	case 14: return 'E';
-	case 15: return 'F';
-	default: return '0';
-	}
-}
-
-char *url_encode(const char *str)
-{
-	static char _buf[1024];
-	char *buf = _buf;
-
-	for (; *str; str++) {
-		if (buf - _buf + 1 >= sizeof(_buf))
-			break;
-
-		if (safe_for_urls(*str)) {
-			*buf++ = *str;
-			continue;
-		}
-
-		if (buf - _buf + 3 >= sizeof(_buf))
-			break;
-
-		*buf++ = '%';
-		*buf++ = dectohex(*(unsigned char*)str / 16);
-		*buf++ = dectohex(*(unsigned char*)str % 16);
-	}
-
-	*buf = '\0';
-	return _buf;
-}
-
 unsigned char hextodec(char c)
 {
 	switch (c) {
@@ -160,35 +103,6 @@ void url_decode(char *str)
 	*tmp = '\0';
 }
 
-char *relurl(const char *fmt, ...)
-{
-	static char url[PATH_MAX];
-	va_list ap;
-
-	va_start(ap, fmt);
-	vsnprintf(url, sizeof(url), fmt, ap);
-	va_end(ap);
-
-	return url;
-}
-
-char *absurl(const char *fmt, ...)
-{
-	static char url[PATH_MAX];
-	int ret;
-
-	ret = snprintf(url, sizeof(url), "http://%s", cgi_config.domain);
-
-	if (ret < sizeof(url)) {
-		va_list ap;
-		va_start(ap, fmt);
-		vsnprintf(url + ret, sizeof(url) - ret, fmt, ap);
-		va_end(ap);
-	}
-
-	return url;
-}
-
 static char *reason_phrase(int code)
 {
 	switch (code) {
@@ -235,21 +149,12 @@ void error(int code, char *fmt, ...)
  * for a page to forward specific headers in HTTP response.  So this
  * function as it is will not work as intented.
  */
-void redirect(const char *fmt, ...)
+void redirect(char *url)
 {
-	va_list ap;
-
-	assert(fmt != NULL);
-	assert(fmt[0] == '/');
+	assert(url != NULL);
 
 	printf("Status: %d %s\n", 301, reason_phrase(301));
-	printf("Location: http://%s", cgi_config.domain);
-
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-
-	putchar('\n');
+	printf("Location: http://%s%s\n", cgi_config.domain, url);
 	putchar('\n');
 }
 

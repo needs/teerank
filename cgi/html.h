@@ -9,6 +9,7 @@ void html(const char *fmt, ...);
 void xml(const char *fmt, ...);
 void svg(const char *fmt, ...);
 void css(const char *fmt, ...);
+char *URL(const char *fmt, ...);
 
 /*
  * Compute the number of minutes, hours, days, months and years from the

@@ -42,7 +42,7 @@ int main_html_clan(struct url *url)
 		return EXIT_NOT_FOUND;
 
 	html_end_player_list();
-	html_footer("clan", relurl("/clans/%s.json", json_hexstring(cname)));
+	html_footer("clan", URL("/clans/%s.json", json_hexstring(cname)));
 
 	return EXIT_SUCCESS;
 }

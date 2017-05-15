@@ -9,6 +9,7 @@
 
 #include "teerank.h"
 #include "route.h"
+#include "html.h"
 #include "cgi.h"
 
 static char *convert_hexname(char *hexname)
@@ -30,7 +31,7 @@ static int main_html_teerank2_player_list(struct url *url)
 {
 	/* FIXME! Semantic changed and redirect() will not work as
 	 * intended */
-	redirect("/players?p=%s", url->dirs[url->ndirs - 1]);
+	redirect(URL("/players?p=%s", url->dirs[url->ndirs - 1]));
 	return EXIT_FAILURE;
 }
 
@@ -39,7 +40,7 @@ static int main_svg_teerank3_graph(struct url *url)
 {
 	/* FIXME! Semantic changed and redirect() will not work as
 	 * intended */
-	redirect("/player/%s/historic.svg", url_encode(convert_hexname(url->dirs[url->ndirs - 2])));
+	redirect(URL("/player/%s/historic.svg", convert_hexname(url->dirs[url->ndirs - 2])));
 	return EXIT_FAILURE;
 }
 

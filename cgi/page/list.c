@@ -77,7 +77,7 @@ static int print_player_list(void)
 	if (json)
 		json_start_player_list();
 	else
-		html_start_player_list(relurl("/players/%s/%s", gametype, map), pnum, order);
+		html_start_player_list(URL("/players/%s/%s", gametype, map), pnum, order);
 
 	foreach_player(query, &player, "ss", gametype, map) {
 		if (json)
@@ -137,7 +137,7 @@ static int print_clan_list(void)
 	if (json)
 		json_start_clan_list();
 	else
-		html_start_clan_list(relurl("/clans/%s/%s", gametype, map), pnum, NULL);
+		html_start_clan_list(URL("/clans/%s/%s", gametype, map), pnum, NULL);
 
 	offset = (pnum - 1) * 100;
 	foreach_clan(query, &clan, "u", offset) {
@@ -203,7 +203,7 @@ static int print_server_list(void)
 	if (json)
 		json_start_server_list();
 	else
-		html_start_server_list(relurl("/servers/%s/%s", gametype, map), pnum, NULL);
+		html_start_server_list(URL("/servers/%s/%s", gametype, map), pnum, NULL);
 
 	offset = (pnum - 1) * 100;
 	foreach_extended_server(query, &server, "u", offset) {
@@ -288,7 +288,7 @@ int main_html_list(struct url *url)
 	else
 		html_header(gametype, gametype, "/players", NULL);
 
-	urlfmt = relurl("/%%s/%s/%s", gametype, map);
+	urlfmt = URL("/%%s/%s/%s", gametype, map);
 	tabvals[0] = count_ranked_players("", "");
 	tabvals[1] = count_clans();
 	tabvals[2] = count_vanilla_servers();
@@ -297,24 +297,24 @@ int main_html_list(struct url *url)
 	case PCS_PLAYER:
 		print_section_tabs(PLAYERS_TAB, urlfmt, tabvals);
 		ret = print_player_list();
-		urlfmt = relurl("/players/%s/%s?sort=%s&p=%%u", gametype, map, order);
+		urlfmt = URL("/players/%s/%s?sort=%s&p=%%u", gametype, map, order);
 		print_page_nav(urlfmt, pnum, tabvals[0] / 100 + 1);
 		break;
 	case PCS_CLAN:
 		print_section_tabs(CLANS_TAB, urlfmt, tabvals);
 		ret = print_clan_list();
-		urlfmt = relurl("/clans/%s/%s?sort=%s&p=%%u", gametype, map, order);
+		urlfmt = URL("/clans/%s/%s?sort=%s&p=%%u", gametype, map, order);
 		print_page_nav(urlfmt, pnum, tabvals[1] / 100 + 1);
 		break;
 	case PCS_SERVER:
 		print_section_tabs(SERVERS_TAB, urlfmt, tabvals);
 		ret = print_server_list();
-		urlfmt = relurl("/servers/%s/%s?sort=%s&p=%%u", gametype, map, order);
+		urlfmt = URL("/servers/%s/%s?sort=%s&p=%%u", gametype, map, order);
 		print_page_nav(urlfmt, pnum, tabvals[2] / 100 + 1);
 		break;
 	}
 
-	html_footer("player-list", relurl("/players/%s.json?p=%u", gametype, pnum));
+	html_footer("player-list", URL("/players/%s.json?p=%u", gametype, pnum));
 
 	return ret;
 }

@@ -98,7 +98,7 @@ int main_html_server(struct url *url)
 
 	show_client_list(&server);
 
-	html_footer("server", relurl("/servers/%s.json", addr));
+	html_footer("server", URL("/servers/%s.json", addr));
 
 	return EXIT_SUCCESS;
 }

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <limits.h>
 #include <dirent.h>
+#include <stdbool.h>
 
 #include "teerank.h"
 #include "route.h"
@@ -70,7 +71,7 @@ static int main_svg_teerank3_graph(struct url *url)
 #define DIR(name)                                                       \
 	{ name, "", NULL, NULL, (struct route[]) {
 #define END()                                                           \
-	} },
+	{ 0 } } },
 
 #define HTML(name, func)                                                \
 	{ name, ".html", "text/html", main_html_##func },               \
@@ -104,7 +105,7 @@ static int route_match(struct route *route, char *name)
 	 */
 	*ext = '\0';
 
-	if (strcmp(route->name, "*") == 0)
+	if (!route->name)
 		return 1;
 	if (strcmp(route->name, name) == 0)
 		return 1;
@@ -112,6 +113,11 @@ static int route_match(struct route *route, char *name)
 	/* Somehow route doesn't match, uncut file extension. */
 	*ext = route->ext[0];
 	return 0;
+}
+
+static bool is_valid_route(struct route *route)
+{
+	return route && (route->main || route->routes);
 }
 
 /*
@@ -122,7 +128,7 @@ static struct route *find_child_route(
 {
 	struct route *r;
 
-	for (r = route->routes; r && r->name; r++) {
+	for (r = route->routes; is_valid_route(r); r++) {
 		if (onlyleaf && r->routes)
 			continue;
 		if (route_match(r, name))

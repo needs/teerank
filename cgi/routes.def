@@ -18,35 +18,35 @@ END()
 HTML("search", search)
 
 DIR("player")
-	DIR("*")
+	DIR(NULL)
 		SVG("historic", graph)
 	END()
-	JSON("*", player)
-	HTML("*", player)
+	JSON(NULL, player)
+	HTML(NULL, player)
 END()
 
 DIR("clan")
-	JSON("*", clan)
-	HTML("*", clan)
+	JSON(NULL, clan)
+	HTML(NULL, clan)
 END()
 
 DIR("server")
-	JSON("*", server)
-	HTML("*", server)
+	JSON(NULL, server)
+	HTML(NULL, server)
 END()
 
 DIR("pages")
-	HTML("*", teerank2_player_list)
+	HTML(NULL, teerank2_player_list)
 END()
 
 #define LIST(name)                                                      \
 DIR(#name "s")                                                          \
-	DIR("*")                                                        \
-		JSON("*", list)                                         \
-		HTML("*", list)                                         \
+	DIR(NULL)                                                       \
+		JSON(NULL, list)                                        \
+		HTML(NULL, list)                                        \
 	END()                                                           \
-	JSON("*", list)                                                 \
-	HTML("*", list)                                                 \
+	JSON(NULL, list)                                                \
+	HTML(NULL, list)                                                \
 END()                                                                   \
 HTML(#name "s", list)                                                   \
 JSON(#name "s", list)
@@ -56,7 +56,7 @@ LIST(clan)
 LIST(server)
 
 DIR("players")
-	DIR("*")
+	DIR(NULL)
 		SVG("elo rank", teerank3_graph)
 	END()
 END()

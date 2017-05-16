@@ -40,7 +40,7 @@ DIR("pages")
 END()
 
 #define LIST(name)                                                      \
-DIR(#name "s")                                                          \
+DIR(name "s")                                                           \
 	DIR(NULL)                                                       \
 		JSON(NULL, list)                                        \
 		HTML(NULL, list)                                        \
@@ -48,12 +48,12 @@ DIR(#name "s")                                                          \
 	JSON(NULL, list)                                                \
 	HTML(NULL, list)                                                \
 END()                                                                   \
-HTML(#name "s", list)                                                   \
-JSON(#name "s", list)
+HTML(name "s", list)                                                    \
+JSON(name "s", list)
 
-LIST(player)
-LIST(clan)
-LIST(server)
+LIST("player")
+LIST("clan")
+LIST("server")
 
 DIR("players")
 	DIR(NULL)

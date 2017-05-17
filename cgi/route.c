@@ -46,6 +46,12 @@ static int main_svg_teerank3_graph(struct url *url)
 }
 
 /*
+ * It is a special route name used to match everything.  We can't use
+ * NULL for that because it's already used for empty names.
+ */
+#define _ (char*)1
+
+/*
  * The routes tree refers to pages "main()" callbacks.  So we need to
  * declare them before buliding the tree.
  */
@@ -69,50 +75,40 @@ static int main_svg_teerank3_graph(struct url *url)
  */
 
 #define DIR(name)                                                       \
-	{ name, "", NULL, NULL, (struct route[]) {
+	{ name, NULL, NULL, NULL, (struct route[]) {
 #define END()                                                           \
 	{ 0 } } },
 
 #define HTML(name, func)                                                \
-	{ name, ".html", "text/html", main_html_##func },               \
-	{ name, "", "text/html", main_html_##func },
+	{ name, "html", "text/html", main_html_##func },                \
+	{ name, NULL, "text/html", main_html_##func },
 #define JSON(name, func)                                                \
-	{ name, ".json", "text/json", main_json_##func },
+	{ name, "json", "text/json", main_json_##func },
 #define TXT(name, func)                                                 \
-	{ name, ".txt", "text/plain", main_txt_##func },
+	{ name, "txt", "text/plain", main_txt_##func },
 #define XML(name, func)                                                 \
-	{ name, ".xml", "text/xml", main_xml_##func },
+	{ name, "xml", "text/xml", main_xml_##func },
 #define SVG(name, func)                                                 \
-	{ name, ".svg", "image/svg+xml", main_svg_##func },
+	{ name, "svg", "image/svg+xml", main_svg_##func },
 
-static struct route root = DIR("")
+static struct route root = DIR(NULL)
 #include "routes.def"
 }};
 
-static int route_match(struct route *route, char *name)
+static bool samestr(const char *a, const char *b)
 {
-	char *ext;
+	if (!a || !b)
+		return a == b;
+	else
+		return strcmp(a, b) == 0;
+}
 
-	/* First, check for extension */
-	if (!(ext = strrchr(name, route->ext[0])))
-		return 0;
-	if (strcmp(ext, route->ext) != 0)
-		return 0;
-
-	/*
-	 * Then check for raw filename, since file extension is already
-	 * tested, cut it.
-	 */
-	*ext = '\0';
-
-	if (!route->name)
-		return 1;
-	if (strcmp(route->name, name) == 0)
-		return 1;
-
-	/* Somehow route doesn't match, uncut file extension. */
-	*ext = route->ext[0];
-	return 0;
+static bool route_match(struct route *route, char *name, char *ext)
+{
+	if (route->name == _ || samestr(route->name, name))
+		return route->main ? samestr(route->ext, ext) : true;
+	else
+		return false;
 }
 
 static bool is_valid_route(struct route *route)
@@ -124,16 +120,13 @@ static bool is_valid_route(struct route *route)
  * Find the first child route matching the given name.
  */
 static struct route *find_child_route(
-	struct route *route, char *name, int onlyleaf)
+	struct route *route, char *name, char *ext)
 {
 	struct route *r;
 
-	for (r = route->routes; is_valid_route(r); r++) {
-		if (onlyleaf && r->routes)
-			continue;
-		if (route_match(r, name))
+	for (r = route->routes; is_valid_route(r); r++)
+		if (route_match(r, name, ext))
 			return r;
-	}
 
 	return NULL;
 }
@@ -147,7 +140,13 @@ static struct route *find_route(struct url *url)
 	unsigned i;
 
 	for (i = 0; i < url->ndirs && route; i++)
-		route = find_child_route(route, url->dirs[i], i == url->ndirs - 1);
+		route = find_child_route(route, url->dirs[i], url->ext);
+
+	if (route && !route->main)
+		route = find_child_route(route, NULL, url->ext);
+
+	if (!route || !route->main)
+		return NULL;
 
 	return route;
 }

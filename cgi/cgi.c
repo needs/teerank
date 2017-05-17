@@ -215,9 +215,9 @@ static int generate(struct route *route, struct url *url)
 	int stdout_save, stderr_save;
 	int ret;
 
+	assert(url != NULL);
 	assert(route != NULL);
-
-	verbose("Generating route '%s'", route->name);
+	assert(route->main != NULL);
 
 	/*
 	 * Create a pipe to redirect stdout and stderr to.  It is
@@ -352,29 +352,20 @@ static struct url parse_url(char *uri, char *query)
 	char *dir, *name;
 	unsigned i;
 
-	if (!(dir = strtok(uri, "/"))) {
-		/*
-		 * strtok() never return an empty string.  And that's
-		 * what we usually want, because "/players/" will be
-		 * handled the same than "/players".
-		 *
-		 * However, the root route doesn't have a name, hence
-		 * the default page doesn't either.  So to allow default
-		 * page for root directory, we make a special case and
-		 * use an empty string.
-		 */
-		strcpy(uri, "");
-		url.dirs[0] = uri;
-		url.ndirs = 1;
-	} else {
-		do {
-			if (url.ndirs == MAX_DIRS)
-				error(414, NULL);
+	for (dir = strtok(uri, "/"); dir; dir = strtok(NULL, "/")) {
+		if (url.ndirs == MAX_DIRS)
+			error(414, NULL);
 
-			url_decode(dir);
-			url.dirs[url.ndirs] = dir;
-			url.ndirs++;
-		} while ((dir = strtok(NULL, "/")));
+		url_decode(dir);
+		url.dirs[url.ndirs] = dir;
+		url.ndirs++;
+	}
+
+	if (url.ndirs) {
+		if ((url.ext = strrchr(url.dirs[url.ndirs-1], '.'))) {
+			*url.ext = '\0';
+			url.ext++;
+		}
 	}
 
 	/*

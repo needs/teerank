@@ -13,6 +13,8 @@ struct url {
 	unsigned ndirs;
 	char *dirs[MAX_DIRS];
 
+	char *ext;
+
 	unsigned nargs;
 	struct arg args[MAX_ARGS];
 };

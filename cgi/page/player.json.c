@@ -53,7 +53,7 @@ static int json_player_historic(const char *pname)
 int main_json_player(struct url *url)
 {
 	struct player player;
-	char *pname;
+	char *pname = NULL;
 	int full = 0;
 	unsigned i;
 
@@ -65,11 +65,12 @@ int main_json_player(struct url *url)
 		" FROM" RANKED_PLAYERS_TABLE
 		" WHERE players.name = ? AND gametype = '' AND map = ''";
 
-	for (i = 0; i < url->nargs; i++)
-		if (strcmp(url->args[i].name, "short") == 0)
+	for (i = 0; i < url->nargs; i++) {
+		if (strcmp(url->args[i].name, "name") == 0)
+			pname = url->args[i].val;
+		else if (strcmp(url->args[i].name, "short") == 0)
 			full = 0;
-
-	pname = url->dirs[1];
+	}
 
 	foreach_player(query, &player, "s", pname);
 	if (!res)

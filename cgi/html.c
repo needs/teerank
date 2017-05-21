@@ -379,9 +379,9 @@ void player_lastseen_link(time_t lastseen, const char *addr)
 		html("<span class=\"%s\">%s</span>", timescale, text);
 }
 
-struct tab CTF_TAB = { "CTF", "/players/CTF" };
-struct tab DM_TAB  = { "DM",  "/players/DM"  };
-struct tab TDM_TAB = { "TDM", "/players/TDM" };
+struct tab CTF_TAB = { "CTF", "/players?gametype=CTF" };
+struct tab DM_TAB  = { "DM",  "/players?gametype=DM"  };
+struct tab TDM_TAB = { "TDM", "/players?gametype=TDM" };
 struct tab ABOUT_TAB = { "About", "/about" };
 
 static void print_top_tabs(void *active)
@@ -536,7 +536,7 @@ static void html_list_header(
 		else if (strcmp(order, col->order) == 0)
 			html("<th>%s%S</th>", col->name, down);
 		else
-			html("<th><a href=\"%S?sort=%S&p=%u\">%s%S</a></th>",
+			html("<th><a href=\"%S&sort=%S&p=%u\">%s%S</a></th>",
 			     listurl, col->order, pnum, col->name, dash);
 	}
 
@@ -615,14 +615,14 @@ static void player_list_entry(
 	/* Name */
 	name = p ? p->name : c->name;
 	html("<td>%s<a href=\"%S\">%s</a></td>",
-	     spectator ? specimg : "", URL("/player/%s", name), name);
+	     spectator ? specimg : "", URL("/player?name=%s", name), name);
 
 	/* Clan */
 	clan = p ? p->clan : c->clan;
 	if (no_clan_link || !clan[0])
 		html("<td>%s</td>", clan);
 	else
-		html("<td><a href=\"%S\">%s</a></td>", URL("/clan/%s", clan), clan);
+		html("<td><a href=\"%S\">%s</a></td>", URL("/clan?name=%s", clan), clan);
 
 	/* Score (online-player-list only) */
 	if (c)
@@ -681,7 +681,7 @@ void html_clan_list_entry(
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td><a href=\"%S\">%s</a></td>", URL("/clan/%s", name), name);
+	html("<td><a href=\"%S\">%s</a></td>", URL("/clan?name=%s", name), name);
 
 	/* Members */
 	html("<td>%u</td>", nmembers);
@@ -717,8 +717,8 @@ void html_server_list_entry(unsigned pos, struct server *server)
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td><a href=\"/server/%S\">%s</a></td>",
-	     build_addr(server->ip, server->port), server->name);
+	html("<td><a href=\"%S\">%s</a></td>",
+	     URL("/server?addr=%s", build_addr(server->ip, server->port)), server->name);
 
 	/* Gametype */
 	html("<td>%s</td>", server->gametype);

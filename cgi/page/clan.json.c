@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <limits.h>
 #include <errno.h>
 
@@ -11,18 +12,21 @@
 
 int main_json_clan(struct url *url)
 {
-	unsigned nrow;
+	unsigned i, nrow;
 	sqlite3_stmt *res;
 	struct player p;
-	char *cname;
+	char *cname = NULL;
 
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM players"
+		" FROM" RANKED_PLAYERS_TABLE
 		" WHERE clan = ? AND " IS_VALID_CLAN
 		" ORDER BY" SORT_BY_RANK;
 
-	cname = url->dirs[1];
+	for (i = 0; i < url->nargs; i++) {
+		if (strcmp(url->args[i].name, "name") == 0)
+			cname = url->args[i].val;
+	}
 
 	printf("{\"members\":[");
 

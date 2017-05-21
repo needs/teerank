@@ -12,18 +12,24 @@
 
 int main_html_player(struct url *url)
 {
-	char *pname;
+	char *pname = NULL;
 	struct player player;
 
 	sqlite3_stmt *res;
-	unsigned nrow;
+	unsigned i, nrow;
 
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM" RANKED_PLAYERS_TABLE
 		" WHERE players.name = ? AND gametype = '' AND map = ''";
 
-	pname = url->dirs[1];
+	for (i = 0; i < url->nargs; i++) {
+		if (strcmp(url->args[i].name, "name") == 0)
+			pname = url->args[i].val;
+	}
+
+	if (!pname)
+		return EXIT_NOT_FOUND;
 
 	foreach_player(query, &player, "s", pname);
 	if (!res)
@@ -41,7 +47,7 @@ int main_html_player(struct url *url)
 
 	if (*player.clan)
 		html("<p id=\"player_clan\"><a href=\"%S\">%s</a></p>",
-		     URL("/clan/%s", player.clan), player.clan);
+		     URL("/clan?name=%s", player.clan), player.clan);
 
 	html("</div>");
 
@@ -57,9 +63,9 @@ int main_html_player(struct url *url)
 	html("");
 	html("<h2>Historic</h2>");
 	html("<object data=\"%S\" type=\"image/svg+xml\"></object>",
-	     URL("/player/%S/historic.svg", pname));
+	     URL("/player/historic.svg?name=%s", pname));
 
-	html_footer("player", URL("/players/%s.json", json_hexstring(pname)));
+	html_footer("player", URL("/player.json?name=%s", json_hexstring(pname)));
 
 	return EXIT_SUCCESS;
 }

@@ -14,18 +14,21 @@
 
 int main_html_clan(struct url *url)
 {
-	unsigned nrow;
+	unsigned i, nrow;
 	sqlite3_stmt *res;
-	char *cname;
+	char *cname = NULL;
 	struct player p;
 
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM players"
+		" FROM" RANKED_PLAYERS_TABLE
 		" WHERE clan = ? AND" IS_VALID_CLAN
 		" ORDER BY" SORT_BY_RANK;
 
-	cname = url->dirs[1];
+	for (i = 0; i < url->nargs; i++) {
+		if (strcmp(url->args[i].name, "name") == 0)
+			cname = url->args[i].val;
+	}
 
 	/* Eventually, print them */
 	html_header(cname, cname, "/clans", NULL);
@@ -42,7 +45,7 @@ int main_html_clan(struct url *url)
 		return EXIT_NOT_FOUND;
 
 	html_end_player_list();
-	html_footer("clan", URL("/clans/%s.json", json_hexstring(cname)));
+	html_footer("clan", URL("/clan.json?name=%s", json_hexstring(cname)));
 
 	return EXIT_SUCCESS;
 }

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <limits.h>
 #include <errno.h>
 
@@ -54,17 +55,22 @@ static void json_server(struct server *server)
 
 int main_json_server(struct url *url)
 {
-	char *ip, *port;
+	char *addr = NULL, *ip, *port;
 	struct server server;
 	sqlite3_stmt *res;
-	unsigned nrow;
+	unsigned i, nrow;
 
 	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 		" FROM servers"
 		" WHERE ip = ? AND port = ?";
 
-	if (!parse_addr(url->dirs[1], &ip, &port))
+	for (i = 0; i < url->nargs; i++) {
+		if (strcmp(url->args[i].name, "addr") == 0)
+			addr = url->args[i].val;
+	}
+
+	if (!addr || !parse_addr(addr, &ip, &port))
 		return EXIT_NOT_FOUND;
 
 	foreach_extended_server(query, &server, "ss", ip, port);

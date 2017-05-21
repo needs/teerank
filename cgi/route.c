@@ -41,7 +41,7 @@ static int main_svg_teerank3_graph(struct url *url)
 {
 	/* FIXME! Semantic changed and redirect() will not work as
 	 * intended */
-	redirect(URL("/player/%s/historic.svg", convert_hexname(url->dirs[url->ndirs - 2])));
+	redirect(URL("/player/historic.svg?name=%s", convert_hexname(url->dirs[url->ndirs - 2])));
 	return EXIT_FAILURE;
 }
 

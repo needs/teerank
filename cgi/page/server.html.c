@@ -45,7 +45,7 @@ int main_html_server(struct url *url)
 {
 	struct server server;
 	unsigned i, playing = 0, spectating = 0;
-	char *addr = NULL, *ip, *port;
+	char *addr, *ip = NULL, *port = NULL;
 	sqlite3_stmt *res;
 	unsigned nrow;
 
@@ -55,12 +55,14 @@ int main_html_server(struct url *url)
 		" WHERE ip = ? AND port = ?";
 
 	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "addr") == 0)
-			addr = url->args[i].val;
+		if (strcmp(url->args[i].name, "ip") == 0)
+			ip = url->args[i].val;
+		if (strcmp(url->args[i].name, "port") == 0)
+			port = url->args[i].val;
 	}
 
-	if (!addr || !parse_addr(addr, &ip, &port))
-		return EXIT_NOT_FOUND;
+	if (!ip || !port)
+		return EXIT_FAILURE;
 
 	foreach_extended_server(query, &server, "ss", ip, port);
 	if (!res)
@@ -102,7 +104,7 @@ int main_html_server(struct url *url)
 
 	show_client_list(&server);
 
-	html_footer("server", URL("/server.json?addr=%s", addr));
+	html_footer("server", URL("/server.json?ip=%s&port=%s", ip, port));
 
 	return EXIT_SUCCESS;
 }

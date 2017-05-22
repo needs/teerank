@@ -718,7 +718,7 @@ void html_server_list_entry(unsigned pos, struct server *server)
 
 	/* Name */
 	html("<td><a href=\"%S\">%s</a></td>",
-	     URL("/server?addr=%s", build_addr(server->ip, server->port)), server->name);
+	     URL("/server?ip=%s&port=%s", server->ip, server->port), server->name);
 
 	/* Gametype */
 	html("<td>%s</td>", server->gametype);

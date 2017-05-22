@@ -55,7 +55,7 @@ static void json_server(struct server *server)
 
 int main_json_server(struct url *url)
 {
-	char *addr = NULL, *ip, *port;
+	char *ip = NULL, *port = NULL;
 	struct server server;
 	sqlite3_stmt *res;
 	unsigned i, nrow;
@@ -66,12 +66,14 @@ int main_json_server(struct url *url)
 		" WHERE ip = ? AND port = ?";
 
 	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "addr") == 0)
-			addr = url->args[i].val;
+		if (strcmp(url->args[i].name, "ip") == 0)
+			ip = url->args[i].val;
+		if (strcmp(url->args[i].name, "port") == 0)
+			port = url->args[i].val;
 	}
 
-	if (!addr || !parse_addr(addr, &ip, &port))
-		return EXIT_NOT_FOUND;
+	if (!ip || !port)
+		return EXIT_FAILURE;
 
 	foreach_extended_server(query, &server, "ss", ip, port);
 	if (!res)

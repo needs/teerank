@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <libgen.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 #include "teerank.h"
 #include "route.h"
@@ -289,36 +290,45 @@ static int generate(struct route *route, struct url *url)
 	}
 }
 
-static int load_path_and_query(char **_path, char **_query)
+static bool load_path_and_query(char **_path, char **_query)
 {
-	static char path[1024], query[1024];
-	char *uri, *tmp;
+	static char pathbuf[1024], querybuf[1024];
+	char *path, *query;
+
+	path = getenv("PATH_INFO");
+	query = getenv("QUERY_STRING");
 
 	/*
-	 * Turns out webservers can do some crazy things before giving
-	 * us the requested URI.  For instance Nginx does de-encode %2F
-	 * ('/') in URL body, making URLs like "/player/foo%2F" not
-	 * working because we will receive "/player/foo/".
-	 *
-	 * Hopefully nginx does provide the unparsed string in
-	 * $REQUEST_URI.  We need to split the URI body (path) from the
-	 * query string.
+	 * Even though PATH_INFO is the standard way, some webservers,
+	 * like nginx, don't define by default this environment
+	 * variable.  In such cases, we automatically fallback.
 	 */
+	if (!path)
+		path = getenv("DOCUMENT_URI");
 
-	if (!(uri = getenv("REQUEST_URI")))
-		return 0;
+	if (!path) {
+		fprintf(stderr, "This program require $PATH_INFO or $DOCUMENT_URI to be set.\n");
+		return false;
+	}
 
-	*_path = path;
-	*_query = query;
-	path[0] = 0;
-	query[0] = 0;
+	/*
+	 * Query string is optional, although I believe it's still
+	 * defined when empty.
+	 */
+	if (!query)
+		query = "";
 
-	/* Env vars cannot be modified so copy them */
-	snprintf(path, sizeof(path), "%s", strtok(uri, "?"));
-	tmp = strtok(NULL, "?");
-	snprintf(query, sizeof(query), "%s", tmp ? tmp : "");
+	/*
+	 * Both path and query string will be modified when they will be
+	 * parsed.  Copy them to writable buffers, as buffers returned
+	 * by getenv() are only readable.
+	 */
+	snprintf(pathbuf, sizeof(pathbuf), "%s", path);
+	snprintf(querybuf, sizeof(querybuf), "%s", query);
 
-	return 1;
+	*_path = pathbuf;
+	*_query = querybuf;
+	return true;
 }
 
 /* Load extra environment variables set by the webserver */
@@ -410,11 +420,8 @@ int main(int argc, char **argv)
 	init_teerank(READ_ONLY);
 	init_cgi();
 
-	if (argc != 1 || !load_path_and_query(&path, &query)) {
-		fprintf(stderr, "usage: %s\n", argv[0]);
-		fprintf(stderr, "This program expect $REQUEST_URI to be set.\n");
+	if (!load_path_and_query(&path, &query))
 		error(500, NULL);
-	}
 
 	url = parse_url(path, query);
 	route = do_route(&url);

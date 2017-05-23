@@ -10,7 +10,6 @@
 
 #include "server.h"
 #include "teerank.h"
-#include "json.h"
 
 int is_vanilla(char *gametype, char *map, unsigned max_clients)
 {

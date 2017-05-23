@@ -7,7 +7,7 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "player.h"
-#include "json.h"
+#include "html.h"
 #include "clan.h"
 
 int main_json_clan(struct url *url)
@@ -28,15 +28,15 @@ int main_json_clan(struct url *url)
 			cname = url->args[i].val;
 	}
 
-	printf("{\"members\":[");
+	json("{%s:[", "members");
 
 	foreach_player(query, &p, "s", cname) {
 		if (nrow)
-			putchar(',');
-		printf("\"%s\"", json_hexstring(p.name));
+			json(",");
+		json("%s", p.name);
 	}
 
-	printf("],\"nmembers\":%u}", nrow);
+	json("],%s:%u}", "nmembers", nrow);
 
 	if (!res)
 		return EXIT_FAILURE;

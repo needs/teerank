@@ -7,7 +7,7 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "server.h"
-#include "json.h"
+#include "html.h"
 
 static void json_server(struct server *server)
 {
@@ -21,36 +21,36 @@ static void json_server(struct server *server)
 		" WHERE ip = ? AND port = ?"
 		" ORDER BY" SORT_BY_SCORE;
 
-	putchar('{');
-	printf("\"ip\":\"%s\",", server->ip);
-	printf("\"port\":\"%s\",", server->port);
+	json("{");
+	json("%s:%s,", "ip", server->ip);
+	json("%s:%s,", "port", server->port);
 
-	printf("\"name\":\"%s\",", json_escape(server->name));
-	printf("\"gametype\":\"%s\",", json_escape(server->gametype));
-	printf("\"map\":\"%s\",", json_escape(server->map));
+	json("%s:%s,", "name", server->name);
+	json("%s:%s,", "gametype", server->gametype);
+	json("%s:%s,", "map", server->map);
 
-	printf("\"lastseen\":\"%s\",", json_date(server->lastseen));
-	printf("\"expire\":\"%s\",", json_date(server->expire));
+	json("%s:%d,", "lastseen", server->lastseen);
+	json("%s:%d,", "expire", server->expire);
 
-	printf("\"num_clients\":%d,", server->num_clients);
-	printf("\"max_clients\":%d,", server->max_clients);
+	json("%s:%u,", "num_clients", server->num_clients);
+	json("%s:%u,", "max_clients", server->max_clients);
 
-	printf("\"clients\":[");
+	json("%s:[", "clients");
 
 	foreach_server_client(query, &c, "ss", server->ip, server->port) {
 		if (nrow)
-			putchar(',');
+			json(",");
 
-		putchar('{');
-		printf("\"name\":\"%s\",", json_hexstring(c.name));
-		printf("\"clan\":\"%s\",", json_hexstring(c.clan));
-		printf("\"score\":%d,", c.score);
-		printf("\"ingame\":%s", json_boolean(c.ingame));
-		putchar('}');
+		json("{");
+		json("%s:%s,", "name", c.name);
+		json("%s:%s,", "clan", c.clan);
+		json("%s:%d,", "score", c.score);
+		json("%s:%b", "ingame", c.ingame);
+		json("}");
 	}
-	putchar(']');
+	json("]");
 
-	putchar('}');
+	json("}");
 }
 
 int main_json_server(struct url *url)

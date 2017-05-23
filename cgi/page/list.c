@@ -7,13 +7,12 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "html.h"
-#include "json.h"
 #include "database.h"
 #include "player.h"
 #include "clan.h"
 #include "server.h"
 
-static bool json = false;
+static bool JSON = false;
 
 /* Global context shared by every lists */
 enum pcs pcs;
@@ -24,28 +23,28 @@ static unsigned pnum;
 
 static void json_start_player_list(void)
 {
-	printf("{\"players\":[");
+	json("{%s:[", "players");
 }
 
 static void json_player_list_entry(unsigned nrow, struct player *p)
 {
 	if (nrow)
-		putchar(',');
+		json(",");
 
-	putchar('{');
-	printf("\"name\":\"%s\",", json_hexstring(p->name));
-	printf("\"clan\":\"%s\",", json_hexstring(p->clan));
-	printf("\"elo\":%d,", p->elo);
-	printf("\"rank\":%u,", p->rank);
-	printf("\"lastseen\":\"%s\",", json_date(p->lastseen));
-	printf("\"server_ip\":\"%s\",", p->server_ip);
-	printf("\"server_port\":\"%s\"", p->server_port);
-	putchar('}');
+	json("{");
+	json("%s:%s,", "name", p->name);
+	json("%s:%s,", "clan", p->clan);
+	json("%s:%d,", "elo", p->elo);
+	json("%s:%u,", "rank", p->rank);
+	json("%s:%d,", "lastseen", p->lastseen);
+	json("%s:%s,", "server_ip", p->server_ip);
+	json("%s:%s", "server_port", p->server_port);
+	json("}");
 }
 
 static void json_end_player_list(unsigned nrow)
 {
-	printf("],\"length\":%u}", nrow);
+	json("],%s:%u}", "length", nrow);
 }
 
 static int print_player_list(void)
@@ -74,13 +73,13 @@ static int print_player_list(void)
 
 	snprintf(query, sizeof(query), queryfmt, sortby, (pnum - 1) * 100);
 
-	if (json)
+	if (JSON)
 		json_start_player_list();
 	else
 		html_start_player_list(URL("/players?gametype=%s&map=%s", gametype, map), pnum, order);
 
 	foreach_player(query, &player, "ss", gametype, map) {
-		if (json)
+		if (JSON)
 			json_player_list_entry(nrow, &player);
 		else
 			html_player_list_entry(&player, NULL, 0);
@@ -91,7 +90,7 @@ static int print_player_list(void)
 	if (!nrow && pnum > 1)
 		return EXIT_NOT_FOUND;
 
-	if (json)
+	if (JSON)
 		json_end_player_list(nrow);
 	else
 		html_end_player_list();
@@ -101,23 +100,23 @@ static int print_player_list(void)
 
 static void json_start_clan_list(void)
 {
-	printf("{\"clans\":[");
+	json("{%s:[", "clans");
 }
 
 static void json_clan_list_entry(unsigned nrow, struct clan *clan)
 {
 	if (nrow)
-		putchar(',');
+		json(",");
 
-	putchar('{');
-	printf("\"name\":\"%s\",", json_hexstring(clan->name));
-	printf("\"nmembers\":\"%u\"", clan->nmembers);
-	putchar('}');
+	json("{");
+	json("%s:%s,", "name", clan->name);
+	json("%s:%u", "nmembers", clan->nmembers);
+	json("}");
 }
 
 static void json_end_clan_list(unsigned nrow)
 {
-	printf("],\"length\":%u}", nrow);
+	json("],%s:%u}", "length", nrow);
 }
 
 static int print_clan_list(void)
@@ -134,14 +133,14 @@ static int print_clan_list(void)
 		" ORDER BY nmembers DESC, clan"
 		" LIMIT 100 OFFSET ?";
 
-	if (json)
+	if (JSON)
 		json_start_clan_list();
 	else
 		html_start_clan_list(URL("/clans?gametype=%s&map=%s", gametype, map), pnum, NULL);
 
 	offset = (pnum - 1) * 100;
 	foreach_clan(query, &clan, "u", offset) {
-		if (json)
+		if (JSON)
 			json_clan_list_entry(nrow, &clan);
 		else
 			html_clan_list_entry(++offset, clan.name, clan.nmembers);
@@ -152,7 +151,7 @@ static int print_clan_list(void)
 	if (!nrow && pnum > 1)
 		return EXIT_NOT_FOUND;
 
-	if (json)
+	if (JSON)
 		json_end_clan_list(nrow);
 	else
 		html_end_clan_list();
@@ -162,29 +161,28 @@ static int print_clan_list(void)
 
 static void json_start_server_list(void)
 {
-	printf("{\"servers\":[");
+	json("{%s:[", "servers");
 }
 
 static void json_server_list_entry(unsigned nrow, struct server *server)
 {
 	if (nrow)
-		putchar(',');
+		json(",");
 
-	putchar('{');
-	printf("\"ip\":\"%s\",", server->ip);
-	printf("\"port\":\"%s\",", server->port);
-	printf("\"name\":\"%s\",", json_escape(server->name));
-	printf("\"gametype\":\"%s\",", json_escape(server->gametype));
-	printf("\"map\":\"%s\",", json_escape(server->map));
-
-	printf("\"maxplayers\":%u,", server->max_clients);
-	printf("\"nplayers\":%u", server->num_clients);
-	putchar('}');
+	json("{");
+	json("%s:%s,", "ip", server->ip);
+	json("%s:%s,", "port", server->port);
+	json("%s:%s,", "name", server->name);
+	json("%s:%s,", "gametype", server->gametype);
+	json("%s:%s,", "map", server->map);
+	json("%s:%u,", "maxplayers", server->max_clients);
+	json("%s:%u", "nplayers", server->num_clients);
+	json("}");
 }
 
 static void json_end_server_list(unsigned nrow)
 {
-	printf("],\"length\":%u}", nrow);
+	json("],%s:%u}", "length", nrow);
 }
 
 static int print_server_list(void)
@@ -200,14 +198,14 @@ static int print_server_list(void)
 		" ORDER BY num_clients DESC"
 		" LIMIT 100 OFFSET ?";
 
-	if (json)
+	if (JSON)
 		json_start_server_list();
 	else
 		html_start_server_list(URL("/servers?gameype=%s&map=%s", gametype, map), pnum, NULL);
 
 	offset = (pnum - 1) * 100;
 	foreach_extended_server(query, &server, "u", offset) {
-		if (json)
+		if (JSON)
 			json_server_list_entry(nrow, &server);
 		else
 			html_server_list_entry(++offset, &server);
@@ -218,7 +216,7 @@ static int print_server_list(void)
 	if (!nrow && pnum > 1)
 		return EXIT_NOT_FOUND;
 
-	if (json)
+	if (JSON)
 		json_end_server_list(nrow);
 	else
 		html_end_server_list();
@@ -274,7 +272,7 @@ int main_html_list(struct url *url)
 	unsigned tabvals[3];
 	int ret = EXIT_FAILURE;
 
-	json = false;
+	JSON = false;
 
 	if ((ret = parse_list_args(url)) != EXIT_SUCCESS)
 		return ret;
@@ -323,7 +321,7 @@ int main_json_list(struct url *url)
 {
 	int ret;
 
-	json = true;
+	JSON = true;
 
 	if ((ret = parse_list_args(url)) != EXIT_SUCCESS)
 		return ret;

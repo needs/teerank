@@ -55,9 +55,28 @@ static void sprint(char **buf, int *n, const char *fmt, ...)
 	*buf = *buf + ret;
 }
 
+/*
+ * It turns out we can't pass a pointer to a va_list in functions.  It
+ * does raise an error because nothing prevent va_list to be an array,
+ * wich don't decay to a pointer when passing its adress in a function,
+ * raising a type error.
+ *
+ * To make it work and still allow a function to use a va_list and
+ * having the caller use the modified va_list, we need to encapsulate it
+ * in a structure.
+ */
+typedef struct va_list__ { va_list ap; } *va_list_;
+#define va_start_(ap, var) do { ap = &(struct va_list__){}; va_start(ap->ap, var); } while(0)
+#define va_arg_(ap, type) va_arg(ap->ap, type)
+#define va_end_(ap) va_end(ap->ap)
+
+/* Escape callback is called for user provided strings signaled by "%s" */
 typedef void (*escape_func_t)(char **buf, int *n, const char *str);
 
-static int print(char *buf, int size, escape_func_t escape, const char *fmt, va_list ap)
+/* Extend callback is sued to extend the set of conversion specifiers */
+typedef bool (*extend_func_t)(char **buf, int *n, char c, va_list_ ap);
+
+static int print(char *buf, int size, escape_func_t escape, extend_func_t extend, const char *fmt, va_list_ ap)
 {
 	int n = size;
 
@@ -69,35 +88,37 @@ static int print(char *buf, int size, escape_func_t escape, const char *fmt, va_
 
 		switch (*++fmt) {
 		case 's':
-			escape(&buf, &n, va_arg(ap, char *));
+			escape(&buf, &n, va_arg_(ap, char *));
 			break;
 		case 'S':
-			sputs(&buf, &n, va_arg(ap, char *));
+			sputs(&buf, &n, va_arg_(ap, char *));
 			break;
 		case 'i':
-			sprint(&buf, &n, "%i", va_arg(ap, int));
+			sprint(&buf, &n, "%i", va_arg_(ap, int));
 			break;
 		case 'I':
-			sprint(&buf, &n, "%li", va_arg(ap, long));
+			sprint(&buf, &n, "%li", va_arg_(ap, long));
 			break;
 		case 'u':
-			sprint(&buf, &n, "%u", va_arg(ap, unsigned));
+			sprint(&buf, &n, "%u", va_arg_(ap, unsigned));
 			break;
 		case 'U':
-			sprint(&buf, &n, "%lu", va_arg(ap, long unsigned));
+			sprint(&buf, &n, "%lu", va_arg_(ap, long unsigned));
 			break;
 		case 'f':
-			sprint(&buf, &n, "%.1f", va_arg(ap, double));
+			sprint(&buf, &n, "%.1f", va_arg_(ap, double));
 			break;
 		case 'c':
-			sputc(&buf, &n, va_arg(ap, int));
+			sputc(&buf, &n, va_arg_(ap, int));
 			break;
 		case '%':
 			sputc(&buf, &n, '%');
 			break;
 		default:
-			fprintf(stderr, "Unknown conversion specifier '%%%c'\n", *fmt);
-			abort();
+			if (!extend || !extend(&buf, &n, *fmt, ap)) {
+				fprintf(stderr, "Unknown conversion specifier '%%%c'\n", *fmt);
+				abort();
+			}
 		}
 	}
 
@@ -131,43 +152,122 @@ static void escape_xml(char **buf, int *n, const char *str)
 }
 
 /* Store the result in a static buffer and print it right away */
-static void _print(escape_func_t escape, const char *fmt, va_list ap)
+static void _print(escape_func_t escape, extend_func_t extend, const char *fmt, va_list_ ap)
 {
 	static char buf[1024];
-	int ret = print(buf, sizeof(buf), escape, fmt, ap);
+	int ret = print(buf, sizeof(buf), escape, extend, fmt, ap);
 	fwrite(buf, ret, 1, stdout);
 }
 
 void html(const char *fmt, ...)
 {
-	va_list ap;
-	va_start(ap, fmt);
-	_print(escape_xml, fmt, ap);
-	va_end(ap);
+	va_list_ ap;
+	va_start_(ap, fmt);
+	_print(escape_xml, NULL, fmt, ap);
+	va_end_(ap);
 }
 
 void xml(const char *fmt, ...)
 {
-	va_list ap;
-	va_start(ap, fmt);
-	_print(escape_xml, fmt, ap);
-	va_end(ap);
+	va_list_ ap;
+	va_start_(ap, fmt);
+	_print(escape_xml, NULL, fmt, ap);
+	va_end_(ap);
 }
 
 void svg(const char *fmt, ...)
 {
-	va_list ap;
-	va_start(ap, fmt);
-	_print(escape_xml, fmt, ap);
-	va_end(ap);
+	va_list_ ap;
+	va_start_(ap, fmt);
+	_print(escape_xml, NULL, fmt, ap);
+	va_end_(ap);
 }
 
 void css(const char *fmt, ...)
 {
-	va_list ap;
-	va_start(ap, fmt);
-	_print(sputs, fmt, ap);
-	va_end(ap);
+	va_list_ ap;
+	va_start_(ap, fmt);
+	_print(sputs, NULL, fmt, ap);
+	va_end_(ap);
+}
+
+/*
+ * Not only we escape any special characters, but we also suround the
+ * escaped string with quotes.
+ */
+static void escape_json(char **buf, int *n, const char *str)
+{
+	sputc(buf, n, '\"');
+
+	for (; *str && *n; str++) {
+		switch (*str) {
+		case '\b':
+			sputs(buf, n, "\\b");
+			break;
+		case '\f':
+			sputs(buf, n, "\\f");
+			break;
+		case '\n':
+			sputs(buf, n, "\\n");
+			break;
+		case '\r':
+			sputs(buf, n, "\\r");
+			break;
+		case '\t':
+			sputs(buf, n, "\\t");
+			break;
+		case '\"':
+			sputs(buf, n, "\\\"");
+			break;
+		case '\\':
+			sputs(buf, n, "\\\\");
+			break;
+		default:
+			sputc(buf, n, *str);
+			break;
+		}
+	}
+
+	sputc(buf, n, '\"');
+}
+
+static bool extend_json(char **buf, int *n, char c, va_list_ ap)
+{
+	/* Boolean */
+	if (c == 'b') {
+		if (va_arg_(ap, int))
+			sputs(buf, n, "true");
+		else
+			sputs(buf, n, "false");
+		return true;
+	}
+
+	/* Our JSON dates use RFC-3339 format */
+	if (c == 'd') {
+		char tmp[] = "yyyy-mm-ddThh:mm:ssZ";
+		size_t ret;
+
+		time_t t = va_arg_(ap, time_t);
+		ret = strftime(tmp, sizeof(tmp), "%Y-%m-%dT%H:%M:%SZ", gmtime(&t));
+
+		sputc(buf, n, '\"');
+		if (ret != sizeof(tmp) - 1)
+			sputs(buf, n, "1970-00-00T00:00:00Z");
+		else
+			sputs(buf, n, tmp);
+		sputc(buf, n, '\"');
+		return true;
+	}
+
+	return false;
+}
+
+void json(const char *fmt, ...)
+{
+	va_list_ ap;
+	va_start_(ap, fmt);
+	_print(escape_json, extend_json, fmt, ap);
+	va_end_(ap);
 }
 
 static char dectohex(char dec)
@@ -228,7 +328,7 @@ char *URL(const char *fmt, ...)
 	static int i = 0;
 
 	char *buf;
-	va_list ap;
+	va_list_ ap;
 	int ret;
 
 	/*
@@ -239,9 +339,9 @@ char *URL(const char *fmt, ...)
 	i = (i + 1) % NBUF;
 
 	/* Reserve one byte for the final '\0' */
-	va_start(ap, fmt);
-	ret = print(buf, BUFSIZE-1, url_encode, fmt, ap);
-	va_end(ap);
+	va_start_(ap, fmt);
+	ret = print(buf, BUFSIZE-1, url_encode, NULL, fmt, ap);
+	va_end_(ap);
 
 	buf[ret] = '\0';
 	return buf;

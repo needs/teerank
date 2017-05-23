@@ -10,7 +10,6 @@
 #include "html.h"
 #include "player.h"
 #include "clan.h"
-#include "json.h"
 
 int main_html_clan(struct url *url)
 {
@@ -45,7 +44,7 @@ int main_html_clan(struct url *url)
 		return EXIT_NOT_FOUND;
 
 	html_end_player_list();
-	html_footer("clan", URL("/clan.json?name=%s", json_hexstring(cname)));
+	html_footer("clan", URL("/clan.json?name=%s", cname));
 
 	return EXIT_SUCCESS;
 }

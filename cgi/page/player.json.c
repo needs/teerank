@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <limits.h>
 #include <errno.h>
@@ -8,22 +9,21 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "player.h"
-#include "json.h"
+#include "html.h"
 
 static void json_player(struct player *player)
 {
-	printf("\"name\":\"%s\",", json_hexstring(player->name));
-	printf("\"clan\":\"%s\",", json_hexstring(player->clan));
-	printf("\"elo\":%d,", player->elo);
-	printf("\"rank\":%u,", player->rank);
-	printf("\"lastseen\":\"%s\",", json_date(player->lastseen));
-	printf("\"server_ip\":\"%s\",", player->server_ip);
-	printf("\"server_port\":\"%s\"", player->server_port);
+	json("%s:%s,", "name", player->name);
+	json("%s:%s,", "clan", player->clan);
+	json("%s:%i,", "elo", player->elo);
+	json("%s:%u,", "rank", player->rank);
+	json("%s:%d,", "lastseen", player->lastseen);
+	json("%s:%s,", "server_ip", player->server_ip);
+	json("%s:%s", "server_port", player->server_port);
 }
 
 static int json_player_historic(const char *pname)
 {
-	time_t epoch = 0;
 	unsigned nrow;
 	sqlite3_stmt *res;
 	struct player_record r;
@@ -34,18 +34,16 @@ static int json_player_historic(const char *pname)
 		" WHERE name = ?"
 		" ORDER BY ts";
 
-	printf(",\"historic\":{\"records\":[");
+	json(",%s:{%s:[", "historic", "records");
 
 	foreach_player_record(query, &r, "s", pname) {
-		if (!nrow)
-			epoch = r.ts;
-		else
-			putchar(',');
+		if (nrow)
+			json(",");
 
-		printf("[%ju, %d, %u]", (uintmax_t)(r.ts - epoch), r.elo, r.rank);
+		json("[%d, %i, %u]", r.ts, r.elo, r.rank);
 	}
 
-	printf("],\"epoch\":%ju,\"length\":%u}", (uintmax_t)epoch, nrow);
+	json("],%s:%u}", "length", nrow);
 
 	return res != NULL;
 }
@@ -54,7 +52,7 @@ int main_json_player(struct url *url)
 {
 	struct player player;
 	char *pname = NULL;
-	int full = 0;
+	bool full = true;
 	unsigned i;
 
 	sqlite3_stmt *res;
@@ -69,7 +67,7 @@ int main_json_player(struct url *url)
 		if (strcmp(url->args[i].name, "name") == 0)
 			pname = url->args[i].val;
 		else if (strcmp(url->args[i].name, "short") == 0)
-			full = 0;
+			full = false;
 	}
 
 	foreach_player(query, &player, "s", pname);
@@ -78,13 +76,13 @@ int main_json_player(struct url *url)
 	if (!nrow)
 		return EXIT_NOT_FOUND;
 
-	putchar('{');
+	json("{");
 
 	json_player(&player);
 	if (full && !json_player_historic(player.name))
 		return EXIT_FAILURE;
 
-	putchar('}');
+	json("}");
 
 	return EXIT_SUCCESS;
 }

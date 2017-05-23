@@ -8,7 +8,6 @@
 #include "database.h"
 #include "html.h"
 #include "player.h"
-#include "json.h"
 
 int main_html_player(struct url *url)
 {
@@ -65,7 +64,7 @@ int main_html_player(struct url *url)
 	html("<object data=\"%S\" type=\"image/svg+xml\"></object>",
 	     URL("/player/historic.svg?name=%s", pname));
 
-	html_footer("player", URL("/player.json?name=%s", json_hexstring(pname)));
+	html_footer("player", URL("/player.json?name=%s", pname));
 
 	return EXIT_SUCCESS;
 }

@@ -5,7 +5,7 @@
 
 #include "cgi.h"
 #include "teerank.h"
-#include "json.h"
+#include "html.h"
 #include "master.h"
 #include "player.h"
 #include "clan.h"
@@ -13,12 +13,12 @@
 
 static void json_master(struct master *master)
 {
-	putchar('{');
-	printf("\"node\":\"%s\",", json_escape(master->node));
-	printf("\"service\":\"%s\",", json_escape(master->node));
-	printf("\"last_seen\":\"%s\",", json_date(master->lastseen));
-	printf("\"nservers\":%u", master->nservers);
-	putchar('}');
+	json("{");
+	json("%s:%s,", "node", master->node);
+	json("%s:%s,", "service", master->node);
+	json("%s:%d,", "last_seen", master->lastseen);
+	json("%s:%u", "nservers", master->nservers);
+	json("}");
 }
 
 int main_json_about(struct url *url)
@@ -32,23 +32,23 @@ int main_json_about(struct url *url)
 		" FROM masters"
 		" ORDER BY node";
 
-	putchar('{');
+	json("{");
 
-	printf("\"nplayers\":%u,", count_ranked_players("", ""));
-	printf("\"nclans\":%u,",   count_clans());
-	printf("\"nservers\":%u,", count_vanilla_servers());
-	printf("\"last_update\":\"%s\",", json_date(last_database_update()));
+	json("%s:%u,", "nplayers", count_ranked_players("", ""));
+	json("%s:%u,", "nclans", count_clans());
+	json("%s:%u,", "nservers", count_vanilla_servers());
+	json("%s:%d,", "last_update", last_database_update());
 
-	printf("\"masters\":[");
+	json("%s:[", "masters");
 
 	foreach_extended_master(query, &master) {
 		if (nrow)
-			putchar(',');
+			json(",");
 		json_master(&master);
 	}
 
-	printf("],\"nmasters\":%u", nrow);
-	putchar('}');
+	json("],%s:%u", "nmasters", nrow);
+	json("}");
 
 	return res ? SUCCESS : FAILURE;
 }

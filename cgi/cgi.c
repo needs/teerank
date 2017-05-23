@@ -334,26 +334,36 @@ static bool load_path_and_query(char **_path, char **_query)
 /* Load extra environment variables set by the webserver */
 static void init_cgi(void)
 {
-	const char *tmp, *port = NULL;
-	int ret;
+	const char *fmt;
 
-	if ((tmp = getenv("SERVER_NAME")))
-		cgi_config.name = tmp;
-	if ((tmp = getenv("SERVER_PORT")))
-		cgi_config.port = tmp;
+	cgi_config.name = getenv("SERVER_NAME");
+	cgi_config.port = getenv("SERVER_PORT");
 
+	/*
+	 * Default to localhost when server name is undefined.  This
+	 * should happen when testing CGI in the command line.
+	 */
 	if (!cgi_config.name)
-		fprintf(stderr, "Warning, SERVER_NAME not set, defaulting to \"teerank.com\"\n");
+		cgi_config.name = "localhost";
+	if (!cgi_config.port)
+		cgi_config.port = "80";
 
-	if (strcmp(cgi_config.port, "80") != 0)
-		port = cgi_config.port;
+	if (strcmp(cgi_config.port, "80") == 0)
+		cgi_config.port = NULL;
 
-	ret = snprintf(
-		cgi_config.domain, sizeof(cgi_config.domain), "%s%s%s",
-		cgi_config.name, port ? ":" : "", port ? port : "");
+	if (cgi_config.port)
+		fmt = "%s:%s";
+	else
+		fmt = "%s";
 
-	if (ret >= sizeof(cgi_config.domain))
-		error(414, "%s: Server name too long", cgi_config.name);
+	/*
+	 * Buffer for full server domain should be big enough for any
+	 * practical domains.  Hence we don't check return value of
+	 * snprintf().
+	 */
+	snprintf(
+		cgi_config.domain, sizeof(cgi_config.domain), fmt,
+		cgi_config.name, cgi_config.port);
 }
 
 static struct url parse_url(char *uri, char *query)

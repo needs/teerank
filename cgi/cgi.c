@@ -349,10 +349,10 @@ static void init_cgi(void)
 		port = cgi_config.port;
 
 	ret = snprintf(
-		cgi_config.domain, MAX_DOMAIN_LENGTH, "%s%s%s",
+		cgi_config.domain, sizeof(cgi_config.domain), "%s%s%s",
 		cgi_config.name, port ? ":" : "", port ? port : "");
 
-	if (ret >= MAX_DOMAIN_LENGTH)
+	if (ret >= sizeof(cgi_config.domain))
 		error(414, "%s: Server name too long", cgi_config.name);
 }
 

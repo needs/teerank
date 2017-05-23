@@ -10,13 +10,11 @@
 void error(int code, char *fmt, ...);
 void redirect(char *url);
 
-#define MAX_DOMAIN_LENGTH 1024
-
 extern struct cgi_config {
 	const char *name;
 	const char *port;
 
-	char domain[MAX_DOMAIN_LENGTH];
+	char domain[1024];
 } cgi_config;
 
 /* PCS stands for Player Clan Server */

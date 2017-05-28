@@ -439,7 +439,7 @@ static int generate(struct route *route, struct url *url)
 	}
 }
 
-static bool load_path_and_query(char **_path, char **_query)
+static void load_path_and_query(char **_path, char **_query)
 {
 	static char pathbuf[1024], querybuf[1024];
 	char *path, *query;
@@ -455,10 +455,8 @@ static bool load_path_and_query(char **_path, char **_query)
 	if (!path)
 		path = getenv("DOCUMENT_URI");
 
-	if (!path) {
-		fprintf(stderr, "This program require $PATH_INFO or $DOCUMENT_URI to be set.\n");
-		return false;
-	}
+	if (!path)
+		error(500, "$PATH_INFO or $DOCUMENT_URI not set.\n");
 
 	/*
 	 * Query string is optional, although I believe it's still
@@ -477,7 +475,6 @@ static bool load_path_and_query(char **_path, char **_query)
 
 	*_path = pathbuf;
 	*_query = querybuf;
-	return true;
 }
 
 /* Load extra environment variables set by the webserver */
@@ -579,9 +576,7 @@ int main(int argc, char **argv)
 	init_teerank(READ_ONLY);
 	init_cgi();
 
-	if (!load_path_and_query(&path, &query))
-		error(500, NULL);
-
+	load_path_and_query(&path, &query);
 	url = parse_url(path, query);
 	route = find_route(&url);
 	generate(route, &url);

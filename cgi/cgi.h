@@ -1,14 +1,12 @@
 #ifndef CGI_H
 #define CGI_H
 
-#include "route.h"
 #include <stdlib.h>
 
 /* Used by pages */
 #define EXIT_NOT_FOUND 2
 
 void error(int code, char *fmt, ...);
-void redirect(char *url);
 
 extern struct cgi_config {
 	const char *name;
@@ -24,10 +22,26 @@ enum pcs {
 	PCS_SERVER
 };
 
+#define MAX_DIRS 8
+#define MAX_ARGS 8
+
+struct arg {
+	char *name;
+	char *val;
+};
+
+struct url {
+	unsigned ndirs;
+	char *dirs[MAX_DIRS];
+
+	char *ext;
+
+	unsigned nargs;
+	struct arg args[MAX_ARGS];
+};
+
 int parse_pnum(char *str, unsigned *pnum);
-
 unsigned char hextodec(char c);
-
 void url_decode(char *str);
 
 #endif /* CGI_H */

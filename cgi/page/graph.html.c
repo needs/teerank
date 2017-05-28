@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "teerank.h"
-#include "route.h"
+#include "cgi.h"
 #include "html.h"
 
 #define MAX_DATA 48

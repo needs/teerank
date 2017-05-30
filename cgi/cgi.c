@@ -45,10 +45,10 @@ static void print_error(int code)
 	printf("Content-type: text/html\n");
 	printf("Status: %d %s\n", code, reason_phrase(code));
 	printf("\n");
-	html("<h1>%i %S</h1>\n", code, reason_phrase(code));
+	printf("<h1>%i %s</h1>\n", code, reason_phrase(code));
 
 	if (*errmsg)
-		html("<p>%s</p>", errmsg);
+		printf("<p>%s</p>", errmsg);
 }
 
 void error(int code, char *fmt, ...)
@@ -100,7 +100,7 @@ unsigned parse_pnum(char *str)
 	if (ret < 1)
 		error(400, "%s: Must be positive", str);
 	else if (ret > UINT_MAX)
-		error(400, "%s: Must lower than %u", str, UINT_MAX);
+		error(400, "%s: Must be lower than %u", str, UINT_MAX);
 
 	return ret;
 }
@@ -271,9 +271,7 @@ static bool is_valid_route(struct route *route)
 	return route && (route->generate || route->routes);
 }
 
-/*
- * Find the first child route matching the given name.
- */
+/* Find the first child route matching the given name */
 static struct route *find_child_route(
 	struct route *route, char *name, char *ext)
 {
@@ -286,9 +284,7 @@ static struct route *find_child_route(
 	return NULL;
 }
 
-/*
- * Find a leaf route (if any) matching the given URL.
- */
+/* Find a leaf route (if any) matching the given URL */
 static struct route *find_route(struct url *url)
 {
 	struct route *route = &root;
@@ -301,94 +297,9 @@ static struct route *find_route(struct url *url)
 		route = find_child_route(route, NULL, url->ext);
 
 	if (!route || !route->generate)
-		return NULL;
-
-	return route;
-}
-
-/*
- * And http status is passed to the function because in order to dump
- * the content of fd, we need to fdopen() it, and it can fail.  If that
- * fail we want to print an error.
- */
-static int dump(int status, const char *content_type, int fd)
-{
-	FILE *file;
-	int c;
-
-	assert(fd != -1);
-
-	if (!(file = fdopen(fd, "r")))
-		error(500, "fdopen(): %s", strerror(errno));
-
-	if (status != 200) {
-		print_error(status);
-	} else {
-		printf("Content-Type: %s\n", content_type);
-		printf("\n");
-	}
-
-	while ((c = fgetc(file)) != EOF)
-		putchar(c);
-
-	fclose(file);
-	close(fd);
-
-	return 1;
-}
-
-static int generate(struct route *route, struct url *url)
-{
-	int save, out[2];
-
-	assert(url != NULL);
-
-	if (!route || !route->generate)
 		error(404, NULL);
 
-	/*
-	 * Create a pipe to redirect stdout to.  It is necessary because
-	 * when a failure happen we don't want to send any content
-	 * generated before the failure.  Intsead we want to print
-	 * something from the error stream.
-	 */
-	if (pipe(out) == -1)
-		error(500, "pipe(out): %s", strerror(errno));
-
-	/*
-	 * Duplicate stdout so we can replace it with our previsouly
-	 * created pipe, and then restore it to its actual value once
-	 * route generation is done.
-	 */
-
-	save = dup(STDOUT_FILENO);
-	if (save == -1)
-		error(500, "dup(out): %s", strerror(errno));
-
-	/* Replace stdout and stderr */
-	if (dup2(out[1], STDOUT_FILENO) == -1)
-		error(500, "dup2(out): %s", strerror(errno));
-	close(out[1]);
-
-	/* Run route generation */
-	route->generate(url);
-
-	/*
-	 * Some data may not be written yet to the pipe.  Dumping data
-	 * now will just raise an empty string.  We need to flush stdout
-	 * in order to dump generated content.
-	 */
-	fflush(stdout);
-
-	/*
-	 * Eventually, restore stdout, route output is waiting at the
-	 * read-end of the pipe "out[0]".
-	 */
-	if (dup2(save, STDOUT_FILENO) == -1)
-		error(500, "dup2(out, save): %s", strerror(errno));
-	close(save);
-
-	return out[0];
+	return route;
 }
 
 static void load_path_and_query(char **_path, char **_query)
@@ -520,7 +431,7 @@ int main(int argc, char **argv)
 	char *path, *query;
 	struct url url;
 	struct route *route;
-	int ret, fd;
+	int ret;
 
 	/*
 	 * We want to use read only mode to prevent any security exploit
@@ -528,6 +439,8 @@ int main(int argc, char **argv)
 	 */
 	init_teerank(READ_ONLY);
 	init_cgi();
+
+	reset_output();
 
 	if ((ret = setjmp(errenv))) {
 		print_error(ret);
@@ -537,8 +450,11 @@ int main(int argc, char **argv)
 	load_path_and_query(&path, &query);
 	url = parse_url(path, query);
 	route = find_route(&url);
-	fd = generate(route, &url);
-	dump(200, route->content_type, fd);
+	route->generate(&url);
+
+	printf("Content-Type: %s\n", route->content_type);
+	printf("\n");
+	print_output();
 
 	return EXIT_SUCCESS;
 }

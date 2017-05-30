@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "cgi.h"
 #include "player.h"
@@ -13,46 +14,59 @@
 #include "teerank.h"
 #include "html.h"
 
-static void sputc(char **buf, int *n, char c)
+/*
+ * "dynbuf" stands for dynamic buffer, and store and unbounded amount of
+ * data in memory.  We then provide a function to dump the content on
+ * stdout or reset it.  It is used by html()-like functions to buffer
+ * output, waiting for an eventual error.
+ */
+struct dynbuf {
+	char *data;
+	size_t size;
+	size_t pos;
+};
+
+/*
+ * Grow buffer internal memory on demand.  On failure return a 500 but
+ * keep the old buffer in place so that a new attempt will be made the
+ * next time a page is generated.
+ */
+static void bputc(struct dynbuf *buf, char c)
 {
-	if (*n) {
-		**buf = c;
-		*buf = *buf + 1;
-		*n = *n - 1;
+	if (buf->pos == buf->size) {
+		size_t newsize;
+		char *newbuf;
+
+		newsize = buf->size + 10 * 1024;
+		newbuf = realloc(buf->data, newsize);
+
+		if (!newbuf)
+			error(
+				500, "Reallocating dynamic buffer (%sz): %s\n",
+				newsize, strerror(errno));
+
+		buf->data = newbuf;
+		buf->size = newsize;
 	}
+
+	buf->data[buf->pos++] = c;
 }
 
-static void sputs(char **buf, int *n, const char *str)
+static void bputs(struct dynbuf *buf, const char *str)
 {
-	while (*n && *str) {
-		sputc(buf, n, *str);
-		str++;
-	}
+	for (; *str; str++)
+		bputc(buf, *str);
 }
 
-static void sprint(char **buf, int *n, const char *fmt, ...)
+static void bprint(struct dynbuf *buf, const char *fmt, ...)
 {
 	char tmp[16];
 	va_list ap;
-	int ret;
 
-	/*
-	 * We don't put the result directly in *buf because we don't
-	 * want the ending nul character.
-	 */
 	va_start(ap, fmt);
-	ret = vsnprintf(tmp, sizeof(tmp), fmt, ap);
+	vsnprintf(tmp, sizeof(tmp), fmt, ap);
+	bputs(buf, tmp);
 	va_end(ap);
-
-	if (ret >= sizeof(tmp))
-		ret = sizeof(tmp) - 1;
-	if (ret > *n)
-		ret = *n;
-
-	memcpy(*buf, tmp, ret);
-
-	*n = *n - ret;
-	*buf = *buf + ret;
 }
 
 /*
@@ -71,99 +85,99 @@ typedef struct va_list__ { va_list ap; } *va_list_;
 #define va_end_(ap) va_end(ap->ap)
 
 /* Escape callback is called for user provided strings signaled by "%s" */
-typedef void (*escape_func_t)(char **buf, int *n, const char *str);
+typedef void (*escape_func_t)(struct dynbuf *buf, const char *str);
 
 /* Extend callback is sued to extend the set of conversion specifiers */
-typedef bool (*extend_func_t)(char **buf, int *n, char c, va_list_ ap);
+typedef bool (*extend_func_t)(struct dynbuf *buf, char c, va_list_ ap);
 
-static int print(char *buf, int size, escape_func_t escape, extend_func_t extend, const char *fmt, va_list_ ap)
+static void print(struct dynbuf *buf, escape_func_t escape, extend_func_t extend, const char *fmt, va_list_ ap)
 {
-	int n = size;
-
-	for (; *fmt && n; fmt++) {
+	for (; *fmt; fmt++) {
 		if (*fmt != '%') {
-			sputc(&buf, &n, *fmt);
+			bputc(buf, *fmt);
 			continue;
 		}
 
 		switch (*++fmt) {
 		case 's':
-			escape(&buf, &n, va_arg_(ap, char *));
+			escape(buf, va_arg_(ap, char *));
 			break;
 		case 'S':
-			sputs(&buf, &n, va_arg_(ap, char *));
+			bputs(buf, va_arg_(ap, char *));
 			break;
 		case 'i':
-			sprint(&buf, &n, "%i", va_arg_(ap, int));
+			bprint(buf, "%i", va_arg_(ap, int));
 			break;
 		case 'I':
-			sprint(&buf, &n, "%li", va_arg_(ap, long));
+			bprint(buf, "%li", va_arg_(ap, long));
 			break;
 		case 'u':
-			sprint(&buf, &n, "%u", va_arg_(ap, unsigned));
+			bprint(buf, "%u", va_arg_(ap, unsigned));
 			break;
 		case 'U':
-			sprint(&buf, &n, "%lu", va_arg_(ap, long unsigned));
+			bprint(buf, "%lu", va_arg_(ap, long unsigned));
 			break;
 		case 'f':
-			sprint(&buf, &n, "%.1f", va_arg_(ap, double));
+			bprint(buf, "%.1f", va_arg_(ap, double));
 			break;
 		case 'c':
-			sputc(&buf, &n, va_arg_(ap, int));
+			bputc(buf, va_arg_(ap, int));
 			break;
 		case '%':
-			sputc(&buf, &n, '%');
+			bputc(buf, '%');
 			break;
 		default:
-			if (!extend || !extend(&buf, &n, *fmt, ap)) {
+			if (!extend || !extend(buf, *fmt, ap)) {
 				fprintf(stderr, "Unknown conversion specifier '%%%c'\n", *fmt);
 				abort();
 			}
 		}
 	}
-
-	return size - n;
 }
 
-static void escape_xml(char **buf, int *n, const char *str)
+static void escape_xml(struct dynbuf *buf, const char *str)
 {
-	for (; *str && *n; str++) {
+	for (; *str; str++) {
 		switch (*str) {
 		case '&':
-			sputs(buf, n, "&amp;");
+			bputs(buf, "&amp;");
 			break;
 		case '<':
-			sputs(buf, n, "&lt;");
+			bputs(buf, "&lt;");
 			break;
 		case '>':
-			sputs(buf, n, "&gt;");
+			bputs(buf, "&gt;");
 			break;
 		case '\"':
-			sputs(buf, n, "&quot;");
+			bputs(buf, "&quot;");
 			break;
 		case '\'':
-			sputs(buf, n, "&#39;");
+			bputs(buf, "&#39;");
 			break;
 		default:
-			sputc(buf, n, *str);
+			bputc(buf, *str);
 			break;
 		}
 	}
 }
 
-/* Store the result in a static buffer and print it right away */
-static void _print(escape_func_t escape, extend_func_t extend, const char *fmt, va_list_ ap)
+static struct dynbuf outbuf;
+
+void reset_output(void)
 {
-	static char buf[1024];
-	int ret = print(buf, sizeof(buf), escape, extend, fmt, ap);
-	fwrite(buf, ret, 1, stdout);
+	outbuf.size = 0;
+}
+
+void print_output(void)
+{
+	fwrite(outbuf.data, outbuf.pos, 1, stdout);
 }
 
 void html(const char *fmt, ...)
 {
 	va_list_ ap;
 	va_start_(ap, fmt);
-	_print(escape_xml, NULL, fmt, ap);
+	print(&outbuf, escape_xml, NULL, fmt, ap);
 	va_end_(ap);
 }
 
@@ -171,7 +185,7 @@ void xml(const char *fmt, ...)
 {
 	va_list_ ap;
 	va_start_(ap, fmt);
-	_print(escape_xml, NULL, fmt, ap);
+	print(&outbuf, escape_xml, NULL, fmt, ap);
 	va_end_(ap);
 }
 
@@ -179,7 +193,7 @@ void svg(const char *fmt, ...)
 {
 	va_list_ ap;
 	va_start_(ap, fmt);
-	_print(escape_xml, NULL, fmt, ap);
+	print(&outbuf, escape_xml, NULL, fmt, ap);
 	va_end_(ap);
 }
 
@@ -187,7 +201,7 @@ void css(const char *fmt, ...)
 {
 	va_list_ ap;
 	va_start_(ap, fmt);
-	_print(sputs, NULL, fmt, ap);
+	print(&outbuf, bputs, NULL, fmt, ap);
 	va_end_(ap);
 }
 
@@ -195,50 +209,50 @@ void css(const char *fmt, ...)
  * Not only we escape any special characters, but we also suround the
  * escaped string with quotes.
  */
-static void escape_json(char **buf, int *n, const char *str)
+static void escape_json(struct dynbuf *buf, const char *str)
 {
-	sputc(buf, n, '\"');
+	bputc(buf, '\"');
 
-	for (; *str && *n; str++) {
+	for (; *str; str++) {
 		switch (*str) {
 		case '\b':
-			sputs(buf, n, "\\b");
+			bputs(buf, "\\b");
 			break;
 		case '\f':
-			sputs(buf, n, "\\f");
+			bputs(buf, "\\f");
 			break;
 		case '\n':
-			sputs(buf, n, "\\n");
+			bputs(buf, "\\n");
 			break;
 		case '\r':
-			sputs(buf, n, "\\r");
+			bputs(buf, "\\r");
 			break;
 		case '\t':
-			sputs(buf, n, "\\t");
+			bputs(buf, "\\t");
 			break;
 		case '\"':
-			sputs(buf, n, "\\\"");
+			bputs(buf, "\\\"");
 			break;
 		case '\\':
-			sputs(buf, n, "\\\\");
+			bputs(buf, "\\\\");
 			break;
 		default:
-			sputc(buf, n, *str);
+			bputc(buf, *str);
 			break;
 		}
 	}
 
-	sputc(buf, n, '\"');
+	bputc(buf, '\"');
 }
 
-static bool extend_json(char **buf, int *n, char c, va_list_ ap)
+static bool extend_json(struct dynbuf *buf, char c, va_list_ ap)
 {
 	/* Boolean */
 	if (c == 'b') {
 		if (va_arg_(ap, int))
-			sputs(buf, n, "true");
+			bputs(buf, "true");
 		else
-			sputs(buf, n, "false");
+			bputs(buf, "false");
 		return true;
 	}
 
@@ -250,12 +264,12 @@ static bool extend_json(char **buf, int *n, char c, va_list_ ap)
 		time_t t = va_arg_(ap, time_t);
 		ret = strftime(tmp, sizeof(tmp), "%Y-%m-%dT%H:%M:%SZ", gmtime(&t));
 
-		sputc(buf, n, '\"');
+		bputc(buf, '\"');
 		if (ret != sizeof(tmp) - 1)
-			sputs(buf, n, "1970-00-00T00:00:00Z");
+			bputs(buf, "1970-00-00T00:00:00Z");
 		else
-			sputs(buf, n, tmp);
-		sputc(buf, n, '\"');
+			bputs(buf, tmp);
+		bputc(buf, '\"');
 		return true;
 	}
 
@@ -266,7 +280,15 @@ void json(const char *fmt, ...)
 {
 	va_list_ ap;
 	va_start_(ap, fmt);
-	_print(escape_json, extend_json, fmt, ap);
+	print(&outbuf, escape_json, extend_json, fmt, ap);
+	va_end_(ap);
+}
+
+void txt(const char *fmt, ...)
+{
+	va_list_ ap;
+	va_start_(ap, fmt);
+	print(&outbuf, bputs, NULL, fmt, ap);
 	va_end_(ap);
 }
 
@@ -305,49 +327,48 @@ static bool safe_url_char(char c)
 	return strchr("-_.~", c) != NULL;
 }
 
-static void url_encode(char **buf, int *n, const char *str)
+static void url_encode(struct dynbuf *buf, const char *str)
 {
-	for (; *str && *n; str++) {
+	for (; *str; str++) {
 		if (safe_url_char(*str)) {
-			sputc(buf, n, *str);
+			bputc(buf, *str);
 		} else {
 			unsigned char c = *(unsigned char*)str;
-			sputc(buf, n, '%');
-			sputc(buf, n, dectohex(c / 16));
-			sputc(buf, n, dectohex(c % 16));
+			bputc(buf, '%');
+			bputc(buf, dectohex(c / 16));
+			bputc(buf, dectohex(c % 16));
 		}
 	}
 }
 
 #define NBUF 4
-#define BUFSIZE 1024
 
 char *URL(const char *fmt, ...)
 {
-	static char bufs[NBUF][BUFSIZE];
+	static struct dynbuf bufs[NBUF];
 	static int i = 0;
 
-	char *buf;
+	struct dynbuf *buf;
 	va_list_ ap;
-	int ret;
 
 	/*
 	 * Rotates buffers so this function can be called multiple time
 	 * in a row and will returns different buffers.
 	 */
-	buf = bufs[i];
+	buf = &bufs[i];
 	i = (i + 1) % NBUF;
+
+	buf->pos = 0;
 
 	/* Reserve one byte for the final '\0' */
 	va_start_(ap, fmt);
-	ret = print(buf, BUFSIZE-1, url_encode, NULL, fmt, ap);
+	print(buf, url_encode, NULL, fmt, ap);
 	va_end_(ap);
 
-	buf[ret] = '\0';
-	return buf;
+	bputc(buf, '\0');
+	return buf->data;
 }
 
-#undef BUFSIZE
 #undef NBUF
 
 /* Minutes looks nice when they only ends by '0' or '5' */

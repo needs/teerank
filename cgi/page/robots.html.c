@@ -2,8 +2,9 @@
 #include <stdlib.h>
 
 #include "cgi.h"
+#include "html.h"
 
 void generate_txt_robots(struct url *url)
 {
-	printf("Sitemap: http://%s/sitemap.xml\n", cgi_config.domain);
+	txt("Sitemap: http://%s/sitemap.xml\n", cgi_config.domain);
 }

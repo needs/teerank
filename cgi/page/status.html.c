@@ -107,7 +107,7 @@ static int show_masters_status(int teerank_stopped)
 	return 0;
 }
 
-int main_html_status(struct url *url)
+void generate_html_status(struct url *url)
 {
 	const char *title;
 	char buf[16], comment[64];
@@ -128,6 +128,4 @@ int main_html_status(struct url *url)
 
 	show_masters_status(teerank_stopped);
 	html_footer(NULL, NULL);
-
-	return EXIT_SUCCESS;
 }

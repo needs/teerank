@@ -14,10 +14,14 @@
 #include <libgen.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <setjmp.h>
 
 #include "teerank.h"
 #include "html.h"
 #include "cgi.h"
+
+static jmp_buf errenv;
+static char errmsg[1024];
 
 struct cgi_config cgi_config = {
 	"teerank.com", "80"
@@ -41,27 +45,29 @@ static void print_error(int code)
 	printf("Content-type: text/html\n");
 	printf("Status: %d %s\n", code, reason_phrase(code));
 	printf("\n");
-	printf("<h1>%d %s</h1>\n", code, reason_phrase(code));
+	html("<h1>%i %S</h1>\n", code, reason_phrase(code));
+
+	if (*errmsg)
+		html("<p>%s</p>", errmsg);
 }
 
 void error(int code, char *fmt, ...)
 {
-	va_list ap;
-
-	print_error(code);
 	if (fmt) {
+		va_list ap;
+
+		va_start(ap, fmt);
+		vsnprintf(errmsg, sizeof(errmsg), fmt, ap);
+		va_end(ap);
+
 		va_start(ap, fmt);
 		vfprintf(stderr, fmt, ap);
 		va_end(ap);
-
-		va_start(ap, fmt);
-		vprintf(fmt, ap);
-		va_end(ap);
 	} else {
-		fprintf(stderr, "%d %s\n", code, reason_phrase(code));
+		*errmsg = 0;
 	}
 
-	exit(EXIT_FAILURE);
+	longjmp(errenv, code);
 }
 
 /*
@@ -78,30 +84,25 @@ static void redirect(char *url)
 	putchar('\n');
 }
 
-int parse_pnum(char *str, unsigned *pnum)
+unsigned parse_pnum(char *str)
 {
 	long ret;
 
 	errno = 0;
 	ret = strtol(str, NULL, 10);
 	if (ret == 0 && errno != 0)
-		return perror(str), 0;
+		error(400, "%s: %s", str, strerror(errno));
 
 	/*
 	 * Page numbers are unsigned but strtol() returns a long, so we
 	 * need to make sure our page number fit into an unsigned.
 	 */
-	if (ret < 1) {
-		fprintf(stderr, "%s: Must be positive\n", str);
-		return 0;
-	} else if (ret > UINT_MAX) {
-		fprintf(stderr, "%s: Must lower than %u\n", str, UINT_MAX);
-		return 0;
-	}
+	if (ret < 1)
+		error(400, "%s: Must be positive", str);
+	else if (ret > UINT_MAX)
+		error(400, "%s: Must lower than %u", str, UINT_MAX);
 
-	*pnum = ret;
-
-	return 1;
+	return ret;
 }
 
 unsigned char hextodec(char c)
@@ -174,21 +175,19 @@ static char *convert_hexname(char *hexname)
 }
 
 /* URLs for player list looked like "/pages/<pnum>.html" */
-static int main_html_teerank2_player_list(struct url *url)
+static void generate_html_teerank2_player_list(struct url *url)
 {
 	/* FIXME! Semantic changed and redirect() will not work as
 	 * intended */
 	redirect(URL("/players?p=%s", url->dirs[url->ndirs - 1]));
-	return EXIT_FAILURE;
 }
 
 /* URLs for player graph looked like "/players/<hexname>/elo+rank.svg" */
-static int main_svg_teerank3_graph(struct url *url)
+static void generate_svg_teerank3_graph(struct url *url)
 {
 	/* FIXME! Semantic changed and redirect() will not work as
 	 * intended */
 	redirect(URL("/player/historic.svg?name=%s", convert_hexname(url->dirs[url->ndirs - 2])));
-	return EXIT_FAILURE;
 }
 
 /*
@@ -198,21 +197,21 @@ static int main_svg_teerank3_graph(struct url *url)
 #define _ (char*)1
 
 /*
- * The routes tree refers to pages "main()" callbacks.  So we need to
+ * The routes tree refers to pages "generate()" callbacks.  So we need to
  * declare them before buliding the tree.
  */
 #define DIR(name)
 #define END()
 #define HTML(name, func)                                                \
-	int main_html_##func(struct url *url);
+	void generate_html_##func(struct url *url);
 #define JSON(name, func)                                                \
-	int main_json_##func(struct url *url);
+	void generate_json_##func(struct url *url);
 #define TXT(name, func)                                                 \
-	int main_txt_##func(struct url *url);
+	void generate_txt_##func(struct url *url);
 #define XML(name, func)                                                 \
-	int main_xml_##func(struct url *url);
+	void generate_xml_##func(struct url *url);
 #define SVG(name, func)                                                 \
-	int main_svg_##func(struct url *url);
+	void generate_svg_##func(struct url *url);
 
 #include "routes.def"
 
@@ -221,7 +220,7 @@ struct route {
 	const char *const name, *const ext;
 	const char *const content_type;
 
-	int (*const main)(struct url *url);
+	void (*const generate)(struct url *url);
 
 	struct route *const routes;
 };
@@ -236,16 +235,16 @@ struct route {
 	{ 0 } } },
 
 #define HTML(name, func)                                                \
-	{ name, "html", "text/html", main_html_##func },                \
-	{ name, NULL, "text/html", main_html_##func },
+	{ name, "html", "text/html", generate_html_##func },            \
+	{ name, NULL, "text/html", generate_html_##func },
 #define JSON(name, func)                                                \
-	{ name, "json", "text/json", main_json_##func },
+	{ name, "json", "text/json", generate_json_##func },
 #define TXT(name, func)                                                 \
-	{ name, "txt", "text/plain", main_txt_##func },
+	{ name, "txt", "text/plain", generate_txt_##func },
 #define XML(name, func)                                                 \
-	{ name, "xml", "text/xml", main_xml_##func },
+	{ name, "xml", "text/xml", generate_xml_##func },
 #define SVG(name, func)                                                 \
-	{ name, "svg", "image/svg+xml", main_svg_##func },
+	{ name, "svg", "image/svg+xml", generate_svg_##func },
 
 static struct route root = DIR(NULL)
 #include "routes.def"
@@ -262,14 +261,14 @@ static bool samestr(const char *a, const char *b)
 static bool route_match(struct route *route, char *name, char *ext)
 {
 	if (route->name == _ || samestr(route->name, name))
-		return route->main ? samestr(route->ext, ext) : true;
+		return route->generate ? samestr(route->ext, ext) : true;
 	else
 		return false;
 }
 
 static bool is_valid_route(struct route *route)
 {
-	return route && (route->main || route->routes);
+	return route && (route->generate || route->routes);
 }
 
 /*
@@ -298,21 +297,21 @@ static struct route *find_route(struct url *url)
 	for (i = 0; i < url->ndirs && route; i++)
 		route = find_child_route(route, url->dirs[i], url->ext);
 
-	if (route && !route->main)
+	if (route && !route->generate)
 		route = find_child_route(route, NULL, url->ext);
 
-	if (!route || !route->main)
+	if (!route || !route->generate)
 		return NULL;
 
 	return route;
 }
 
 /*
- * And http status is passed to the function because in order to dum the
- * content of fd, we need to fdopen() it, and it can fail.  If that fail
- * we want to print an error.
+ * And http status is passed to the function because in order to dump
+ * the content of fd, we need to fdopen() it, and it can fail.  If that
+ * fail we want to print an error.
  */
-static int dump(int status, const char *content_type, int fd, FILE *copy)
+static int dump(int status, const char *content_type, int fd)
 {
 	FILE *file;
 	int c;
@@ -320,7 +319,7 @@ static int dump(int status, const char *content_type, int fd, FILE *copy)
 	assert(fd != -1);
 
 	if (!(file = fdopen(fd, "r")))
-		error(500, "fdopen(): %s\n", strerror(errno));
+		error(500, "fdopen(): %s", strerror(errno));
 
 	if (status != 200) {
 		print_error(status);
@@ -329,15 +328,8 @@ static int dump(int status, const char *content_type, int fd, FILE *copy)
 		printf("\n");
 	}
 
-	if (copy) {
-		while ((c = fgetc(file)) != EOF) {
-			putchar(c);
-			fputc(c, copy);
-		}
-	} else {
-		while ((c = fgetc(file)) != EOF)
-			putchar(c);
-	}
+	while ((c = fgetc(file)) != EOF)
+		putchar(c);
 
 	fclose(file);
 	close(fd);
@@ -345,98 +337,58 @@ static int dump(int status, const char *content_type, int fd, FILE *copy)
 	return 1;
 }
 
-static void raw_dump(int fd, FILE *dst)
-{
-	FILE *src;
-	int c;
-
-	if (!(src = fdopen(fd, "r")))
-		error(500, "fdopen(): %s\n", strerror(errno));
-	while ((c = fgetc(src)) != EOF)
-		fputc(c, dst);
-	fclose(src);
-	close(fd);
-}
-
 static int generate(struct route *route, struct url *url)
 {
-	int out[2], err[2];
-	int stdout_save, stderr_save;
-	int ret;
+	int save, out[2];
 
 	assert(url != NULL);
 
-	if (!route || !route->main)
+	if (!route || !route->generate)
 		error(404, NULL);
 
 	/*
-	 * Create a pipe to redirect stdout and stderr to.  It is
-	 * necessary because when a failure happen we don't want to send
-	 * any content generated before the failure.  Intsead we want to
-	 * print something from the error stream.
+	 * Create a pipe to redirect stdout to.  It is necessary because
+	 * when a failure happen we don't want to send any content
+	 * generated before the failure.  Intsead we want to print
+	 * something from the error stream.
 	 */
 	if (pipe(out) == -1)
-		error(500, "pipe(out): %s\n", strerror(errno));
-	if (pipe(err) == -1)
-		error(500, "pipe(err): %s\n", strerror(errno));
+		error(500, "pipe(out): %s", strerror(errno));
 
 	/*
-	 * Duplicate stdout and stderr so we can replace them with our
-	 * previsouly created pipes, and then restore them to their
-	 * actual value once route generation is done.
+	 * Duplicate stdout so we can replace it with our previsouly
+	 * created pipe, and then restore it to its actual value once
+	 * route generation is done.
 	 */
 
-	stdout_save = dup(STDOUT_FILENO);
-	if (stdout_save == -1)
-		error(500, "dup(out): %s\n", strerror(errno));
-
-	stderr_save = dup(STDERR_FILENO);
-	if (stderr_save == -1)
-		error(500, "dup(err): %s\n", strerror(errno));
+	save = dup(STDOUT_FILENO);
+	if (save == -1)
+		error(500, "dup(out): %s", strerror(errno));
 
 	/* Replace stdout and stderr */
 	if (dup2(out[1], STDOUT_FILENO) == -1)
-		error(500, "dup2(out): %s\n", strerror(errno));
-	if (dup2(err[1], STDERR_FILENO) == -1)
-		error(500, "dup2(err): %s\n", strerror(errno));
+		error(500, "dup2(out): %s", strerror(errno));
 	close(out[1]);
-	close(err[1]);
 
 	/* Run route generation */
-	ret = route->main(url);
+	route->generate(url);
 
 	/*
 	 * Some data may not be written yet to the pipe.  Dumping data
-	 * now will just raise an empty string.  We need to flush both
-	 * stdout and stderr in order to dump generated content.
+	 * now will just raise an empty string.  We need to flush stdout
+	 * in order to dump generated content.
 	 */
 	fflush(stdout);
-	fflush(stderr);
 
 	/*
-	 * Then, restore stdout and stderr, route output is waiting at
-	 * the read-end of the pipe "out[0]", and any error are waiting
-	 * at the read-end of the pipe "err[0]".
+	 * Eventually, restore stdout, route output is waiting at the
+	 * read-end of the pipe "out[0]".
 	 */
-	if (dup2(stdout_save, STDOUT_FILENO) == -1)
-		error(500, "dup2(out, save): %s\n", strerror(errno));
-	if (dup2(stderr_save, STDERR_FILENO) == -1)
-		error(500, "dup2(err, save): %s\n", strerror(errno));
-	close(stdout_save);
-	close(stderr_save);
+	if (dup2(save, STDOUT_FILENO) == -1)
+		error(500, "dup2(out, save): %s", strerror(errno));
+	close(save);
 
-	switch (ret) {
-	case EXIT_SUCCESS:
-		raw_dump(err[0], stderr);
-		return dump(200, route->content_type, out[0], NULL);
-
-	case EXIT_NOT_FOUND:
-		return dump(404, NULL, err[0], stderr);
-
-	case EXIT_FAILURE:
-	default:
-		return dump(500, NULL, err[0], stderr);
-	}
+	return out[0];
 }
 
 static void load_path_and_query(char **_path, char **_query)
@@ -456,7 +408,7 @@ static void load_path_and_query(char **_path, char **_query)
 		path = getenv("DOCUMENT_URI");
 
 	if (!path)
-		error(500, "$PATH_INFO or $DOCUMENT_URI not set.\n");
+		error(500, "$PATH_INFO or $DOCUMENT_URI not set.");
 
 	/*
 	 * Query string is optional, although I believe it's still
@@ -568,6 +520,7 @@ int main(int argc, char **argv)
 	char *path, *query;
 	struct url url;
 	struct route *route;
+	int ret, fd;
 
 	/*
 	 * We want to use read only mode to prevent any security exploit
@@ -576,10 +529,16 @@ int main(int argc, char **argv)
 	init_teerank(READ_ONLY);
 	init_cgi();
 
+	if ((ret = setjmp(errenv))) {
+		print_error(ret);
+		return EXIT_FAILURE;
+	}
+
 	load_path_and_query(&path, &query);
 	url = parse_url(path, query);
 	route = find_route(&url);
-	generate(route, &url);
+	fd = generate(route, &url);
+	dump(200, route->content_type, fd);
 
 	return EXIT_SUCCESS;
 }

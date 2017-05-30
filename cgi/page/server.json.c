@@ -53,7 +53,7 @@ static void json_server(struct server *server)
 	json("}");
 }
 
-int main_json_server(struct url *url)
+void generate_json_server(struct url *url)
 {
 	char *ip = NULL, *port = NULL;
 	struct server server;
@@ -72,16 +72,16 @@ int main_json_server(struct url *url)
 			port = url->args[i].val;
 	}
 
-	if (!ip || !port)
-		return EXIT_FAILURE;
+	if (!ip)
+		error(400, "Missing 'ip' parameter");
+	if (!port)
+		error(400, "Missing 'port' parameter");
 
 	foreach_extended_server(query, &server, "ss", ip, port);
 	if (!res)
-		return EXIT_FAILURE;
+		error(500, NULL);
 	if (!nrow)
-		return EXIT_NOT_FOUND;
+		error(404, NULL);
 
 	json_server(&server);
-
-	return EXIT_SUCCESS;
 }

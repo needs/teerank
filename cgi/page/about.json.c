@@ -21,7 +21,7 @@ static void json_master(struct master *master)
 	json("}");
 }
 
-int main_json_about(struct url *url)
+void generate_json_about(struct url *url)
 {
 	unsigned nrow = 0;
 	sqlite3_stmt *res;
@@ -47,8 +47,9 @@ int main_json_about(struct url *url)
 		json_master(&master);
 	}
 
+	if (!res)
+		error(500, NULL);
+
 	json("],%s:%u", "nmasters", nrow);
 	json("}");
-
-	return res ? SUCCESS : FAILURE;
 }

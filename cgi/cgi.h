@@ -40,7 +40,7 @@ struct url {
 	struct arg args[MAX_ARGS];
 };
 
-int parse_pnum(char *str, unsigned *pnum);
+unsigned parse_pnum(char *str);
 unsigned char hextodec(char c);
 void url_decode(char *str);
 

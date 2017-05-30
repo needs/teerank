@@ -776,7 +776,7 @@ end:
 	svg("</svg>");
 }
 
-int main_svg_graph(struct url *url)
+void generate_svg_graph(struct url *url)
 {
 	struct graph graph = { 0 };
 	struct dataset dselo, dsrank;
@@ -786,6 +786,4 @@ int main_svg_graph(struct url *url)
 	add_curve(&graph, &dselo, 0, "#970", "#725800", "Elo");
 	add_curve(&graph, &dsrank, 1, "#aaa", "#888", "Rank");
 	print_graph(&graph);
-
-	return EXIT_SUCCESS;
 }

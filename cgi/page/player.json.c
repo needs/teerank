@@ -22,7 +22,7 @@ static void json_player(struct player *player)
 	json("%s:%s", "server_port", player->server_port);
 }
 
-static int json_player_historic(const char *pname)
+static void json_player_historic(const char *pname)
 {
 	unsigned nrow;
 	sqlite3_stmt *res;
@@ -45,10 +45,11 @@ static int json_player_historic(const char *pname)
 
 	json("],%s:%u}", "length", nrow);
 
-	return res != NULL;
+	if (!res)
+		error(500, NULL);
 }
 
-int main_json_player(struct url *url)
+void generate_json_player(struct url *url)
 {
 	struct player player;
 	char *pname = NULL;
@@ -72,17 +73,15 @@ int main_json_player(struct url *url)
 
 	foreach_player(query, &player, "s", pname);
 	if (!res)
-		return EXIT_FAILURE;
+		error(500, NULL);
 	if (!nrow)
-		return EXIT_NOT_FOUND;
+		error(404, NULL);
 
 	json("{");
 
 	json_player(&player);
-	if (full && !json_player_historic(player.name))
-		return EXIT_FAILURE;
+	if (full)
+		json_player_historic(player.name);
 
 	json("}");
-
-	return EXIT_SUCCESS;
 }

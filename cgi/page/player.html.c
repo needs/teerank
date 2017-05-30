@@ -9,7 +9,7 @@
 #include "html.h"
 #include "player.h"
 
-int main_html_player(struct url *url)
+void generate_html_player(struct url *url)
 {
 	char *pname = NULL;
 	struct player player;
@@ -28,13 +28,13 @@ int main_html_player(struct url *url)
 	}
 
 	if (!pname)
-		return EXIT_NOT_FOUND;
+		error(400, "Player name required");
 
 	foreach_player(query, &player, "s", pname);
 	if (!res)
-		return EXIT_FAILURE;
+		error(500, NULL);
 	if (!nrow)
-		return EXIT_NOT_FOUND;
+		error(404, NULL);
 
 	html_header(pname, pname, "/players", NULL);
 
@@ -65,6 +65,4 @@ int main_html_player(struct url *url)
 	     URL("/player/historic.svg?name=%s", pname));
 
 	html_footer("player", URL("/player.json?name=%s", pname));
-
-	return EXIT_SUCCESS;
 }

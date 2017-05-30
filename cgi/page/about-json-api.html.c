@@ -72,7 +72,7 @@ static void jsonurl(const char *url)
 	html("</p>");
 }
 
-int main_html_about_json_api(struct url *url)
+void generate_html_about_json_api(struct url *url)
 {
 	html_header("JSON API Overview", "JSON API Overview", "", NULL);
 
@@ -332,6 +332,4 @@ int main_html_about_json_api(struct url *url)
 	end_jsondesc_table();
 
 	html_footer(NULL, NULL);
-
-	return EXIT_SUCCESS;
 }

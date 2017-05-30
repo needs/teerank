@@ -224,7 +224,7 @@ static int print_server_list(void)
 	return EXIT_SUCCESS;
 }
 
-static int parse_list_args(struct url *url)
+static void parse_list_args(struct url *url)
 {
 	char *pcs_, *pnum_;
 	unsigned i;
@@ -255,27 +255,20 @@ static int parse_list_args(struct url *url)
 		pcs = PCS_CLAN;
 	else if (strcmp(pcs_, "servers") == 0)
 		pcs = PCS_SERVER;
-	else {
-		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", pcs_);
-		return EXIT_FAILURE;
-	}
+	else
+		error(400, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", pcs_);
 
-	if (!parse_pnum(pnum_, &pnum))
-		return EXIT_FAILURE;
-
-	return EXIT_SUCCESS;
+	pnum = parse_pnum(pnum_);
 }
 
-int main_html_list(struct url *url)
+void generate_html_list(struct url *url)
 {
 	char *urlfmt;
 	unsigned tabvals[3];
-	int ret = EXIT_FAILURE;
 
 	JSON = false;
 
-	if ((ret = parse_list_args(url)) != EXIT_SUCCESS)
-		return ret;
+	parse_list_args(url);
 
 	if (strcmp(gametype, "CTF") == 0)
 		html_header(&CTF_TAB, "CTF", "/players", NULL);
@@ -294,46 +287,42 @@ int main_html_list(struct url *url)
 	switch (pcs) {
 	case PCS_PLAYER:
 		print_section_tabs(PLAYERS_TAB, urlfmt, tabvals);
-		ret = print_player_list();
+		print_player_list();
 		urlfmt = URL("/players?gametype=%s&map=%s&sort=%s&p=%%u", gametype, map, order);
 		print_page_nav(urlfmt, pnum, tabvals[0] / 100 + 1);
 		break;
 	case PCS_CLAN:
 		print_section_tabs(CLANS_TAB, urlfmt, tabvals);
-		ret = print_clan_list();
+		print_clan_list();
 		urlfmt = URL("/clans?gametype=%s&map=%s&sort=%s&p=%%u", gametype, map, order);
 		print_page_nav(urlfmt, pnum, tabvals[1] / 100 + 1);
 		break;
 	case PCS_SERVER:
 		print_section_tabs(SERVERS_TAB, urlfmt, tabvals);
-		ret = print_server_list();
+		print_server_list();
 		urlfmt = URL("/servers?gametype=%s&map=%s&sort=%s&p=%%u", gametype, map, order);
 		print_page_nav(urlfmt, pnum, tabvals[2] / 100 + 1);
 		break;
 	}
 
 	html_footer("player-list", URL("/players.json?gametype=%s&map=%s&sort=%s&p=%u", gametype, map, order, pnum));
-
-	return ret;
 }
 
-int main_json_list(struct url *url)
+void generate_json_list(struct url *url)
 {
-	int ret;
-
 	JSON = true;
 
-	if ((ret = parse_list_args(url)) != EXIT_SUCCESS)
-		return ret;
+	parse_list_args(url);
 
 	switch (pcs) {
 	case PCS_PLAYER:
-		return print_player_list();
+		print_player_list();
+		break;
 	case PCS_CLAN:
-		return print_clan_list();
+		print_clan_list();
+		break;
 	case PCS_SERVER:
-		return print_server_list();
+		print_server_list();
+		break;
 	}
-
-	return EXIT_FAILURE;
 }

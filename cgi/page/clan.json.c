@@ -10,7 +10,7 @@
 #include "html.h"
 #include "clan.h"
 
-int main_json_clan(struct url *url)
+void generate_json_clan(struct url *url)
 {
 	unsigned i, nrow;
 	sqlite3_stmt *res;
@@ -39,9 +39,7 @@ int main_json_clan(struct url *url)
 	json("],%s:%u}", "nmembers", nrow);
 
 	if (!res)
-		return EXIT_FAILURE;
+		error(500, NULL);
 	if (!nrow)
-		return EXIT_NOT_FOUND;
-
-	return EXIT_SUCCESS;
+		error(404, NULL);
 }

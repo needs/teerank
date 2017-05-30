@@ -5,7 +5,7 @@
 #include "cgi.h"
 #include "html.h"
 
-int main_html_about(struct url *url)
+void generate_html_about(struct url *url)
 {
 	html_header(&ABOUT_TAB, "About", "", NULL);
 
@@ -21,6 +21,4 @@ int main_html_about(struct url *url)
 	html("<p>The system as it is cannot know the team you are playing on, it also do not handle any sort of player authentification, thus faking is easy.  That's why Teerank should not be taken too seriously, because it is built on a very naïve aproach.</p>");
 
 	html_footer("about", "/about.json");
-
-	return EXIT_SUCCESS;
 }

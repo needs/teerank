@@ -11,7 +11,7 @@
 #include "player.h"
 #include "clan.h"
 
-int main_html_clan(struct url *url)
+void generate_html_clan(struct url *url)
 {
 	unsigned i, nrow;
 	sqlite3_stmt *res;
@@ -39,12 +39,10 @@ int main_html_clan(struct url *url)
 		html_player_list_entry(&p, NULL, 1);
 
 	if (!res)
-		return EXIT_FAILURE;
+		error(500, NULL);
 	if (!nrow)
-		return EXIT_NOT_FOUND;
+		error(404, NULL);
 
 	html_end_player_list();
 	html_footer("clan", URL("/clan.json?name=%s", cname));
-
-	return EXIT_SUCCESS;
 }

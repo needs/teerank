@@ -41,7 +41,7 @@ static void show_client_list(struct server *server)
 	html_end_online_player_list();
 }
 
-int main_html_server(struct url *url)
+void generate_html_server(struct url *url)
 {
 	struct server server;
 	unsigned i, playing = 0, spectating = 0;
@@ -61,16 +61,18 @@ int main_html_server(struct url *url)
 			port = url->args[i].val;
 	}
 
-	if (!ip || !port)
-		return EXIT_FAILURE;
+	if (!ip)
+		error(400, "Missing 'ip' parameter");
+	if (!port)
+		error(400, "Missing 'port' parameter");
 
 	foreach_extended_server(query, &server, "ss", ip, port);
 	if (!res)
-		return EXIT_FAILURE;
+		error(500, NULL);
 	if (!nrow)
-		return EXIT_NOT_FOUND;
+		error(404, NULL);
 	if (!read_server_clients(&server))
-		return EXIT_FAILURE;
+		error(500, NULL);
 
 	for (i = 0; i < server.num_clients; i++)
 		server.clients[i].ingame ? playing++ : spectating++;
@@ -105,6 +107,4 @@ int main_html_server(struct url *url)
 	show_client_list(&server);
 
 	html_footer("server", URL("/server.json?ip=%s&port=%s", ip, port));
-
-	return EXIT_SUCCESS;
 }

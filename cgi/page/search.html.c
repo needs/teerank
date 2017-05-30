@@ -141,7 +141,7 @@ static const struct search_info SERVER_SINFO = {
 	" LIMIT ?"
 };
 
-static int search(const struct search_info *sinfo, const char *value)
+static void search(const struct search_info *sinfo, const char *value)
 {
 	unsigned nrow;
 	sqlite3_stmt *res;
@@ -162,14 +162,12 @@ static int search(const struct search_info *sinfo, const char *value)
 #undef binds
 
 	if (!res)
-		return 0;
+		error(500, NULL);
 	if (!nrow)
 		html("%s", sinfo->emptylist);
-
-	return 1;
 }
 
-int main_html_search(struct url *url)
+void generate_html_search(struct url *url)
 {
 	unsigned tabvals[SECTION_TABS_COUNT];
 	char urlfmt[128];
@@ -177,7 +175,7 @@ int main_html_search(struct url *url)
 	char *pcs;
 	unsigned i;
 
-	const struct search_info *sinfo, **s, *sinfos[] = {
+	const struct search_info *sinfo = NULL, **s, *sinfos[] = {
 		&PLAYER_SINFO, &CLAN_SINFO, &SERVER_SINFO, NULL
 	};
 
@@ -192,19 +190,15 @@ int main_html_search(struct url *url)
 		sinfo = &CLAN_SINFO;
 	else if (strcmp(pcs, "servers") == 0)
 		sinfo = &SERVER_SINFO;
-	else {
-		fprintf(stderr, "%s: Should be either \"players\", \"clans\" or \"servers\"\n", pcs);
-		return EXIT_FAILURE;
-	}
+	else
+		error(400, "%s: Should be either \"players\", \"clans\" or \"servers\"", pcs);
 
 	for (i = 0; i < url->nargs; i++)
 		if (strcmp(url->args[i].name, "q") == 0)
 			squery = url->args[i].val ? url->args[i].val : "";
 
-	if (!squery) {
-		fprintf(stderr, "Missing 'q' parameter\n");
-		return EXIT_FAILURE;
-	}
+	if (!squery)
+		error(400, "Missing 'q' parameter\n");
 
 	for (s = sinfos; *s; s++)
 		tabvals[(*s)->tab] = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);
@@ -213,11 +207,6 @@ int main_html_search(struct url *url)
 
 	snprintf(urlfmt, sizeof(urlfmt), "/search/%%s?q=%s", squery);
 	print_section_tabs(sinfo->tab, urlfmt, tabvals);
-
-	if (!search(sinfo, squery))
-		return EXIT_FAILURE;
-
+	search(sinfo, squery);
 	html_footer(NULL, NULL);
-
-	return EXIT_SUCCESS;
 }

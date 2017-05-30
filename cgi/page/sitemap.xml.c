@@ -4,7 +4,7 @@
 #include "cgi.h"
 #include "html.h"
 
-int main_xml_sitemap(struct url *url)
+void generate_xml_sitemap(struct url *url)
 {
 	xml("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 	xml("<urlset");
@@ -37,6 +37,4 @@ int main_xml_sitemap(struct url *url)
 	xml("</url>");
 
 	xml("</urlset>");
-
-	return EXIT_SUCCESS;
 }

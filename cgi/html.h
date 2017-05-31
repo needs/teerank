@@ -5,17 +5,6 @@
 
 #include "player.h"
 
-void reset_output(void);
-void print_output(void);
-
-void html(const char *fmt, ...);
-void xml(const char *fmt, ...);
-void svg(const char *fmt, ...);
-void css(const char *fmt, ...);
-void json(const char *fmt, ...);
-void txt(const char *fmt, ...);
-char *URL(const char *fmt, ...);
-
 /*
  * Compute the number of minutes, hours, days, months and years from the
  * given date to now.  Set the most significant timescale and return a

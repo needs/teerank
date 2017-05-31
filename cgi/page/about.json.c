@@ -5,7 +5,6 @@
 
 #include "cgi.h"
 #include "teerank.h"
-#include "html.h"
 #include "master.h"
 #include "player.h"
 #include "clan.h"

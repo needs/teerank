@@ -9,7 +9,6 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "player.h"
-#include "html.h"
 
 static void json_player(struct player *player)
 {

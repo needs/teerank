@@ -7,7 +7,6 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "player.h"
-#include "html.h"
 #include "clan.h"
 
 void generate_json_clan(struct url *url)

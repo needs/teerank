@@ -2,6 +2,7 @@
 #define CGI_H
 
 #include <stdlib.h>
+#include "io.h"
 
 /* Used by pages */
 #define EXIT_NOT_FOUND 2
@@ -11,7 +12,6 @@ void error(int code, char *fmt, ...);
 extern struct cgi_config {
 	const char *name;
 	const char *port;
-
 	char domain[1024];
 } cgi_config;
 

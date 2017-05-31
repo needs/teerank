@@ -7,7 +7,6 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "server.h"
-#include "html.h"
 
 static void json_server(struct server *server)
 {

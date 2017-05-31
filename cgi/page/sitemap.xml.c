@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "cgi.h"
-#include "html.h"
 
 void generate_xml_sitemap(struct url *url)
 {

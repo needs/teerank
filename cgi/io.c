@@ -8,6 +8,9 @@
 
 #include "cgi.h"
 
+static void init(void);
+static void free_buffers(void);
+
 /*
  * "dynbuf" stands for dynamic buffer, and store and unbounded amount of
  * data in memory.  We then provide a function to dump the content on
@@ -20,6 +23,14 @@ struct dynbuf {
 	size_t pos;
 };
 
+static void free_dynbuf(struct dynbuf *buf)
+{
+	static const struct dynbuf DYNBUF_ZERO;
+	if (buf->data)
+		free(buf->data);
+	*buf = DYNBUF_ZERO;
+}
+
 /*
  * Grow buffer internal memory on demand.  On failure return a 500 but
  * keep the old buffer in place so that a new attempt will be made the
@@ -27,6 +38,8 @@ struct dynbuf {
  */
 static void bputc(struct dynbuf *buf, char c)
 {
+	init();
+
 	if (buf->pos == buf->size) {
 		size_t newsize;
 		char *newbuf;
@@ -337,10 +350,10 @@ static void url_encode(struct dynbuf *buf, const char *str)
 }
 
 #define NBUF 4
+static struct dynbuf urlbufs[NBUF];
 
 char *URL(const char *fmt, ...)
 {
-	static struct dynbuf bufs[NBUF];
 	static int i = 0;
 
 	struct dynbuf *buf;
@@ -350,7 +363,7 @@ char *URL(const char *fmt, ...)
 	 * Rotates buffers so this function can be called NBUF time in a
 	 * row and will returns different buffers.
 	 */
-	buf = &bufs[i];
+	buf = &urlbufs[i];
 	i = (i + 1) % NBUF;
 
 	buf->pos = 0;
@@ -363,4 +376,25 @@ char *URL(const char *fmt, ...)
 	return buf->data;
 }
 
-#undef NBUF
+/*
+ * Even tho it's not really needed to free those buffers, we want a
+ * proper output when using valgrind so that real memory leak can be
+ * acknowledged.
+ */
+static void init(void)
+{
+	static bool initialized = false;
+
+	if (!initialized) {
+		atexit(free_buffers);
+		initialized = true;
+	}
+}
+
+static void free_buffers(void)
+{
+	int i;
+	for (i = 0; i < NBUF; i++)
+		free_dynbuf(&urlbufs[i]);
+	free_dynbuf(&outbuf);
+}

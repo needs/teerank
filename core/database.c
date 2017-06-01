@@ -74,6 +74,14 @@ static int init_version_table(void)
 	return exec(query, "i", DATABASE_VERSION);
 }
 
+static int bind_text(sqlite3_stmt *res, unsigned i, char *text)
+{
+	if (text)
+		return sqlite3_bind_text(res, i, text, -1, SQLITE_STATIC);
+	else
+		return sqlite3_bind_null(res, i);
+}
+
 static int bind(sqlite3_stmt *res, const char *bindfmt, va_list ap)
 {
 	unsigned i;
@@ -90,7 +98,7 @@ static int bind(sqlite3_stmt *res, const char *bindfmt, va_list ap)
 			break;
 
 		case 's':
-			ret = sqlite3_bind_text(res, i+1, va_arg(ap, char*), -1, SQLITE_STATIC);
+			ret = bind_text(res, i+1, va_arg(ap, char*));
 			break;
 
 		case 't':

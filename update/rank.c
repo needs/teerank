@@ -171,7 +171,7 @@ static void load_players(struct server *old, struct server *new, struct player_i
 		if (is_already_loaded(players, pname))
 			continue;
 
-		p->gametype.elo = latest_elo(pname, new->gametype, "");
+		p->gametype.elo = latest_elo(pname, new->gametype, NULL);
 		p->map.elo      = latest_elo(pname, new->gametype, new->map);
 
 		/* If an elo could not be acquired, ignore the player */
@@ -401,7 +401,7 @@ static void update_elos(
 	foreach_player_info(p) {
 		if (p->is_rankable) {
 			compute_new_elo(p, players, elo);
-			exec(query, "sssi", p->name, gametype, "",  elo[0]);
+			exec(query, "sssi", p->name, gametype, NULL,  elo[0]);
 			exec(query, "sssi", p->name, gametype, map, elo[1]);
 			verbose_elo_update(p, elo);
 		}

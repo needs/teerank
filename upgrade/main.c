@@ -64,7 +64,7 @@ static void upgrade_players(void)
 		ret |= upgrade_player(&oldp);
 
 #define bind_rank(oldp, gametype) "sssiu", \
-	(oldp).name, (gametype), "", (oldp).elo, (oldp).rank
+	(oldp).name, (gametype), NULL, (oldp).elo, (oldp).rank
 
 		/* Since we upgraded all players, ranks remain meaningful */
 		ret |= exec(add_rank, bind_rank(oldp, "CTF"));
@@ -100,7 +100,7 @@ static void upgrade_pending(void)
 		"SELECT name, elo FROM pending";
 
 	const char *add_pending =
-		"INSERT INTO _pending VALUES(?, 'CTF', '', ?)";
+		"INSERT INTO _pending VALUES(?, 'CTF', NULL, ?)";
 
 	if (!exec("CREATE TABLE _pending" TABLE_DESC_PENDING))
 		return;

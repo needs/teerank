@@ -65,7 +65,7 @@ struct player_info {
 	struct {
 		int elo;
 		unsigned rank;
-	} all, gametype, map;
+	} gametype, map;
 
 	int is_rankable;
 	struct client *old, *new;
@@ -171,13 +171,11 @@ static void load_players(struct server *old, struct server *new, struct player_i
 		if (is_already_loaded(players, pname))
 			continue;
 
-		p->all.elo      = latest_elo(pname, "", "");
 		p->gametype.elo = latest_elo(pname, new->gametype, "");
 		p->map.elo      = latest_elo(pname, new->gametype, new->map);
 
 		/* If an elo could not be acquired, ignore the player */
 		if (
-			p->all.elo      == ERROR_NO_ELO ||
 			p->gametype.elo == ERROR_NO_ELO ||
 			p->map.elo      == ERROR_NO_ELO)
 			continue;
@@ -323,9 +321,8 @@ static void compute_elo_delta(struct player_info *p1, struct player_info *p2, in
 	else
 		W = 1.0;
 
-	delta[0] = K * (W - p(p1->all.elo      - p2->all.elo));
-	delta[1] = K * (W - p(p1->gametype.elo - p2->gametype.elo));
-	delta[2] = K * (W - p(p1->map.elo      - p2->map.elo));
+	delta[0] = K * (W - p(p1->gametype.elo - p2->gametype.elo));
+	delta[1] = K * (W - p(p1->map.elo      - p2->map.elo));
 }
 
 /*
@@ -343,7 +340,7 @@ static void compute_new_elo(struct player_info *player, struct player_info *play
 	unsigned i;
 
 	int count = 0;
-	int delta[3], total[3] = { 0 };
+	int delta[2], total[2] = { 0 };
 
 	assert(player != NULL);
 	assert(players != NULL);
@@ -354,24 +351,21 @@ static void compute_new_elo(struct player_info *player, struct player_info *play
 			compute_elo_delta(player, p, delta);
 			total[0] += delta[0];
 			total[1] += delta[1];
-			total[2] += delta[2];
 			count++;
 		}
 	}
 
-	elo[0] = player->all.elo      + total[0] / count;
-	elo[1] = player->gametype.elo + total[1] / count;
-	elo[2] = player->map.elo      + total[2] / count;
+	elo[0] = player->gametype.elo + total[0] / count;
+	elo[1] = player->map.elo      + total[1] / count;
 }
 
 static void verbose_elo_update(struct player_info *p, int *newelo)
 {
 	verbose(
-		"\t%-16s | %4d | %4d %+3d | %4d %+3d | %4d %+3d",
+		"\t%-16s | %4d | %4d %+3d | %4d %+3d",
 		p->name, p->new->score - p->old->score,
-		newelo[0], newelo[0] - p->all.elo,
-		newelo[1], newelo[1] - p->gametype.elo,
-		newelo[2], newelo[2] - p->map.elo);
+		newelo[0], newelo[0] - p->gametype.elo,
+		newelo[1], newelo[1] - p->map.elo);
 }
 
 /*
@@ -385,7 +379,7 @@ static void update_elos(
 {
 	struct player_info *p;
 	unsigned i;
-	int elo[3];
+	int elo[2];
 	unsigned ranked = 0;
 
 	const char *query =
@@ -407,9 +401,8 @@ static void update_elos(
 	foreach_player_info(p) {
 		if (p->is_rankable) {
 			compute_new_elo(p, players, elo);
-			exec(query, "sssi", p->name, "", "", elo[0]);
-			exec(query, "sssi", p->name, gametype, "", elo[1]);
-			exec(query, "sssi", p->name, gametype, map, elo[2]);
+			exec(query, "sssi", p->name, gametype, "",  elo[0]);
+			exec(query, "sssi", p->name, gametype, map, elo[1]);
 			verbose_elo_update(p, elo);
 		}
 	}

@@ -67,7 +67,6 @@ static void upgrade_players(void)
 	(oldp).name, (gametype), "", (oldp).elo, (oldp).rank
 
 		/* Since we upgraded all players, ranks remain meaningful */
-		ret |= exec(add_rank, bind_rank(oldp, ""));
 		ret |= exec(add_rank, bind_rank(oldp, "CTF"));
 	}
 

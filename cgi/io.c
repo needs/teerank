@@ -147,7 +147,7 @@ static struct dynbuf outbuf;
 
 void reset_output(void)
 {
-	outbuf.size = 0;
+	outbuf.pos = 0;
 }
 
 void print_output(void)

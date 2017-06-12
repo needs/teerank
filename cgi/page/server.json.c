@@ -54,10 +54,12 @@ static void json_server(struct server *server)
 
 void generate_json_server(struct url *url)
 {
-	char *ip = NULL, *port = NULL;
 	struct server server;
 	sqlite3_stmt *res;
 	unsigned i, nrow;
+
+	char *ip = DEFAULT_PARAM_VALUE(PARAM_IP(0));
+	char *port = DEFAULT_PARAM_VALUE(PARAM_PORT(0));
 
 	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS

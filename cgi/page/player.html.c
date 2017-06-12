@@ -47,7 +47,7 @@ void generate_html_player(struct url *url)
 
 	if (*player.clan) {
 		URL(urlfmt, "/clan", PARAM_NAME(player.clan));
-		html("<p id=\"player_clan\"><a href=\"%S\">%s</a></p>", url, player.clan);
+		html("<p id=\"player_clan\"><a href=\"%S\">%s</a></p>", urlfmt, player.clan);
 	}
 
 	html("</div>");

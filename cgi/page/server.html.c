@@ -45,10 +45,13 @@ void generate_html_server(struct url *url)
 {
 	struct server server;
 	unsigned i, playing = 0, spectating = 0;
-	char *addr, *ip = NULL, *port = NULL;
 	sqlite3_stmt *res;
 	unsigned nrow;
 	url_t urlfmt;
+
+	char *addr;
+	char *ip = DEFAULT_PARAM_VALUE(PARAM_IP(0));
+	char *port = DEFAULT_PARAM_VALUE(PARAM_PORT(0));
 
 	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS

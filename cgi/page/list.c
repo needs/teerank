@@ -238,20 +238,20 @@ static void parse_list_args(struct url *url)
 	char *pcs_, *pnum_;
 	unsigned i;
 
-	pnum_ = "1";
 	pcs_ = "players";
-	gametype = "CTF";
-	map = NULL;
-	order = "rank";
+	pnum_    = DEFAULT_PARAM_VALUE(PARAM_PAGENUM(0));
+	gametype = DEFAULT_PARAM_VALUE(PARAM_GAMETYPE(0));
+	map      = DEFAULT_PARAM_VALUE(PARAM_MAP(0));
+	order    = DEFAULT_PARAM_VALUE(PARAM_ORDER(0));
 
 	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "p") == 0 && url->args[i].val)
+		if (strcmp(url->args[i].name, "p") == 0)
 			pnum_ = url->args[i].val;
-		if (strcmp(url->args[i].name, "gametype") == 0 && url->args[i].val)
+		if (strcmp(url->args[i].name, "gametype") == 0)
 			gametype = url->args[i].val;
-		if (strcmp(url->args[i].name, "map") == 0 && url->args[i].val)
+		if (strcmp(url->args[i].name, "map") == 0)
 			map = url->args[i].val;
-		if (strcmp(url->args[i].name, "sort") == 0 && url->args[i].val)
+		if (strcmp(url->args[i].name, "sort") == 0)
 			order = url->args[i].val;
 	}
 

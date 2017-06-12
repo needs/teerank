@@ -56,4 +56,8 @@ void URL_(url_t buf, const char *prefix, ...);
 #define PARAM_SQUERY(val)                                               \
 	PARAM("q", NULL, "%s", val)
 
+/* Extract the default value of the given parameter */
+#define DEFAULT_PARAM_VALUE(param) DEFAULT_PARAM_VALUE_(param)
+#define DEFAULT_PARAM_VALUE_(name, dflt, type, val) dflt
+
 #endif /* IO_H */

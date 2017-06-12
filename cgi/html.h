@@ -2,7 +2,9 @@
 #define HTML_H
 
 #include <time.h>
+#include <stdbool.h>
 
+#include "io.h"
 #include "player.h"
 
 /*
@@ -52,11 +54,14 @@ void html_start_server_list(char *listurl, unsigned pnum, char *order);
 void html_end_server_list(void);
 void html_server_list_entry(unsigned pos, struct server *server);
 
-enum section_tab {
-	PLAYERS_TAB, CLANS_TAB, SERVERS_TAB, SECTION_TABS_COUNT
+struct section_tab {
+	char *title;
+	url_t url;
+	unsigned val;
+	bool active;
 };
 
-void print_section_tabs(enum section_tab tab, const char *squery, unsigned *tabvals);
-void print_page_nav(const char *urlfmt, unsigned pnum, unsigned npages);
+void print_section_tabs(struct section_tab *tabs);
+void print_page_nav(url_t fmt, unsigned pnum, unsigned npages);
 
 #endif /* HTML_H */

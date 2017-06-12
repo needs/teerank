@@ -17,6 +17,7 @@ void generate_html_clan(struct url *url)
 	sqlite3_stmt *res;
 	char *cname = NULL;
 	struct player p;
+	url_t urlfmt;
 
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
@@ -44,5 +45,6 @@ void generate_html_clan(struct url *url)
 		error(404, NULL);
 
 	html_end_player_list();
-	html_footer("clan", URL("/clan.json?name=%s", cname));
+	URL(urlfmt, "/clan.json", PARAM_NAME(cname));
+	html_footer("clan", urlfmt);
 }

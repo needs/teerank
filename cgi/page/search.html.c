@@ -67,7 +67,7 @@ struct search_info {
 	void (*print_result)(unsigned pos, void *data);
 	const char *emptylist;
 
-	enum section_tab tab;
+	int tab;
 	const char *sprefix;
 
 	const char *count_query;
@@ -81,7 +81,7 @@ static const struct search_info PLAYER_SINFO = {
 	print_player,
 	"No players found",
 
-	PLAYERS_TAB,
+	0,
 	"/players",
 
 	"SELECT COUNT(1)"
@@ -103,7 +103,7 @@ static const struct search_info CLAN_SINFO = {
 	print_clan,
 	"No clans found",
 
-	CLANS_TAB,
+	1,
 	"/clans",
 
 	"SELECT COUNT(DISTINCT clan)"
@@ -126,7 +126,7 @@ static const struct search_info SERVER_SINFO = {
 	print_server,
 	"No servers found",
 
-	SERVERS_TAB,
+	2,
 	"/servers",
 
 	"SELECT COUNT(1)"
@@ -169,14 +169,16 @@ static void search(const struct search_info *sinfo, const char *value)
 
 void generate_html_search(struct url *url)
 {
-	unsigned tabvals[SECTION_TABS_COUNT];
-	char urlfmt[128];
 	char *squery = NULL;
 	char *pcs;
 	unsigned i;
 
 	const struct search_info *sinfo = NULL, **s, *sinfos[] = {
 		&PLAYER_SINFO, &CLAN_SINFO, &SERVER_SINFO, NULL
+	};
+
+	struct section_tab tabs[] = {
+		{ "Players" }, { "Clans" }, { "Servers" }, { NULL }
 	};
 
 	if (url->ndirs == 2)
@@ -201,12 +203,15 @@ void generate_html_search(struct url *url)
 		error(400, "Missing 'q' parameter\n");
 
 	for (s = sinfos; *s; s++)
-		tabvals[(*s)->tab] = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);
+		tabs[(*s)->tab].val = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);
 
 	html_header("Search results", "Search results", sinfo->sprefix, squery);
 
-	snprintf(urlfmt, sizeof(urlfmt), "/search/%%s?q=%s", squery);
-	print_section_tabs(sinfo->tab, urlfmt, tabvals);
+	URL(tabs[0].url, "/search/players", PARAM_SQUERY(squery));
+	URL(tabs[1].url, "/search/clans",   PARAM_SQUERY(squery));
+	URL(tabs[2].url, "/search/servers", PARAM_SQUERY(squery));
+
+	print_section_tabs(tabs);
 	search(sinfo, squery);
 	html_footer(NULL, NULL);
 }

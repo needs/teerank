@@ -8,27 +8,43 @@
 
 #include "cgi.h"
 
-static void init(void);
-static void free_buffers(void);
-
 /*
  * "dynbuf" stands for dynamic buffer, and store and unbounded amount of
- * data in memory.  We then provide a function to dump the content on
- * stdout or reset it.  It is used by html()-like functions to buffer
- * output, waiting for an eventual error.
+ * data in memory (if "fixed" isn't set).  We then provide a function to
+ * dump the content on stdout or reset it.  It is used by html()-like
+ * functions to buffer output, waiting for an eventual error.
  */
 struct dynbuf {
+	bool havedata;
 	char *data;
 	size_t size;
 	size_t pos;
+	bool fixed;
 };
+
+/*
+ * Dynamic buffers can optionally use an already allocated buffer.  In
+ * such case it won't try to reallocate it and just fail right away.
+ */
+static void reset_dynbuf(struct dynbuf *buf, char *dbuf, size_t size)
+{
+	buf->havedata = false;
+	buf->pos = 0;
+
+	if (dbuf) {
+		buf->data = dbuf;
+		buf->size = size;
+		buf->fixed = true;
+	}
+}
 
 static void free_dynbuf(struct dynbuf *buf)
 {
-	static const struct dynbuf DYNBUF_ZERO;
-	if (buf->data)
+	if (buf->data && !buf->fixed) {
 		free(buf->data);
-	*buf = DYNBUF_ZERO;
+		buf->data = NULL;
+		buf->size = 0;
+	}
 }
 
 /*
@@ -38,31 +54,34 @@ static void free_dynbuf(struct dynbuf *buf)
  */
 static void bputc(struct dynbuf *buf, char c)
 {
-	init();
-
 	if (buf->pos == buf->size) {
 		size_t newsize;
 		char *newbuf;
+
+		if (buf->fixed)
+			error(500, "Buffer is full (%sz bytes)", buf->size);
 
 		newsize = buf->size + 10 * 1024;
 		newbuf = realloc(buf->data, newsize);
 
 		if (!newbuf)
 			error(
-				500, "Reallocating dynamic buffer (%sz): %s\n",
+				500, "Reallocating dynamic buffer (%sz bytes): %s",
 				newsize, strerror(errno));
 
 		buf->data = newbuf;
 		buf->size = newsize;
 	}
 
+	buf->havedata = true;
 	buf->data[buf->pos++] = c;
 }
 
 static void bputs(struct dynbuf *buf, const char *str)
 {
-	for (; *str; str++)
-		bputc(buf, *str);
+	if (str)
+		for (; *str; str++)
+			bputc(buf, *str);
 }
 
 static void bprint(struct dynbuf *buf, const char *fmt, ...)
@@ -87,14 +106,20 @@ static void bprint(struct dynbuf *buf, const char *fmt, ...)
  * in a structure.
  */
 typedef struct va_list__ { va_list ap; } *va_list_;
-#define va_start_(ap, var) do { ap = &(struct va_list__){}; va_start(ap->ap, var); } while(0)
-#define va_arg_(ap, type) va_arg(ap->ap, type)
-#define va_end_(ap) va_end(ap->ap)
+
+#define va_start_(ap, var) do {                                         \
+	ap = &(struct va_list__){};                                     \
+	va_start(ap->ap, var);                                          \
+} while(0)
+#define va_arg_(ap, type)                                               \
+	va_arg(ap->ap, type)
+#define va_end_(ap)                                                     \
+	va_end(ap->ap)
 
 /* Escape callback is called for user provided strings signaled by "%s" */
 typedef void (*escape_func_t)(struct dynbuf *buf, const char *str);
 
-/* Extend callback is sued to extend the set of conversion specifiers */
+/* Extend callback is used to extend the set of conversion specifiers */
 typedef bool (*extend_func_t)(struct dynbuf *buf, char c, va_list_ ap);
 
 static void print(struct dynbuf *buf, escape_func_t escape, extend_func_t extend, const char *fmt, va_list_ ap)
@@ -142,12 +167,29 @@ static void print(struct dynbuf *buf, escape_func_t escape, extend_func_t extend
 	}
 }
 
-/* html()-like functions share a common dynbuf */
+/* html()-like functions all share a common dynamic buffer */
 static struct dynbuf outbuf;
+
+/*
+ * We don't really need to free buffers when the program terminate, but
+ * we want a clean valgrind report so that real memory leaks can easily
+ * be spotted.
+ */
+static void free_output(void)
+{
+	free_dynbuf(&outbuf);
+}
 
 void reset_output(void)
 {
-	outbuf.pos = 0;
+	static bool initialized = false;
+
+	if (!initialized) {
+		atexit(free_output);
+		initialized = true;
+	}
+
+	reset_dynbuf(&outbuf, NULL, 0);
 }
 
 void print_output(void)
@@ -349,52 +391,66 @@ static void url_encode(struct dynbuf *buf, const char *str)
 	}
 }
 
-#define NBUF 4
-static struct dynbuf urlbufs[NBUF];
-
-char *URL(const char *fmt, ...)
+static bool dynbuf_compare(struct dynbuf *buf, char *str)
 {
-	static int i = 0;
-
-	struct dynbuf *buf;
-	va_list_ ap;
-
-	/*
-	 * Rotates buffers so this function can be called NBUF time in a
-	 * row and will returns different buffers.
-	 */
-	buf = &urlbufs[i];
-	i = (i + 1) % NBUF;
-
-	buf->pos = 0;
-
-	va_start_(ap, fmt);
-	print(buf, url_encode, NULL, fmt, ap);
-	va_end_(ap);
-
-	bputc(buf, '\0');
-	return buf->data;
+	if (!buf->havedata)
+		return !str;
+	else if (!str)
+		return false;
+	else
+		return strcmp(buf->data, str) == 0;
 }
 
-/*
- * Even tho it's not really needed to free those buffers, we want a
- * proper output when using valgrind so that real memory leak can be
- * acknowledged.
- */
-static void init(void)
+static void process_params(struct dynbuf *buf, va_list_ ap, char sep)
 {
-	static bool initialized = false;
+	struct dynbuf tmp;
+	url_t tmpbuf;
+	char *pname, *pdflt, *ptype;
 
-	if (!initialized) {
-		atexit(free_buffers);
-		initialized = true;
+	while ((pname = va_arg_(ap, char *))) {
+		pdflt = va_arg_(ap, char *);
+		ptype = va_arg_(ap, char *);
+
+		reset_dynbuf(&tmp, tmpbuf, sizeof(tmpbuf));
+		print(&tmp, bputs, NULL, ptype, ap);
+
+		if (tmp.havedata)
+			bputc(&tmp, '\0');
+
+		if (!dynbuf_compare(&tmp, pdflt)) {
+			bputc(buf, sep);
+			url_encode(buf, pname);
+			bputc(buf, '=');
+			url_encode(buf, tmp.data);
+
+			if (sep == '?')
+				sep = '&';
+		}
 	}
 }
 
-static void free_buffers(void)
+void URL_(url_t url, const char *prefix, ...)
 {
-	int i;
-	for (i = 0; i < NBUF; i++)
-		free_dynbuf(&urlbufs[i]);
-	free_dynbuf(&outbuf);
+	struct dynbuf buf;
+	char sep = '?';
+	va_list_ ap;
+
+	reset_dynbuf(&buf, url, sizeof(url_t));
+
+	/*
+	 * If the prefix string don't have parameters, we wan to use '?'
+	 * as our first separator for parameter.  Otherwise we use '&'.
+	 * So we search for '?' while copying the prefix.
+	 */
+	for (; *prefix; prefix++) {
+		if (*prefix == '?')
+			sep = '&';
+		bputc(&buf, *prefix);
+	}
+
+	va_start_(ap, prefix);
+	process_params(&buf, ap, sep);
+	va_end_(ap);
+
+	bputc(&buf, '\0');
 }

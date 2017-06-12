@@ -11,6 +11,7 @@
 
 void generate_html_player(struct url *url)
 {
+	url_t urlfmt;
 	char *pname = NULL;
 	struct player player;
 
@@ -44,9 +45,10 @@ void generate_html_player(struct url *url)
 	html("<div>");
 	html("<h1 id=\"player_name\">%s</h1>", pname);
 
-	if (*player.clan)
-		html("<p id=\"player_clan\"><a href=\"%S\">%s</a></p>",
-		     URL("/clan?name=%s", player.clan), player.clan);
+	if (*player.clan) {
+		URL(urlfmt, "/clan", PARAM_NAME(player.clan));
+		html("<p id=\"player_clan\"><a href=\"%S\">%s</a></p>", url, player.clan);
+	}
 
 	html("</div>");
 
@@ -61,8 +63,9 @@ void generate_html_player(struct url *url)
 	html("</header>");
 	html("");
 	html("<h2>Historic</h2>");
-	html("<object data=\"%S\" type=\"image/svg+xml\"></object>",
-	     URL("/player/historic.svg?name=%s", pname));
+	URL(urlfmt, "/player/historic.svg", PARAM_NAME(pname));
+	html("<object data=\"%S\" type=\"image/svg+xml\"></object>", url);
 
-	html_footer("player", URL("/player.json?name=%s", pname));
+	URL(urlfmt, "/player.json", PARAM_NAME(pname));
+	html_footer("player", urlfmt);
 }

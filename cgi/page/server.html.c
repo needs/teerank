@@ -48,6 +48,7 @@ void generate_html_server(struct url *url)
 	char *addr, *ip = NULL, *port = NULL;
 	sqlite3_stmt *res;
 	unsigned nrow;
+	url_t urlfmt;
 
 	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
@@ -106,5 +107,6 @@ void generate_html_server(struct url *url)
 
 	show_client_list(&server);
 
-	html_footer("server", URL("/server.json?ip=%s&port=%s", ip, port));
+	URL(urlfmt, "/server.json", PARAM_IP(ip), PARAM_PORT(port));
+	html_footer("server", urlfmt);
 }

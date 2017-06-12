@@ -177,17 +177,23 @@ static char *convert_hexname(char *hexname)
 /* URLs for player list looked like "/pages/<pnum>.html" */
 static void generate_html_teerank2_player_list(struct url *url)
 {
+	url_t tmp;
+	URL(tmp, "/players", PARAM_PAGENUM(url->dirs[url->ndirs - 1]));
+
 	/* FIXME! Semantic changed and redirect() will not work as
 	 * intended */
-	redirect(URL("/players?p=%s", url->dirs[url->ndirs - 1]));
+	redirect(tmp);
 }
 
 /* URLs for player graph looked like "/players/<hexname>/elo+rank.svg" */
 static void generate_svg_teerank3_graph(struct url *url)
 {
+	url_t tmp;
+	URL(tmp, "/player/historic.svg", PARAM_NAME(convert_hexname(url->dirs[url->ndirs - 2])));
+
 	/* FIXME! Semantic changed and redirect() will not work as
 	 * intended */
-	redirect(URL("/player/historic.svg?name=%s", convert_hexname(url->dirs[url->ndirs - 2])));
+	redirect(tmp);
 }
 
 /*

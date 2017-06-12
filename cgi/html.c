@@ -142,7 +142,7 @@ void player_lastseen_link(time_t lastseen, const char *addr)
 		html("<span class=\"%s\">%s</span>", timescale, text);
 }
 
-struct tab CTF_TAB = { "CTF", "/players?gametype=CTF" };
+struct tab CTF_TAB = { "CTF", "/players" };
 struct tab DM_TAB  = { "DM",  "/players?gametype=DM"  };
 struct tab TDM_TAB = { "TDM", "/players?gametype=TDM" };
 struct tab ABOUT_TAB = { "About", "/about" };
@@ -288,6 +288,7 @@ static void html_list_header(
 {
 	const char *down = "<img src=\"/images/downarrow.png\"/>";
 	const char *dash = "<img src=\"/images/dash.png\"/>";
+	url_t url;
 
 	html("<table class=\"%s\">", class);
 	html("<thead>");
@@ -298,9 +299,11 @@ static void html_list_header(
 			html("<th>%s</th>", col->name);
 		else if (strcmp(order, col->order) == 0)
 			html("<th>%s%S</th>", col->name, down);
-		else
-			html("<th><a href=\"%S&sort=%S&p=%u\">%s%S</a></th>",
-			     listurl, col->order, pnum, col->name, dash);
+		else {
+			URL(url, listurl, PARAM_ORDER(col->order), PARAM_PAGENUM(pnum));
+			html("<th><a href=\"%S\">%s%S</a></th>",
+			     url, col->name, dash);
+		}
 	}
 
 	html("</tr>");
@@ -356,9 +359,10 @@ void html_end_online_player_list(void)
 static void player_list_entry(
 	struct player *p, struct client *c, int no_clan_link)
 {
-	const char *specimg = "<img src=\"/images/spectator.png\" title=\"Spectator\"/>";
+	const char *img, *specimg = "<img src=\"/images/spectator.png\" title=\"Spectator\"/>";
 	char *name, *clan;
 	int spectator;
+	url_t url;
 
 	assert(p || c);
 
@@ -377,15 +381,17 @@ static void player_list_entry(
 
 	/* Name */
 	name = p ? p->name : c->name;
-	html("<td>%s<a href=\"%S\">%s</a></td>",
-	     spectator ? specimg : "", URL("/player?name=%s", name), name);
+	img = spectator ? specimg : "";
+	URL(url, "/player", PARAM_NAME(name));
+	html("<td>%s<a href=\"%S\">%s</a></td>", img, url, name);
 
 	/* Clan */
 	clan = p ? p->clan : c->clan;
+	URL(url, "/clan", PARAM_NAME(clan));
 	if (no_clan_link || !clan[0])
 		html("<td>%s</td>", clan);
 	else
-		html("<td><a href=\"%S\">%s</a></td>", URL("/clan?name=%s", clan), clan);
+		html("<td><a href=\"%S\">%s</a></td>", url, clan);
 
 	/* Score (online-player-list only) */
 	if (c)
@@ -437,6 +443,8 @@ void html_end_clan_list(void)
 void html_clan_list_entry(
 	unsigned pos, const char *name, unsigned nmembers)
 {
+	url_t url;
+
 	assert(name != NULL);
 
 	html("<tr>");
@@ -444,7 +452,8 @@ void html_clan_list_entry(
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td><a href=\"%S\">%s</a></td>", URL("/clan?name=%s", name), name);
+	URL(url, "/clan", PARAM_NAME(name));
+	html("<td><a href=\"%S\">%s</a></td>", url, name);
 
 	/* Members */
 	html("<td>%u</td>", nmembers);
@@ -473,6 +482,8 @@ void html_end_server_list(void)
 
 void html_server_list_entry(unsigned pos, struct server *server)
 {
+	url_t url;
+
 	assert(server != NULL);
 
 	html("<tr>");
@@ -480,8 +491,8 @@ void html_server_list_entry(unsigned pos, struct server *server)
 	html("<td>%u</td>", pos);
 
 	/* Name */
-	html("<td><a href=\"%S\">%s</a></td>",
-	     URL("/server?ip=%s&port=%s", server->ip, server->port), server->name);
+	URL(url, "/server", PARAM_IP(server->ip), PARAM_PORT(server->port));
+	html("<td><a href=\"%S\">%s</a></td>", url, server->name);
 
 	/* Gametype */
 	html("<td>%s</td>", server->gametype);
@@ -513,40 +524,21 @@ static unsigned round(unsigned n)
 	return n - (n % mod);
 }
 
-void print_section_tabs(enum section_tab tab, const char *format, unsigned *tabvals)
+void print_section_tabs(struct section_tab *tabs)
 {
-	unsigned i;
-
-	struct {
-		const char *title;
-		const char *url;
-	} tabs[] = {
-		{ "Players", "players" },
-		{ "Clans",   "clans" },
-		{ "Servers", "servers" }
-	};
-
-	assert(tabvals != NULL);
-	assert(format != NULL);
-
-	tabvals[0] = round(tabvals[0]);
-	tabvals[1] = round(tabvals[1]);
-	tabvals[2] = round(tabvals[2]);
+	assert(tabs != NULL);
 
 	html("<nav class=\"section_tabs\">");
 
-	for (i = 0; i < SECTION_TABS_COUNT; i++) {
-		char url[128];
-		snprintf(url, sizeof(url), format, tabs[i].url);
-
-		if (i == tab)
+	for (; tabs->title; tabs++) {
+		if (tabs->active)
 			html("<a class=\"enabled\">");
 		else
-			html("<a href=\"%S\">", url);
+			html("<a href=\"%S\">", tabs->url);
 
-		html("%s", tabs[i].title);
-		if (tabvals[i])
-			html("<small>%u</small>", tabvals[i]);
+		html("%s", tabs->title);
+		if (tabs->val)
+			html("<small>%u</small>", round(tabs->val));
 
 		html("</a>");
 	}
@@ -559,18 +551,12 @@ static unsigned min(unsigned a, unsigned b)
 	return a < b ? a : b;
 }
 
-static char *url(const char *urlfmt, unsigned pnum)
-{
-	static char ret[128];
-	snprintf(ret, sizeof(ret), urlfmt, pnum);
-	return ret;
-}
-
-void print_page_nav(const char *fmt, unsigned pnum, unsigned npages)
+void print_page_nav(url_t fmt, unsigned pnum, unsigned npages)
 {
 	/* Number of pages shown before and after the current page */
 	static const unsigned extra = 3;
 	unsigned i;
+	url_t url;
 
 	assert(fmt != NULL);
 
@@ -579,36 +565,48 @@ void print_page_nav(const char *fmt, unsigned pnum, unsigned npages)
 	/* Previous button */
 	if (pnum == 1)
 		html("<a class=\"previous\">Previous</a>");
-	else
-		html("<a class=\"previous\" href=\"%S\">Previous</a>", url(fmt, pnum-1));
+	else {
+		URL(url, fmt, PARAM_PAGENUM(pnum - 1));
+		html("<a class=\"previous\" href=\"%S\">Previous</a>", url);
+	}
 
 	/* Link to first page */
-	if (pnum > extra + 1)
-		html("<a href=\"%S\">1</a>", url(fmt, 1));
+	if (pnum > extra + 1) {
+		URL(url, fmt, PARAM_PAGENUM(1));
+		html("<a href=\"%S\">1</a>", url);
+	}
 	if (pnum > extra + 2)
 		html("<span>...</span>");
 
 	/* Extra pages before */
-	for (i = min(extra, pnum - 1); i > 0; i--)
-		html("<a href=\"%S\">%u</a>", url(fmt, pnum-i), pnum - i);
+	for (i = min(extra, pnum - 1); i > 0; i--) {
+		URL(url, fmt, PARAM_PAGENUM(pnum - i));
+		html("<a href=\"%S\">%u</a>", url, pnum - i);
+	}
 
 	html("<a class=\"current\">%u</a>", pnum);
 
 	/* Extra pages after */
-	for (i = 1; i <= min(extra, npages - pnum); i++)
-		html("<a href=\"%S\">%u</a>", url(fmt, pnum+i), pnum + i);
+	for (i = 1; i <= min(extra, npages - pnum); i++) {
+		URL(url, fmt, PARAM_PAGENUM(pnum + i));
+		html("<a href=\"%S\">%u</a>", url, pnum + i);
+	}
 
 	/* Link to last page */
 	if (pnum + extra + 1 < npages)
 		html("<span>...</span>");
-	if (pnum + extra < npages)
-		html("<a href=\"%S\">%u</a>", url(fmt, npages), npages);
+	if (pnum + extra < npages) {
+		URL(url, fmt, PARAM_PAGENUM(npages));
+		html("<a href=\"%S\">%u</a>", url, npages);
+	}
 
 	/* Next button */
 	if (pnum == npages)
 		html("<a class=\"next\">Next</a>");
-	else
-		html("<a class=\"next\" href=\"%S\">Next</a>", url(fmt, pnum+1));
+	else {
+		URL(url, fmt, PARAM_PAGENUM(pnum + 1));
+		html("<a class=\"next\" href=\"%S\">Next</a>", url);
+	}
 
 	html("</nav>");
 }

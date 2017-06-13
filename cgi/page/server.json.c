@@ -17,7 +17,7 @@ static void json_server(struct server *server)
 	const char *query =
 		"SELECT" ALL_SERVER_CLIENT_COLUMNS
 		" FROM server_clients"
-		" WHERE ip = ? AND port = ?"
+		" WHERE ip IS ? AND port IS ?"
 		" ORDER BY" SORT_BY_SCORE;
 
 	json("{");
@@ -64,7 +64,7 @@ void generate_json_server(struct url *url)
 	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 		" FROM servers"
-		" WHERE ip = ? AND port = ?";
+		" WHERE ip IS ? AND port IS ?";
 
 	for (i = 0; i < url->nargs; i++) {
 		if (strcmp(url->args[i].name, "ip") == 0)

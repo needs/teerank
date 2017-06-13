@@ -20,7 +20,7 @@ static void show_client_list(struct server *server)
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM players"
-		" WHERE name = ? AND gametype = ? AND map = ?";
+		" WHERE name IS ? AND gametype IS ? AND map IS ?";
 
 	if (!server->num_clients)
 		return;
@@ -56,7 +56,7 @@ void generate_html_server(struct url *url)
 	const char *query =
 		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
 		" FROM servers"
-		" WHERE ip = ? AND port = ?";
+		" WHERE ip IS ? AND port IS ?";
 
 	for (i = 0; i < url->nargs; i++) {
 		if (strcmp(url->args[i].name, "ip") == 0)

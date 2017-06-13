@@ -52,7 +52,7 @@ static int fill_datasets(
 	const char *query =
 		"SELECT" ALL_PLAYER_RECORD_COLUMNS
 		" FROM ranks_historic"
-		" WHERE name = ?"
+		" WHERE name IS ?"
 		" ORDER BY ts"
 		" LIMIT ?";
 

@@ -30,7 +30,7 @@ static void json_player_historic(const char *pname)
 	const char *query =
 		"SELECT" ALL_PLAYER_RECORD_COLUMNS
 		" FROM ranks_historic"
-		" WHERE name = ?"
+		" WHERE name IS ?"
 		" ORDER BY ts";
 
 	json(",%s:{%s:[", "historic", "records");
@@ -61,7 +61,7 @@ void generate_json_player(struct url *url)
 	const char *query =
 		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM" RANKED_PLAYERS_TABLE
-		" WHERE players.name = ?";
+		" WHERE players.name IS ?";
 
 	for (i = 0; i < url->nargs; i++) {
 		if (strcmp(url->args[i].name, "name") == 0)

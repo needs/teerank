@@ -57,7 +57,7 @@ static int print_player_list(void)
 	char query[512], *queryfmt =
 		"SELECT" ALL_PLAYER_COLUMNS
 		" FROM" RANKED_PLAYERS_TABLE
-		" WHERE gametype = ? AND map = ?"
+		" WHERE gametype IS ? AND map IS ?"
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 

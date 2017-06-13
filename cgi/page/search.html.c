@@ -47,8 +47,8 @@ static void print_server(unsigned pos, void *data)
 }
 
 /*
- * The following compute the relevance of a string in a query, using the
- * following prioprities: exact match, prefix, suffix, anything else.
+ * This conditional evaluate the relevance of a string, using the
+ * following order: exact match, prefix, suffix, anything else.
  */
 #define IS_RELEVANT(col) \
 	" " col " LIKE '%' || ? || '%' "

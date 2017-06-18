@@ -10,35 +10,40 @@
 #include "player.h"
 #include "server.h"
 
-static void show_client_list(struct server *server)
+static char *client_list_class(sqlite3_stmt *res)
 {
-	unsigned i, nrow;
+	if (!res)
+		return "playerlist";
+	else if (sqlite3_column_int(res, 2) == 0)
+		return "spectator";
+	else
+		return NULL;
+}
+
+static void show_client_list(char *ip, char *port, char *gametype, char *map)
+{
 	sqlite3_stmt *res;
-	struct player p;
-	struct client *client;
 
 	const char *query =
-		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM players"
-		" WHERE name IS ? AND gametype IS ? AND map IS ?";
+		"SELECT rank, server_clients.name, ingame, server_clients.clan, "
+		"  score, elo"
+		" FROM server_clients LEFT OUTER JOIN ranks"
+		"  ON server_clients.name = ranks.name"
+		"   AND gametype IS ? AND map IS ?"
+		" WHERE ip IS ? AND port IS ?"
+		" ORDER BY ingame DESC, score DESC, elo DESC";
 
-	if (!server->num_clients)
-		return;
+	struct html_list_column cols[] = {
+		{ "",     NULL, HTML_COLTYPE_RANK },
+		{ "Name", NULL, HTML_COLTYPE_ONLINE_PLAYER },
+		{ "Clan", NULL, HTML_COLTYPE_CLAN },
+		{ "Score" },
+		{ "Elo", NULL, HTML_COLTYPE_ELO },
+		{ NULL }
+	};
 
-	html_start_online_player_list();
-
-	for (i = 0; i < server->num_clients; i++) {
-		client = &server->clients[i];
-
-		foreach_player(query, &p, "sss", client->name, server->gametype, server->map);
-
-		if (res && nrow)
-			html_online_player_list_entry(&p, client);
-		else
-			html_online_player_list_entry(NULL, client);
-	}
-
-	html_end_online_player_list();
+	res = foreach_init(query, "ssss", gametype, map, ip, port);
+	html_list(res, cols, "", client_list_class, NULL, 0, 0);
 }
 
 void generate_html_server(struct url *url)
@@ -108,7 +113,7 @@ void generate_html_server(struct url *url)
 	html("</section>");
 	html("</header>");
 
-	show_client_list(&server);
+	show_client_list(server.ip, server.port, server.gametype, server.map);
 
 	URL(urlfmt, "/server.json", PARAM_IP(ip), PARAM_PORT(port));
 	html_footer("server", urlfmt);

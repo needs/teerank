@@ -6,6 +6,7 @@
 #include "teerank.h"
 #include "cgi.h"
 #include "html.h"
+#include "player.h"
 
 #define MAX_DATA 48
 

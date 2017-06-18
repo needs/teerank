@@ -7,6 +7,7 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "html.h"
+#include "json.h"
 #include "database.h"
 #include "player.h"
 #include "clan.h"
@@ -21,216 +22,166 @@ static char *map;
 static char *order;
 static unsigned pnum;
 
-static void json_start_player_list(void)
-{
-	json("{%s:[", "players");
-}
+DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "playerlist");
 
-static void json_player_list_entry(unsigned nrow, struct player *p)
+static void print_player_list(void)
 {
-	if (nrow)
-		json(",");
-
-	json("{");
-	json("%s:%s,", "name", p->name);
-	json("%s:%s,", "clan", p->clan);
-	json("%s:%d,", "elo", p->elo);
-	json("%s:%u,", "rank", p->rank);
-	json("%s:%d,", "lastseen", p->lastseen);
-	json("%s:%s,", "server_ip", p->server_ip);
-	json("%s:%s", "server_port", p->server_port);
-	json("}");
-}
-
-static void json_end_player_list(unsigned nrow)
-{
-	json("],%s:%u}", "length", nrow);
-}
-
-static int print_player_list(void)
-{
-	struct player player;
 	struct sqlite3_stmt *res;
-	unsigned nrow;
-	const char *sortby;
+	const char *sortby = NULL;
 
-	char query[512], *queryfmt =
-		"SELECT" ALL_PLAYER_COLUMNS
+	char qselect[512], *qselectfmt =
+		"SELECT rank, players.name, clan, elo,"
+		"       lastseen, server_ip, server_port"
 		" FROM" RANKED_PLAYERS_TABLE
 		" WHERE gametype IS ? AND map IS ?"
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 
+	char *qcount =
+		"SELECT count(*)"
+		" FROM" RANKED_PLAYERS_TABLE
+		" WHERE gametype IS ? AND map IS ?";
+
 	if (strcmp(order, "rank") == 0)
 		sortby = SORT_BY_RANK;
 	else if (strcmp(order, "lastseen") == 0)
 		sortby = SORT_BY_LASTSEEN;
-	else {
-		fprintf(stderr, "%s: Should be either \"rank\" or \"lastseen\"\n", order);
-		return EXIT_FAILURE;
-	}
-
-
-	snprintf(query, sizeof(query), queryfmt, sortby, (pnum - 1) * 100);
-
-	if (JSON)
-		json_start_player_list();
-	else {
-		url_t url;
-		URL(url, "/players", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-		html_start_player_list(url, pnum, order);
-	}
-
-	foreach_player(query, &player, "ss", gametype, map) {
-		if (JSON)
-			json_player_list_entry(nrow, &player);
-		else
-			html_player_list_entry(&player, NULL, 0);
-	}
-
-	if (!res)
-		return EXIT_FAILURE;
-	if (!nrow && pnum > 1)
-		return EXIT_NOT_FOUND;
-
-	if (JSON)
-		json_end_player_list(nrow);
 	else
-		html_end_player_list();
+		error(400, "Invalid order \"%s\"", order);
 
-	return EXIT_SUCCESS;
+	snprintf(qselect, sizeof(qselect), qselectfmt, sortby, (pnum - 1) * 100);
+	res = foreach_init(qselect, "ss", gametype, map);
+
+	if (JSON) {
+		struct json_list_column cols[] = {
+			{ "rank", "%u" },
+			{ "name", "%s" },
+			{ "clan", "%s" },
+			{ "elo", "%i" },
+			{ "lastseen", "%d" },
+			{ NULL }
+		};
+
+		json("{%s:", "players");
+		json_list(res, cols, "length");
+		json("}");
+	} else {
+		url_t url;
+		unsigned nrow;
+		struct html_list_column cols[] = {
+			{ "", NULL, HTML_COLTYPE_RANK },
+			{ "Name", NULL, HTML_COLTYPE_PLAYER },
+			{ "Clan", NULL, HTML_COLTYPE_CLAN },
+			{ "Elo", "rank", HTML_COLTYPE_ELO },
+			{ "Last seen", "lastseen", HTML_COLTYPE_LASTSEEN },
+			{ NULL }
+		};
+
+		nrow = count_rows(qcount, "ss", gametype, map);
+		URL(url, "/players", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
+		html_list(res, cols, order, player_list_class, url, pnum, nrow);
+	}
 }
 
-static void json_start_clan_list(void)
-{
-	json("{%s:[", "clans");
-}
+DEFINE_SIMPLE_LIST_CLASS_FUNC(clan_list_class, "clanlist");
 
-static void json_clan_list_entry(unsigned nrow, struct clan *clan)
+static void print_clan_list(void)
 {
-	if (nrow)
-		json(",");
-
-	json("{");
-	json("%s:%s,", "name", clan->name);
-	json("%s:%u", "nmembers", clan->nmembers);
-	json("}");
-}
-
-static void json_end_clan_list(unsigned nrow)
-{
-	json("],%s:%u}", "length", nrow);
-}
-
-static int print_clan_list(void)
-{
-	struct clan clan;
 	struct sqlite3_stmt *res;
-	unsigned offset, nrow;
 
-	const char *query =
-		"SELECT" ALL_CLAN_COLUMNS
-		" FROM players"
+	const char *qselect =
+		"SELECT clan, CAST(AVG(elo) AS Int) AS avgelo, count(1) AS nmembers"
+		" FROM" RANKED_PLAYERS_TABLE
 		" WHERE" IS_VALID_CLAN
 		" GROUP BY clan"
-		" ORDER BY nmembers DESC, clan"
+		" ORDER BY avgelo DESC, nmembers DESC, clan"
 		" LIMIT 100 OFFSET ?";
 
-	if (JSON)
-		json_start_clan_list();
-	else {
+	const char *qcount =
+		"SELECT count(*)"
+		" FROM players"
+		" WHERE" IS_VALID_CLAN
+		" GROUP BY clan";
+
+	res = foreach_init(qselect, "u", (pnum - 1) * 100);
+
+	if (JSON) {
+		struct json_list_column cols[] = {
+			{ "name", "%s" },
+			{ "average_elo", "%i" },
+			{ "nmembers", "%u" },
+			{ NULL }
+		};
+
+		json("{%s:", "clans");
+		json_list(res, cols, "length");
+		json("}");
+	} else {
 		url_t url;
+		unsigned nrow;
+		struct html_list_column cols[] = {
+			{ "Name", NULL, HTML_COLTYPE_CLAN },
+			{ "Elo", NULL, HTML_COLTYPE_ELO },
+			{ "Members", NULL },
+			{ NULL }
+		};
+
+		nrow = count_rows(qcount);
 		URL(url, "/clans", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-		html_start_clan_list(url, pnum, NULL);
+		html_list(res, cols, "", clan_list_class, url, pnum, nrow);
 	}
-
-	offset = (pnum - 1) * 100;
-	foreach_clan(query, &clan, "u", offset) {
-		if (JSON)
-			json_clan_list_entry(nrow, &clan);
-		else
-			html_clan_list_entry(++offset, clan.name, clan.nmembers);
-	}
-
-	if (!res)
-		return EXIT_FAILURE;
-	if (!nrow && pnum > 1)
-		return EXIT_NOT_FOUND;
-
-	if (JSON)
-		json_end_clan_list(nrow);
-	else
-		html_end_clan_list();
-
-	return EXIT_SUCCESS;
 }
 
-static void json_start_server_list(void)
-{
-	json("{%s:[", "servers");
-}
+DEFINE_SIMPLE_LIST_CLASS_FUNC(server_list_class, "serverlist");
 
-static void json_server_list_entry(unsigned nrow, struct server *server)
+static void print_server_list(void)
 {
-	if (nrow)
-		json(",");
-
-	json("{");
-	json("%s:%s,", "ip", server->ip);
-	json("%s:%s,", "port", server->port);
-	json("%s:%s,", "name", server->name);
-	json("%s:%s,", "gametype", server->gametype);
-	json("%s:%s,", "map", server->map);
-	json("%s:%u,", "maxplayers", server->max_clients);
-	json("%s:%u", "nplayers", server->num_clients);
-	json("}");
-}
-
-static void json_end_server_list(unsigned nrow)
-{
-	json("],%s:%u}", "length", nrow);
-}
-
-static int print_server_list(void)
-{
-	struct server server;
 	struct sqlite3_stmt *res;
-	unsigned offset, nrow;
 
-	const char *query =
-		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
+	const char *qselect =
+		"SELECT name, ip, port, gametype, map, " NUM_CLIENTS_COLUMN ", max_clients"
 		" FROM servers"
 		" WHERE" IS_VANILLA_CTF_SERVER
 		" ORDER BY num_clients DESC"
 		" LIMIT 100 OFFSET ?";
 
-	if (JSON)
-		json_start_server_list();
-	else {
+	const char *qcount =
+		"SELECT count(*)"
+		" FROM servers"
+		" WHERE" IS_VANILLA_CTF_SERVER;
+
+	res = foreach_init(qselect, "u", (pnum - 1) * 100);
+
+	if (JSON) {
+		struct json_list_column cols[] = {
+			{ "name", "%s" },
+			{ "ip", "%s" },
+			{ "port", "%s" },
+			{ "gametype", "%s" },
+			{ "map", "%s" },
+			{ "nplayers", "%u" },
+			{ "maxplayers", "%u" },
+			{ NULL }
+		};
+
+		json("{%s:", "servers");
+		json_list(res, cols, "length");
+		json("}");
+	} else {
 		url_t url;
+		unsigned nrow;
+		struct html_list_column cols[] = {
+			{ "Name", NULL, HTML_COLTYPE_SERVER },
+			{ "Gametype" },
+			{ "Map" },
+			{ "Players", NULL, HTML_COLTYPE_PLAYER_COUNT },
+			{ NULL }
+		};
+
+		nrow = count_rows(qcount);
 		URL(url, "/servers", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-		html_start_server_list(url, pnum, NULL);
+		html_list(res, cols, "", server_list_class, url, pnum, nrow);
 	}
-
-	offset = (pnum - 1) * 100;
-	foreach_extended_server(query, &server, "u", offset) {
-		if (JSON)
-			json_server_list_entry(nrow, &server);
-		else
-			html_server_list_entry(++offset, &server);
-	}
-
-	if (!res)
-		return EXIT_FAILURE;
-	if (!nrow && pnum > 1)
-		return EXIT_NOT_FOUND;
-
-	if (JSON)
-		json_end_server_list(nrow);
-	else
-		html_end_server_list();
-
-	return EXIT_SUCCESS;
 }
 
 static void parse_list_args(struct url *url)
@@ -275,7 +226,6 @@ void generate_html_list(struct url *url)
 	url_t urlfmt;
 
 	JSON = false;
-
 	parse_list_args(url);
 
 	if (strcmp(gametype, "CTF") == 0)
@@ -303,29 +253,30 @@ void generate_html_list(struct url *url)
 		tabs[0].active = true;
 		print_section_tabs(tabs);
 		print_player_list();
-		URL(urlfmt, "/players", PARAM_GAMETYPE(gametype), PARAM_MAP(map), PARAM_ORDER(order));
-		print_page_nav(urlfmt, pnum, tabs[0].val / 100 + 1);
-		URL(urlfmt, "/players.json", PARAM_GAMETYPE(gametype), PARAM_MAP(map), PARAM_ORDER(order), PARAM_PAGENUM(pnum));
+		URL(urlfmt, "/players.json");
 		break;
 
 	case PCS_CLAN:
 		tabs[1].active = true;
 		print_section_tabs(tabs);
 		print_clan_list();
-		URL(urlfmt, "/clans", PARAM_GAMETYPE(gametype), PARAM_MAP(map), PARAM_ORDER(order));
-		print_page_nav(urlfmt, pnum, tabs[1].val / 100 + 1);
-		URL(urlfmt, "/clans.json", PARAM_GAMETYPE(gametype), PARAM_MAP(map), PARAM_ORDER(order), PARAM_PAGENUM(pnum));
+		URL(urlfmt, "/clans.json");
 		break;
 
 	case PCS_SERVER:
 		tabs[2].active = true;
 		print_section_tabs(tabs);
 		print_server_list();
-		URL(urlfmt, "/servers", PARAM_GAMETYPE(gametype), PARAM_MAP(map), PARAM_ORDER(order));
-		print_page_nav(urlfmt, pnum, tabs[2].val / 100 + 1);
-		URL(urlfmt, "/servers.json", PARAM_GAMETYPE(gametype), PARAM_MAP(map), PARAM_ORDER(order), PARAM_PAGENUM(pnum));
+		URL(urlfmt, "/servers.json");
 		break;
 	}
+
+	URL(
+		urlfmt, urlfmt,
+		PARAM_GAMETYPE(gametype),
+		PARAM_MAP(map),
+		PARAM_ORDER(order),
+		PARAM_PAGENUM(pnum));
 
 	html_footer("player-list", urlfmt);
 }

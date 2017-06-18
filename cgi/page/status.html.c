@@ -6,6 +6,7 @@
 #include "teerank.h"
 #include "html.h"
 #include "master.h"
+#include "player.h"
 
 enum {
 	STATUS_OK,

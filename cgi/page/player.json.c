@@ -9,6 +9,7 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "player.h"
+#include "json.h"
 
 static void json_player(struct player *player)
 {
@@ -23,9 +24,12 @@ static void json_player(struct player *player)
 
 static void json_player_historic(const char *pname)
 {
-	unsigned nrow;
-	sqlite3_stmt *res;
-	struct player_record r;
+	struct json_list_column cols[] = {
+		{ "timestamp", "%d" },
+		{ "elo", "%i" },
+		{ "rank", "%u" },
+		{ NULL }
+	};
 
 	const char *query =
 		"SELECT" ALL_PLAYER_RECORD_COLUMNS
@@ -33,19 +37,9 @@ static void json_player_historic(const char *pname)
 		" WHERE name IS ?"
 		" ORDER BY ts";
 
-	json(",%s:{%s:[", "historic", "records");
-
-	foreach_player_record(query, &r, "s", pname) {
-		if (nrow)
-			json(",");
-
-		json("[%d, %i, %u]", r.ts, r.elo, r.rank);
-	}
-
-	json("],%s:%u}", "length", nrow);
-
-	if (!res)
-		error(500, NULL);
+	json(",%s:{%s:", "historic", "records");
+	json_array_list(foreach_init(query, "s", pname), cols, "length");
+	json("}");
 }
 
 void generate_json_player(struct url *url)

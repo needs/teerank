@@ -115,24 +115,26 @@ unsigned elapsed_time(time_t t, char **timescale, char *text, size_t textsize)
 
 #undef set_text_and_timescale
 
-void player_lastseen_link(time_t lastseen, const char *addr)
+void player_lastseen_link(time_t lastseen, char *ip, char *port)
 {
 	char text[64], strls[] = "00/00/1970 00h00", *timescale;
 	int is_online, have_strls;
+	url_t url;
 
 	if (lastseen == NEVER_SEEN)
 		return;
 
 	is_online = !elapsed_time(lastseen, &timescale, text, sizeof(text));
 	have_strls = strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", gmtime(&lastseen));
+	URL(url, "/server", PARAM_IP(ip), PARAM_PORT(port));
 
 	if (is_online && have_strls)
-		html("<a class=\"%s\" href=\"/server/%s\" title=\"%s\">%s</a>",
-		     timescale, addr, strls, text);
+		html("<a class=\"%s\" href=\"%S\" title=\"%s\">%s</a>",
+		     timescale, url, strls, text);
 
 	else if (is_online)
-		html("<a class=\"%s\" href=\"/server/%s\">%s</a>",
-		     timescale, addr, text);
+		html("<a class=\"%s\" href=\"%S\">%s</a>",
+		     timescale, url, text);
 
 	else if (have_strls)
 		html("<span class=\"%s\" title=\"%s\">%s</span>",
@@ -278,31 +280,35 @@ void html_footer(const char *jsonanchor, const char *jsonurl)
 	html("</html>");
 }
 
-struct colinfo {
-	char *name;
-	char *order;
-};
-
-static void html_list_header(
-	char *class, char *listurl, unsigned pnum, char *order, struct colinfo *col)
+static void list_header(
+	struct html_list_column *cols, char *order, list_class_func_t class_cb,
+	url_t listurl, unsigned pnum)
 {
 	const char *down = "<img src=\"/images/downarrow.png\"/>";
 	const char *dash = "<img src=\"/images/dash.png\"/>";
+	struct html_list_column *col;
+	char *class = NULL;
 	url_t url;
 
-	html("<table class=\"%s\">", class);
+	if (class_cb)
+		class = class_cb(NULL);
+	if (class)
+		html("<table class=\"%s\">", class);
+	else
+		html("<table>");
+
 	html("<thead>");
 	html("<tr>");
 
-	for (; col->name; col++) {
-		if (!col->order || !order)
-			html("<th>%s</th>", col->name);
+	for (col = cols; col->title; col++) {
+		if (!col->order || !order || !listurl)
+			html("<th>%s</th>", col->title);
 		else if (strcmp(order, col->order) == 0)
-			html("<th>%s%S</th>", col->name, down);
+			html("<th>%s%S</th>", col->title, down);
 		else {
 			URL(url, listurl, PARAM_ORDER(col->order), PARAM_PAGENUM(pnum));
 			html("<th><a href=\"%S\">%s%S</a></th>",
-			     url, col->name, dash);
+			     url, col->title, dash);
 		}
 	}
 
@@ -311,254 +317,28 @@ static void html_list_header(
 	html("<tbody>");
 }
 
-static void html_list_footer(void)
-{
-	html("</tbody>");
-	html("</table>");
-}
-
-void html_start_player_list(char *listurl, unsigned pnum, char *order)
-{
-	struct colinfo colinfo[] = {
-		{ "" },
-		{ "Name" },
-		{ "Clan" },
-		{ "Elo", "rank" },
-		{ "Last seen", "lastseen" },
-		{ NULL }
-	};
-
-	html_list_header("playerlist", listurl, pnum, order, colinfo);
-}
-
-void html_start_online_player_list(void)
-{
-	struct colinfo colinfo[] = {
-		{ "" },
-		{ "Name" },
-		{ "Clan" },
-		{ "Score" },
-		{ "Elo" },
-		{ "Last seen" },
-		{ NULL }
-	};
-
-	html_list_header("playerlist", "", 0, "", colinfo);
-}
-
-void html_end_player_list(void)
-{
-	html_list_footer();
-}
-
-void html_end_online_player_list(void)
-{
-	html_list_footer();
-}
-
-static void player_list_entry(
-	struct player *p, struct client *c, int no_clan_link)
-{
-	const char *img, *specimg = "<img src=\"/images/spectator.png\" title=\"Spectator\"/>";
-	char *name, *clan;
-	int spectator;
-	url_t url;
-
-	assert(p || c);
-
-	/* Spectators are less important */
-	spectator = c && !c->ingame;
-	if (spectator)
-		html("<tr class=\"spectator\">");
-	else
-		html("<tr>");
-
-	/* Rank */
-	if (p && p->rank != UNRANKED)
-		html("<td>%u</td>", p->rank);
-	else
-		html("<td title=\"Will be calculated within the next minutes\">...</td>");
-
-	/* Name */
-	name = p ? p->name : c->name;
-	img = spectator ? specimg : "";
-	URL(url, "/player", PARAM_NAME(name));
-	html("<td>%s<a href=\"%S\">%s</a></td>", img, url, name);
-
-	/* Clan */
-	clan = p ? p->clan : c->clan;
-	URL(url, "/clan", PARAM_NAME(clan));
-	if (no_clan_link || !clan[0])
-		html("<td>%s</td>", clan);
-	else
-		html("<td><a href=\"%S\">%s</a></td>", url, clan);
-
-	/* Score (online-player-list only) */
-	if (c)
-		html("<td>%i</td>", c->score);
-
-	/* Elo */
-	if (p)
-		html("<td>%i</td>", p->elo);
-	else
-		html("<td>?</td>");
-
-	/* Last seen (not online-player-list only) */
-	html("<td>");
-	if (p && !c)
-		player_lastseen_link(p->lastseen, build_addr(p->server_ip, p->server_port));
-	html("</td>");
-
-	html("</tr>");
-}
-
-void html_player_list_entry(
-	struct player *p, struct client *c, int no_clan_link)
-{
-	player_list_entry(p, c, no_clan_link);
-}
-
-void html_online_player_list_entry(struct player *p, struct client *c)
-{
-	player_list_entry(p, c, 0);
-}
-
-void html_start_clan_list(char *listurl, unsigned pnum, char *order)
-{
-	struct colinfo colinfo[] = {
-		{ "" },
-		{ "Name" },
-		{ "Members" },
-		{ NULL }
-	};
-
-	html_list_header("clanlist", listurl, pnum, order, colinfo);
-}
-
-void html_end_clan_list(void)
-{
-	html_list_footer();
-}
-
-void html_clan_list_entry(
-	unsigned pos, const char *name, unsigned nmembers)
-{
-	url_t url;
-
-	assert(name != NULL);
-
-	html("<tr>");
-
-	html("<td>%u</td>", pos);
-
-	/* Name */
-	URL(url, "/clan", PARAM_NAME(name));
-	html("<td><a href=\"%S\">%s</a></td>", url, name);
-
-	/* Members */
-	html("<td>%u</td>", nmembers);
-
-	html("</tr>");
-}
-
-void html_start_server_list(char *listurl, unsigned pnum, char *order)
-{
-	struct colinfo colinfo[] = {
-		{ "" },
-		{ "Name" },
-		{ "Gametype" },
-		{ "Map" },
-		{ "Players" },
-		{ NULL }
-	};
-
-	html_list_header("serverlist", listurl, pnum, order, colinfo);
-}
-
-void html_end_server_list(void)
-{
-	html_list_footer();
-}
-
-void html_server_list_entry(unsigned pos, struct server *server)
-{
-	url_t url;
-
-	assert(server != NULL);
-
-	html("<tr>");
-
-	html("<td>%u</td>", pos);
-
-	/* Name */
-	URL(url, "/server", PARAM_IP(server->ip), PARAM_PORT(server->port));
-	html("<td><a href=\"%S\">%s</a></td>", url, server->name);
-
-	/* Gametype */
-	html("<td>%s</td>", server->gametype);
-
-	/* Map */
-	html("<td>%s</td>", server->map);
-
-	/* Players */
-	html("<td>%u / %u</td>", server->num_clients, server->max_clients);
-
-	html("</tr>");
-}
-
-/*
- * Only keep the two most significant digits
- */
-static unsigned round(unsigned n)
-{
-	unsigned mod = 1;
-
-	while (mod < n)
-		mod *= 10;
-
-	mod /= 100;
-
-	if (mod == 0)
-		return n;
-
-	return n - (n % mod);
-}
-
-void print_section_tabs(struct section_tab *tabs)
-{
-	assert(tabs != NULL);
-
-	html("<nav class=\"section_tabs\">");
-
-	for (; tabs->title; tabs++) {
-		if (tabs->active)
-			html("<a class=\"enabled\">");
-		else
-			html("<a href=\"%S\">", tabs->url);
-
-		html("%s", tabs->title);
-		if (tabs->val)
-			html("<small>%u</small>", round(tabs->val));
-
-		html("</a>");
-	}
-
-	html("</nav>");
-}
-
 static unsigned min(unsigned a, unsigned b)
 {
 	return a < b ? a : b;
 }
 
-void print_page_nav(url_t fmt, unsigned pnum, unsigned npages)
+static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
 {
 	/* Number of pages shown before and after the current page */
 	static const unsigned extra = 3;
-	unsigned i;
+	unsigned i, npages;
 	url_t url;
 
-	assert(fmt != NULL);
+	html("</tbody>");
+	html("</table>");
+
+	if (empty)
+		html("<em class=\"no-results\">No results found</em>");
+
+	if (!fmt)
+		return;
+
+	npages = nrow / 100 + 1;
 
 	html("<nav class=\"pages\">");
 
@@ -606,6 +386,172 @@ void print_page_nav(url_t fmt, unsigned pnum, unsigned npages)
 	else {
 		URL(url, fmt, PARAM_PAGENUM(pnum + 1));
 		html("<a class=\"next\" href=\"%S\">Next</a>", url);
+	}
+
+	html("</nav>");
+}
+
+struct list_args {
+	struct html_list_column *cols;
+	list_class_func_t class_cb;
+};
+
+#define next(stype, ctype) (ctype)sqlite3_column_##stype(res, i++)
+#define is_null(i) sqlite3_column_type(res, i)
+
+static void list_item(sqlite3_stmt *res, void *args_)
+{
+	struct list_args *args = args_;
+	struct html_list_column *col = args->cols;
+	char *class = NULL;
+	unsigned i = 0;
+	url_t url;
+
+	if (args->class_cb)
+		class = args->class_cb(res);
+	if (class)
+		html("<tr class=\"%s\">", class);
+	else
+		html("<tr>");
+
+	for (col = args->cols; col->title; col++) {
+		switch (col->type) {
+		case HTML_COLTYPE_NONE: {
+			char *val = next(text, char *);
+			html("<td>%s</td>", val);
+			break;
+		}
+
+		case HTML_COLTYPE_RANK: {
+			unsigned rank = next(int64, unsigned);
+			if (!is_null(i-1))
+				html("<td>%u</td>", rank);
+			else
+				html("<td title=\"Will be calculated within the next minutes\">...</td>");
+			break;
+		}
+
+		case HTML_COLTYPE_ELO: {
+			int elo = next(int, int);
+			if (!is_null(i-1))
+				html("<td>%i</td>", elo);
+			else
+				html("<td title=\"Will be calculated within the next minutes\">...</td>");
+			break;
+		}
+
+		case HTML_COLTYPE_PLAYER: {
+			char *name = next(text, char *);
+			URL(url, "/player", PARAM_NAME(name));
+			html("<td><a href=\"%S\">%s</a></td>", url, name);
+			break;
+		}
+
+		case HTML_COLTYPE_ONLINE_PLAYER: {
+			char *name = next(text, char *);
+			bool ingame = next(int, bool);
+			char *specimg =
+				"<img"
+				" src=\"/images/spectator.png\""
+				" title=\"Spectator\"/>";
+
+			html("<td>");
+			if (!ingame)
+				html("%S", specimg);
+			URL(url, "/player", PARAM_NAME(name));
+			html("<a href=\"%S\">%s</a>", url, name);
+			html("</td>");
+			break;
+		}
+
+		case HTML_COLTYPE_CLAN: {
+			char *clan = next(text, char *);
+			URL(url, "/clan", PARAM_NAME(clan));
+			html("<td><a href=\"%S\">%s</a></td>", url, clan);
+			break;
+		}
+
+		case HTML_COLTYPE_SERVER: {
+			char *name = next(text, char *);
+			char *ip = next(text, char *);
+			char *port = next(text, char *);
+
+			URL(url, "/server", PARAM_IP(ip), PARAM_PORT(port));
+			html("<td><a href=\"%S\">%s</a></td>", url, name);
+			break;
+		}
+
+		case HTML_COLTYPE_LASTSEEN: {
+			time_t lastseen = next(int64, time_t);
+			char *ip = next(text, char *);
+			char *port = next(text, char *);
+
+			html("<td>");
+			player_lastseen_link(lastseen, ip, port);
+			html("</td>");
+			break;
+		}
+
+		case HTML_COLTYPE_PLAYER_COUNT: {
+			char *nplayers = next(text, char *);
+			char *maxplayers = next(text, char *);
+			html("<td>%s / %s</td>", nplayers, maxplayers);
+			break;
+		}
+		}
+	}
+	html("</tr>");
+}
+
+#undef is_null
+#undef next
+
+void html_list(
+	sqlite3_stmt *res, struct html_list_column *cols, char *order,
+	list_class_func_t class, url_t url, unsigned pnum, unsigned nrow)
+{
+	struct list_args args = { cols, class };
+	bool empty = true;
+
+	list_header(cols, order, class, url, pnum);
+	while (foreach_next(&res, &args, list_item))
+		empty = false;
+	list_footer(url, empty, pnum, nrow);
+}
+
+/* Only keep the two most significant digits */
+static unsigned round(unsigned n)
+{
+	unsigned mod = 1;
+
+	while (mod < n)
+		mod *= 10;
+
+	mod /= 100;
+
+	if (mod == 0)
+		return n;
+
+	return n - (n % mod);
+}
+
+void print_section_tabs(struct section_tab *tabs)
+{
+	assert(tabs != NULL);
+
+	html("<nav class=\"section_tabs\">");
+
+	for (; tabs->title; tabs++) {
+		if (tabs->active)
+			html("<a class=\"enabled\">");
+		else
+			html("<a href=\"%S\">", tabs->url);
+
+		html("%s", tabs->title);
+		if (tabs->val)
+			html("<small>%u</small>", round(tabs->val));
+
+		html("</a>");
 	}
 
 	html("</nav>");

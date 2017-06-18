@@ -56,7 +56,7 @@ void generate_html_player(struct url *url)
 	html("<p id=\"player_rank\">#%u (%i ELO)</p>", player.rank, player.elo);
 	html("<p id=\"player_lastseen\">");
 	player_lastseen_link(
-		player.lastseen, build_addr(player.server_ip, player.server_port));
+		player.lastseen, player.server_ip, player.server_port);
 	html("</p>");
 	html("</div>");
 

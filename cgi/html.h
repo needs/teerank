@@ -4,8 +4,8 @@
 #include <time.h>
 #include <stdbool.h>
 
+#include "database.h"
 #include "io.h"
-#include "player.h"
 
 /*
  * Compute the number of minutes, hours, days, months and years from the
@@ -20,7 +20,7 @@ unsigned elapsed_time(time_t t, char **timescale, char *text, size_t textsize);
  * Print a link to the given server if player is online.  Otherwise it
  * print the elapsed time since it's last connection.
  */
-void player_lastseen_link(time_t _lastseen, const char *addr);
+void player_lastseen_link(time_t lastseen, char *ip, char *port);
 
 struct tab {
 	char *name, *href;
@@ -32,27 +32,39 @@ void html_header(
 	const char *sprefix, const char *query);
 void html_footer(const char *jsonanchor, const char *jsonurl);
 
-/* Player list */
-void html_start_player_list(char *listurl, unsigned pnum, char *order);
-void html_end_player_list(void);
-void html_player_list_entry(
-	struct player *p, struct client *c, int no_clan_link);
+enum html_coltype {
+	HTML_COLTYPE_NONE,
+	HTML_COLTYPE_RANK,
+	HTML_COLTYPE_ELO,
+	HTML_COLTYPE_PLAYER,
+	HTML_COLTYPE_ONLINE_PLAYER,
+	HTML_COLTYPE_CLAN,
+	HTML_COLTYPE_SERVER,
+	HTML_COLTYPE_LASTSEEN,
+	HTML_COLTYPE_PLAYER_COUNT
+};
 
-/* Online player list */
-void html_start_online_player_list(void);
-void html_end_online_player_list(void);
-void html_online_player_list_entry(struct player *player, struct client *client);
+struct html_list_column {
+	char *title;
+	char *order;
+	enum html_coltype type;
+};
 
-/* Clan list */
-void html_start_clan_list(char *listurl, unsigned pnum, char *order);
-void html_end_clan_list(void);
-void html_clan_list_entry(
-	unsigned pos, const char *hexname, unsigned nmembers);
+typedef char *(*list_class_func_t)(sqlite3_stmt *res);
 
-/* Server list */
-void html_start_server_list(char *listurl, unsigned pnum, char *order);
-void html_end_server_list(void);
-void html_server_list_entry(unsigned pos, struct server *server);
+/* Almost every list class function will look like this */
+#define DEFINE_SIMPLE_LIST_CLASS_FUNC(name, class)                      \
+static char *name(sqlite3_stmt *res)                                    \
+{                                                                       \
+	if (!res)                                                       \
+		return class;                                           \
+	else                                                            \
+		return NULL;                                            \
+}
+
+void html_list(
+	sqlite3_stmt *res, struct html_list_column *cols, char *order,
+	list_class_func_t class, url_t url, unsigned pnum, unsigned nrow);
 
 struct section_tab {
 	char *title;
@@ -62,6 +74,5 @@ struct section_tab {
 };
 
 void print_section_tabs(struct section_tab *tabs);
-void print_page_nav(url_t fmt, unsigned pnum, unsigned npages);
 
 #endif /* HTML_H */

@@ -7,18 +7,30 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "server.h"
+#include "json.h"
 
 static void json_server(struct server *server)
 {
-	unsigned nrow;
 	sqlite3_stmt *res;
-	struct client c;
+
+	struct json_list_column cols[] = {
+		{ "name", "%s" },
+		{ "clan", "%s" },
+		{ "score", "%d" },
+		{ "ingame", "%b" },
+		{ "rank", "%u" },
+		{ "elo", "%i" },
+		{ NULL }
+	};
 
 	const char *query =
-		"SELECT" ALL_SERVER_CLIENT_COLUMNS
-		" FROM server_clients"
+		"SELECT server_clients.name, server_clients.clan, "
+		"  score, ingame, rank, elo"
+		" FROM server_clients LEFT OUTER JOIN ranks"
+		"  ON server_clients.name = ranks.name"
+		"   AND gametype IS ? AND map IS ?"
 		" WHERE ip IS ? AND port IS ?"
-		" ORDER BY" SORT_BY_SCORE;
+		" ORDER BY ingame DESC, score DESC, elo DESC";
 
 	json("{");
 	json("%s:%s,", "ip", server->ip);
@@ -34,20 +46,13 @@ static void json_server(struct server *server)
 	json("%s:%u,", "num_clients", server->num_clients);
 	json("%s:%u,", "max_clients", server->max_clients);
 
-	json("%s:[", "clients");
+	json("%s:", "clients");
 
-	foreach_server_client(query, &c, "ss", server->ip, server->port) {
-		if (nrow)
-			json(",");
-
-		json("{");
-		json("%s:%s,", "name", c.name);
-		json("%s:%s,", "clan", c.clan);
-		json("%s:%d,", "score", c.score);
-		json("%s:%b", "ingame", c.ingame);
-		json("}");
-	}
-	json("]");
+	res = foreach_init(
+		query, "ssss",
+		server->gametype, server->map,
+		server->ip, server->port);
+	json_list(res, cols, NULL);
 
 	json("}");
 }

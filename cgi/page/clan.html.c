@@ -11,19 +11,29 @@
 #include "player.h"
 #include "clan.h"
 
+DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "playerlist");
+
 void generate_html_clan(struct url *url)
 {
-	unsigned i, nrow;
 	sqlite3_stmt *res;
 	char *cname = NULL;
-	struct player p;
 	url_t urlfmt;
+	unsigned i;
 
 	const char *query =
-		"SELECT" ALL_PLAYER_COLUMNS
+		"SELECT rank, players.name, clan, elo, lastseen, server_ip, server_port"
 		" FROM" RANKED_PLAYERS_TABLE
 		" WHERE clan IS ? AND" IS_VALID_CLAN
 		" ORDER BY" SORT_BY_RANK;
+
+	struct html_list_column cols[] = {
+		{ "",          NULL,       HTML_COLTYPE_RANK },
+		{ "Name",      NULL,       HTML_COLTYPE_PLAYER },
+		{ "Clan",      NULL,       HTML_COLTYPE_CLAN },
+		{ "Elo",       "rank",     HTML_COLTYPE_ELO },
+		{ "Last seen", "lastseen", HTML_COLTYPE_LASTSEEN },
+		{ NULL }
+	};
 
 	for (i = 0; i < url->nargs; i++) {
 		if (strcmp(url->args[i].name, "name") == 0)
@@ -34,17 +44,9 @@ void generate_html_clan(struct url *url)
 	html_header(cname, cname, "/clans", NULL);
 	html("<h2>%s</h2>", cname);
 
-	html_start_player_list(NULL, 0, NULL);
+	res = foreach_init(query, "s", cname);
+	html_list(res, cols, "", player_list_class, NULL, 0, 0);
 
-	foreach_player(query, &p, "s", cname)
-		html_player_list_entry(&p, NULL, 1);
-
-	if (!res)
-		error(500, NULL);
-	if (!nrow)
-		error(404, NULL);
-
-	html_end_player_list();
 	URL(urlfmt, "/clan.json", PARAM_NAME(cname));
 	html_footer("clan", urlfmt);
 }

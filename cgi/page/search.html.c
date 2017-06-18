@@ -16,36 +16,6 @@
 /* Too many results is meaningless */
 #define MAX_RESULTS 50
 
-static void start_player_list(void)
-{
-	html_start_player_list(NULL, 0, NULL);
-}
-
-static void start_clan_list(void)
-{
-	html_start_clan_list(NULL, 0, NULL);
-}
-
-static void start_server_list(void)
-{
-	html_start_server_list(NULL, 0, NULL);
-}
-
-static void print_player(unsigned pos, void *data)
-{
-	struct player *p = data;
-	html_player_list_entry(p, NULL, 0);
-}
-static void print_clan(unsigned pos, void *data)
-{
-	struct clan *clan = data;
-	html_clan_list_entry(pos, clan->name, clan->nmembers);
-}
-static void print_server(unsigned pos, void *data)
-{
-	html_server_list_entry(pos, data);
-}
-
 /*
  * This conditional evaluate the relevance of a string, using the
  * following order: exact match, prefix, suffix, anything else.
@@ -61,11 +31,8 @@ static void print_server(unsigned pos, void *data)
 	" END "
 
 struct search_info {
-	void (*start_list)(void);
-	void (*end_list)(void);
-	void (*read_row)(sqlite3_stmt *res, void *data);
-	void (*print_result)(unsigned pos, void *data);
-	const char *emptylist;
+	list_class_func_t class;
+	struct html_list_column *cols;
 
 	int tab;
 	const char *sprefix;
@@ -74,12 +41,18 @@ struct search_info {
 	const char *search_query;
 };
 
+DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "search-playerlist");
+DEFINE_SIMPLE_LIST_CLASS_FUNC(clan_list_class,   "clanlist");
+DEFINE_SIMPLE_LIST_CLASS_FUNC(server_list_class, "serverlist");
+
 static const struct search_info PLAYER_SINFO = {
-	start_player_list,
-	html_end_player_list,
-	read_player,
-	print_player,
-	"No players found",
+	player_list_class,
+	(struct html_list_column[]) {
+		{ "Name",      NULL, HTML_COLTYPE_PLAYER },
+		{ "Clan",      NULL, HTML_COLTYPE_CLAN },
+		{ "Last seen", NULL, HTML_COLTYPE_LASTSEEN },
+		{ NULL }
+	},
 
 	0,
 	"/players",
@@ -89,26 +62,28 @@ static const struct search_info PLAYER_SINFO = {
 	" WHERE" IS_RELEVANT("name")
 	" LIMIT ?",
 
-	"SELECT" ALL_PLAYER_COLUMNS
+	"SELECT name, clan, lastseen, server_ip, server_port"
 	" FROM players"
 	" WHERE" IS_RELEVANT("name")
-	" ORDER BY" RELEVANCE("name") ", elo"
+	" ORDER BY" RELEVANCE("name") ", clan"
 	" LIMIT ?"
 };
 
 static const struct search_info CLAN_SINFO = {
-	start_clan_list,
-	html_end_clan_list,
-	read_clan,
-	print_clan,
-	"No clans found",
+	clan_list_class,
+	(struct html_list_column[]) {
+		{ "Name",    NULL, HTML_COLTYPE_CLAN },
+		{ "Members", NULL },
+		{ NULL }
+	},
 
 	1,
 	"/clans",
 
-	"SELECT COUNT(DISTINCT clan)"
+	"SELECT COUNT(1)"
 	" FROM players"
 	" WHERE" IS_VALID_CLAN "AND" IS_RELEVANT("clan")
+	" GROUP BY clan"
 	" LIMIT ?",
 
 	"SELECT clan, COUNT(1) AS nmembers"
@@ -120,11 +95,14 @@ static const struct search_info CLAN_SINFO = {
 };
 
 static const struct search_info SERVER_SINFO = {
-	start_server_list,
-	html_end_server_list,
-	read_extended_server,
-	print_server,
-	"No servers found",
+	server_list_class,
+	(struct html_list_column[]) {
+		{ "Name" , NULL, HTML_COLTYPE_SERVER },
+		{ "Gametype" },
+		{ "Map" },
+		{ "Players", NULL, HTML_COLTYPE_PLAYER_COUNT },
+		{ NULL }
+	},
 
 	2,
 	"/servers",
@@ -134,41 +112,16 @@ static const struct search_info SERVER_SINFO = {
 	" WHERE" IS_VANILLA_CTF_SERVER "AND" IS_RELEVANT("name")
 	" LIMIT ?",
 
-	"SELECT" ALL_EXTENDED_SERVER_COLUMNS
+	"SELECT name, ip, port, gametype, map, " NUM_CLIENTS_COLUMN ", max_clients"
 	" FROM servers"
 	" WHERE" IS_VANILLA_CTF_SERVER "AND" IS_RELEVANT("name")
 	" ORDER BY" RELEVANCE("name") ", num_clients"
 	" LIMIT ?"
 };
 
-static void search(const struct search_info *sinfo, const char *value)
-{
-	unsigned nrow;
-	sqlite3_stmt *res;
-	union {
-		struct player player;
-		struct clan clan;
-		struct server server;
-	} row;
-
-#define binds "ssssi",	\
-	value, value, value, value, MAX_RESULTS
-
-	sinfo->start_list();
-	foreach_row(sinfo->search_query, sinfo->read_row, &row, binds)
-		sinfo->print_result(nrow+1, &row);
-	sinfo->end_list();
-
-#undef binds
-
-	if (!res)
-		error(500, NULL);
-	if (!nrow)
-		html("%s", sinfo->emptylist);
-}
-
 void generate_html_search(struct url *url)
 {
+	sqlite3_stmt *res;
 	char *squery = NULL;
 	char *pcs;
 	unsigned i;
@@ -212,6 +165,9 @@ void generate_html_search(struct url *url)
 	URL(tabs[2].url, "/search/servers", PARAM_SQUERY(squery));
 
 	print_section_tabs(tabs);
-	search(sinfo, squery);
+	res = foreach_init(
+		sinfo->search_query, "ssssi",
+		squery, squery, squery, squery, MAX_RESULTS);
+	html_list(res, sinfo->cols, "", sinfo->class, NULL, 1, 1);
 	html_footer(NULL, NULL);
 }

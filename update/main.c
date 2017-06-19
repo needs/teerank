@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include <netinet/in.h>
 
@@ -323,7 +324,7 @@ static int update(void)
 	struct sockets sockets;
 
 	struct job recompute_ranks_job;
-	int do_recompute_ranks = 0;
+	bool do_recompute_ranks = false;
 
 	if (!have_schedule())
 		return EXIT_SUCCESS;
@@ -343,7 +344,7 @@ static int update(void)
 
 		while ((job = next_schedule())) {
 			if (job == &recompute_ranks_job)
-				do_recompute_ranks = 1;
+				do_recompute_ranks = true;
 			else
 				add_to_pool(get_netclient(job, update));
 		}
@@ -358,22 +359,21 @@ static int update(void)
 		while ((pentry = poll_pool(&sockets, &packet)))
 			handle(get_netclient(pentry, pentry), packet);
 
-		if (do_recompute_ranks) {
-			do_recompute_ranks = 0;
+		if (do_recompute_ranks)
 			recompute_ranks();
-			schedule(&recompute_ranks_job, expire_in(5 * 60, 0));
-		}
 
 		exec("COMMIT");
 
 		/*
 		 * Force a WAL checkpoint after recomputing ranks
 		 * because a lot of data are written in the wal wfile
-		 * and we don't want it to grow without bounds.  Doesn't
-		 * seem to work tho...
+		 * and we don't want it to grow without bounds.
 		 */
-		if (do_recompute_ranks)
+		if (do_recompute_ranks) {
 			exec("PRAGMA wal_checkpoint");
+			schedule(&recompute_ranks_job, expire_in(5 * 60, 0));
+			do_recompute_ranks = false;
+		}
 	}
 
 	close_sockets(&sockets);

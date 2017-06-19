@@ -5,7 +5,6 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "html.h"
-#include "master.h"
 
 enum {
 	STATUS_OK,
@@ -66,6 +65,20 @@ static void print_status(const char *title, const char *comment, int status)
 	html("</section>");
 }
 
+struct master {
+	char *node;
+	time_t lastseen;
+	unsigned nservers;
+};
+
+static void read_master(sqlite3_stmt *res, void *master_)
+{
+	struct master *master = master_;
+	master->node = (char *)sqlite3_column_text(res, 0);
+	master->lastseen = (time_t)sqlite3_column_int64(res, 1);
+	master->nservers = (unsigned)sqlite3_column_int64(res, 2);
+}
+
 static int show_masters_status(int teerank_stopped)
 {
 	struct master m;
@@ -74,13 +87,18 @@ static int show_masters_status(int teerank_stopped)
 	unsigned nrow;
 
 	const char *query =
-		"SELECT" ALL_EXTENDED_MASTER_COLUMNS
+		"SELECT node, lastseen,"
+		" (SELECT COUNT(1)"
+		"  FROM servers"
+		"  WHERE master_node = node"
+		"  AND master_service = service)"
+		" AS nservers "
 		" FROM masters"
 		" ORDER BY node";
 
 	html("<h2>Teeworlds</h2>");
 
-	foreach_extended_master(query, &m) {
+	foreach_row(query, read_master, &m) {
 		/*
 		 * If teerank is stopped, then we can't really guess
 		 * masters status.

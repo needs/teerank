@@ -175,10 +175,10 @@ static void load_netclients(void)
 	}
 
 	query =
-		"SELECT" ALL_MASTER_COLUMNS
+		"SELECT node, service, lastseen, expire"
 		" FROM masters";
 
-	foreach_master(query, &master) {
+	foreach_row(query, read_master, &master) {
 		if ((client = add_netclient(NETCLIENT_TYPE_MASTER, &master)))
 			schedule(&client->update, master.expire);
 	}

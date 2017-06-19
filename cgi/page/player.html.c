@@ -7,7 +7,39 @@
 #include "teerank.h"
 #include "database.h"
 #include "html.h"
-#include "player.h"
+
+struct player {
+	char *name;
+	char *clan;
+	time_t lastseen;
+	char *server_ip;
+	char *server_port;
+
+	int elo;
+	unsigned rank;
+};
+
+static void read_player(sqlite3_stmt *res, void *p_)
+{
+	struct player *p = p_;
+
+	p->name = strdup((char *)sqlite3_column_text(res, 0));
+	p->clan = strdup((char *)sqlite3_column_text(res, 1));
+	p->lastseen = sqlite3_column_int64(res, 2);
+	p->server_ip = strdup((char *)sqlite3_column_text(res, 3));
+	p->server_port = strdup((char *)sqlite3_column_text(res, 4));
+
+	p->elo = sqlite3_column_int(res, 5);
+	p->rank = sqlite3_column_int64(res, 6);
+}
+
+static void free_player(struct player *p)
+{
+	free(p->name);
+	free(p->clan);
+	free(p->server_ip);
+	free(p->server_port);
+}
 
 void generate_html_player(struct url *url)
 {
@@ -31,7 +63,7 @@ void generate_html_player(struct url *url)
 	if (!pname)
 		error(400, "Player name required");
 
-	foreach_player(query, &player, "s", pname);
+	foreach_row(query, read_player, &player, "s", pname);
 	if (!res)
 		error(500, NULL);
 	if (!nrow)
@@ -45,7 +77,7 @@ void generate_html_player(struct url *url)
 	html("<div>");
 	html("<h1 id=\"player_name\">%s</h1>", pname);
 
-	if (*player.clan) {
+	if (player.clan) {
 		URL(urlfmt, "/clan", PARAM_NAME(player.clan));
 		html("<p id=\"player_clan\"><a href=\"%S\">%s</a></p>", urlfmt, player.clan);
 	}
@@ -68,4 +100,6 @@ void generate_html_player(struct url *url)
 
 	URL(urlfmt, "/player.json", PARAM_NAME(pname));
 	html_footer("player", urlfmt);
+
+	free_player(&player);
 }

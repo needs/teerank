@@ -8,7 +8,6 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "html.h"
-#include "player.h"
 #include "clan.h"
 
 DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "playerlist");
@@ -22,9 +21,9 @@ void generate_html_clan(struct url *url)
 
 	const char *query =
 		"SELECT rank, players.name, clan, elo, lastseen, server_ip, server_port"
-		" FROM" RANKED_PLAYERS_TABLE
+		" FROM players NATURAL JOIN ranks"
 		" WHERE clan IS NOT NULL AND clan IS ?"
-		" ORDER BY" SORT_BY_RANK;
+		" ORDER BY rank DESC";
 
 	struct html_list_column cols[] = {
 		{ "",          NULL,       HTML_COLTYPE_RANK },

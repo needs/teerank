@@ -6,13 +6,13 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "master.h"
-#include "player.h"
 #include "clan.h"
 #include "server.h"
 #include "json.h"
 
 void generate_json_about(struct url *url)
 {
+	unsigned nrow;
 	struct json_list_column cols[] = {
 		{ "node", "%s" },
 		{ "service", "%s" },
@@ -28,7 +28,8 @@ void generate_json_about(struct url *url)
 
 	json("{");
 
-	json("%s:%u,", "nplayers", count_ranked_players("", ""));
+	nrow = count_rows("SELECT COUNT(1) FROM players");
+	json("%s:%u,", "nplayers", nrow);
 	json("%s:%u,", "nclans", count_clans());
 	json("%s:%u,", "nservers", count_vanilla_servers());
 	json("%s:%d,", "last_update", last_database_update());

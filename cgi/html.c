@@ -7,7 +7,6 @@
 #include <errno.h>
 
 #include "cgi.h"
-#include "player.h"
 #include "clan.h"
 #include "server.h"
 #include "teerank.h"
@@ -121,7 +120,7 @@ void player_lastseen_link(time_t lastseen, char *ip, char *port)
 	int is_online, have_strls;
 	url_t url;
 
-	if (lastseen == NEVER_SEEN)
+	if (!lastseen)
 		return;
 
 	is_online = !elapsed_time(lastseen, &timescale, text, sizeof(text));

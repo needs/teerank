@@ -6,7 +6,6 @@
 
 #include "cgi.h"
 #include "teerank.h"
-#include "player.h"
 #include "clan.h"
 #include "json.h"
 
@@ -17,9 +16,9 @@ void generate_json_clan(struct url *url)
 
 	const char *query =
 		"SELECT players.name"
-		" FROM" RANKED_PLAYERS_TABLE
+		" FROM players NATURAL JOIN ranks"
 		" WHERE clan IS NOT NULL AND clan IS ?"
-		" ORDER BY" SORT_BY_RANK;
+		" ORDER BY rank DESC";
 
 	struct json_list_column cols[] = {
 		{ "name", "%s" },

@@ -9,7 +9,6 @@
 
 #include "teerank.h"
 #include "database.h"
-#include "player.h"
 #include "master.h"
 
 struct config config = {

@@ -6,7 +6,6 @@
 #include "teerank.h"
 #include "cgi.h"
 #include "html.h"
-#include "player.h"
 
 #define MAX_DATA 48
 
@@ -42,16 +41,31 @@ static void dataset_append(struct dataset *ds, time_t ts, long value)
 	ds->ndata++;
 }
 
+struct record {
+	time_t ts;
+	int elo;
+	unsigned rank;
+};
+
+static void read_record(sqlite3_stmt *res, void *r_)
+{
+	struct record *r = r_;
+
+	r->ts = sqlite3_column_int64(res, 0);
+	r->elo = sqlite3_column_int(res, 1);
+	r->rank = sqlite3_column_int64(res, 2);
+}
+
 static int fill_datasets(
 	struct dataset *dselo, struct dataset *dsrank, const char *pname)
 {
 	unsigned nrow;
 	sqlite3_stmt *res;
-	struct player_record r;
+	struct record r;
 	static const struct dataset DATASET_ZERO;
 
 	const char *query =
-		"SELECT" ALL_PLAYER_RECORD_COLUMNS
+		"SELECT ts, elo, rank"
 		" FROM ranks_historic"
 		" WHERE name IS ?"
 		" ORDER BY ts"
@@ -60,7 +74,7 @@ static int fill_datasets(
 	*dselo = DATASET_ZERO;
 	*dsrank = DATASET_ZERO;
 
-	foreach_player_record(query, &r, "si", pname, MAX_DATA) {
+	foreach_row(query, read_record, &r, "si", pname, MAX_DATA) {
 		dataset_append(dselo,  r.ts, r.elo);
 		dataset_append(dsrank, r.ts, r.rank);
 	}

@@ -21,7 +21,14 @@
 #define PORT_STRSIZE sizeof("00000")
 #define ADDR_STRSIZE sizeof("[xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx]:00000")
 
-#include "player.h"
+/**
+ * @def NAME_LENGTH
+ *
+ * Teeworlds names cannot have more than 16 characters, including terminating
+ * nul byte.  Name under this form are standard, regular string of whatever
+ * encoding.
+ */
+#define NAME_LENGTH 17
 
 #define ALL_SERVER_COLUMNS \
 	" ip, port, name, gametype, map, lastseen, expire," \

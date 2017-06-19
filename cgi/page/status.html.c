@@ -6,7 +6,6 @@
 #include "teerank.h"
 #include "html.h"
 #include "master.h"
-#include "player.h"
 
 enum {
 	STATUS_OK,
@@ -89,7 +88,7 @@ static int show_masters_status(int teerank_stopped)
 		if (teerank_stopped)
 			print_status(m.node, NULL, STATUS_UNKNOWN);
 
-		else if (m.lastseen == NEVER_SEEN)
+		else if (!m.lastseen)
 			print_status(m.node, NULL, STATUS_DOWN);
 
 		else if (elapsed_time(m.lastseen, NULL, buf, sizeof(buf))) {

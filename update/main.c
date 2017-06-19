@@ -16,7 +16,6 @@
 #include "pool.h"
 #include "teerank.h"
 #include "server.h"
-#include "player.h"
 #include "scheduler.h"
 #include "netclient.h"
 #include "rank.h"
@@ -91,6 +90,10 @@ static void update_players(struct server *sv)
 		" SET clan = ?, lastseen = ?, server_ip = ?, server_port = ?"
 		" WHERE name = ?";
 
+	const char *insert =
+		"INSERT INTO players"
+		" VALUES(?, ?, ?, ?, ?)";
+
 	for (i = 0; i < sv->num_clients; i++) {
 		c = &sv->clients[i];
 
@@ -99,7 +102,7 @@ static void update_players(struct server *sv)
 		if (res && nrow)
 			exec(update, "stsss", c->clan, time(NULL), sv->ip, sv->port, c->name);
 		else if (res)
-			create_player(c->name, c->clan);
+			exec(insert, "sstss", c->name, c->clan, time(NULL), sv->ip, sv->port);
 	}
 }
 
@@ -134,19 +137,12 @@ static void handle_server_packet(struct netclient *client, struct packet *packet
 	schedule(&client->update, new->expire);
 }
 
-static long elapsed_days(time_t t)
-{
-	if (t == NEVER_SEEN)
-		return 0;
-
-	return (time(NULL) - t) / (3600 * 24);
-}
-
 static void handle_server_timeout(struct netclient *client)
 {
 	struct server *server = &client->info.server;
+	long elapsed_days = (time(NULL) - server->lastseen) / (3600 * 24);
 
-	if (elapsed_days(server->lastseen) >= 1) {
+	if (elapsed_days >= 1) {
 		remove_server(server->ip, server->port);
 		remove_netclient(client);
 		return;

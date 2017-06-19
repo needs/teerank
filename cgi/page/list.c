@@ -9,7 +9,6 @@
 #include "html.h"
 #include "json.h"
 #include "database.h"
-#include "player.h"
 #include "clan.h"
 #include "server.h"
 
@@ -32,20 +31,20 @@ static void print_player_list(void)
 	char qselect[512], *qselectfmt =
 		"SELECT rank, players.name, clan, elo,"
 		"       lastseen, server_ip, server_port"
-		" FROM" RANKED_PLAYERS_TABLE
+		" FROM players NATURAL JOIN ranks"
 		" WHERE gametype IS ? AND map IS ?"
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 
 	char *qcount =
 		"SELECT count(*)"
-		" FROM" RANKED_PLAYERS_TABLE
+		" FROM players NATURAL JOIN ranks"
 		" WHERE gametype IS ? AND map IS ?";
 
 	if (strcmp(order, "rank") == 0)
-		sortby = SORT_BY_RANK;
+		sortby = "rank DESC";
 	else if (strcmp(order, "lastseen") == 0)
-		sortby = SORT_BY_LASTSEEN;
+		sortby = "lastseen DESC, rank DESC";
 	else
 		error(400, "Invalid order \"%s\"", order);
 
@@ -91,7 +90,7 @@ static void print_clan_list(void)
 
 	const char *qselect =
 		"SELECT clan, CAST(AVG(elo) AS Int) AS avgelo, count(1) AS nmembers"
-		" FROM" RANKED_PLAYERS_TABLE
+		" FROM players NATURAL JOIN ranks"
 		" WHERE clan IS NOT NULL"
 		" GROUP BY clan"
 		" ORDER BY avgelo DESC, nmembers DESC, clan"
@@ -244,7 +243,14 @@ void generate_html_list(struct url *url)
 	URL(tabs[0].url, "/players", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
 	URL(tabs[1].url, "/clans",   PARAM_GAMETYPE(gametype), PARAM_MAP(map));
 	URL(tabs[2].url, "/servers", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-	tabs[0].val = count_ranked_players("", "");
+
+	tabs[0].val = count_rows(
+		"SELECT COUNT(1)"
+		" FROM ranks"
+		" WHERE gametype = ? AND map = ?",
+		"ss", gametype, map
+	);
+
 	tabs[1].val = count_clans();
 	tabs[2].val = count_vanilla_servers();
 

@@ -51,6 +51,7 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 #include <time.h>
 
 #include "teerank.h"
@@ -190,7 +191,7 @@ static void load_players(struct server *old, struct server *new, struct player_i
 
 static time_t get_elapsed_time(struct server *old, struct server *new)
 {
-	if (old->lastseen == NEVER_SEEN)
+	if (old->lastseen > new->lastseen)
 		return 0;
 	else
 		return new->lastseen - old->lastseen;
@@ -483,10 +484,10 @@ static void do_recompute_ranks(const char *gametype, const char *map)
 
 	/* Reuse read_pending() by selecting the same set of fields */
 	const char *select =
-		"SELECT ranks.name, gametype, map, elo"
-		" FROM" RANKED_PLAYERS_TABLE
+		"SELECT name, gametype, map, elo"
+		" FROM ranks"
 		" WHERE gametype = ? AND map = ?"
-		" ORDER BY" SORT_BY_ELO;
+		" ORDER BY elo DESC, lastseen DESC, name DESC";
 
 	const char *update =
 		"UPDATE ranks"

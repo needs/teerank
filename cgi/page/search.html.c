@@ -9,7 +9,6 @@
 #include "teerank.h"
 #include "cgi.h"
 #include "html.h"
-#include "player.h"
 #include "server.h"
 #include "clan.h"
 

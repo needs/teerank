@@ -7,7 +7,6 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "html.h"
-#include "player.h"
 #include "server.h"
 
 static char *client_list_class(sqlite3_stmt *res)

@@ -2,15 +2,14 @@
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
+#include <limits.h>
 #include <sys/stat.h>
 
 #include "database.h"
 #include "teerank.h"
 #include "master.h"
-#include "player.h"
 
 sqlite3 *db = NULL;
-
 
 static void read_version(sqlite3_stmt *res, void *_version)
 {
@@ -123,10 +122,10 @@ static int init_masters_table(void)
 
 	const char *query =
 		"INSERT INTO masters"
-		" VALUES(?, ?, ?, ?)";
+		" VALUES(?, ?, NULL, 0)";
 
 	for (master = DEFAULT_MASTERS; *master->node; master++)
-		ret &= exec(query, "sstt", master->node, master->service, NEVER_SEEN, EXPIRE_NOW);
+		ret &= exec(query, "sst", master->node, master->service);
 
 	return ret;
 }

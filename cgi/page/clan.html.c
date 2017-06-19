@@ -8,7 +8,6 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "html.h"
-#include "clan.h"
 
 DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "playerlist");
 

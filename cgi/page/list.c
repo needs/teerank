@@ -9,7 +9,6 @@
 #include "html.h"
 #include "json.h"
 #include "database.h"
-#include "clan.h"
 #include "server.h"
 
 static bool JSON = false;
@@ -251,7 +250,14 @@ void generate_html_list(struct url *url)
 		"ss", gametype, map
 	);
 
-	tabs[1].val = count_clans();
+	tabs[1].val = count_rows(
+		"SELECT COUNT(1)"
+		" FROM players NATURAL JOIN ranks"
+		" WHERE gametype = ? AND map = ?"
+		"GROUP BY clan",
+		"ss", gametype, map
+	);
+
 	tabs[2].val = count_vanilla_servers();
 
 	switch (pcs) {

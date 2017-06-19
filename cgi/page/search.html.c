@@ -10,7 +10,6 @@
 #include "cgi.h"
 #include "html.h"
 #include "server.h"
-#include "clan.h"
 
 /* Too many results is meaningless */
 #define MAX_RESULTS 50

@@ -7,7 +7,6 @@
 #include <errno.h>
 
 #include "cgi.h"
-#include "clan.h"
 #include "server.h"
 #include "teerank.h"
 #include "html.h"

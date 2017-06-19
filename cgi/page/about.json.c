@@ -6,7 +6,6 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "master.h"
-#include "clan.h"
 #include "server.h"
 #include "json.h"
 
@@ -30,7 +29,10 @@ void generate_json_about(struct url *url)
 
 	nrow = count_rows("SELECT COUNT(1) FROM players");
 	json("%s:%u,", "nplayers", nrow);
-	json("%s:%u,", "nclans", count_clans());
+
+	nrow = count_rows("SELECT COUNT(1) FROM players GROUP BY clan");
+	json("%s:%u,", "nclans", nrow);
+
 	json("%s:%u,", "nservers", count_vanilla_servers());
 	json("%s:%d,", "last_update", last_database_update());
 

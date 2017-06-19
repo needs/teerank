@@ -84,7 +84,7 @@ static void update_players(struct server *sv)
 	struct sqlite3_stmt *res;
 
 	const char *exist =
-		"SELECT * FROM players WHERE name = ?";
+		"SELECT null FROM players WHERE name = ?";
 
 	const char *update =
 		"UPDATE players"

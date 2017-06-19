@@ -19,8 +19,8 @@ void generate_html_player(struct url *url)
 	unsigned i, nrow;
 
 	const char *query =
-		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM" RANKED_PLAYERS_TABLE
+		"SELECT players.name, clan, lastseen, server_ip, server_port, elo, rank"
+		" FROM players LEFT OUTER JOIN ranks ON players.name = ranks.name"
 		" WHERE players.name IS ?";
 
 	for (i = 0; i < url->nargs; i++) {

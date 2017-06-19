@@ -427,7 +427,7 @@ static void apply_pending_elo(void)
 	const char *query =
 		"INSERT OR REPLACE INTO ranks"
 		" (name, gametype, map, elo, rank)"
-		"  SELECT p.name, p.gametype, p.map, p.elo, '0' as rank"
+		"  SELECT p.name, p.gametype, p.map, p.elo, NULL as rank"
 		"  FROM pending AS p";
 
 	exec(query);

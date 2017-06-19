@@ -53,8 +53,8 @@ void generate_json_player(struct url *url)
 	unsigned nrow;
 
 	const char *query =
-		"SELECT" ALL_PLAYER_COLUMNS
-		" FROM" RANKED_PLAYERS_TABLE
+		"SELECT players.name, clan, elo, rank, lastseen, server_ip, server_port"
+		" FROM players LEFT OUTER JOIN ranks ON players.name = ranks.name"
 		" WHERE players.name IS ?";
 
 	for (i = 0; i < url->nargs; i++) {

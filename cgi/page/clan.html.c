@@ -23,7 +23,7 @@ void generate_html_clan(struct url *url)
 	const char *query =
 		"SELECT rank, players.name, clan, elo, lastseen, server_ip, server_port"
 		" FROM" RANKED_PLAYERS_TABLE
-		" WHERE clan IS ? AND" IS_VALID_CLAN
+		" WHERE clan IS NOT NULL AND clan IS ?"
 		" ORDER BY" SORT_BY_RANK;
 
 	struct html_list_column cols[] = {

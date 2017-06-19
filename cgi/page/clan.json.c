@@ -18,7 +18,7 @@ void generate_json_clan(struct url *url)
 	const char *query =
 		"SELECT players.name"
 		" FROM" RANKED_PLAYERS_TABLE
-		" WHERE clan IS ? AND " IS_VALID_CLAN
+		" WHERE clan IS NOT NULL AND clan IS ?"
 		" ORDER BY" SORT_BY_RANK;
 
 	struct json_list_column cols[] = {

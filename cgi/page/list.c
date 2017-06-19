@@ -92,7 +92,7 @@ static void print_clan_list(void)
 	const char *qselect =
 		"SELECT clan, CAST(AVG(elo) AS Int) AS avgelo, count(1) AS nmembers"
 		" FROM" RANKED_PLAYERS_TABLE
-		" WHERE" IS_VALID_CLAN
+		" WHERE clan IS NOT NULL"
 		" GROUP BY clan"
 		" ORDER BY avgelo DESC, nmembers DESC, clan"
 		" LIMIT 100 OFFSET ?";
@@ -100,7 +100,7 @@ static void print_clan_list(void)
 	const char *qcount =
 		"SELECT count(*)"
 		" FROM players"
-		" WHERE" IS_VALID_CLAN
+		" WHERE clan IS NOT NULL"
 		" GROUP BY clan";
 
 	res = foreach_init(qselect, "u", (pnum - 1) * 100);

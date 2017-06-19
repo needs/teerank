@@ -82,13 +82,13 @@ static const struct search_info CLAN_SINFO = {
 
 	"SELECT COUNT(1)"
 	" FROM players"
-	" WHERE" IS_VALID_CLAN "AND" IS_RELEVANT("clan")
+	" WHERE clan IS NOT NULL AND" IS_RELEVANT("clan")
 	" GROUP BY clan"
 	" LIMIT ?",
 
 	"SELECT clan, COUNT(1) AS nmembers"
 	" FROM players"
-	" WHERE" IS_VALID_CLAN "AND" IS_RELEVANT("clan")
+	" WHERE clan IS NOT NULL AND" IS_RELEVANT("clan")
 	" GROUP BY clan"
 	" ORDER BY" RELEVANCE("clan") ", nmembers"
 	" LIMIT ?"

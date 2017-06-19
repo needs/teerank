@@ -14,22 +14,13 @@
 
 void create_player(const char *name, const char *clan)
 {
-	struct player p;
-
 	const char *query =
-		"INSERT INTO players VALUES(?, ?, ?, '', '')";
+		"INSERT INTO players VALUES(?, ?, ?, NULL, NULL)";
 
 	assert(name != NULL);
 	assert(clan != NULL);
 
-	snprintf(p.name, sizeof(p.name), "%s", name);
-	snprintf(p.clan, sizeof(p.clan), "%s", clan);
-
-	p.lastseen = time(NULL);
-	strcpy(p.server_ip, "");
-	strcpy(p.server_port, "");
-
-	exec(query, "sst", p.name, p.clan, p.lastseen);
+	exec(query, "sst", name, clan, time(NULL));
 }
 
 void read_player(sqlite3_stmt *res, void *_p)

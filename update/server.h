@@ -91,11 +91,6 @@ struct server {
 };
 
 /**
- * Check if the given server info describe a vanilla server
- */
-int is_vanilla(char *gametype, char *map, unsigned max_clients);
-
-/**
  * Read server's clients from the database.
  *
  * The function actually need the provided server structure to contains

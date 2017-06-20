@@ -11,35 +11,6 @@
 #include "server.h"
 #include "teerank.h"
 
-int is_vanilla(char *gametype, char *map, unsigned max_clients)
-{
-	const char **maps = (const char*[]) {
-		"ctf1", "ctf2", "ctf3", "ctf4", "ctf5", "ctf6", "ctf7",
-		"dm1", "dm2", "dm6", "dm7", "dm8", "dm9",
-		NULL
-	};
-
-	const char **gametypes = (const char*[]) {
-		"CTF", "DM", "TDM",
-		NULL
-	};
-
-	if (max_clients > MAX_CLIENTS)
-		return 0;
-
-	while (*gametypes && strcmp(gametype, *gametypes) != 0)
-		gametypes++;
-	if (!*gametypes)
-		return 0;
-
-	while (*maps && strcmp(map, *maps) != 0)
-		maps++;
-	if (!*maps)
-		return 0;
-
-	return 1;
-}
-
 void read_server(sqlite3_stmt *res, void *s_)
 {
 	struct server *s = s_;

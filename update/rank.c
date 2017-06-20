@@ -235,10 +235,6 @@ static void mark_rankable_players(
 
 	assert(players != NULL);
 
-	/* We don't rank non vanilla servers for now */
-	if (!is_vanilla(new->gametype, new->map, new->max_clients))
-		goto dont_rank;
-
 	/* New games don't have a meaningful "old" state to rank against */
 	if (is_new_game(players))
 		goto dont_rank;

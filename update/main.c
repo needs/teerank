@@ -129,10 +129,7 @@ static void handle_server_packet(struct netclient *client, struct packet *packet
 		write_server_clients(new);
 	}
 
-	if (is_vanilla(new->gametype, new->map, new->max_clients))
-		new->expire = expire_in(5 * 60, 30);
-	else
-		new->expire = expire_in(3600, 5 * 60);
+	new->expire = expire_in(5 * 60, 30);
 
 	write_server(new);
 	schedule(&client->update, new->expire);

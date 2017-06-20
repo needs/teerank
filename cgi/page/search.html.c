@@ -9,7 +9,6 @@
 #include "teerank.h"
 #include "cgi.h"
 #include "html.h"
-#include "server.h"
 
 /* Too many results is meaningless */
 #define MAX_RESULTS 50
@@ -107,12 +106,16 @@ static const struct search_info SERVER_SINFO = {
 
 	"SELECT COUNT(1)"
 	" FROM servers"
-	" WHERE" IS_VANILLA_CTF_SERVER "AND" IS_RELEVANT("name")
+	" WHERE" IS_RELEVANT("name")
 	" LIMIT ?",
 
-	"SELECT name, ip, port, gametype, map, " NUM_CLIENTS_COLUMN ", max_clients"
+	"SELECT name, ip, port, gametype, map,"
+	" (SELECT COUNT(1)"
+	"  FROM server_clients AS sc"
+	"  WHERE sc.ip = servers.ip"
+	"  AND sc.port = servers.port) AS num_clients, max_clients"
 	" FROM servers"
-	" WHERE" IS_VANILLA_CTF_SERVER "AND" IS_RELEVANT("name")
+	" WHERE" IS_RELEVANT("name")
 	" ORDER BY" RELEVANCE("name") ", num_clients"
 	" LIMIT ?"
 };

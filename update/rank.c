@@ -376,7 +376,7 @@ static void verbose_elo_update(struct player_info *p, int *newelo)
  */
 static void update_elos(
 	struct player_info *players, const char *gametype,
-	const char *map, const char *addr)
+	const char *map, const char *ip, const char *port)
 {
 	struct player_info *p;
 	unsigned i;
@@ -389,7 +389,8 @@ static void update_elos(
 	assert(players != NULL);
 	assert(gametype != NULL);
 	assert(map != NULL);
-	assert(addr != NULL);
+	assert(ip != NULL);
+	assert(port != NULL);
 
 	foreach_player_info(p) {
 		if (p->is_rankable)
@@ -397,7 +398,7 @@ static void update_elos(
 	}
 
 	if (ranked)
-		verbose("%s: %u players ranked, %s, %s", addr, ranked, gametype, map);
+		verbose("%s:%s: %u players ranked, %s, %s", ip, port, ranked, gametype, map);
 
 	foreach_player_info(p) {
 		if (p->is_rankable) {
@@ -415,7 +416,7 @@ void rank_players(struct server *old, struct server *new)
 
 	load_players(old, new, players);
 	mark_rankable_players(old, new, players);
-	update_elos(players, new->gametype, new->map, build_addr(new->ip, new->port));
+	update_elos(players, new->gametype, new->map, new->ip, new->port);
 }
 
 /*

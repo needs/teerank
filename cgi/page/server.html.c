@@ -7,7 +7,6 @@
 #include "cgi.h"
 #include "teerank.h"
 #include "html.h"
-#include "server.h"
 
 static char *client_list_class(sqlite3_stmt *res)
 {
@@ -45,10 +44,84 @@ static void show_client_list(char *ip, char *port, char *gametype, char *map)
 	html_list(res, cols, "", client_list_class, NULL, 0, 0);
 }
 
+struct server {
+	char *ip;
+	char *port;
+
+	char *name;
+	char *gametype;
+	char *map;
+
+	unsigned num_players;
+	unsigned num_specs;
+
+	unsigned num_clients;
+	unsigned max_clients;
+};
+
+static void read_server(struct sqlite3_stmt *res, void *s_)
+{
+	struct server *s = s_;
+
+	s->ip = strdup((char *)sqlite3_column_text(res, 0));
+	s->port = strdup((char *)sqlite3_column_text(res, 1));
+
+	s->name = strdup((char *)sqlite3_column_text(res, 2));
+	s->gametype = strdup((char *)sqlite3_column_text(res, 3));
+	s->map = strdup((char *)sqlite3_column_text(res, 4));
+
+	s->max_clients = sqlite3_column_int64(res, 5);
+
+	s->num_players = count_rows(
+		"SELECT COUNT(1)"
+		" FROM server_clients"
+		" WHERE ip IS ? AND port IS ? AND ingame = 1",
+		"ss", s->ip, s->port);
+
+	s->num_specs = count_rows(
+		"SELECT COUNT(1)"
+		" FROM server_clients"
+		" WHERE ip IS ? AND port IS ? AND ingame = 0",
+		"ss", s->ip, s->port);
+
+	s->num_clients = s->num_players + s->num_specs;
+}
+
+static void free_server(struct server *s)
+{
+	free(s->ip);
+	free(s->port);
+	free(s->name);
+	free(s->gametype);
+	free(s->map);
+}
+
+/* An IPv4 address starts by either "0." or "00." or "000." */
+static bool is_ipv4(const char *ip)
+{
+	return ip[1] == '.' || ip[2] == '.' || ip[3] == '.';
+}
+
+static char *build_addr(const char *ip, const char *port)
+{
+	static char buf[sizeof("[xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx]:00000")];
+	int ret;
+
+	if (is_ipv4(ip))
+		ret = snprintf(buf, sizeof(buf), "%s:%s", ip, port);
+	else
+		ret = snprintf(buf, sizeof(buf), "[%s]:%s", ip, port);
+
+	if (ret >= sizeof(buf))
+		return NULL;
+
+	return buf;
+}
+
 void generate_html_server(struct url *url)
 {
 	struct server server;
-	unsigned i, playing = 0, spectating = 0;
+	unsigned i;
 	sqlite3_stmt *res;
 	unsigned nrow;
 	url_t urlfmt;
@@ -58,7 +131,7 @@ void generate_html_server(struct url *url)
 	char *port = DEFAULT_PARAM_VALUE(PARAM_PORT(0));
 
 	const char *query =
-		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
+		"SELECT ip, port, name, gametype, map, max_clients"
 		" FROM servers"
 		" WHERE ip IS ? AND port IS ?";
 
@@ -74,16 +147,11 @@ void generate_html_server(struct url *url)
 	if (!port)
 		error(400, "Missing 'port' parameter");
 
-	foreach_extended_server(query, &server, "ss", ip, port);
+	foreach_row(query, read_server, &server, "ss", ip, port);
 	if (!res)
 		error(500, NULL);
 	if (!nrow)
 		error(404, NULL);
-	if (!read_server_clients(&server))
-		error(500, NULL);
-
-	for (i = 0; i < server.num_clients; i++)
-		server.clients[i].ingame ? playing++ : spectating++;
 
 	/* Eventually, print them */
 	html_header(server.name, server.name, "/servers", NULL);
@@ -96,9 +164,9 @@ void generate_html_server(struct url *url)
 	html("<li>%u / %u clients</li>", server.num_clients, server.max_clients);
 
 	html("<li>");
-	html("%u players", playing);
-	if (spectating)
-		html(" + %u spectators", spectating);
+	html("%u players", server.num_players);
+	if (server.num_specs)
+		html(" + %u spectators", server.num_specs);
 	html("</li>");
 	html("</ul>");
 	html("</section>");
@@ -116,4 +184,6 @@ void generate_html_server(struct url *url)
 
 	URL(urlfmt, "/server.json", PARAM_IP(ip), PARAM_PORT(port));
 	html_footer("server", urlfmt);
+
+	free_server(&server);
 }

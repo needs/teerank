@@ -9,7 +9,6 @@
 
 #include "teerank.h"
 #include "database.h"
-#include "master.h"
 
 struct config config = {
 #define STRING(envname, value, fname) \

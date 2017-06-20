@@ -2,6 +2,7 @@
 #define SERVER_H
 
 #include <time.h>
+#include "database.h"
 #include "master.h"
 
 /* Maximum clients connected to a server */
@@ -41,14 +42,6 @@
 	"  AND sc.port = servers.port)" \
 	" AS num_clients "
 
-#define ALL_EXTENDED_SERVER_COLUMNS \
-	ALL_SERVER_COLUMNS "," NUM_CLIENTS_COLUMN
-
-#define IS_VANILLA_CTF_SERVER \
-	" gametype = 'CTF'" \
-	" AND map IN ('ctf1', 'ctf2', 'ctf3', 'ctf4', 'ctf5', 'ctf6', 'ctf7')" \
-	" AND max_clients <= 16 "
-
 #define bind_server(s) "sssssttssu", \
 	(s).ip, (s).port, (s).name, (s).gametype, (s).map, (s).lastseen, \
 	(s).expire, (s).master_node, (s).master_service, (s).max_clients
@@ -56,17 +49,10 @@
 #define foreach_server(query, s, ...) \
 	foreach_row((query), read_server, (s), __VA_ARGS__)
 
-#define foreach_extended_server(query, s, ...) \
-	foreach_row((query), read_extended_server, (s), __VA_ARGS__)
-
 void read_server(sqlite3_stmt *res, void *s);
-void read_extended_server(sqlite3_stmt *res, void *s);
 
 #define ALL_SERVER_CLIENT_COLUMNS \
 	" name, clan, score, ingame "
-
-#define SORT_BY_SCORE \
-	" ingame DESC, score DESC "
 
 #define bind_client(s, c) "ssssii", \
 	(s).ip, (s).port, (c).name, (c).clan, (c).score, (c).ingame
@@ -75,9 +61,6 @@ void read_extended_server(sqlite3_stmt *res, void *s);
 	foreach_row((query), read_server_client, (c), __VA_ARGS__)
 
 void read_server_client(sqlite3_stmt *res, void *c);
-
-/* Used when we want to immediately update a server */
-static const time_t EXPIRE_NOW = 0;
 
 /**
  * @struct server
@@ -111,31 +94,6 @@ struct server {
  * Check if the given server info describe a vanilla server
  */
 int is_vanilla(char *gametype, char *map, unsigned max_clients);
-
-/**
- * Extract IP and port from a full address
- *
- * The given buffer is modified.  IP and port are checked for validity.
- * An invalid IP or port will result in a failure.
- *
- * @param addr Server address
- * @param ip extracted IP
- * @param port extracted port
- * @return 1 on success, 0 on failure
- */
-int parse_addr(char *addr, char **ip, char **port);
-
-/**
- * Construct an adress with the given ip and port
- *
- * Adress can be parsed back with parse_addr().  It returns a statically
- * allocated buffer.
- *
- * @param ip Server IP
- * @param port Server port
- * @return A statically allocated string
- */
-char *build_addr(const char *ip, const char *port);
 
 /**
  * Read server's clients from the database.
@@ -197,10 +155,5 @@ void remove_server(const char *ip, const char *port);
  * @return 1 is server expired, 0 otherwise
  */
 int server_expired(struct server *server);
-
-/**
- * Count the number of vanilla servers in the database
- */
-unsigned count_vanilla_servers(void);
 
 #endif /* SERVER_H */

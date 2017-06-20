@@ -9,7 +9,6 @@
 #include "html.h"
 #include "json.h"
 #include "database.h"
-#include "server.h"
 
 static bool JSON = false;
 
@@ -36,7 +35,7 @@ static void print_player_list(void)
 		" LIMIT 100 OFFSET %u";
 
 	char *qcount =
-		"SELECT count(*)"
+		"SELECT COUNT(1)"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE gametype IS ? AND map IS ?";
 
@@ -88,7 +87,7 @@ static void print_clan_list(void)
 	struct sqlite3_stmt *res;
 
 	const char *qselect =
-		"SELECT clan, CAST(AVG(elo) AS Int) AS avgelo, count(1) AS nmembers"
+		"SELECT clan, CAST(AVG(elo) AS Int) AS avgelo, COUNT(1) AS nmembers"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE clan IS NOT NULL"
 		" GROUP BY clan"
@@ -96,10 +95,9 @@ static void print_clan_list(void)
 		" LIMIT 100 OFFSET ?";
 
 	const char *qcount =
-		"SELECT count(*)"
+		"SELECT COUNT(DISTINCT clan)"
 		" FROM players"
-		" WHERE clan IS NOT NULL"
-		" GROUP BY clan";
+		" WHERE clan IS NOT NULL";
 
 	res = foreach_init(qselect, "u", (pnum - 1) * 100);
 
@@ -137,18 +135,23 @@ static void print_server_list(void)
 	struct sqlite3_stmt *res;
 
 	const char *qselect =
-		"SELECT name, ip, port, gametype, map, " NUM_CLIENTS_COLUMN ", max_clients"
+		"SELECT name, ip, port, gametype, map,"
+		" (SELECT COUNT(1)"
+		"  FROM server_clients AS sc"
+		"  WHERE sc.ip = servers.ip"
+		"  AND sc.port = servers.port)"
+		" AS num_clients, max_clients "
 		" FROM servers"
-		" WHERE" IS_VANILLA_CTF_SERVER
+		" WHERE gametype IS ? AND IFNULL(?, map) IS map"
 		" ORDER BY num_clients DESC"
 		" LIMIT 100 OFFSET ?";
 
 	const char *qcount =
-		"SELECT count(*)"
+		"SELECT COUNT(1)"
 		" FROM servers"
-		" WHERE" IS_VANILLA_CTF_SERVER;
+		" WHERE gametype IS ? AND IFNULL(?, map) IS map";
 
-	res = foreach_init(qselect, "u", (pnum - 1) * 100);
+	res = foreach_init(qselect, "ssu", gametype, map, (pnum - 1) * 100);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -176,7 +179,7 @@ static void print_server_list(void)
 			{ NULL }
 		};
 
-		nrow = count_rows(qcount);
+		nrow = count_rows(qcount, "ss", gametype, map);
 		URL(url, "/servers", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
 		html_list(res, cols, "", server_list_class, url, pnum, nrow);
 	}
@@ -246,19 +249,23 @@ void generate_html_list(struct url *url)
 	tabs[0].val = count_rows(
 		"SELECT COUNT(1)"
 		" FROM ranks"
-		" WHERE gametype = ? AND map = ?",
+		" WHERE gametype IS ? AND map IS ?",
 		"ss", gametype, map
 	);
 
 	tabs[1].val = count_rows(
-		"SELECT COUNT(1)"
+		"SELECT COUNT(DISTINCT clan)"
 		" FROM players NATURAL JOIN ranks"
-		" WHERE gametype = ? AND map = ?"
-		"GROUP BY clan",
+		" WHERE gametype IS ? AND map IS ?",
 		"ss", gametype, map
 	);
 
-	tabs[2].val = count_vanilla_servers();
+	tabs[2].val = count_rows(
+		"SELECT COUNT(1)"
+		" FROM servers"
+		" WHERE gametype IS ? AND IFNULL(?, map) IS map",
+		"ss", gametype, map
+	);
 
 	switch (pcs) {
 	case PCS_PLAYER:

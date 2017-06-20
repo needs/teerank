@@ -7,7 +7,6 @@
 
 #include "database.h"
 #include "teerank.h"
-#include "master.h"
 
 sqlite3 *db = NULL;
 
@@ -117,14 +116,24 @@ static int bind(sqlite3_stmt *res, const char *bindfmt, va_list ap)
 
 static int init_masters_table(void)
 {
-	const struct master *master;
+	const struct master {
+		char *node;
+		char *service;
+	} *master = (struct master[]){
+		{ "master1.teeworlds.com", "8300" },
+		{ "master2.teeworlds.com", "8300" },
+		{ "master3.teeworlds.com", "8300" },
+		{ "master4.teeworlds.com", "8300" },
+		{ NULL }
+	};
+
 	int ret = 1;
 
 	const char *query =
 		"INSERT INTO masters"
 		" VALUES(?, ?, NULL, 0)";
 
-	for (master = DEFAULT_MASTERS; *master->node; master++)
+	for (; master->node; master++)
 		ret &= exec(query, "sst", master->node, master->service);
 
 	return ret;

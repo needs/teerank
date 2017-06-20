@@ -6,8 +6,34 @@
 
 #include "cgi.h"
 #include "teerank.h"
-#include "server.h"
 #include "json.h"
+
+struct server {
+	char *ip;
+	char *port;
+	char *name;
+	char *gametype;
+	char *map;
+
+	time_t lastseen;
+	time_t expire;
+	unsigned max_clients;
+};
+
+static void read_server(sqlite3_stmt *res, void *s_)
+{
+	struct server *s = s_;
+
+	s->ip = (char *)sqlite3_column_text(res, 0);
+	s->port = (char *)sqlite3_column_text(res, 1);
+	s->name = (char *)sqlite3_column_text(res, 2);
+	s->gametype = (char *)sqlite3_column_text(res, 3);
+	s->map = (char *)sqlite3_column_text(res, 4);
+
+	s->lastseen = sqlite3_column_int64(res, 5);
+	s->expire = sqlite3_column_int64(res, 6);
+	s->max_clients = sqlite3_column_int(res, 7);
+}
 
 static void json_server(struct server *server)
 {
@@ -43,7 +69,6 @@ static void json_server(struct server *server)
 	json("%s:%d,", "lastseen", server->lastseen);
 	json("%s:%d,", "expire", server->expire);
 
-	json("%s:%u,", "num_clients", server->num_clients);
 	json("%s:%u,", "max_clients", server->max_clients);
 
 	json("%s:", "clients");
@@ -52,7 +77,7 @@ static void json_server(struct server *server)
 		query, "ssss",
 		server->gametype, server->map,
 		server->ip, server->port);
-	json_list(res, cols, NULL);
+	json_list(res, cols, "num_clients");
 
 	json("}");
 }
@@ -67,7 +92,7 @@ void generate_json_server(struct url *url)
 	char *port = DEFAULT_PARAM_VALUE(PARAM_PORT(0));
 
 	const char *query =
-		"SELECT" ALL_EXTENDED_SERVER_COLUMNS
+		"SELECT ip, port, name, gametype, map, lastseen, expire, max_clients"
 		" FROM servers"
 		" WHERE ip IS ? AND port IS ?";
 
@@ -83,7 +108,7 @@ void generate_json_server(struct url *url)
 	if (!port)
 		error(400, "Missing 'port' parameter");
 
-	foreach_extended_server(query, &server, "ss", ip, port);
+	foreach_row(query, read_server, &server, "ss", ip, port);
 	if (!res)
 		error(500, NULL);
 	if (!nrow)

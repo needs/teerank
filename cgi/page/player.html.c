@@ -9,11 +9,11 @@
 #include "html.h"
 
 struct player {
-	char *name;
-	char *clan;
+	STRING_FIELD(name, NAME_STRSIZE);
+	STRING_FIELD(clan, NAME_STRSIZE);
 	time_t lastseen;
-	char *server_ip;
-	char *server_port;
+	STRING_FIELD(server_ip, IP_STRSIZE);
+	STRING_FIELD(server_port, PORT_STRSIZE);
 
 	int elo;
 	unsigned rank;
@@ -23,22 +23,15 @@ static void read_player(sqlite3_stmt *res, void *p_)
 {
 	struct player *p = p_;
 
-	p->name = strdup((char *)sqlite3_column_text(res, 0));
-	p->clan = strdup((char *)sqlite3_column_text(res, 1));
+	p->name = column_string(res, 0, p->name);
+	p->clan = column_string(res, 1, p->clan);
+
 	p->lastseen = sqlite3_column_int64(res, 2);
-	p->server_ip = strdup((char *)sqlite3_column_text(res, 3));
-	p->server_port = strdup((char *)sqlite3_column_text(res, 4));
+	p->server_ip = column_string(res, 3, p->server_ip);
+	p->server_port = column_string(res, 4, p->server_port);
 
 	p->elo = sqlite3_column_int(res, 5);
 	p->rank = sqlite3_column_int64(res, 6);
-}
-
-static void free_player(struct player *p)
-{
-	free(p->name);
-	free(p->clan);
-	free(p->server_ip);
-	free(p->server_port);
 }
 
 void generate_html_player(struct url *url)
@@ -100,6 +93,4 @@ void generate_html_player(struct url *url)
 
 	URL(urlfmt, "/player.json", PARAM_NAME(pname));
 	html_footer("player", urlfmt);
-
-	free_player(&player);
 }

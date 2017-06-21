@@ -45,12 +45,12 @@ static void show_client_list(char *ip, char *port, char *gametype, char *map)
 }
 
 struct server {
-	char *ip;
-	char *port;
+	STRING_FIELD(ip, IP_STRSIZE);
+	STRING_FIELD(port, PORT_STRSIZE);
 
-	char *name;
-	char *gametype;
-	char *map;
+	STRING_FIELD(name, NAME_STRSIZE);
+	STRING_FIELD(gametype, GAMETYPE_STRSIZE);
+	STRING_FIELD(map, MAP_STRSIZE);
 
 	unsigned num_players;
 	unsigned num_specs;
@@ -63,12 +63,12 @@ static void read_server(struct sqlite3_stmt *res, void *s_)
 {
 	struct server *s = s_;
 
-	s->ip = strdup((char *)sqlite3_column_text(res, 0));
-	s->port = strdup((char *)sqlite3_column_text(res, 1));
+	s->ip = column_string(res, 0, s->ip);
+	s->port = column_string(res, 1, s->port);
 
-	s->name = strdup((char *)sqlite3_column_text(res, 2));
-	s->gametype = strdup((char *)sqlite3_column_text(res, 3));
-	s->map = strdup((char *)sqlite3_column_text(res, 4));
+	s->name = column_string(res, 2, s->name);
+	s->gametype = column_string(res, 3, s->gametype);
+	s->map = column_string(res, 4, s->map);
 
 	s->max_clients = sqlite3_column_int64(res, 5);
 
@@ -85,15 +85,6 @@ static void read_server(struct sqlite3_stmt *res, void *s_)
 		"ss", s->ip, s->port);
 
 	s->num_clients = s->num_players + s->num_specs;
-}
-
-static void free_server(struct server *s)
-{
-	free(s->ip);
-	free(s->port);
-	free(s->name);
-	free(s->gametype);
-	free(s->map);
 }
 
 /* An IPv4 address starts by either "0." or "00." or "000." */
@@ -184,6 +175,4 @@ void generate_html_server(struct url *url)
 
 	URL(urlfmt, "/server.json", PARAM_IP(ip), PARAM_PORT(port));
 	html_footer("server", urlfmt);
-
-	free_server(&server);
 }

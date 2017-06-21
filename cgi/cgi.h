@@ -2,6 +2,7 @@
 #define CGI_H
 
 #include <stdlib.h>
+#include "database.h"
 #include "io.h"
 
 /* Used by pages */
@@ -43,5 +44,12 @@ struct url {
 unsigned parse_pnum(char *str);
 unsigned char hextodec(char c);
 void url_decode(char *str);
+
+#define STRING_FIELD(name, size)                                        \
+	char *name, name##_[size];
+
+#define column_string(res, i, name)                                     \
+	column_string_(res, i, name##_, sizeof(name##_))
+char *column_string_(sqlite3_stmt *res, int i, char *buf, size_t size);
 
 #endif /* CGI_H */

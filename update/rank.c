@@ -61,7 +61,7 @@
 
 /* Contains necessarry info to rank a player */
 struct player_info {
-	char name[NAME_LENGTH];
+	char name[NAME_STRSIZE];
 
 	struct {
 		int elo;

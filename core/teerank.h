@@ -41,4 +41,19 @@ void init_teerank(int flags);
 /* Print the message only when TEERANK_VERBOSE is set */
 void verbose(const char *fmt, ...);
 
+/*
+ * The following constant are from teeworlds source code, and they are
+ * used to put an upper bound on our strings.
+ */
+
+#define NAME_STRSIZE 16
+#define CLAN_STRSIZE 16
+
+#define SERVERNAME_STRSIZE 256
+#define GAMETYPE_STRSIZE 8
+#define MAP_STRSIZE 64
+
+#define IP_STRSIZE sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx")
+#define PORT_STRSIZE sizeof("00000")
+
 #endif /* TEERANK_H */

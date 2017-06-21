@@ -166,7 +166,7 @@ static void load_netclients(void)
 		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
-	foreach_server(query, &server) {
+	foreach_row(query, read_server, &server) {
 		read_server_clients(&server);
 		if ((client = add_netclient(NETCLIENT_TYPE_SERVER, &server)))
 			schedule(&client->update, server.expire);
@@ -197,7 +197,7 @@ static void reference_server(char *ip, char *port, struct master *master)
 		" FROM servers"
 		" WHERE ip = ? AND port = ?";
 
-	foreach_server(query, &s, "ss", ip, port);
+	foreach_row(query, read_server, &s, "ss", ip, port);
 
 	if (!res)
 		return;

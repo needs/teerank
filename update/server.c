@@ -53,7 +53,7 @@ int read_server_clients(struct server *server)
 		" WHERE ip = ? AND port = ?"
 		" ORDER BY score DESC";
 
-	foreach_server_client(query, &server->clients[nrow], "ss", server->ip, server->port)
+	foreach_row(query, read_server_client, &server->clients[nrow], "ss", server->ip, server->port)
 		if (nrow == MAX_CLIENTS)
 			break_foreach;
 

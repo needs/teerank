@@ -22,7 +22,7 @@ void generate_html_clan(struct url *url)
 		"SELECT rank, players.name, clan, elo, lastseen, server_ip, server_port"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE clan IS NOT NULL AND clan IS ?"
-		" ORDER BY rank DESC";
+		" ORDER BY rank";
 
 	struct html_list_column cols[] = {
 		{ "",          NULL,       HTML_COLTYPE_RANK },

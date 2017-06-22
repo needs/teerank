@@ -40,9 +40,9 @@ static void print_player_list(void)
 		" WHERE gametype IS ? AND map IS ?";
 
 	if (strcmp(order, "rank") == 0)
-		sortby = "rank DESC";
+		sortby = "rank";
 	else if (strcmp(order, "lastseen") == 0)
-		sortby = "lastseen DESC, rank DESC";
+		sortby = "lastseen DESC, rank";
 	else
 		error(400, "Invalid order \"%s\"", order);
 

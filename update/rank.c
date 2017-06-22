@@ -478,7 +478,7 @@ void recompute_ranks(void)
 	 * the "pending" table.
 	 */
 	const char *query =
-		"SELECT name, gametype, map, elo"
+		"SELECT gametype, map"
 		" FROM pending"
 		" GROUP BY gametype, map";
 

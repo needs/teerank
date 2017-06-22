@@ -9,6 +9,7 @@
 #include "teerank.h"
 
 sqlite3 *db = NULL;
+int dberr = 0;
 
 int database_version(void)
 {
@@ -17,6 +18,9 @@ int database_version(void)
 
 	foreach_row(res, "SELECT version FROM version")
 		version = column_int(res, 0);
+
+	if (dberr)
+		exit(EXIT_FAILURE);
 
 	if (version == -1) {
 		fprintf(stderr, "%s: Database doesn't contain a version number\n", config.dbpath);
@@ -132,6 +136,14 @@ static void errmsg(const char *func, const char *query)
 {
 	const char *dbpath = config.dbpath;
 	const char *msg = sqlite3_errmsg(db);
+
+	/*
+	 * An error often cause other queries to fail where they would
+	 * normally have succeded.  So we don't print the error message
+	 * when we already have printed one.
+	 */
+	if (dberr++)
+		return;
 
 #ifdef NDEBUG
 	fprintf(stderr, "%s: %s: %s\n", dbpath, func, msg);

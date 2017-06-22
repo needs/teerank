@@ -7,6 +7,8 @@
 #include <sqlite3.h>
 
 extern sqlite3 *db;
+extern int dberr;
+
 int init_database(int readonly);
 
 /* Describe each table columns, used when creating a table */

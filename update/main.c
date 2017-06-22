@@ -342,6 +342,10 @@ static int update(void)
 		if (do_recompute_ranks)
 			recompute_ranks();
 
+		if (dberr) {
+			exec("ROLLBACK");
+			return EXIT_FAILURE;
+		}
 		exec("COMMIT");
 
 		/*

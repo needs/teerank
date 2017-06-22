@@ -40,30 +40,24 @@ static bool upgrade_player(struct old_player *p)
 
 static void upgrade_players(void)
 {
-	int ret = 0;
 	sqlite3_stmt *res;
-
 	const char *add_rank =
 		"INSERT INTO ranks"
 		" VALUES(?, 'CTF', NULL, ?, ?)";
 
-	if (!exec("CREATE TABLE _players" TABLE_DESC_PLAYERS))
-		exit(EXIT_FAILURE);
+	exec("CREATE TABLE _players" TABLE_DESC_PLAYERS);
 
 	foreach_row(res, "SELECT * FROM players") {
 		struct old_player oldp;
 		read_old_player(res, &oldp);
-		ret |= upgrade_player(&oldp);
+		upgrade_player(&oldp);
 
 		/* Since we upgraded all players, ranks remain meaningful */
-		ret |= exec(add_rank, "siu", oldp.name, oldp.elo, oldp.rank);
+		exec(add_rank, "siu", oldp.name, oldp.elo, oldp.rank);
 	}
 
-	ret |= exec("DROP TABLE players");
-	ret |= exec("ALTER TABLE _players RENAME TO players");
-
-	if (!res || !ret)
-		exit(EXIT_FAILURE);
+	exec("DROP TABLE players");
+	exec("ALTER TABLE _players RENAME TO players");
 }
 
 struct pending {
@@ -114,7 +108,11 @@ int main(int argc, char *argv[])
 
 	exec("UPDATE version SET version = ?", "i", DATABASE_VERSION);
 
-	exec("COMMIT");
-
-	return EXIT_SUCCESS;
+	if (dberr) {
+		exec("ROLLBACK");
+		return EXIT_FAILURE;
+	} else {
+		exec("COMMIT");
+		return EXIT_SUCCESS;
+	}
 }

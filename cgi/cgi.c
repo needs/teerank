@@ -458,6 +458,9 @@ int main(int argc, char **argv)
 	route = find_route(&url);
 	route->generate(&url);
 
+	if (dberr)
+		error(500, NULL);
+
 	printf("Content-Type: %s\n", route->content_type);
 	printf("\n");
 	print_output();

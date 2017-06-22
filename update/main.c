@@ -174,18 +174,12 @@ static void load_netclients(void)
  */
 static void reference_server(char *ip, char *port, struct master *master)
 {
-	sqlite3_stmt *res;
-	bool exist = false;
-
 	const char *query =
 		"SELECT COUNT(1)"
 		" FROM servers"
 		" WHERE ip = ? AND port = ?";
 
-	foreach_row(res, query, "ss", ip, port)
-		exist = true;
-
-	if (!exist) {
+	if (count_rows(query, "ss", ip, port) == 0) {
 		struct server server;
 		struct netclient *client;
 

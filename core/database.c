@@ -124,10 +124,10 @@ static int init_masters_table(void)
 
 	const char *query =
 		"INSERT INTO masters"
-		" VALUES(?, ?, NULL, 0)";
+		" VALUES(?, ?, 0, 0)";
 
 	for (; master->node; master++)
-		ret &= exec(query, "sst", master->node, master->service);
+		ret &= exec(query, "ss", master->node, master->service);
 
 	return ret;
 }

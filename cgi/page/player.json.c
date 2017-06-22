@@ -10,15 +10,15 @@
 #include "teerank.h"
 #include "json.h"
 
-static void json_player(sqlite3_stmt *res, void *unused)
+static void json_player(sqlite3_stmt *res)
 {
-	json("%s:%s,", "name", (char *)sqlite3_column_text(res, 0));
-	json("%s:%s,", "clan", (char *)sqlite3_column_text(res, 1));
-	json("%s:%i,", "elo", sqlite3_column_int(res, 2));
-	json("%s:%u,", "rank", (unsigned)sqlite3_column_int64(res, 3));
-	json("%s:%d,", "lastseen", (time_t)sqlite3_column_int64(res, 4));
-	json("%s:%s,", "server_ip", (char *)sqlite3_column_text(res, 5));
-	json("%s:%s", "server_port", (char *)sqlite3_column_text(res, 6));
+	json("%s:%s,", "name", column_text(res, 0));
+	json("%s:%s,", "clan", column_text(res, 1));
+	json("%s:%i,", "elo", column_int(res, 2));
+	json("%s:%u,", "rank", column_unsigned(res, 3));
+	json("%s:%d,", "lastseen", column_time_t(res, 4));
+	json("%s:%s,", "server_ip", column_text(res, 5));
+	json("%s:%s", "server_port", column_text(res, 6));
 }
 
 static void json_player_historic(const char *pname)
@@ -44,11 +44,10 @@ static void json_player_historic(const char *pname)
 void generate_json_player(struct url *url)
 {
 	char *pname = NULL;
-	bool full = true;
+	bool found = false, full = true;
 	unsigned i;
 
 	sqlite3_stmt *res;
-	unsigned nrow;
 
 	const char *query =
 		"SELECT players.name, clan, elo, rank, lastseen, server_ip, server_port"
@@ -64,11 +63,12 @@ void generate_json_player(struct url *url)
 
 	json("{");
 
-	foreach_row(query, json_player, NULL, "s", pname);
+	foreach_row(res, query, "s", pname) {
+		json_player(res);
+		found = true;
+	}
 
-	if (!res)
-		error(500, NULL);
-	if (!nrow)
+	if (!found)
 		error(404, NULL);
 	if (full)
 		json_player_historic(pname);

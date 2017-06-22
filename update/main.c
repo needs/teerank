@@ -79,31 +79,16 @@ static time_t double_expiry_date(time_t lastexpire, time_t lastseen)
 /* Update clan and lastseen date of connected clients */
 static void update_players(struct server *sv)
 {
-	struct client *c;
-	unsigned i, nrow;
-	struct sqlite3_stmt *res;
+	unsigned i;
 
-	const char *exist =
-		"SELECT null FROM players WHERE name = ?";
-
-	const char *update =
-		"UPDATE players"
-		" SET clan = ?, lastseen = ?, server_ip = ?, server_port = ?"
-		" WHERE name = ?";
-
-	const char *insert =
-		"INSERT INTO players"
+	const char *replace =
+		"REPLACE INTO players"
 		" VALUES(?, ?, ?, ?, ?)";
 
 	for (i = 0; i < sv->num_clients; i++) {
-		c = &sv->clients[i];
-
-		foreach_row(exist, NULL, NULL, "s", c->name);
-
-		if (res && nrow)
-			exec(update, "stsss", c->clan, time(NULL), sv->ip, sv->port, c->name);
-		else if (res)
-			exec(insert, "sstss", c->name, c->clan, time(NULL), sv->ip, sv->port);
+		struct client *c = &sv->clients[i];
+		exec(replace, "sstss",
+		     c->name, c->clan, time(NULL), sv->ip, sv->port);
 	}
 }
 
@@ -160,13 +145,13 @@ static void load_netclients(void)
 	const char *query;
 
 	sqlite3_stmt *res;
-	unsigned nrow;
 
 	query =
 		"SELECT" ALL_SERVER_COLUMNS
 		" FROM servers";
 
-	foreach_row(query, read_server, &server) {
+	foreach_row(res, query) {
+		read_server(res, &server);
 		read_server_clients(&server);
 		if ((client = add_netclient(NETCLIENT_TYPE_SERVER, &server)))
 			schedule(&client->update, server.expire);
@@ -176,7 +161,8 @@ static void load_netclients(void)
 		"SELECT node, service, lastseen, expire"
 		" FROM masters";
 
-	foreach_row(query, read_master, &master) {
+	foreach_row(res, query) {
+		read_master(res, &master);
 		if ((client = add_netclient(NETCLIENT_TYPE_MASTER, &master)))
 			schedule(&client->update, master.expire);
 	}
@@ -188,21 +174,18 @@ static void load_netclients(void)
  */
 static void reference_server(char *ip, char *port, struct master *master)
 {
-	unsigned nrow;
 	sqlite3_stmt *res;
-	struct server s;
+	bool exist = false;
 
 	const char *query =
-		"SELECT" ALL_SERVER_COLUMNS
+		"SELECT COUNT(1)"
 		" FROM servers"
 		" WHERE ip = ? AND port = ?";
 
-	foreach_row(query, read_server, &s, "ss", ip, port);
+	foreach_row(res, query, "ss", ip, port)
+		exist = true;
 
-	if (!res)
-		return;
-
-	if (!nrow) {
+	if (!exist) {
 		struct server server;
 		struct netclient *client;
 

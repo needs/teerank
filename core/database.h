@@ -2,6 +2,7 @@
 #define DATABASE_H
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include <time.h>
 #include <sqlite3.h>
 
@@ -24,31 +25,37 @@ time_t last_database_update(void);
  * Helper to return the result of query counting rows.  hence queries
  * should look like: "SELECT COUNT(1) FROM ...".
  */
-#define count_rows(query, ...) _count_rows(query, "" __VA_ARGS__)
-unsigned _count_rows(const char *query, const char *bindfmt, ...);
+#define count_rows(query, ...) count_rows_(query, "" __VA_ARGS__)
+unsigned count_rows_(const char *query, const char *bindfmt, ...);
 
 /*
  * Helper to execute a query yielding no results, and binds data before
  * executing the query.  exec() keep the last query in memory, hence
  * reusing a query should not prepare() it each time.
  */
-#define exec(query, ...) _exec(query, "" __VA_ARGS__)
-int _exec(const char *query, const char *bindfmt, ...);
+#define exec(query, ...) exec_(query, "" __VA_ARGS__)
+bool exec_(const char *query, const char *bindfmt, ...);
 
 /*
- * Helper to read result row from queries.  Prepare, run and clean up
- * resources necessary to process the given query.  User must have
- * declared "sqlite3_stmt *res; unsigned nrow;".
+ * Helper to loop through results. There is no way to differentiate an
+ * error from a normal loop termination.  However a message will be
+ * printed on stderr when an error happen.
  */
-#define foreach_row(query, read_row, buf, ...) for ( \
-	res = foreach_init(query, "" __VA_ARGS__), nrow = 0; \
-	foreach_next(&res, (buf), read_row);       nrow++ \
+#define foreach_row(res, query, ...) for (                              \
+	(res = foreach_init(query, "" __VA_ARGS__));                    \
+	(res = foreach_next(res));                                      \
 )
 sqlite3_stmt *foreach_init(const char *query, const char *bindfmt, ...);
-int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*, void*));
+sqlite3_stmt *foreach_next(sqlite3_stmt *res);
 
-/* Should be used instead of break; to exit foreach_row() loop */
-#define break_foreach { sqlite3_finalize(res); break; }
+/* Helpers to extract a value from a result row */
+#define column_bool(res, i) (bool)sqlite3_column_int(res, i)
+#define column_int(res, i) sqlite3_column_int(res, i)
+#define column_unsigned(res, i) (unsigned)sqlite3_column_int64(res, i)
+#define column_time_t(res, i) (time_t)sqlite3_column_int64(res, i)
+#define column_text(res, i) (char *)sqlite3_column_text(res, i)
+char *column_text_copy(sqlite3_stmt *res, int i, char *buf, size_t size);
+bool is_column_null(sqlite3_stmt *res, int i);
 
 /*
  * The following functions are used when doing bulk insert/update.

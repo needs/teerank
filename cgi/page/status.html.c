@@ -71,20 +71,17 @@ struct master {
 	unsigned nservers;
 };
 
-static void read_master(sqlite3_stmt *res, void *master_)
+static void read_master(sqlite3_stmt *res, struct master *master)
 {
-	struct master *master = master_;
-	master->node = (char *)sqlite3_column_text(res, 0);
-	master->lastseen = (time_t)sqlite3_column_int64(res, 1);
-	master->nservers = (unsigned)sqlite3_column_int64(res, 2);
+	master->node = column_text(res, 0);
+	master->lastseen = column_time_t(res, 1);
+	master->nservers = column_unsigned(res, 2);
 }
 
 static int show_masters_status(int teerank_stopped)
 {
-	struct master m;
 	struct sqlite3_stmt *res;
 	char buf[16], comment[64];
-	unsigned nrow;
 
 	const char *query =
 		"SELECT node, lastseen,"
@@ -98,7 +95,10 @@ static int show_masters_status(int teerank_stopped)
 
 	html("<h2>Teeworlds</h2>");
 
-	foreach_row(query, read_master, &m) {
+	foreach_row(res, query) {
+		struct master m;
+		read_master(res, &m);
+
 		/*
 		 * If teerank is stopped, then we can't really guess
 		 * masters status.

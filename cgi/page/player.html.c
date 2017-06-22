@@ -9,29 +9,27 @@
 #include "html.h"
 
 struct player {
-	STRING_FIELD(name, NAME_STRSIZE);
-	STRING_FIELD(clan, NAME_STRSIZE);
+	char *name, name_[NAME_STRSIZE];
+	char *clan, clan_[CLAN_STRSIZE];
 	time_t lastseen;
-	STRING_FIELD(server_ip, IP_STRSIZE);
-	STRING_FIELD(server_port, PORT_STRSIZE);
+	char *server_ip, server_ip_[IP_STRSIZE];
+	char *server_port, server_port_[PORT_STRSIZE];
 
 	int elo;
 	unsigned rank;
 };
 
-static void read_player(sqlite3_stmt *res, void *p_)
+static void read_player(sqlite3_stmt *res, struct player *p)
 {
-	struct player *p = p_;
+	p->name = column_text_copy(res, 0, p->name_, sizeof(p->name_));
+	p->clan = column_text_copy(res, 1, p->clan_, sizeof(p->clan_));
 
-	p->name = column_string(res, 0, p->name);
-	p->clan = column_string(res, 1, p->clan);
+	p->lastseen = column_time_t(res, 2);
+	p->server_ip = column_text_copy(res, 3, p->server_ip_, sizeof(p->server_ip_));
+	p->server_port = column_text_copy(res, 4, p->server_port_, sizeof(p->server_port_));
 
-	p->lastseen = sqlite3_column_int64(res, 2);
-	p->server_ip = column_string(res, 3, p->server_ip);
-	p->server_port = column_string(res, 4, p->server_port);
-
-	p->elo = sqlite3_column_int(res, 5);
-	p->rank = sqlite3_column_int64(res, 6);
+	p->elo = column_int(res, 5);
+	p->rank = column_unsigned(res, 6);
 }
 
 void generate_html_player(struct url *url)
@@ -39,9 +37,10 @@ void generate_html_player(struct url *url)
 	url_t urlfmt;
 	char *pname = NULL;
 	struct player player;
+	bool found = false;
 
 	sqlite3_stmt *res;
-	unsigned i, nrow;
+	unsigned i;
 
 	const char *query =
 		"SELECT players.name, clan, lastseen, server_ip, server_port, elo, rank"
@@ -56,10 +55,11 @@ void generate_html_player(struct url *url)
 	if (!pname)
 		error(400, "Player name required");
 
-	foreach_row(query, read_player, &player, "s", pname);
-	if (!res)
-		error(500, NULL);
-	if (!nrow)
+	foreach_row(res, query, "s", pname) {
+		read_player(res, &player);
+		found = true;
+	}
+	if (!found)
 		error(404, NULL);
 
 	html_header(pname, pname, "/players", NULL);

@@ -11,40 +11,36 @@
 #include "server.h"
 #include "teerank.h"
 
-void read_server(sqlite3_stmt *res, void *s_)
+void read_server(sqlite3_stmt *res, struct server *s)
 {
-	struct server *s = s_;
+	column_text_copy(res, 0, s->ip, sizeof(s->ip));
+	column_text_copy(res, 1, s->port, sizeof(s->port));
+	column_text_copy(res, 2, s->name, sizeof(s->name));
+	column_text_copy(res, 3, s->gametype, sizeof(s->gametype));
+	column_text_copy(res, 4, s->map, sizeof(s->map));
 
-	snprintf(s->ip, sizeof(s->ip), "%s", sqlite3_column_text(res, 0));
-	snprintf(s->port, sizeof(s->port), "%s", sqlite3_column_text(res, 1));
-	snprintf(s->name, sizeof(s->name), "%s", sqlite3_column_text(res, 2));
-	snprintf(s->gametype, sizeof(s->gametype), "%s", sqlite3_column_text(res, 3));
-	snprintf(s->map, sizeof(s->map), "%s", sqlite3_column_text(res, 4));
+	s->lastseen = column_time_t(res, 5);
+	s->expire = column_time_t(res, 6);
 
-	s->lastseen = sqlite3_column_int64(res, 5);
-	s->expire = sqlite3_column_int64(res, 6);
+	column_text_copy(res, 7, s->master_node, sizeof(s->master_node));
+	column_text_copy(res, 8, s->master_service, sizeof(s->master_service));
 
-	snprintf(s->master_node, sizeof(s->master_node), "%s", sqlite3_column_text(res, 7));
-	snprintf(s->master_service, sizeof(s->master_service), "%s", sqlite3_column_text(res, 8));
-
-	s->max_clients = sqlite3_column_int(res, 9);
+	s->max_clients = column_unsigned(res, 9);
 	s->num_clients = 0;
 }
 
-void read_server_client(sqlite3_stmt *res, void *_c)
+void read_server_client(sqlite3_stmt *res, struct client *c)
 {
-	struct client *c = _c;
+	column_text_copy(res, 0, c->name, sizeof(c->name));
+	column_text_copy(res, 1, c->clan, sizeof(c->clan));
 
-	snprintf(c->name, sizeof(c->name), "%s", sqlite3_column_text(res, 0));
-	snprintf(c->clan, sizeof(c->clan), "%s", sqlite3_column_text(res, 1));
-
-	c->score = sqlite3_column_int(res, 2);
-	c->ingame = sqlite3_column_int(res, 3);
+	c->score = column_int(res, 2);
+	c->ingame = column_bool(res, 3);
 }
 
-int read_server_clients(struct server *server)
+void read_server_clients(struct server *server)
 {
-	unsigned nrow;
+	unsigned i = 0;
 	sqlite3_stmt *res;
 
 	const char *query =
@@ -53,15 +49,14 @@ int read_server_clients(struct server *server)
 		" WHERE ip = ? AND port = ?"
 		" ORDER BY score DESC";
 
-	foreach_row(query, read_server_client, &server->clients[nrow], "ss", server->ip, server->port)
-		if (nrow == MAX_CLIENTS)
-			break_foreach;
+	foreach_row(res, query, "ss", server->ip, server->port) {
+		if (i < MAX_CLIENTS) {
+			read_server_client(res, &server->clients[i]);
+			i++;
+		}
+	}
 
-	if (!res)
-		return 0;
-
-	server->num_clients = nrow;
-	return 1;
+	server->num_clients = i;
 }
 
 static int flush_server_clients(const char *ip, const char *port)

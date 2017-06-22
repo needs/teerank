@@ -11,28 +11,28 @@ const struct master DEFAULT_MASTERS[5] = {
 	{ "", "" }
 };
 
-static void _read_master(sqlite3_stmt *res, void *_m, int extended)
+static void read_master_(sqlite3_stmt *res, void *_m, bool extended)
 {
 	struct master *m = _m;
 
-	snprintf(m->node, sizeof(m->node), "%s", sqlite3_column_text(res, 0));
-	snprintf(m->service, sizeof(m->service), "%s", sqlite3_column_text(res, 1));
+	column_text_copy(res, 0, m->node, sizeof(m->node));
+	column_text_copy(res, 1, m->service, sizeof(m->service));
 
-	m->lastseen = sqlite3_column_int64(res, 2);
-	m->expire = sqlite3_column_int64(res, 3);
+	m->lastseen = column_time_t(res, 2);
+	m->expire = column_time_t(res, 3);
 
 	if (extended)
-		m->nservers = sqlite3_column_int64(res, 4);
+		m->nservers = column_unsigned(res, 4);
 }
 
 void read_master(sqlite3_stmt *res, void *m)
 {
-	_read_master(res, m, 0);
+	read_master_(res, m, 0);
 }
 
 void read_extended_master(sqlite3_stmt *res, void *m)
 {
-	_read_master(res, m, 1);
+	read_master_(res, m, 1);
 }
 
 int write_master(struct master *m)

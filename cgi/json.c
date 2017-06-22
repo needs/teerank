@@ -10,60 +10,54 @@ enum list_type {
 	VALUE
 };
 
-struct args {
-	struct json_list_column *cols;
-	unsigned nrow;
-	enum list_type type;
-};
-
-static void list_item(sqlite3_stmt *res, void *args_)
+static void list_item(sqlite3_stmt *res, struct json_list_column *col, enum list_type type, unsigned nrow)
 {
-	struct args *args = args_;
-	struct json_list_column *col = args->cols;
 	unsigned i;
 
-	if(args->nrow)
+	if(nrow)
 		json(",");
 
-	if (args->type == OBJECT)
+	if (type == OBJECT)
 		json("{");
-	else if (args->type == ARRAY)
+	else if (type == ARRAY)
 		json("[");
 
 	for (i = 0; col->title; col++, i++) {
 		if (i)
 			json(",");
 
-		if (args->type == OBJECT)
+		if (type == OBJECT)
 			json("%s:", col->title);
 
-		if (sqlite3_column_type(res, i) == SQLITE_NULL) {
+		if (is_column_null(res, i)) {
 			json("null");
 			continue;
 		}
 
 		switch (col->type[1]) {
 		case 's':
-			json(col->type, sqlite3_column_text(res, i));
+			json(col->type, column_text(res, i));
 			break;
 		case 'b':
+			json(col->type, column_bool(res, i));
+			break;
 		case 'i':
-			json(col->type, sqlite3_column_int(res, i));
+			json(col->type, column_int(res, i));
 			break;
 		case 'u':
-			json(col->type, (unsigned)sqlite3_column_int64(res, i));
+			json(col->type, column_unsigned(res, i));
 			break;
 		case 'd':
-			json(col->type, (time_t)sqlite3_column_int64(res, i));
+			json(col->type, column_time_t(res, i));
 			break;
 		default:
 			assert(!"Unimplemented conversion specifier");
 		};
 	}
 
-	if (args->type == OBJECT)
+	if (type == OBJECT)
 		json("}");
-	else if (args->type == ARRAY)
+	else if (type == ARRAY)
 		json("]");
 }
 
@@ -71,17 +65,17 @@ static void list(
 	sqlite3_stmt *res, struct json_list_column *cols,
 	char *lenname, enum list_type type)
 {
-	struct args args = {
-		cols, 0, type
-	};
+	unsigned nrow = 0;
 
 	json("[");
-	while (foreach_next(&res, &args, list_item))
-		args.nrow++;
+	while ((res = foreach_next(res))) {
+		list_item(res, cols, type, nrow);
+		nrow++;
+	}
 	json("]");
 
 	if (lenname)
-		json(",%s:%u", lenname, args.nrow);
+		json(",%s:%u", lenname, nrow);
 }
 
 void json_list(

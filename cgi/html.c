@@ -388,40 +388,30 @@ static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
 	html("</nav>");
 }
 
-struct list_args {
-	struct html_list_column *cols;
-	list_class_func_t class_cb;
-};
-
-#define next(stype, ctype) (ctype)sqlite3_column_##stype(res, i++)
-#define is_null(i) sqlite3_column_type(res, i)
-
-static void list_item(sqlite3_stmt *res, void *args_)
+static void list_item(sqlite3_stmt *res, struct html_list_column *col, list_class_func_t class_cb)
 {
-	struct list_args *args = args_;
-	struct html_list_column *col = args->cols;
 	char *class = NULL;
 	unsigned i = 0;
 	url_t url;
 
-	if (args->class_cb)
-		class = args->class_cb(res);
+	if (class_cb)
+		class = class_cb(res);
 	if (class)
 		html("<tr class=\"%s\">", class);
 	else
 		html("<tr>");
 
-	for (col = args->cols; col->title; col++) {
+	while (col->title) {
 		switch (col->type) {
 		case HTML_COLTYPE_NONE: {
-			char *val = next(text, char *);
+			char *val = column_text(res, i++);
 			html("<td>%s</td>", val);
 			break;
 		}
 
 		case HTML_COLTYPE_RANK: {
-			unsigned rank = next(int64, unsigned);
-			if (!is_null(i-1))
+			unsigned rank = column_unsigned(res, i++);
+			if (!is_column_null(res, i-1))
 				html("<td>%u</td>", rank);
 			else
 				html("<td title=\"Will be calculated within the next minutes\">...</td>");
@@ -429,8 +419,8 @@ static void list_item(sqlite3_stmt *res, void *args_)
 		}
 
 		case HTML_COLTYPE_ELO: {
-			int elo = next(int, int);
-			if (!is_null(i-1))
+			int elo = column_int(res, i++);
+			if (!is_column_null(res, i-1))
 				html("<td>%i</td>", elo);
 			else
 				html("<td title=\"Will be calculated within the next minutes\">...</td>");
@@ -438,15 +428,15 @@ static void list_item(sqlite3_stmt *res, void *args_)
 		}
 
 		case HTML_COLTYPE_PLAYER: {
-			char *name = next(text, char *);
+			char *name = column_text(res, i++);
 			URL(url, "/player", PARAM_NAME(name));
 			html("<td><a href=\"%S\">%s</a></td>", url, name);
 			break;
 		}
 
 		case HTML_COLTYPE_ONLINE_PLAYER: {
-			char *name = next(text, char *);
-			bool ingame = next(int, bool);
+			char *name = column_text(res, i++);
+			bool ingame = column_bool(res, i++);
 			char *specimg =
 				"<img"
 				" src=\"/images/spectator.png\""
@@ -462,16 +452,16 @@ static void list_item(sqlite3_stmt *res, void *args_)
 		}
 
 		case HTML_COLTYPE_CLAN: {
-			char *clan = next(text, char *);
+			char *clan = column_text(res, i++);
 			URL(url, "/clan", PARAM_NAME(clan));
 			html("<td><a href=\"%S\">%s</a></td>", url, clan);
 			break;
 		}
 
 		case HTML_COLTYPE_SERVER: {
-			char *name = next(text, char *);
-			char *ip = next(text, char *);
-			char *port = next(text, char *);
+			char *name = column_text(res, i++);
+			char *ip = column_text(res, i++);
+			char *port = column_text(res, i++);
 
 			URL(url, "/server", PARAM_IP(ip), PARAM_PORT(port));
 			html("<td><a href=\"%S\">%s</a></td>", url, name);
@@ -479,9 +469,9 @@ static void list_item(sqlite3_stmt *res, void *args_)
 		}
 
 		case HTML_COLTYPE_LASTSEEN: {
-			time_t lastseen = next(int64, time_t);
-			char *ip = next(text, char *);
-			char *port = next(text, char *);
+			time_t lastseen = column_time_t(res, i++);
+			char *ip = column_text(res, i++);
+			char *port = column_text(res, i++);
 
 			html("<td>");
 			player_lastseen_link(lastseen, ip, port);
@@ -490,29 +480,28 @@ static void list_item(sqlite3_stmt *res, void *args_)
 		}
 
 		case HTML_COLTYPE_PLAYER_COUNT: {
-			char *nplayers = next(text, char *);
-			char *maxplayers = next(text, char *);
+			char *nplayers = column_text(res, i++);
+			char *maxplayers = column_text(res, i++);
 			html("<td>%s / %s</td>", nplayers, maxplayers);
 			break;
 		}
 		}
+		col++;
 	}
 	html("</tr>");
 }
-
-#undef is_null
-#undef next
 
 void html_list(
 	sqlite3_stmt *res, struct html_list_column *cols, char *order,
 	list_class_func_t class, url_t url, unsigned pnum, unsigned nrow)
 {
-	struct list_args args = { cols, class };
 	bool empty = true;
 
 	list_header(cols, order, class, url, pnum);
-	while (foreach_next(&res, &args, list_item))
+	while ((res = foreach_next(res))) {
+		list_item(res, cols, class);
 		empty = false;
+	}
 	list_footer(url, empty, pnum, nrow);
 }
 

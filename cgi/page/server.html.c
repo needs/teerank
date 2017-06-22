@@ -12,7 +12,7 @@ static char *client_list_class(sqlite3_stmt *res)
 {
 	if (!res)
 		return "playerlist";
-	else if (sqlite3_column_int(res, 2) == 0)
+	else if (column_int(res, 2) == 0)
 		return "spectator";
 	else
 		return NULL;
@@ -45,12 +45,12 @@ static void show_client_list(char *ip, char *port, char *gametype, char *map)
 }
 
 struct server {
-	STRING_FIELD(ip, IP_STRSIZE);
-	STRING_FIELD(port, PORT_STRSIZE);
+	char *ip, ip_[IP_STRSIZE];
+	char *port, port_[PORT_STRSIZE];
 
-	STRING_FIELD(name, NAME_STRSIZE);
-	STRING_FIELD(gametype, GAMETYPE_STRSIZE);
-	STRING_FIELD(map, MAP_STRSIZE);
+	char *name, name_[SERVERNAME_STRSIZE];
+	char *gametype, gametype_[GAMETYPE_STRSIZE];
+	char *map, map_[MAP_STRSIZE];
 
 	unsigned num_players;
 	unsigned num_specs;
@@ -59,18 +59,16 @@ struct server {
 	unsigned max_clients;
 };
 
-static void read_server(struct sqlite3_stmt *res, void *s_)
+static void read_server(struct sqlite3_stmt *res, struct server *s)
 {
-	struct server *s = s_;
+	s->ip = column_text_copy(res, 0, s->ip_, sizeof(s->ip_));
+	s->port = column_text_copy(res, 1, s->port_, sizeof(s->port_));
 
-	s->ip = column_string(res, 0, s->ip);
-	s->port = column_string(res, 1, s->port);
+	s->name = column_text_copy(res, 2, s->name_, sizeof(s->name_));
+	s->gametype = column_text_copy(res, 3, s->gametype_, sizeof(s->gametype_));
+	s->map = column_text_copy(res, 4, s->map_, sizeof(s->map_));
 
-	s->name = column_string(res, 2, s->name);
-	s->gametype = column_string(res, 3, s->gametype);
-	s->map = column_string(res, 4, s->map);
-
-	s->max_clients = sqlite3_column_int64(res, 5);
+	s->max_clients = column_unsigned(res, 5);
 
 	s->num_players = count_rows(
 		"SELECT COUNT(1)"
@@ -114,8 +112,8 @@ void generate_html_server(struct url *url)
 	struct server server;
 	unsigned i;
 	sqlite3_stmt *res;
-	unsigned nrow;
 	url_t urlfmt;
+	bool found = false;
 
 	char *addr;
 	char *ip = DEFAULT_PARAM_VALUE(PARAM_IP(0));
@@ -138,10 +136,11 @@ void generate_html_server(struct url *url)
 	if (!port)
 		error(400, "Missing 'port' parameter");
 
-	foreach_row(query, read_server, &server, "ss", ip, port);
-	if (!res)
-		error(500, NULL);
-	if (!nrow)
+	foreach_row(res, query, "ss", ip, port) {
+		read_server(res, &server);
+		found = true;
+	}
+	if (!found)
 		error(404, NULL);
 
 	/* Eventually, print them */

@@ -10,26 +10,15 @@
 
 sqlite3 *db = NULL;
 
-static void read_version(sqlite3_stmt *res, void *_version)
-{
-	int *version = _version;
-	*version = sqlite3_column_int(res, 0);
-}
-
 int database_version(void)
 {
-	int version;
 	sqlite3_stmt *res;
-	unsigned nrow;
+	int version = -1;
 
-	const char *query = "SELECT version FROM version";
+	foreach_row(res, "SELECT version FROM version")
+		version = column_int(res, 0);
 
-	foreach_row(query, read_version, &version);
-
-	if (!res)
-		exit(EXIT_FAILURE);
-
-	if (!nrow) {
+	if (version == -1) {
 		fprintf(stderr, "%s: Database doesn't contain a version number\n", config.dbpath);
 		exit(EXIT_FAILURE);
 	}
@@ -160,29 +149,16 @@ void create_all_indices(void)
 	exec("CREATE INDEX players_by_clan ON players (clan)");
 }
 
-#define MAX_QUERY_STRSIZE (sizeof("DROP INDEX") + 32)
-
-static void read_index_name(sqlite3_stmt *res, void *_query)
-{
-	char *query = _query;
-	const char *name = (const char*)sqlite3_column_text(res, 0);
-	snprintf(query, MAX_QUERY_STRSIZE, "DROP INDEX %s", name);
-}
-
-#define MAX_INDICES 16
-
 /*
- * We want to drop old indices even unknown ones from an old database.
- * Thankfully Sqlite provide a way to query all indices names.  However,
- * we can't delete them while iterating on them.  So we need to store
- * them and then proceed to remove them.
+ * We can query the list of all indices by looking in the
+ * "sqlite_master" table.  However, we can't delete indices while using
+ * "sqlite_master".  So we store indices names and then we drop them.
  */
 void drop_all_indices(void)
 {
+	char qs[16][64];
 	sqlite3_stmt *res;
-	unsigned nrow;
-
-	char queries[MAX_INDICES][MAX_QUERY_STRSIZE];
+	unsigned i = 0;
 
 	/*
 	 * Avoid indices starting by "sqlite" because they are
@@ -194,15 +170,16 @@ void drop_all_indices(void)
 		" WHERE type == 'index'"
 		"  AND name NOT LIKE 'sqlite%'";
 
-	foreach_row(select, read_index_name, queries[nrow]) {
-		if (nrow + 1 == MAX_INDICES) {
-			nrow++;
-			break_foreach;
+	foreach_row(res, select) {
+		if (i < 16) {
+			char *name = column_text(res, 0);
+			snprintf(qs[i], sizeof(qs[i]), "DROP INDEX %s", name);
+			i++;
 		}
 	}
 
-	while (nrow --> 0)
-		exec(queries[nrow]);
+	while (i --> 0)
+		exec(qs[i]);
 }
 
 static int create_database(void)
@@ -317,7 +294,7 @@ int init_database(int readonly)
 	return 1;
 }
 
-unsigned _count_rows(const char *query, const char *bindfmt, ...)
+unsigned count_rows_(const char *query, const char *bindfmt, ...)
 {
 	va_list ap;
 	unsigned ret, count;
@@ -335,7 +312,7 @@ unsigned _count_rows(const char *query, const char *bindfmt, ...)
 	if (sqlite3_step(res) != SQLITE_ROW)
 		goto fail;
 
-	count = sqlite3_column_int64(res, 0);
+	count = column_unsigned(res, 0);
 
 	sqlite3_finalize(res);
 	return count;
@@ -389,7 +366,7 @@ static void destroy_query(const char **prevquery, sqlite3_stmt **res)
 	*res = NULL;
 }
 
-int _exec(const char *query, const char *bindfmt, ...)
+bool exec_(const char *query, const char *bindfmt, ...)
 {
 	static const char *prevquery;
 	static sqlite3_stmt *res;
@@ -450,24 +427,36 @@ fail:
 	return NULL;
 }
 
-int foreach_next(sqlite3_stmt **res, void *data, void (*read_row)(sqlite3_stmt*, void*))
+sqlite3_stmt *foreach_next(sqlite3_stmt *res)
 {
-	if (!*res)
-		return 0;
+	int ret = sqlite3_step(res);
 
-	int ret = sqlite3_step(*res);
-
-	if (ret == SQLITE_DONE) {
-		sqlite3_finalize(*res);
-		return 0;
-	} else if (ret == SQLITE_ROW) {
-		if (read_row)
-			read_row(*res, data);
-		return 1;
+	if (ret == SQLITE_ROW) {
+		return res;
+	} else if (ret == SQLITE_DONE) {
+		sqlite3_finalize(res);
+		return NULL;
 	} else {
 		errmsg("foreach_next", NULL);
-		sqlite3_finalize(*res);
-		*res = NULL;
-		return 0;
+		sqlite3_finalize(res);
+		return NULL;
 	}
+}
+
+char *column_text_copy(sqlite3_stmt *res, int i, char *buf, size_t size)
+{
+	char *text = column_text(res, i);
+
+	if (!text)
+		return NULL;
+	if (!buf)
+		return text;
+
+	snprintf(buf, size, "%s", text);
+	return buf;
+}
+
+bool is_column_null(sqlite3_stmt *res, int i)
+{
+	return sqlite3_column_type(res, i) == SQLITE_NULL;
 }

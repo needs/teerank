@@ -20,19 +20,17 @@ struct server {
 	unsigned max_clients;
 };
 
-static void read_server(sqlite3_stmt *res, void *s_)
+static void read_server(sqlite3_stmt *res, struct server *s)
 {
-	struct server *s = s_;
+	s->ip = column_text(res, 0);
+	s->port = column_text(res, 1);
+	s->name = column_text(res, 2);
+	s->gametype = column_text(res, 3);
+	s->map = column_text(res, 4);
 
-	s->ip = (char *)sqlite3_column_text(res, 0);
-	s->port = (char *)sqlite3_column_text(res, 1);
-	s->name = (char *)sqlite3_column_text(res, 2);
-	s->gametype = (char *)sqlite3_column_text(res, 3);
-	s->map = (char *)sqlite3_column_text(res, 4);
-
-	s->lastseen = sqlite3_column_int64(res, 5);
-	s->expire = sqlite3_column_int64(res, 6);
-	s->max_clients = sqlite3_column_int(res, 7);
+	s->lastseen = column_time_t(res, 5);
+	s->expire = column_time_t(res, 6);
+	s->max_clients = column_unsigned(res, 7);
 }
 
 static void json_server(struct server *server)
@@ -84,9 +82,9 @@ static void json_server(struct server *server)
 
 void generate_json_server(struct url *url)
 {
-	struct server server;
 	sqlite3_stmt *res;
-	unsigned i, nrow;
+	unsigned i;
+	bool found = false;
 
 	char *ip = DEFAULT_PARAM_VALUE(PARAM_IP(0));
 	char *port = DEFAULT_PARAM_VALUE(PARAM_PORT(0));
@@ -108,11 +106,13 @@ void generate_json_server(struct url *url)
 	if (!port)
 		error(400, "Missing 'port' parameter");
 
-	foreach_row(query, read_server, &server, "ss", ip, port);
-	if (!res)
-		error(500, NULL);
-	if (!nrow)
-		error(404, NULL);
+	foreach_row(res, query, "ss", ip, port) {
+		struct server server;
+		read_server(res, &server);
+		json_server(&server);
+		found = true;
+	}
 
-	json_server(&server);
+	if (!found)
+		error(404, NULL);
 }

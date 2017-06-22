@@ -105,18 +105,6 @@ static int is_already_loaded(struct player_info *players, const char *pname)
 	return 0;
 }
 
-static void read_elo(struct sqlite3_stmt *res, void *_elo)
-{
-	int *elo = _elo;
-	*elo = sqlite3_column_int(res, 0);
-}
-
-/*
- * When an elo score cannot be loaded for some reasons, use this special
- * value to skip the player for this ranking session.
- */
-static const int ERROR_NO_ELO = INT_MIN;
-
 /*
  * When ranking players, we need the latest score available.  Taking the
  * score from the "ranks" table is not enough because there could be
@@ -125,9 +113,7 @@ static const int ERROR_NO_ELO = INT_MIN;
  */
 static int latest_elo(const char *pname, const char *gametype, const char *map)
 {
-	unsigned nrow;
 	sqlite3_stmt *res;
-	int elo;
 
 	const char *in_pending =
 		"SELECT elo"
@@ -139,23 +125,19 @@ static int latest_elo(const char *pname, const char *gametype, const char *map)
 		" FROM ranks"
 		" WHERE name = ? AND gametype = ? AND map = ?";
 
-	foreach_row(in_pending, read_elo, &elo, "sss", pname, gametype, map);
-
-	if (res && nrow)
+	foreach_row(res, in_pending, "sss", pname, gametype, map) {
+		int elo = column_int(res, 0);
+		sqlite3_finalize(res);
 		return elo;
+	}
 
-	foreach_row(in_ranks, read_elo, &elo, "sss", pname, gametype, map);
-
-	/*
-	 * We don't return DEFAULT_ELO on error, because we don't want
-	 * to overide the old elo score.
-	 */
-	if (res && nrow)
+	foreach_row(res, in_ranks, "sss", pname, gametype, map) {
+		int elo = column_int(res, 0);
+		sqlite3_finalize(res);
 		return elo;
-	else if (res)
-		return DEFAULT_ELO;
-	else
-		return ERROR_NO_ELO;
+	}
+
+	return DEFAULT_ELO;
 }
 
 /* Load every unique players and query their latest elo score */
@@ -174,12 +156,6 @@ static void load_players(struct server *old, struct server *new, struct player_i
 
 		p->gametype.elo = latest_elo(pname, new->gametype, NULL);
 		p->map.elo      = latest_elo(pname, new->gametype, new->map);
-
-		/* If an elo could not be acquired, ignore the player */
-		if (
-			p->gametype.elo == ERROR_NO_ELO ||
-			p->map.elo      == ERROR_NO_ELO)
-			continue;
 
 		snprintf(p->name, sizeof(p->name), "%s", pname);
 		p->new = &new->clients[i];
@@ -452,22 +428,6 @@ static void record_changes(void)
 		exec("DELETE FROM pending");
 }
 
-struct pending {
-	const char *name;
-	const char *gametype;
-	const char *map;
-	int elo;
-};
-
-static void read_pending(struct sqlite3_stmt *res, void *_p)
-{
-	struct pending *p = _p;
-	p->name = (char*)sqlite3_column_text(res, 0);
-	p->gametype = (char*)sqlite3_column_text(res, 1);
-	p->map = (char*)sqlite3_column_text(res, 2);
-	p->elo = sqlite3_column_int(res, 3);
-}
-
 /*
  * This does only compute ranks of player given one gametype and one
  * map.  It is then called multiple times by recompute_ranks() for each
@@ -475,13 +435,11 @@ static void read_pending(struct sqlite3_stmt *res, void *_p)
  */
 static void do_recompute_ranks(const char *gametype, const char *map)
 {
-	unsigned nrow, rank = 0;
+	unsigned rank = 0;
 	sqlite3_stmt *res;
-	struct pending p;
 
-	/* Reuse read_pending() by selecting the same set of fields */
 	const char *select =
-		"SELECT name, gametype, map, elo"
+		"SELECT name"
 		" FROM ranks"
 		" WHERE gametype = ? AND map = ?"
 		" ORDER BY elo DESC, lastseen DESC, name DESC";
@@ -491,8 +449,10 @@ static void do_recompute_ranks(const char *gametype, const char *map)
 		" SET rank = ?"
 		" WHERE name = ? AND gametype = ? AND map = ?";
 
-	foreach_row(select, read_pending, &p, "ss", gametype, map)
-		exec(update, "usss", ++rank, p.name, gametype, map);
+	foreach_row(res, select, "ss", gametype, map) {
+		char *name = column_text(res, 0);
+		exec(update, "usss", ++rank, name, gametype, map);
+	}
 }
 
 /*
@@ -503,9 +463,8 @@ static void do_recompute_ranks(const char *gametype, const char *map)
  */
 void recompute_ranks(void)
 {
-	unsigned nrow;
+	unsigned nr_leagues = 0;
 	sqlite3_stmt *res;
-	struct pending p;
 	clock_t clk;
 
 	/*
@@ -535,8 +494,12 @@ void recompute_ranks(void)
 	apply_pending_elo();
 
 	/* Update ranks */
-	foreach_row(query, read_pending, &p)
-		do_recompute_ranks(p.gametype, p.map);
+	foreach_row(res, query) {
+		char *gametype = column_text(res, 0);
+		char *map = column_text(res, 1);
+		do_recompute_ranks(gametype, map);
+		nr_leagues++;
+	}
 
 	/* Eventually, record new ranks */
 	record_changes();
@@ -546,5 +509,5 @@ void recompute_ranks(void)
 	clk = clock() - clk;
 	verbose(
 		"Recomputing ranks of %u leagues took %ums",
-		nrow, (unsigned)((double)clk / CLOCKS_PER_SEC * 1000.0));
+		nr_leagues, (unsigned)((double)clk / CLOCKS_PER_SEC * 1000.0));
 }

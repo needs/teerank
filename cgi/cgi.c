@@ -464,16 +464,3 @@ int main(int argc, char **argv)
 
 	return EXIT_SUCCESS;
 }
-
-char *column_string_(sqlite3_stmt *res, int i, char *buf, size_t size)
-{
-	char *text = (char *)sqlite3_column_text(res, i);
-
-	if (!text)
-		return NULL;
-	if (!buf)
-		return text;
-
-	snprintf(buf, size, "%s", text);
-	return buf;
-}

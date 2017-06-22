@@ -20,19 +20,8 @@
 	"  AND sc.port = servers.port)" \
 	" AS num_clients "
 
-#define bind_server(s) "sssssttssu", \
-	(s).ip, (s).port, (s).name, (s).gametype, (s).map, (s).lastseen, \
-	(s).expire, (s).master_node, (s).master_service, (s).max_clients
-
-void read_server(sqlite3_stmt *res, void *s);
-
 #define ALL_SERVER_CLIENT_COLUMNS \
 	" name, clan, score, ingame "
-
-#define bind_client(s, c) "ssssii", \
-	(s).ip, (s).port, (c).name, (c).clan, (c).score, (c).ingame
-
-void read_server_client(sqlite3_stmt *res, void *c);
 
 /**
  * @struct server
@@ -63,6 +52,17 @@ struct server {
 	} clients[MAX_CLIENTS];
 };
 
+#define bind_server(s) "sssssttssu", \
+	(s).ip, (s).port, (s).name, (s).gametype, (s).map, (s).lastseen, \
+	(s).expire, (s).master_node, (s).master_service, (s).max_clients
+
+void read_server(sqlite3_stmt *res, struct server *s);
+
+#define bind_client(s, c) "ssssii", \
+	(s).ip, (s).port, (c).name, (c).clan, (c).score, (c).ingame
+
+void read_server_client(sqlite3_stmt *res, struct client *c);
+
 /**
  * Read server's clients from the database.
  *
@@ -70,10 +70,8 @@ struct server {
  * an IP and a port, and will also use it to store the results.
  *
  * @param server Pointer to a server structure were readed data are stored
- *
- * @return 1 on success, 0 on failure
  */
-int read_server_clients(struct server *server);
+void read_server_clients(struct server *server);
 
 /**
  * Write a server in the database.

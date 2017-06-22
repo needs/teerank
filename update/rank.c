@@ -435,23 +435,24 @@ static void record_changes(void)
  */
 static void do_recompute_ranks(const char *gametype, const char *map)
 {
-	unsigned rank = 0;
+	unsigned rank = 1;
 	sqlite3_stmt *res;
 
 	const char *select =
 		"SELECT name"
 		" FROM ranks"
-		" WHERE gametype = ? AND map = ?"
-		" ORDER BY elo DESC, lastseen DESC, name DESC";
+		" WHERE gametype IS ? AND map IS ?"
+		" ORDER BY elo DESC, name DESC";
 
 	const char *update =
 		"UPDATE ranks"
 		" SET rank = ?"
-		" WHERE name = ? AND gametype = ? AND map = ?";
+		" WHERE name IS ? AND gametype IS ? AND map IS ?";
 
 	foreach_row(res, select, "ss", gametype, map) {
 		char *name = column_text(res, 0);
-		exec(update, "usss", ++rank, name, gametype, map);
+		exec(update, "usss", rank, name, gametype, map);
+		rank++;
 	}
 }
 

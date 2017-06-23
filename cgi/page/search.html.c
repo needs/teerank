@@ -32,7 +32,7 @@ struct search_info {
 	struct html_list_column *cols;
 
 	int tab;
-	const char *sprefix;
+	char *search_url;
 
 	const char *count_query;
 	const char *search_query;
@@ -52,7 +52,7 @@ static const struct search_info PLAYER_SINFO = {
 	},
 
 	0,
-	"/players",
+	"/search",
 
 	"SELECT COUNT(1)"
 	" FROM players"
@@ -75,7 +75,7 @@ static const struct search_info CLAN_SINFO = {
 	},
 
 	1,
-	"/clans",
+	"/search/clans",
 
 	"SELECT COUNT(1)"
 	" FROM players"
@@ -102,7 +102,7 @@ static const struct search_info SERVER_SINFO = {
 	},
 
 	2,
-	"/servers",
+	"/search/servers",
 
 	"SELECT COUNT(1)"
 	" FROM servers"
@@ -159,7 +159,12 @@ void generate_html_search(struct url *url)
 	for (s = sinfos; *s; s++)
 		tabs[(*s)->tab].val = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);
 
-	html_header("Search results", "Search results", sinfo->sprefix, squery);
+	html_header(
+		"Search", CUSTOM_TAB,
+		.tab_title = "Search",
+		.subtab_title = squery,
+		.search_url = sinfo->search_url,
+		.search_query = squery);
 
 	URL(tabs[0].url, "/search/players", PARAM_SQUERY(squery));
 	URL(tabs[1].url, "/search/clans",   PARAM_SQUERY(squery));

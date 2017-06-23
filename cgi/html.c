@@ -141,69 +141,101 @@ void player_lastseen_link(time_t lastseen, char *ip, char *port)
 		html("<span class=\"%s\">%s</span>", timescale, text);
 }
 
-struct tab CTF_TAB = { "CTF", "/players" };
-struct tab DM_TAB  = { "DM",  "/players?gametype=DM"  };
-struct tab TDM_TAB = { "TDM", "/players?gametype=TDM" };
-struct tab ABOUT_TAB = { "About", "/about" };
-
-static void print_top_tabs(void *active)
+static void print_top_tab(
+	char *title, url_t url, char *class, char *subtitle, url_t suburl)
 {
-	struct tab **tabs;
-	struct tab CUSTOM_TAB;
+	assert(title != NULL);
 
-	assert(active != NULL);
+	if (class)
+		html("<li class=\"%s\">", class);
+	else
+		html("<li>");
 
-	html("<nav id=\"toptabs\">");
+	if (url)
+		html("<a href=\"%S\">", url);
+	else
+		html("<a>");
 
-	/*
-	 * If "active" don't point to one of the fixed tabs, we add an
-	 * extra tab before the about tab and use the data pointed by
-	 * "active" as the tab name.
-	 */
-	if (
-		active == &CTF_TAB ||
-		active == &DM_TAB ||
-		active == &TDM_TAB ||
-		active == &ABOUT_TAB) {
+	html("%s</a>", title);
 
-		tabs = (struct tab *[]){
-			&CTF_TAB, &DM_TAB, &TDM_TAB, &ABOUT_TAB, NULL
-		};
-	} else {
-		CUSTOM_TAB.name = active;
-		tabs = (struct tab *[]){
-			&CTF_TAB, &DM_TAB, &TDM_TAB, &CUSTOM_TAB, &ABOUT_TAB, NULL
-		};
-		active = &CUSTOM_TAB;
-	}
+	if (subtitle && !suburl)
+		html("<a>%s</a>", subtitle);
+	else if (subtitle && suburl)
+		html("<a href=\"%S\">%s</a>", suburl, subtitle);
 
-	for (; *tabs; tabs++) {
-		const struct tab *tab = *tabs;
-		char *class = "";
-
-		if (tab == active && tab == &CUSTOM_TAB)
-			class = " class=\"active custom\"";
-		else if (tab == active && tab != &CUSTOM_TAB)
-			class = " class=\"active\"";
-
-		if (tab == active)
-			html("<a%S>%s</a>", class, tab->name);
-		else
-			html("<a href=\"%s\"%S>%s</a>",
-			       tab->href, class, tab->name);
-	}
-
-	html("</nav>");
+	html("</li>");
 }
 
-void html_header(
-	void *active, const char *title,
-	const char *sprefix, const char *query)
+static void print_top_tabs(
+	enum tab_type active, char *custom_title, char *subtitle, url_t suburl)
+{
+	url_t url;
+	char *title;
+	enum tab_type tab;
+	html("<nav id=\"toptabs\">");
+
+	for (tab = 0; tab <= ABOUT_TAB; tab++) {
+		if (tab == CTF_TAB)
+			html("<ul>");
+		else if (tab == CUSTOM_TAB)
+			html("</ul><ul>");
+
+		switch (tab) {
+		case CTF_TAB:
+			title = "CTF";
+			break;
+		case DM_TAB:
+			title = "DM";
+			break;
+		case TDM_TAB:
+			title = "TDM";
+			break;
+		case ABOUT_TAB:
+			title = "About";
+			break;
+		default:
+			title = custom_title;
+			break;
+		}
+
+		if (tab == active) {
+			char *class;
+			if (tab == CUSTOM_TAB)
+				class = "active custom";
+			else
+				class = "active";
+			print_top_tab(title, NULL, class, subtitle, suburl);
+			continue;
+		}
+
+		switch (tab) {
+		case CTF_TAB:
+			URL(url, "/players", PARAM_GAMETYPE("CTF"));
+			break;
+		case DM_TAB:
+			URL(url, "/players", PARAM_GAMETYPE("DM"));
+			break;
+		case TDM_TAB:
+			URL(url, "/players", PARAM_GAMETYPE("TDM"));
+			break;
+		case ABOUT_TAB:
+			URL(url, "/about");
+			break;
+		default:
+			continue;
+		}
+		print_top_tab(title, url, NULL, NULL, NULL);
+	}
+
+	html("</ul></nav>");
+}
+
+void html_header_(const char *title, enum tab_type active, struct html_header_args args)
 {
 	char text[64];
+	char *search_url;
 
 	assert(title != NULL);
-	assert(sprefix != NULL);
 
 	html("<!doctype html>");
 	html("<html>");
@@ -227,10 +259,15 @@ void html_header(
 	if (elapsed_time(last_database_update(), NULL, text, sizeof(text)))
 		html("<a id=\"alert\" href=\"/status\">Not updated since %s</a>", text);
 
-	html("<form action=\"search%S\" id=\"searchform\">", sprefix);
+	if (args.search_url)
+		search_url = args.search_url;
+	else
+		search_url = "/search";
+
+	html("<form action=\"%S\" id=\"searchform\">", search_url);
 	html("<input name=\"q\" type=\"text\" placeholder=\"Search\"");
-	if (query)
-		html(" value=\"%s\"", query);
+	if (args.search_query)
+		html(" value=\"%s\"", args.search_query);
 	html("/>");
 
 	html("<input type=\"submit\" value=\"\"/>");
@@ -239,22 +276,23 @@ void html_header(
 
 	html("</header>");
 	html("<main>");
-	print_top_tabs(active);
+	print_top_tabs(
+		active, args.tab_title, args.subtab_title, args.subtab_url);
 	html("<section>");
 }
 
-void html_footer(const char *jsonanchor, const char *jsonurl)
+void html_footer(char *jsonanchor, char *jsonurl)
 {
 	assert((jsonanchor && jsonurl) || (!jsonanchor && !jsonurl));
 
 	html("</section>");
 
 	if (jsonanchor && jsonurl) {
-		html("<nav id=\"bottabs\">");
-		html("<a href=\"%S\">JSON</a>", jsonurl);
-		html("<a href=\"/about-json-api#%S\">JSON Doc</a>", jsonanchor);
-		html("<a class=\"active\">HTML</a>");
-		html("</nav>");
+		html("<nav id=\"bottabs\"><ul>");
+		print_top_tab("JSON", jsonurl, NULL, NULL, NULL);
+		print_top_tab("JSON Doc", jsonanchor, NULL, NULL, NULL);
+		print_top_tab("HTML", NULL, "active", NULL, NULL);
+		html("</ul></nav>");
 	}
 
 	html("</main>");

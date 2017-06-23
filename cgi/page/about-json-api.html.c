@@ -74,7 +74,7 @@ static void jsonurl(const char *url)
 
 void generate_html_about_json_api(struct url *url)
 {
-	html_header("JSON API Overview", "JSON API Overview", "", NULL);
+	html_header("JSON API Overview", CUSTOM_TAB, .tab_title = "JSON API Overview");
 
 	/* Index */
 

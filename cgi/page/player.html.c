@@ -62,7 +62,7 @@ void generate_html_player(struct url *url)
 	if (!found)
 		error(404, NULL);
 
-	html_header(pname, pname, "/players", NULL);
+	html_header(pname, CUSTOM_TAB, .tab_title = "Player", .subtab_title = pname);
 
 	/* Print player logo, name, clan, rank and elo */
 	html("<header id=\"player_header\">");

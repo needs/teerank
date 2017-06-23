@@ -39,7 +39,7 @@ void generate_html_clan(struct url *url)
 	}
 
 	/* Eventually, print them */
-	html_header(cname, cname, "/clans", NULL);
+	html_header(cname, CUSTOM_TAB, .tab_title = "Clan", .subtab_title = cname);
 	html("<h2>%s</h2>", cname);
 
 	res = foreach_init(query, "s", cname);

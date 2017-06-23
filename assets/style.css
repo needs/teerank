@@ -149,39 +149,54 @@ body > main {
 	margin-bottom: -5px;
 }
 
-#toptabs > a, #bottabs > a {
-	color: #666;
-	border: 1px solid #dddddd;
+#toptabs ul, #bottabs ul {
+	display: flex;
+	flex-direction: row;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
 
-	padding: 7px 1em 7px 1em;
+#toptabs > ul:first-child {
+	margin-right: auto;
+}
+#bottabs > ul:first-child {
+	margin-left: auto;
+}
+
+#toptabs li, #bottabs li {
+	display: flex;
+	flex-direction: row;
+	border: 1px solid #dddddd;
 	margin-left: 0.25em;
 	margin-right: 0.25em;
 }
-
-#toptabs > a {
+#toptabs li {
 	background: linear-gradient(#ffffff, #cccccc);
 	border-radius: 5px 5px 0px 0px;
 	border-bottom: 0px;
 }
-#bottabs > a {
+#bottabs li {
 	background: linear-gradient(#cccccc, #ffffff);
 	border-radius: 0px 0px 5px 5px;
 	border-top: 0px;
 }
+#toptabs li.active, #bottabs li.active {
+	background: white;
+}
 
-#toptabs > a:hover, #bottabs > a:hover {
+#toptabs a, #bottabs a {
+	padding: 7px 1em 7px 1em;
+	color: #666;
+}
+#toptabs a:hover, #bottabs a:hover {
 	text-decoration: none;
 }
-
-#toptabs > a:nth-child(3) {
-	margin-right: auto;
+#toptabs a + a[href]:hover, #bottabs a + a[href]:hover {
+	text-decoration: underline;
 }
-#bottabs > a:first-child {
-	margin-left: auto;
-}
-
-#toptabs > a.active, #bottabs > a.active {
-	background: white;
+#toptabs a + a {
+	border-left: 1px dashed #dddddd;
 }
 
 body > main > section {

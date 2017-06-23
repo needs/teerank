@@ -22,15 +22,30 @@ unsigned elapsed_time(time_t t, char **timescale, char *text, size_t textsize);
  */
 void player_lastseen_link(time_t lastseen, char *ip, char *port);
 
-struct tab {
-	char *name, *href;
+enum tab_type {
+	CTF_TAB,
+	DM_TAB,
+	TDM_TAB,
+	GAMETYPE_TAB,
+	CUSTOM_TAB,
+	ABOUT_TAB
 };
-extern struct tab CTF_TAB, DM_TAB, TDM_TAB, ABOUT_TAB;
 
-void html_header(
-	void *active, const char *title,
-	const char *sprefix, const char *query);
-void html_footer(const char *jsonanchor, const char *jsonurl);
+struct html_header_args {
+	char *tab_title;
+	char *subtab_title;
+	char *subtab_url;
+
+	char *search_url;
+	char *search_query;
+};
+
+void html_header_(
+	const char *title, enum tab_type active, struct html_header_args args);
+#define html_header(title, active, ...)                                 \
+	html_header_(title, active, (struct html_header_args){ __VA_ARGS__ })
+
+void html_footer(char *jsonanchor, char *jsonurl);
 
 enum html_coltype {
 	HTML_COLTYPE_NONE,

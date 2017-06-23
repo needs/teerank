@@ -199,10 +199,6 @@ body > main {
 	border-left: 1px dashed #dddddd;
 }
 
-#toptabs a.allmaps {
-	font-style: italic;
-}
-
 #bottabs a.jsondoc {
 	border-radius: 0px 0px 5px 0px;
 	color: white;
@@ -221,6 +217,11 @@ body > main > section {
 	padding: 2em 5em 2em 5em;
 
 	box-shadow: 0px 0px 2px #aaa;
+}
+
+/* Special link class */
+a.allmaps {
+	font-style: italic;
 }
 
 /* Section tabs */
@@ -413,6 +414,20 @@ tr.spectator td img {
 .serverlist th:nth-child(3),
 .serverlist td:nth-child(4),
 .serverlist th:nth-child(4) {
+	text-align: right;
+}
+
+.maplist th:nth-child(1),
+.maplist td:nth-child(1) {
+	width: 100%;
+}
+
+.maplist th:nth-child(2),
+.maplist td:nth-child(2),
+.maplist th:nth-child(3),
+.maplist td:nth-child(3),
+.maplist th:nth-child(4),
+.maplist td:nth-child(4) {
 	text-align: right;
 }
 

@@ -46,6 +46,8 @@ DIR("players")
 	END()
 END()
 
+HTML("maps", maps)
+
 /* Root */
 HTML(NULL, list)
 

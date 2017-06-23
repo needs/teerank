@@ -226,6 +226,7 @@ void generate_html_list(struct url *url)
 {
 	url_t urlfmt;
 	char *subtab, *subclass;
+	enum tab_type tab;
 
 	JSON = false;
 	parse_list_args(url);
@@ -239,17 +240,21 @@ void generate_html_list(struct url *url)
 	}
 
 	if (strcmp(gametype, "CTF") == 0)
-		html_header(CTF_TAB, .subtab = subtab, .subtab_class = subclass);
+		tab = CTF_TAB;
 	else if (strcmp(gametype, "DM") == 0)
-		html_header(DM_TAB, .subtab = subtab, .subtab_class = subclass);
+		tab = DM_TAB;
 	else if (strcmp(gametype, "TDM") == 0)
-		html_header(TDM_TAB, .subtab = subtab, .subtab_class = subclass);
+		tab = TDM_TAB;
 	else
-		html_header(
-			GAMETYPE_TAB,
-			.title = gametype,
-			.subtab = subtab,
-			.subtab_class = subclass);
+		tab = GAMETYPE_TAB;
+
+	URL(urlfmt, "maps", PARAM_GAMETYPE(gametype));
+	html_header(
+		tab,
+		.title = gametype,
+		.subtab = subtab,
+		.subtab_class = subclass,
+		.subtab_url = urlfmt);
 
 	struct section_tab tabs[] = {
 		{ "Players" }, { "Clans" }, { "Servers" }, { NULL }

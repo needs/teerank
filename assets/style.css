@@ -399,40 +399,32 @@ tr.spectator td img {
 /* Server list */
 
 /* Name */
-.serverlist td:nth-child(1) {
+.serverlist td:nth-child(1),
+.serverlist th:nth-child(1) {
 	max-width: 0;
 	width: 100%;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	text-align: left;
 }
 
 /* Gamtype, map, players */
-.serverlist td:nth-child(2),
-.serverlist th:nth-child(2),
-.serverlist td:nth-child(3),
-.serverlist th:nth-child(3),
-.serverlist td:nth-child(4),
-.serverlist th:nth-child(4) {
+.serverlist th, .serverlist td {
 	text-align: right;
 }
 
+.maplist th, .maplist td {
+	text-align: center;
+}
 .maplist th:nth-child(1),
 .maplist td:nth-child(1) {
+	text-align: left;
 	width: 100%;
 }
 
-.maplist th:nth-child(2),
-.maplist td:nth-child(2),
-.maplist th:nth-child(3),
-.maplist td:nth-child(3),
-.maplist th:nth-child(4),
-.maplist td:nth-child(4) {
-	text-align: right;
-}
-
 .gametypelist th, .gametypelist td {
-	text-align: right;
+	text-align: center;
 }
 .gametypelist th:nth-child(1),
 .gametypelist td:nth-child(1) {

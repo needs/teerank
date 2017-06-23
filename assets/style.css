@@ -199,6 +199,10 @@ body > main {
 	border-left: 1px dashed #dddddd;
 }
 
+#toptabs a.allmaps {
+	font-style: italic;
+}
+
 body > main > section {
 	border-radius: 10px;
 	background-color: white;

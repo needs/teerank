@@ -35,6 +35,7 @@ struct html_header_args {
 	char *title;
 	char *subtab;
 	char *subtab_url;
+	char *subtab_class;
 
 	char *search_url;
 	char *search_query;

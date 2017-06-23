@@ -142,7 +142,7 @@ void player_lastseen_link(time_t lastseen, char *ip, char *port)
 }
 
 static void print_top_tab(
-	char *title, url_t url, char *class, char *subtitle, url_t suburl)
+	char *title, url_t url, char *class, char *subtitle, url_t suburl, char *subclass)
 {
 	assert(title != NULL);
 
@@ -158,10 +158,14 @@ static void print_top_tab(
 
 	html("%s</a>", title);
 
-	if (subtitle && !suburl)
-		html("<a>%s</a>", subtitle);
-	else if (subtitle && suburl)
-		html("<a href=\"%S\">%s</a>", suburl, subtitle);
+	if (subtitle) {
+		html("<a");
+		if (subclass)
+			html(" class=\"%s\"", subclass);
+		if (suburl)
+			html(" href=\"%s\"", suburl);
+		html(">%s</a>", subtitle);
+	}
 
 	html("</li>");
 }
@@ -183,7 +187,7 @@ static char *tab_title(enum tab_type tab, char *dflt)
 }
 
 static void print_top_tabs(
-	enum tab_type active, char *custom_title, char *subtitle, url_t suburl)
+	enum tab_type active, char *custom_title, char *subtitle, url_t suburl, char *subclass)
 {
 	url_t url;
 	char *title;
@@ -204,7 +208,7 @@ static void print_top_tabs(
 				class = "active custom";
 			else
 				class = "active";
-			print_top_tab(title, NULL, class, subtitle, suburl);
+			print_top_tab(title, NULL, class, subtitle, suburl, subclass);
 			continue;
 		}
 
@@ -224,7 +228,7 @@ static void print_top_tabs(
 		default:
 			continue;
 		}
-		print_top_tab(title, url, NULL, NULL, NULL);
+		print_top_tab(title, url, NULL, NULL, NULL, NULL);
 	}
 
 	html("</ul></nav>");
@@ -286,7 +290,7 @@ void html_header_(enum tab_type active, struct html_header_args args)
 	html("</header>");
 	html("<main>");
 	print_top_tabs(
-		active, args.title, args.subtab, args.subtab_url);
+		active, args.title, args.subtab, args.subtab_url, args.subtab_class);
 	html("<section>");
 }
 
@@ -298,9 +302,9 @@ void html_footer(char *jsonanchor, char *jsonurl)
 
 	if (jsonanchor && jsonurl) {
 		html("<nav id=\"bottabs\"><ul>");
-		print_top_tab("JSON", jsonurl, NULL, NULL, NULL);
-		print_top_tab("JSON Doc", jsonanchor, NULL, NULL, NULL);
-		print_top_tab("HTML", NULL, "active", NULL, NULL);
+		print_top_tab("JSON", jsonurl, NULL, NULL, NULL, NULL);
+		print_top_tab("JSON Doc", jsonanchor, NULL, NULL, NULL, NULL);
+		print_top_tab("HTML", NULL, "active", NULL, NULL, NULL);
 		html("</ul></nav>");
 	}
 

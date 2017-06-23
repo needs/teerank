@@ -163,7 +163,7 @@ static void print_top_tab(
 		if (subclass)
 			html(" class=\"%s\"", subclass);
 		if (suburl)
-			html(" href=\"%s\"", suburl);
+			html(" href=\"%S\"", suburl);
 		html(">%s</a>", subtitle);
 	}
 
@@ -302,8 +302,7 @@ void html_footer(char *jsonanchor, char *jsonurl)
 
 	if (jsonanchor && jsonurl) {
 		html("<nav id=\"bottabs\"><ul>");
-		print_top_tab("JSON", jsonurl, NULL, NULL, NULL, NULL);
-		print_top_tab("JSON Doc", jsonanchor, NULL, NULL, NULL, NULL);
+		print_top_tab("JSON", jsonurl, NULL, "?", jsonanchor, "jsondoc");
 		print_top_tab("HTML", NULL, "active", NULL, NULL, NULL);
 		html("</ul></nav>");
 	}

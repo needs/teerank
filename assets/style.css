@@ -203,6 +203,18 @@ body > main {
 	font-style: italic;
 }
 
+#bottabs a.jsondoc {
+	border-radius: 0px 0px 5px 0px;
+	color: white;
+	text-shadow: 0px 0px 1px #507fb9;
+	font-weight: bold;
+	background: linear-gradient(#a0caff, #d8eaff);
+	border-left: 1px solid #cccccc;
+}
+#bottabs a.jsondoc:hover {
+	text-decoration: none !important;
+}
+
 body > main > section {
 	border-radius: 10px;
 	background-color: white;

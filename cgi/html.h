@@ -32,8 +32,8 @@ enum tab_type {
 };
 
 struct html_header_args {
-	char *tab_title;
-	char *subtab_title;
+	char *title;
+	char *subtab;
 	char *subtab_url;
 
 	char *search_url;
@@ -41,9 +41,9 @@ struct html_header_args {
 };
 
 void html_header_(
-	const char *title, enum tab_type active, struct html_header_args args);
-#define html_header(title, active, ...)                                 \
-	html_header_(title, active, (struct html_header_args){ __VA_ARGS__ })
+	enum tab_type active, struct html_header_args args);
+#define html_header(active, ...)                                        \
+	html_header_(active, (struct html_header_args){ __VA_ARGS__ })
 
 void html_footer(char *jsonanchor, char *jsonurl);
 

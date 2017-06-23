@@ -131,7 +131,7 @@ void generate_html_status(struct url *url)
 	char buf[16], comment[64];
 	short teerank_stopped = 0;
 
-	html_header("Status", CUSTOM_TAB, .tab_title = "Status");
+	html_header(CUSTOM_TAB, .title = "Status");
 
 	html("<h2>Teerank</h2>");
 

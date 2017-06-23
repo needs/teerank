@@ -7,7 +7,7 @@
 
 void generate_html_about(struct url *url)
 {
-	html_header("About", ABOUT_TAB);
+	html_header(ABOUT_TAB);
 
 	html("<h1>About</h1>");
 	html("<p>Teerank is an <em>unofficial</em> ranking system for <a href=\"https://www.teeworlds.com/\">Teeworlds</a>.  It aims to be simple and fast to use.  You can find the <a href=\"https://github.com/needs/teerank\">source code on github</a>.  Teerank is a free software under <a href=\"http://www.gnu.org/licenses/gpl-3.0.txt\">GNU GPL 3.0</a>.</p>");

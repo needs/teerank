@@ -236,16 +236,16 @@ void generate_html_list(struct url *url)
 		subtab = map;
 
 	if (strcmp(gametype, "CTF") == 0)
-		html_header("CTF", CTF_TAB, .subtab_title = subtab);
+		html_header(CTF_TAB, .subtab = subtab);
 	else if (strcmp(gametype, "DM") == 0)
-		html_header("DM", DM_TAB, .subtab_title = subtab);
+		html_header(DM_TAB, .subtab = subtab);
 	else if (strcmp(gametype, "TDM") == 0)
-		html_header("TDM", TDM_TAB, .subtab_title = subtab);
+		html_header(TDM_TAB, .subtab = subtab);
 	else
 		html_header(
-			gametype, GAMETYPE_TAB,
-			.tab_title = gametype,
-			.subtab_title = subtab);
+			GAMETYPE_TAB,
+			.title = gametype,
+			.subtab = subtab);
 
 	struct section_tab tabs[] = {
 		{ "Players" }, { "Clans" }, { "Servers" }, { NULL }

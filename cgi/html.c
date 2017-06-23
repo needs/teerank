@@ -166,6 +166,22 @@ static void print_top_tab(
 	html("</li>");
 }
 
+static char *tab_title(enum tab_type tab, char *dflt)
+{
+	switch (tab) {
+	case CTF_TAB:
+		return "CTF";
+	case DM_TAB:
+		return "DM";
+	case TDM_TAB:
+		return "TDM";
+	case ABOUT_TAB:
+		return "About";
+	default:
+		return dflt;
+	}
+}
+
 static void print_top_tabs(
 	enum tab_type active, char *custom_title, char *subtitle, url_t suburl)
 {
@@ -180,23 +196,7 @@ static void print_top_tabs(
 		else if (tab == CUSTOM_TAB)
 			html("</ul><ul>");
 
-		switch (tab) {
-		case CTF_TAB:
-			title = "CTF";
-			break;
-		case DM_TAB:
-			title = "DM";
-			break;
-		case TDM_TAB:
-			title = "TDM";
-			break;
-		case ABOUT_TAB:
-			title = "About";
-			break;
-		default:
-			title = custom_title;
-			break;
-		}
+		title = tab_title(tab, custom_title);
 
 		if (tab == active) {
 			char *class;
@@ -230,18 +230,27 @@ static void print_top_tabs(
 	html("</ul></nav>");
 }
 
-void html_header_(const char *title, enum tab_type active, struct html_header_args args)
+void html_header_(enum tab_type active, struct html_header_args args)
 {
 	char text[64];
 	char *search_url;
+	char *title;
 
-	assert(title != NULL);
+	title = tab_title(active, args.title);
 
 	html("<!doctype html>");
 	html("<html>");
 	html("<head>");
 	html("<meta charset=\"utf-8\"/>");
-	html("<title>%s - Teerank</title>", title);
+
+	html("<title>");
+	if (title && args.subtab)
+		html("%s - %s - Teerank", args.subtab, title);
+	else if (title)
+		html("%s - Teerank", title);
+	else
+		html("Teerank");
+	html("</title>");
 
 	html("<meta name=\"description\" content=\"Teerank is a simple and fast ranking system for teeworlds.\"/>");
 	html("<link rel=\"stylesheet\" href=\"/style.css\"/>");
@@ -277,7 +286,7 @@ void html_header_(const char *title, enum tab_type active, struct html_header_ar
 	html("</header>");
 	html("<main>");
 	print_top_tabs(
-		active, args.tab_title, args.subtab_title, args.subtab_url);
+		active, args.title, args.subtab, args.subtab_url);
 	html("<section>");
 }
 

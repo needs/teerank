@@ -143,8 +143,7 @@ void generate_html_server(struct url *url)
 	if (!found)
 		error(404, NULL);
 
-	/* Eventually, print them */
-	html_header(server.name, CUSTOM_TAB, .tab_title = "Server", .subtab_title = server.name);
+	html_header(CUSTOM_TAB, .title = "Server", .subtab = server.name);
 	html("<header id=\"server_header\">");
 	html("<section id=\"serverinfo\">");
 	html("<h2>%s</h2>", server.name);

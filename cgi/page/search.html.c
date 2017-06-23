@@ -160,9 +160,9 @@ void generate_html_search(struct url *url)
 		tabs[(*s)->tab].val = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);
 
 	html_header(
-		"Search", CUSTOM_TAB,
-		.tab_title = "Search",
-		.subtab_title = squery,
+		CUSTOM_TAB,
+		.title = "Search",
+		.subtab = squery,
 		.search_url = sinfo->search_url,
 		.search_query = squery);
 

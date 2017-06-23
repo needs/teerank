@@ -39,14 +39,14 @@ HTML("clans", list)
 JSON("clans", list)
 HTML("servers", list)
 JSON("servers", list)
+HTML("maps", maps)
+HTML("gametypes", gametypes)
 
 DIR("players")
 	DIR(_)
 		SVG("elo rank", teerank3_graph)
 	END()
 END()
-
-HTML("maps", maps)
 
 /* Root */
 HTML(NULL, list)

@@ -181,6 +181,8 @@ static char *tab_title(enum tab_type tab, char *dflt)
 		return "TDM";
 	case ABOUT_TAB:
 		return "About";
+	case GAMETYPE_LIST_TAB:
+		return "...";
 	default:
 		return dflt;
 	}
@@ -221,6 +223,9 @@ static void print_top_tabs(
 			break;
 		case TDM_TAB:
 			URL(url, "/players", PARAM_GAMETYPE("TDM"));
+			break;
+		case GAMETYPE_LIST_TAB:
+			URL(url, "/gametypes");
 			break;
 		case ABOUT_TAB:
 			URL(url, "/about");
@@ -545,6 +550,13 @@ static void list_item(sqlite3_stmt *res, struct html_list_column *col, list_clas
 				html("<td><a href=\"%S\">%s</a></td>", url, map);
 			else
 				html("<td><a class=\"allmaps\" href=\"%S\">All maps</a></td>", url, map);
+			break;
+		}
+
+		case HTML_COLTYPE_GAMETYPE: {
+			char *gametype = column_text(res, i++);
+			URL(url, "/players", PARAM_GAMETYPE(gametype));
+			html("<td><a href=\"%S\">%s</a></td>", url, gametype);
 			break;
 		}
 		}

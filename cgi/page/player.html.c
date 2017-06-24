@@ -89,7 +89,7 @@ void generate_html_player(struct url *url)
 	html("");
 	html("<h2>Historic</h2>");
 	URL(urlfmt, "/player/historic.svg", PARAM_NAME(pname));
-	html("<object data=\"%S\" type=\"image/svg+xml\"></object>", url);
+	html("<object data=\"%S\" type=\"image/svg+xml\"></object>", urlfmt);
 
 	URL(urlfmt, "/player.json", PARAM_NAME(pname));
 	html_footer("player", urlfmt);

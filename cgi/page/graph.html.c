@@ -772,8 +772,15 @@ void generate_svg_graph(struct url *url)
 {
 	struct graph graph = { 0 };
 	struct dataset dselo, dsrank;
+	char *pname = NULL;
+	unsigned i;
 
-	fill_datasets(&dselo, &dsrank, url->dirs[1]);
+	for (i = 0; i < url->nargs; i++) {
+		if (strcmp(url->args[i].name, "name") == 0)
+			pname = url->args[i].val;
+	}
+
+	fill_datasets(&dselo, &dsrank, pname);
 
 	add_curve(&graph, &dselo, 0, "#970", "#725800", "Elo");
 	add_curve(&graph, &dsrank, 1, "#aaa", "#888", "Rank");

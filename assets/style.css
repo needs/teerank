@@ -335,6 +335,13 @@ table a:hover {
 	text-align: right;
 }
 
+.clanplayerlist th:nth-child(1),
+.clanplayerlist td:nth-child(1),
+.clanplayerlist th:nth-child(2),
+.clanplayerlist td:nth-child(2) {
+	width: 50%;
+}
+
 /* Name and clan for search results */
 .search-playerlist th:nth-child(1),
 .search-playerlist td:nth-child(1),

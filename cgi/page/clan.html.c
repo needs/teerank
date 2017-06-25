@@ -9,7 +9,7 @@
 #include "teerank.h"
 #include "html.h"
 
-DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "playerlist");
+DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "clanplayerlist");
 
 void generate_html_clan(struct url *url)
 {
@@ -19,16 +19,14 @@ void generate_html_clan(struct url *url)
 	unsigned i;
 
 	const char *query =
-		"SELECT rank, players.name, clan, elo, lastseen, server_ip, server_port"
-		" FROM players NATURAL JOIN ranks"
+		"SELECT name, clan, lastseen, server_ip, server_port"
+		" FROM players"
 		" WHERE clan IS NOT NULL AND clan IS ?"
-		" ORDER BY rank";
+		" ORDER BY name";
 
 	struct html_list_column cols[] = {
-		{ "",          NULL,       HTML_COLTYPE_RANK },
 		{ "Name",      NULL,       HTML_COLTYPE_PLAYER },
 		{ "Clan",      NULL,       HTML_COLTYPE_CLAN },
-		{ "Elo",       "rank",     HTML_COLTYPE_ELO },
 		{ "Last seen", "lastseen", HTML_COLTYPE_LASTSEEN },
 		{ NULL }
 	};

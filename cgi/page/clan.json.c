@@ -15,9 +15,8 @@ void generate_json_clan(struct url *url)
 
 	const char *query =
 		"SELECT players.name"
-		" FROM players NATURAL JOIN ranks"
-		" WHERE clan IS NOT NULL AND clan IS ?"
-		" ORDER BY rank";
+		" FROM players"
+		" WHERE clan IS NOT NULL AND clan IS ?";
 
 	struct json_list_column cols[] = {
 		{ "name", "%s" },

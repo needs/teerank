@@ -439,6 +439,15 @@ tr.spectator td img {
 	width: 100%;
 }
 
+.ranklist th, .ranklist td {
+	text-align: right;
+}
+.ranklist th:nth-child(2),
+.ranklist td:nth-child(2) {
+	text-align: left;
+	width: 100%;
+}
+
 em.no-results {
 	display: block;
 	margin-bottom: 1em;

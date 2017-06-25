@@ -8,15 +8,14 @@
 #include "database.h"
 #include "html.h"
 
+DEFINE_SIMPLE_LIST_CLASS_FUNC(rank_list_class, "ranklist");
+
 struct player {
 	char *name, name_[NAME_STRSIZE];
 	char *clan, clan_[CLAN_STRSIZE];
 	time_t lastseen;
 	char *server_ip, server_ip_[IP_STRSIZE];
 	char *server_port, server_port_[PORT_STRSIZE];
-
-	int elo;
-	unsigned rank;
 };
 
 static void read_player(sqlite3_stmt *res, struct player *p)
@@ -27,9 +26,6 @@ static void read_player(sqlite3_stmt *res, struct player *p)
 	p->lastseen = column_time_t(res, 2);
 	p->server_ip = column_text_copy(res, 3, p->server_ip_, sizeof(p->server_ip_));
 	p->server_port = column_text_copy(res, 4, p->server_port_, sizeof(p->server_port_));
-
-	p->elo = column_int(res, 5);
-	p->rank = column_unsigned(res, 6);
 }
 
 void generate_html_player(struct url *url)
@@ -42,10 +38,22 @@ void generate_html_player(struct url *url)
 	sqlite3_stmt *res;
 	unsigned i;
 
-	const char *query =
-		"SELECT players.name, clan, lastseen, server_ip, server_port, elo, rank"
-		" FROM players LEFT OUTER JOIN ranks ON players.name = ranks.name"
+	struct html_list_column cols[] = {
+		{ "",          NULL, HTML_COLTYPE_RANK },
+		{ "Gametype",  NULL, HTML_COLTYPE_GAMETYPE },
+		{ "Elo",       NULL, HTML_COLTYPE_ELO },
+		{ NULL }
+	};
+
+	const char *qmain =
+		"SELECT name, clan, lastseen, server_ip, server_port"
+		" FROM players"
 		" WHERE players.name IS ?";
+
+	const char *qranks =
+		"SELECT rank, gametype, elo"
+		" FROM ranks"
+		" WHERE name IS ? AND map IS NULL";
 
 	for (i = 0; i < url->nargs; i++) {
 		if (strcmp(url->args[i].name, "name") == 0)
@@ -55,7 +63,7 @@ void generate_html_player(struct url *url)
 	if (!pname)
 		error(400, "Player name required");
 
-	foreach_row(res, query, "s", pname) {
+	foreach_row(res, qmain, "s", pname) {
 		read_player(res, &player);
 		found = true;
 	}
@@ -78,7 +86,6 @@ void generate_html_player(struct url *url)
 	html("</div>");
 
 	html("<div>");
-	html("<p id=\"player_rank\">#%u (%i ELO)</p>", player.rank, player.elo);
 	html("<p id=\"player_lastseen\">");
 	player_lastseen_link(
 		player.lastseen, player.server_ip, player.server_port);
@@ -87,6 +94,10 @@ void generate_html_player(struct url *url)
 
 	html("</header>");
 	html("");
+
+	res = foreach_init(qranks, "s", pname);
+	html_list(res, cols, NULL, rank_list_class, NULL, 0, 0);
+
 	html("<h2>Historic</h2>");
 	URL(urlfmt, "/player/historic.svg", PARAM_NAME(pname));
 	html("<object data=\"%S\" type=\"image/svg+xml\"></object>", urlfmt);

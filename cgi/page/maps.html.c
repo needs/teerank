@@ -21,7 +21,7 @@ void generate_html_maps(struct url *url)
 		"  (SELECT COUNT(1)"
 		"   FROM servers"
 		"   WHERE servers.gametype IS ranks.gametype"
-		"    AND servers.map IS IFNULL(ranks.map, servers.map)) AS nservers"
+		"    AND servers.map = ranks.map) AS nservers"
 		" FROM ranks NATURAL JOIN players"
 		" WHERE gametype IS ?"
 		" GROUP BY map"

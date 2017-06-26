@@ -53,7 +53,7 @@ void generate_html_player(struct url *url)
 	const char *qranks =
 		"SELECT rank, gametype, elo"
 		" FROM ranks"
-		" WHERE name IS ? AND map IS NULL";
+		" WHERE name IS ? AND map = ''";
 
 	for (i = 0; i < url->nargs; i++) {
 		if (strcmp(url->args[i].name, "name") == 0)

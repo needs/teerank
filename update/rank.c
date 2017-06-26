@@ -115,6 +115,9 @@ static int latest_elo(const char *pname, const char *gametype, const char *map)
 {
 	sqlite3_stmt *res;
 
+	assert(gametype != NULL);
+	assert(map != NULL);
+
 	const char *in_pending =
 		"SELECT elo"
 		" FROM pending"
@@ -154,7 +157,7 @@ static void load_players(struct server *old, struct server *new, struct player_i
 		if (is_already_loaded(players, pname))
 			continue;
 
-		p->gametype.elo = latest_elo(pname, new->gametype, NULL);
+		p->gametype.elo = latest_elo(pname, new->gametype, "");
 		p->map.elo      = latest_elo(pname, new->gametype, new->map);
 
 		snprintf(p->name, sizeof(p->name), "%s", pname);
@@ -375,7 +378,7 @@ static void update_elos(
 	foreach_player_info(p) {
 		if (p->is_rankable) {
 			compute_new_elo(p, players, elo);
-			exec(query, "sssi", p->name, gametype, NULL,  elo[0]);
+			exec(query, "sssi", p->name, gametype, "",  elo[0]);
 			exec(query, "sssi", p->name, gametype, map, elo[1]);
 			verbose_elo_update(p, elo);
 		}
@@ -448,6 +451,9 @@ static void do_recompute_ranks(const char *gametype, const char *map)
 		"UPDATE ranks"
 		" SET rank = ?"
 		" WHERE name IS ? AND gametype IS ? AND map IS ?";
+
+	assert(gametype != NULL);
+	assert(map != NULL);
 
 	foreach_row(res, select, "ss", gametype, map) {
 		char *name = column_text(res, 0);

@@ -142,14 +142,14 @@ static void print_server_list(void)
 		"  AND sc.port = servers.port)"
 		" AS num_clients, max_clients "
 		" FROM servers"
-		" WHERE gametype IS ? AND IFNULL(?, map) IS map"
+		" WHERE gametype IS ? AND map IS ?"
 		" ORDER BY num_clients DESC"
 		" LIMIT 100 OFFSET ?";
 
 	const char *qcount =
 		"SELECT COUNT(1)"
 		" FROM servers"
-		" WHERE gametype IS ? AND IFNULL(?, map) IS map";
+		" WHERE gametype IS ? AND map IS ?";
 
 	res = foreach_init(qselect, "ssu", gametype, map, (pnum - 1) * 100);
 
@@ -231,7 +231,7 @@ void generate_html_list(struct url *url)
 	JSON = false;
 	parse_list_args(url);
 
-	if (!map) {
+	if (!*map) {
 		subtab = "All maps";
 		subclass = "allmaps";
 	} else {
@@ -281,7 +281,7 @@ void generate_html_list(struct url *url)
 	tabs[2].val = count_rows(
 		"SELECT COUNT(1)"
 		" FROM servers"
-		" WHERE gametype IS ? AND IFNULL(?, map) IS map",
+		" WHERE gametype IS ? AND map IS ?",
 		"ss", gametype, map
 	);
 

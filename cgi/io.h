@@ -48,7 +48,7 @@ void URL_(url_t buf, const char *prefix, ...);
 #define PARAM_GAMETYPE(val)                                             \
 	PARAM("gametype", "CTF", "%s", val)
 #define PARAM_MAP(val)                                                  \
-	PARAM("map", NULL, "%s", val)
+	PARAM("map", "", "%s", val)
 #define PARAM_PAGENUM(val)                                              \
 	PARAM("p", "1", "%u", val)
 #define PARAM_ORDER(val)                                                \

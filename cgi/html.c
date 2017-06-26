@@ -546,7 +546,7 @@ static void list_item(sqlite3_stmt *res, struct html_list_column *col, list_clas
 			char *gametype = column_text(res, i++);
 
 			URL(url, "/players", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-			if (map)
+			if (*map)
 				html("<td><a href=\"%S\">%s</a></td>", url, map);
 			else
 				html("<td><a class=\"allmaps\" href=\"%S\">All maps</a></td>", url, map);

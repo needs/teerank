@@ -384,8 +384,7 @@ static void init_cgi(void)
 static struct url parse_url(char *uri, char *query)
 {
 	struct url url = {0};
-	char *dir, *name;
-	unsigned i;
+	char *dir, *name, *val;
 
 	for (dir = strtok(uri, "/"); dir; dir = strtok(NULL, "/")) {
 		if (url.ndirs == MAX_DIRS)
@@ -403,30 +402,25 @@ static struct url parse_url(char *uri, char *query)
 		}
 	}
 
-	/*
-	 * Load arg 'name' and 'val' in two steps to not mix up strtok()
-	 * instances.
-	 */
-
 	if (query[0] == '\0')
 		return url;
+
+	/* Parse parameters */
 
 	name = strtok(query, "&");
 	while (name) {
 		if (url.nargs == MAX_ARGS)
 			error(414, NULL);
 
+		if ((val = strchr(name, '='))) {
+			*val++ = '\0';
+			url_decode(val);
+			url.args[url.nargs].val = val;
+		}
+
 		url.args[url.nargs].name = name;
 		url.nargs++;
 		name = strtok(NULL, "&");
-	}
-
-	for (i = 0; i < url.nargs; i++) {
-		strtok(url.args[i].name, "=");
-		url.args[i].val = strtok(NULL, "=");
-
-		if (url.args[i].val)
-			url_decode(url.args[i].val);
 	}
 
 	return url;

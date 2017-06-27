@@ -127,6 +127,7 @@ static void print_clan_list(void)
 static void print_server_list(void)
 {
 	struct sqlite3_stmt *res;
+	char *map_ = *map ? map : NULL;
 
 	const char *qselect =
 		"SELECT name, ip, port, gametype, map,"
@@ -136,16 +137,16 @@ static void print_server_list(void)
 		"  AND sc.port = servers.port)"
 		" AS num_clients, max_clients "
 		" FROM servers"
-		" WHERE gametype = ? AND map = ?"
+		" WHERE gametype = ? AND map = IFNULL(?, map)"
 		" ORDER BY num_clients DESC"
 		" LIMIT 100 OFFSET ?";
 
 	const char *qcount =
 		"SELECT COUNT(1)"
 		" FROM servers"
-		" WHERE gametype = ? AND map = ?";
+		" WHERE gametype = ? AND map = IFNULL(?, map)";
 
-	res = foreach_init(qselect, "ssu", gametype, map, (pnum - 1) * 100);
+	res = foreach_init(qselect, "ssu", gametype, map_, (pnum - 1) * 100);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -173,7 +174,7 @@ static void print_server_list(void)
 			{ NULL }
 		};
 
-		nrow = count_rows(qcount, "ss", gametype, map);
+		nrow = count_rows(qcount, "ss", gametype, map_);
 		URL(url, "/servers", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
 		html_list(res, cols, NULL, "serverlist", url, pnum, nrow);
 	}
@@ -263,8 +264,8 @@ void generate_html_list(struct url *url)
 	tabs[2].val = count_rows(
 		"SELECT COUNT(1)"
 		" FROM servers"
-		" WHERE gametype = ? AND map = ?",
-		"ss", gametype, map
+		" WHERE gametype = ? AND map = IFNULL(?, map)",
+		"ss", gametype, *map ? map : NULL
 	);
 
 	switch (pcs) {

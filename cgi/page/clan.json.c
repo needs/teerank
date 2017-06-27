@@ -15,7 +15,7 @@ void generate_json_clan(struct url *url)
 	const char *query =
 		"SELECT players.name"
 		" FROM players"
-		" WHERE clan IS NOT NULL AND clan IS ?";
+		" WHERE clan IS NOT NULL AND clan = ?";
 
 	struct json_list_column cols[] = {
 		{ "name", "%s" },

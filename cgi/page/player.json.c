@@ -33,7 +33,7 @@ static void json_player_historic(const char *pname)
 	const char *query =
 		"SELECT ts, elo, rank"
 		" FROM ranks_historic"
-		" WHERE name IS ?"
+		" WHERE name = ?"
 		" ORDER BY ts";
 
 	json(",%s:{%s:", "historic", "records");
@@ -51,7 +51,7 @@ void generate_json_player(struct url *url)
 	const char *query =
 		"SELECT players.name, clan, elo, rank, lastseen, server_ip, server_port"
 		" FROM players LEFT OUTER JOIN ranks ON players.name = ranks.name"
-		" WHERE players.name IS ?";
+		" WHERE players.name = ?";
 
 	pname = URL_EXTRACT(url, PARAM_NAME(0));
 	full = URL_EXTRACT__(url, "short", NULL);

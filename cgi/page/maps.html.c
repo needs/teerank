@@ -18,17 +18,17 @@ void generate_html_maps(struct url *url)
 		"  COUNT(DISTINCT clan) AS nclans,"
 		"  (SELECT COUNT(1)"
 		"   FROM servers"
-		"   WHERE servers.gametype IS ranks.gametype"
+		"   WHERE servers.gametype = ranks.gametype"
 		"    AND servers.map = ranks.map) AS nservers"
 		" FROM ranks NATURAL JOIN players"
-		" WHERE gametype IS ?"
+		" WHERE gametype = ?"
 		" GROUP BY map"
 		" ORDER BY nplayers DESC";
 
 	const char *qcount =
 		"SELECT COUNT(1)"
 		" FROM ranks"
-		" WHERE gametype IS ?"
+		" WHERE gametype = ?"
 		" GROUP BY map";
 
 	struct html_list_column cols[] = {

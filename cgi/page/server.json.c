@@ -52,8 +52,8 @@ static void json_server(struct server *server)
 		"  score, ingame, rank, elo"
 		" FROM server_clients LEFT OUTER JOIN ranks"
 		"  ON server_clients.name = ranks.name"
-		"   AND gametype IS ? AND map IS ?"
-		" WHERE ip IS ? AND port IS ?"
+		"   AND gametype = ? AND map = ?"
+		" WHERE ip = ? AND port = ?"
 		" ORDER BY ingame DESC, score DESC, elo DESC";
 
 	json("{");
@@ -91,7 +91,7 @@ void generate_json_server(struct url *url)
 	const char *query =
 		"SELECT ip, port, name, gametype, map, lastseen, expire, max_clients"
 		" FROM servers"
-		" WHERE ip IS ? AND port IS ?";
+		" WHERE ip = ? AND port = ?";
 
 	ip = URL_EXTRACT(url, PARAM_IP(0));
 	port = URL_EXTRACT(url, PARAM_PORT(0));

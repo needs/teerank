@@ -45,12 +45,12 @@ void generate_html_player(struct url *url)
 	const char *qmain =
 		"SELECT name, clan, lastseen, server_ip, server_port"
 		" FROM players"
-		" WHERE players.name IS ?";
+		" WHERE name = ?";
 
 	const char *qranks =
 		"SELECT rank, gametype, elo"
 		" FROM ranks"
-		" WHERE name IS ? AND map = ''";
+		" WHERE name = ? AND map = ''";
 
 	if (!(pname = URL_EXTRACT(url, PARAM_NAME(0))))
 		error(400, "Player name required");

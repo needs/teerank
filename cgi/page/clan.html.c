@@ -18,7 +18,7 @@ void generate_html_clan(struct url *url)
 	const char *query =
 		"SELECT name, clan, lastseen, server_ip, server_port"
 		" FROM players"
-		" WHERE clan IS NOT NULL AND clan IS ?"
+		" WHERE clan IS NOT NULL AND clan = ?"
 		" ORDER BY name";
 
 	struct html_list_column cols[] = {

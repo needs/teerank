@@ -25,8 +25,8 @@ static void show_client_list(char *ip, char *port, char *gametype, char *map)
 		"  score, elo"
 		" FROM server_clients LEFT OUTER JOIN ranks"
 		"  ON server_clients.name = ranks.name"
-		"   AND gametype IS ? AND map IS ?"
-		" WHERE ip IS ? AND port IS ?"
+		"   AND gametype = ? AND map = ?"
+		" WHERE ip = ? AND port = ?"
 		" ORDER BY ingame DESC, score DESC, elo DESC";
 
 	struct html_list_column cols[] = {
@@ -71,13 +71,13 @@ static void read_server(struct sqlite3_stmt *res, struct server *s)
 	s->num_players = count_rows(
 		"SELECT COUNT(1)"
 		" FROM server_clients"
-		" WHERE ip IS ? AND port IS ? AND ingame = 1",
+		" WHERE ip = ? AND port = ? AND ingame = 1",
 		"ss", s->ip, s->port);
 
 	s->num_specs = count_rows(
 		"SELECT COUNT(1)"
 		" FROM server_clients"
-		" WHERE ip IS ? AND port IS ? AND ingame = 0",
+		" WHERE ip = ? AND port = ? AND ingame = 0",
 		"ss", s->ip, s->port);
 
 	s->num_clients = s->num_players + s->num_specs;
@@ -119,7 +119,7 @@ void generate_html_server(struct url *url)
 	const char *query =
 		"SELECT ip, port, name, gametype, map, max_clients"
 		" FROM servers"
-		" WHERE ip IS ? AND port IS ?";
+		" WHERE ip = ? AND port = ?";
 
 	ip = URL_EXTRACT(url, PARAM_IP(0));
 	port = URL_EXTRACT(url, PARAM_PORT(0));

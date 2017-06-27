@@ -50,7 +50,7 @@ static void fill_datasets(
 	const char *query =
 		"SELECT ts, elo, rank"
 		" FROM ranks_historic"
-		" WHERE name IS ?"
+		" WHERE name = ?"
 		" ORDER BY ts"
 		" LIMIT ?";
 

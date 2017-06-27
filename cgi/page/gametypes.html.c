@@ -17,7 +17,7 @@ void generate_html_gametypes(struct url *url)
 		"  COUNT(DISTINCT clan) AS nclans,"
 		"  (SELECT COUNT(1)"
 		"   FROM servers"
-		"   WHERE servers.gametype IS ranks.gametype) AS nservers,"
+		"   WHERE servers.gametype = ranks.gametype) AS nservers,"
 		"  COUNT(DISTINCT map) AS nmaps"
 		" FROM ranks NATURAL JOIN players"
 		" GROUP BY gametype"

@@ -28,14 +28,14 @@ static void print_player_list(void)
 		"SELECT rank, players.name, clan, elo,"
 		"       lastseen, server_ip, server_port"
 		" FROM players NATURAL JOIN ranks"
-		" WHERE gametype IS ? AND map IS ?"
+		" WHERE gametype = ? AND map = ?"
 		" ORDER BY %s"
 		" LIMIT 100 OFFSET %u";
 
 	char *qcount =
 		"SELECT COUNT(1)"
 		" FROM players NATURAL JOIN ranks"
-		" WHERE gametype IS ? AND map IS ?";
+		" WHERE gametype = ? AND map = ?";
 
 	if (strcmp(order, "rank") == 0)
 		sortby = "rank";
@@ -136,14 +136,14 @@ static void print_server_list(void)
 		"  AND sc.port = servers.port)"
 		" AS num_clients, max_clients "
 		" FROM servers"
-		" WHERE gametype IS ? AND map IS ?"
+		" WHERE gametype = ? AND map = ?"
 		" ORDER BY num_clients DESC"
 		" LIMIT 100 OFFSET ?";
 
 	const char *qcount =
 		"SELECT COUNT(1)"
 		" FROM servers"
-		" WHERE gametype IS ? AND map IS ?";
+		" WHERE gametype = ? AND map = ?";
 
 	res = foreach_init(qselect, "ssu", gametype, map, (pnum - 1) * 100);
 
@@ -249,21 +249,21 @@ void generate_html_list(struct url *url)
 	tabs[0].val = count_rows(
 		"SELECT COUNT(1)"
 		" FROM ranks"
-		" WHERE gametype IS ? AND map IS ?",
+		" WHERE gametype = ? AND map = ?",
 		"ss", gametype, map
 	);
 
 	tabs[1].val = count_rows(
 		"SELECT COUNT(DISTINCT clan)"
 		" FROM players NATURAL JOIN ranks"
-		" WHERE gametype IS ? AND map IS ?",
+		" WHERE gametype = ? AND map = ?",
 		"ss", gametype, map
 	);
 
 	tabs[2].val = count_rows(
 		"SELECT COUNT(1)"
 		" FROM servers"
-		" WHERE gametype IS ? AND map IS ?",
+		" WHERE gametype = ? AND map = ?",
 		"ss", gametype, map
 	);
 

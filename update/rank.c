@@ -444,13 +444,13 @@ static void do_recompute_ranks(const char *gametype, const char *map)
 	const char *select =
 		"SELECT name"
 		" FROM ranks"
-		" WHERE gametype IS ? AND map IS ?"
+		" WHERE gametype = ? AND map = ?"
 		" ORDER BY elo DESC, name DESC";
 
 	const char *update =
 		"UPDATE ranks"
 		" SET rank = ?"
-		" WHERE name IS ? AND gametype IS ? AND map IS ?";
+		" WHERE name = ? AND gametype = ? AND map = ?";
 
 	assert(gametype != NULL);
 	assert(map != NULL);

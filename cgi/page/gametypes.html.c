@@ -4,8 +4,6 @@
 #include "cgi.h"
 #include "html.h"
 
-DEFINE_SIMPLE_LIST_CLASS_FUNC(gametypes_class, "gametypelist");
-
 void generate_html_gametypes(struct url *url)
 {
 	sqlite3_stmt *res;
@@ -47,7 +45,7 @@ void generate_html_gametypes(struct url *url)
 	nrow = count_rows(qcount);
 	res = foreach_init(qselect, "");
 	URL(listurl, "/gametypes");
-	html_list(res, cols, NULL, gametypes_class, listurl, pnum, nrow);
+	html_list(res, cols, NULL, "gametypelist", listurl, pnum, nrow);
 
 	html_footer(NULL, NULL);
 }

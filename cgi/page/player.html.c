@@ -8,8 +8,6 @@
 #include "database.h"
 #include "html.h"
 
-DEFINE_SIMPLE_LIST_CLASS_FUNC(rank_list_class, "ranklist");
-
 struct player {
 	char *name, name_[NAME_STRSIZE];
 	char *clan, clan_[CLAN_STRSIZE];
@@ -90,7 +88,7 @@ void generate_html_player(struct url *url)
 	html("");
 
 	res = foreach_init(qranks, "s", pname);
-	html_list(res, cols, NULL, rank_list_class, NULL, 0, 0);
+	html_list(res, cols, .class = "ranklist");
 
 	html("<h2>Historic</h2>");
 	URL(urlfmt, "/player/historic.svg", PARAM_NAME(pname));

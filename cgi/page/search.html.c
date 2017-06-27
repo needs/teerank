@@ -28,7 +28,7 @@
 	" END "
 
 struct search_info {
-	list_class_func_t class;
+	char *class;
 	struct html_list_column *cols;
 
 	int tab;
@@ -38,12 +38,8 @@ struct search_info {
 	const char *search_query;
 };
 
-DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "search-playerlist");
-DEFINE_SIMPLE_LIST_CLASS_FUNC(clan_list_class,   "clanlist");
-DEFINE_SIMPLE_LIST_CLASS_FUNC(server_list_class, "serverlist");
-
 static const struct search_info PLAYER_SINFO = {
-	player_list_class,
+	"search-playerlist",
 	(struct html_list_column[]) {
 		{ "Name",      NULL, HTML_COLTYPE_PLAYER },
 		{ "Clan",      NULL, HTML_COLTYPE_CLAN },
@@ -67,7 +63,7 @@ static const struct search_info PLAYER_SINFO = {
 };
 
 static const struct search_info CLAN_SINFO = {
-	clan_list_class,
+	"clanlist",
 	(struct html_list_column[]) {
 		{ "Name",    NULL, HTML_COLTYPE_CLAN },
 		{ "Members", NULL },
@@ -92,7 +88,7 @@ static const struct search_info CLAN_SINFO = {
 };
 
 static const struct search_info SERVER_SINFO = {
-	server_list_class,
+	"serverlist",
 	(struct html_list_column[]) {
 		{ "Name" , NULL, HTML_COLTYPE_SERVER },
 		{ "Gametype" },
@@ -168,6 +164,6 @@ void generate_html_search(struct url *url)
 	res = foreach_init(
 		sinfo->search_query, "ssssi",
 		squery, squery, squery, squery, MAX_RESULTS);
-	html_list(res, sinfo->cols, "", sinfo->class, NULL, 1, 1);
+	html_list(res, sinfo->cols, .class = sinfo->class);
 	html_footer(NULL, NULL);
 }

@@ -4,8 +4,6 @@
 #include "cgi.h"
 #include "html.h"
 
-DEFINE_SIMPLE_LIST_CLASS_FUNC(maps_class, "maplist");
-
 void generate_html_maps(struct url *url)
 {
 	sqlite3_stmt *res;
@@ -62,7 +60,7 @@ void generate_html_maps(struct url *url)
 	nrow = count_rows(qcount, "s", gametype);
 	res = foreach_init(qselect, "s", gametype);
 	URL(listurl, "/maps", PARAM_GAMETYPE(gametype));
-	html_list(res, cols, NULL, maps_class, listurl, pnum, nrow);
+	html_list(res, cols, NULL, "maplist", listurl, pnum, nrow);
 
 	html_footer(NULL, NULL);
 }

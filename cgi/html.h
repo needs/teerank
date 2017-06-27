@@ -69,21 +69,19 @@ struct html_list_column {
 	enum html_coltype type;
 };
 
-typedef char *(*list_class_func_t)(sqlite3_stmt *res);
-
-/* Almost every list class function will look like this */
-#define DEFINE_SIMPLE_LIST_CLASS_FUNC(name, class)                      \
-static char *name(sqlite3_stmt *res)                                    \
-{                                                                       \
-	if (!res)                                                       \
-		return class;                                           \
-	else                                                            \
-		return NULL;                                            \
-}
-
-void html_list(
-	sqlite3_stmt *res, struct html_list_column *cols, char *order,
-	list_class_func_t class, url_t url, unsigned pnum, unsigned nrow);
+typedef char *(*row_class_func_t)(sqlite3_stmt *res);
+struct html_list_args {
+	char *order;
+	char *class;
+	char *url;
+	unsigned pnum;
+	unsigned nrow;
+	row_class_func_t row_class;
+};
+void html_list_(
+	sqlite3_stmt *res, struct html_list_column *cols, struct html_list_args args);
+#define html_list(res, cols, ...)                                       \
+	html_list_(res, cols, (struct html_list_args){ __VA_ARGS__ })
 
 struct section_tab {
 	char *title;

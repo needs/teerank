@@ -333,17 +333,14 @@ void html_footer(char *jsonanchor, char *jsonurl)
 }
 
 static void list_header(
-	struct html_list_column *cols, char *order, list_class_func_t class_cb,
+	struct html_list_column *cols, char *order, char *class,
 	url_t listurl, unsigned pnum)
 {
 	const char *down = "<img src=\"/images/downarrow.png\"/>";
 	const char *dash = "<img src=\"/images/dash.png\"/>";
 	struct html_list_column *col;
-	char *class = NULL;
 	url_t url;
 
-	if (class_cb)
-		class = class_cb(NULL);
 	if (class)
 		html("<table class=\"%s\">", class);
 	else
@@ -443,7 +440,7 @@ static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
 	html("</nav>");
 }
 
-static void list_item(sqlite3_stmt *res, struct html_list_column *col, list_class_func_t class_cb)
+static void list_item(sqlite3_stmt *res, struct html_list_column *col, row_class_func_t class_cb)
 {
 	char *class = NULL;
 	unsigned i = 0;
@@ -565,18 +562,17 @@ static void list_item(sqlite3_stmt *res, struct html_list_column *col, list_clas
 	html("</tr>");
 }
 
-void html_list(
-	sqlite3_stmt *res, struct html_list_column *cols, char *order,
-	list_class_func_t class, url_t url, unsigned pnum, unsigned nrow)
+void html_list_(
+	sqlite3_stmt *res, struct html_list_column *cols, struct html_list_args args)
 {
 	bool empty = true;
 
-	list_header(cols, order, class, url, pnum);
+	list_header(cols, args.order, args.class, args.url, args.pnum);
 	while ((res = foreach_next(res))) {
-		list_item(res, cols, class);
+		list_item(res, cols, args.row_class);
 		empty = false;
 	}
-	list_footer(url, empty, pnum, nrow);
+	list_footer(args.url, empty, args.pnum, args.nrow);
 }
 
 /* Only keep the two most significant digits */

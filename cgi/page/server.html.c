@@ -8,11 +8,9 @@
 #include "teerank.h"
 #include "html.h"
 
-static char *client_list_class(sqlite3_stmt *res)
+static char *row_class(sqlite3_stmt *res)
 {
-	if (!res)
-		return "playerlist";
-	else if (column_int(res, 2) == 0)
+	if (column_int(res, 2) == 0)
 		return "spectator";
 	else
 		return NULL;
@@ -41,7 +39,7 @@ static void show_client_list(char *ip, char *port, char *gametype, char *map)
 	};
 
 	res = foreach_init(query, "ssss", gametype, map, ip, port);
-	html_list(res, cols, "", client_list_class, NULL, 0, 0);
+	html_list(res, cols, .class = "playerlist", .row_class = row_class);
 }
 
 struct server {

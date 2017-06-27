@@ -19,8 +19,6 @@ static char *map;
 static char *order;
 static unsigned pnum;
 
-DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "playerlist");
-
 static void print_player_list(void)
 {
 	struct sqlite3_stmt *res;
@@ -76,11 +74,9 @@ static void print_player_list(void)
 
 		nrow = count_rows(qcount, "ss", gametype, map);
 		URL(url, "/players", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-		html_list(res, cols, order, player_list_class, url, pnum, nrow);
+		html_list(res, cols, order, "playerlist", url, pnum, nrow);
 	}
 }
-
-DEFINE_SIMPLE_LIST_CLASS_FUNC(clan_list_class, "clanlist");
 
 static void print_clan_list(void)
 {
@@ -124,11 +120,9 @@ static void print_clan_list(void)
 
 		nrow = count_rows(qcount);
 		URL(url, "/clans", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-		html_list(res, cols, "", clan_list_class, url, pnum, nrow);
+		html_list(res, cols, NULL, "clanlist", url, pnum, nrow);
 	}
 }
-
-DEFINE_SIMPLE_LIST_CLASS_FUNC(server_list_class, "serverlist");
 
 static void print_server_list(void)
 {
@@ -181,7 +175,7 @@ static void print_server_list(void)
 
 		nrow = count_rows(qcount, "ss", gametype, map);
 		URL(url, "/servers", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-		html_list(res, cols, "", server_list_class, url, pnum, nrow);
+		html_list(res, cols, NULL, "serverlist", url, pnum, nrow);
 	}
 }
 

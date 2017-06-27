@@ -9,8 +9,6 @@
 #include "teerank.h"
 #include "html.h"
 
-DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "clanplayerlist");
-
 void generate_html_clan(struct url *url)
 {
 	sqlite3_stmt *res;
@@ -37,7 +35,7 @@ void generate_html_clan(struct url *url)
 	html("<h2>%s</h2>", cname);
 
 	res = foreach_init(query, "s", cname);
-	html_list(res, cols, "", player_list_class, NULL, 0, 0);
+	html_list(res, cols, .class = "clanplayerlist");
 
 	URL(urlfmt, "/clan.json", PARAM_NAME(cname));
 	html_footer("clan", urlfmt);

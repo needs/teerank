@@ -39,6 +39,8 @@ void URL_(url_t buf, const char *prefix, ...);
 
 #define PARAM(name, dflt, type, val)                                    \
 	name, dflt, type, val
+#define ANCHOR(val)                                                     \
+	"", val
 #define PARAM_NAME(val)                                                 \
 	PARAM("name", NULL, "%s", val)
 #define PARAM_IP(val)                                                   \

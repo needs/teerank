@@ -306,8 +306,11 @@ void html_footer(char *jsonanchor, char *jsonurl)
 	html("</section>");
 
 	if (jsonanchor && jsonurl) {
+		url_t url;
+		URL(url, "about-json-api", ANCHOR(jsonanchor));
+
 		html("<nav id=\"bottabs\"><ul>");
-		print_top_tab("JSON", jsonurl, NULL, "?", jsonanchor, "jsondoc");
+		print_top_tab("JSON", jsonurl, NULL, "?", url, "jsondoc");
 		print_top_tab("HTML", NULL, "active", NULL, NULL, NULL);
 		html("</ul></nav>");
 	}

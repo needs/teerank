@@ -408,6 +408,12 @@ static void process_params(struct dynbuf *buf, va_list_ ap, char sep)
 	char *pname, *pdflt, *ptype;
 
 	while ((pname = va_arg_(ap, char *))) {
+		if (!*pname) {
+			bputc(buf, '#');
+			url_encode(buf, va_arg_(ap, char *));
+			continue;
+		}
+
 		pdflt = va_arg_(ap, char *);
 		ptype = va_arg_(ap, char *);
 

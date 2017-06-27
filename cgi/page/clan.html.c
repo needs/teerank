@@ -14,9 +14,8 @@ DEFINE_SIMPLE_LIST_CLASS_FUNC(player_list_class, "clanplayerlist");
 void generate_html_clan(struct url *url)
 {
 	sqlite3_stmt *res;
-	char *cname = NULL;
+	char *cname;
 	url_t urlfmt;
-	unsigned i;
 
 	const char *query =
 		"SELECT name, clan, lastseen, server_ip, server_port"
@@ -31,12 +30,9 @@ void generate_html_clan(struct url *url)
 		{ NULL }
 	};
 
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "name") == 0)
-			cname = url->args[i].val;
-	}
+	if (!(cname = URL_EXTRACT(url, PARAM_NAME(0))))
+		error(400, "Clan name required");
 
-	/* Eventually, print them */
 	html_header(CUSTOM_TAB, .title = "Clan", .subtab = cname);
 	html("<h2>%s</h2>", cname);
 

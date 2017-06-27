@@ -110,26 +110,21 @@ static char *build_addr(const char *ip, const char *port)
 void generate_html_server(struct url *url)
 {
 	struct server server;
-	unsigned i;
 	sqlite3_stmt *res;
 	url_t urlfmt;
 	bool found = false;
 
 	char *addr;
-	char *ip = DEFAULT_PARAM_VALUE(PARAM_IP(0));
-	char *port = DEFAULT_PARAM_VALUE(PARAM_PORT(0));
+	char *ip;
+	char *port;
 
 	const char *query =
 		"SELECT ip, port, name, gametype, map, max_clients"
 		" FROM servers"
 		" WHERE ip IS ? AND port IS ?";
 
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "ip") == 0)
-			ip = url->args[i].val;
-		if (strcmp(url->args[i].name, "port") == 0)
-			port = url->args[i].val;
-	}
+	ip = URL_EXTRACT(url, PARAM_IP(0));
+	port = URL_EXTRACT(url, PARAM_PORT(0));
 
 	if (!ip)
 		error(400, "Missing 'ip' parameter");

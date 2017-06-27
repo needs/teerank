@@ -31,12 +31,11 @@ static void read_player(sqlite3_stmt *res, struct player *p)
 void generate_html_player(struct url *url)
 {
 	url_t urlfmt;
-	char *pname = NULL;
+	char *pname;
 	struct player player;
 	bool found = false;
 
 	sqlite3_stmt *res;
-	unsigned i;
 
 	struct html_list_column cols[] = {
 		{ "",          NULL, HTML_COLTYPE_RANK },
@@ -55,12 +54,7 @@ void generate_html_player(struct url *url)
 		" FROM ranks"
 		" WHERE name IS ? AND map = ''";
 
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "name") == 0)
-			pname = url->args[i].val;
-	}
-
-	if (!pname)
+	if (!(pname = URL_EXTRACT(url, PARAM_NAME(0))))
 		error(400, "Player name required");
 
 	foreach_row(res, qmain, "s", pname) {

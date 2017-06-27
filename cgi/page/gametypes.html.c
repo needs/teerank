@@ -10,7 +10,7 @@ void generate_html_gametypes(struct url *url)
 {
 	sqlite3_stmt *res;
 	char *pnum_;
-	unsigned i, nrow, pnum;
+	unsigned nrow, pnum;
 	url_t listurl;
 
 	const char *qselect =
@@ -39,13 +39,7 @@ void generate_html_gametypes(struct url *url)
 		{ NULL }
 	};
 
-	pnum_ = DEFAULT_PARAM_VALUE(PARAM_PAGENUM(0));
-
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "p") == 0)
-			pnum_ = url->args[i].val;
-	}
-
+	pnum_ = URL_EXTRACT(url, PARAM_PAGENUM(0));
 	pnum = strtol(pnum_, NULL, 10);
 
 	html_header(GAMETYPE_LIST_TAB);

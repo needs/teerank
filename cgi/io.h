@@ -54,10 +54,14 @@ void URL_(url_t buf, const char *prefix, ...);
 #define PARAM_ORDER(val)                                                \
 	PARAM("sort", "rank", "%s", val)
 #define PARAM_SQUERY(val)                                               \
-	PARAM("q", NULL, "%s", val)
+	PARAM("q", "", "%s", val)
 
-/* Extract the default value of the given parameter */
-#define DEFAULT_PARAM_VALUE(param) DEFAULT_PARAM_VALUE_(param)
-#define DEFAULT_PARAM_VALUE_(name, dflt, type, val) dflt
+/* Extract a paramater in an URL */
+#define URL_EXTRACT(url, ...)                                           \
+	URL_EXTRACT_(url, __VA_ARGS__)
+#define URL_EXTRACT_(url, name, dflt, type, val)                        \
+	URL_EXTRACT__(url, name, dflt)
+struct url;
+char *URL_EXTRACT__(struct url *url, char *name, char *dflt);
 
 #endif /* IO_H */

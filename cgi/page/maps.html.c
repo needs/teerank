@@ -11,7 +11,7 @@ void generate_html_maps(struct url *url)
 	sqlite3_stmt *res;
 	enum tab_type tab;
 	char *gametype, *pnum_;
-	unsigned i, nrow, pnum;
+	unsigned nrow, pnum;
 	url_t listurl;
 
 	const char *qselect =
@@ -41,16 +41,8 @@ void generate_html_maps(struct url *url)
 		{ NULL }
 	};
 
-	gametype = DEFAULT_PARAM_VALUE(PARAM_GAMETYPE(0));
-	pnum_ = DEFAULT_PARAM_VALUE(PARAM_PAGENUM(0));
-
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "gametype") == 0)
-			gametype = url->args[i].val;
-		if (strcmp(url->args[i].name, "p") == 0)
-			pnum_ = url->args[i].val;
-	}
-
+	gametype = URL_EXTRACT(url, PARAM_GAMETYPE(0));
+	pnum_ = URL_EXTRACT(url, PARAM_PAGENUM(0));
 	pnum = strtol(pnum_, NULL, 10);
 
 	if (strcmp(gametype, "CTF") == 0)

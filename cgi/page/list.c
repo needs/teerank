@@ -188,24 +188,12 @@ static void print_server_list(void)
 static void parse_list_args(struct url *url)
 {
 	char *pcs_, *pnum_;
-	unsigned i;
 
 	pcs_ = "players";
-	pnum_    = DEFAULT_PARAM_VALUE(PARAM_PAGENUM(0));
-	gametype = DEFAULT_PARAM_VALUE(PARAM_GAMETYPE(0));
-	map      = DEFAULT_PARAM_VALUE(PARAM_MAP(0));
-	order    = DEFAULT_PARAM_VALUE(PARAM_ORDER(0));
-
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "p") == 0)
-			pnum_ = url->args[i].val;
-		if (strcmp(url->args[i].name, "gametype") == 0)
-			gametype = url->args[i].val;
-		if (strcmp(url->args[i].name, "map") == 0)
-			map = url->args[i].val;
-		if (strcmp(url->args[i].name, "sort") == 0)
-			order = url->args[i].val;
-	}
+	pnum_    = URL_EXTRACT(url, PARAM_PAGENUM(0));
+	gametype = URL_EXTRACT(url, PARAM_GAMETYPE(0));
+	map      = URL_EXTRACT(url, PARAM_MAP(0));
+	order    = URL_EXTRACT(url, PARAM_ORDER(0));
 
 	if (url->ndirs > 0)
 		pcs_ = url->dirs[0];

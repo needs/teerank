@@ -10,8 +10,7 @@
 
 void generate_json_clan(struct url *url)
 {
-	char *cname = NULL;
-	unsigned i;
+	char *cname;
 
 	const char *query =
 		"SELECT players.name"
@@ -23,10 +22,8 @@ void generate_json_clan(struct url *url)
 		{ NULL }
 	};
 
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "name") == 0)
-			cname = url->args[i].val;
-	}
+	if (!(cname = URL_EXTRACT(url, PARAM_NAME(0))))
+		error(400, "Clan name required");
 
 	json("{%s:", "members");
 	json_value_list(foreach_init(query, "s", cname), cols, "nmembers");

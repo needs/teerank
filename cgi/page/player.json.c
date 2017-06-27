@@ -43,9 +43,8 @@ static void json_player_historic(const char *pname)
 
 void generate_json_player(struct url *url)
 {
-	char *pname = NULL;
+	char *pname;
 	bool found = false, full = true;
-	unsigned i;
 
 	sqlite3_stmt *res;
 
@@ -54,12 +53,11 @@ void generate_json_player(struct url *url)
 		" FROM players LEFT OUTER JOIN ranks ON players.name = ranks.name"
 		" WHERE players.name IS ?";
 
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "name") == 0)
-			pname = url->args[i].val;
-		else if (strcmp(url->args[i].name, "short") == 0)
-			full = false;
-	}
+	pname = URL_EXTRACT(url, PARAM_NAME(0));
+	full = URL_EXTRACT__(url, "short", NULL);
+
+	if (!pname)
+		error(400, "Player name required");
 
 	json("{");
 

@@ -772,13 +772,10 @@ void generate_svg_graph(struct url *url)
 {
 	struct graph graph = { 0 };
 	struct dataset dselo, dsrank;
-	char *pname = NULL;
-	unsigned i;
+	char *pname;
 
-	for (i = 0; i < url->nargs; i++) {
-		if (strcmp(url->args[i].name, "name") == 0)
-			pname = url->args[i].val;
-	}
+	if (!(pname = URL_EXTRACT(url, PARAM_NAME(0))))
+		error(400, "Player name required");
 
 	fill_datasets(&dselo, &dsrank, pname);
 

@@ -123,9 +123,8 @@ static const struct search_info SERVER_SINFO = {
 void generate_html_search(struct url *url)
 {
 	sqlite3_stmt *res;
-	char *squery = NULL;
+	char *squery;
 	char *pcs;
-	unsigned i;
 
 	const struct search_info *sinfo = NULL, **s, *sinfos[] = {
 		&PLAYER_SINFO, &CLAN_SINFO, &SERVER_SINFO, NULL
@@ -149,12 +148,7 @@ void generate_html_search(struct url *url)
 	else
 		error(400, "%s: Should be either \"players\", \"clans\" or \"servers\"", pcs);
 
-	for (i = 0; i < url->nargs; i++)
-		if (strcmp(url->args[i].name, "q") == 0)
-			squery = url->args[i].val ? url->args[i].val : "";
-
-	if (!squery)
-		error(400, "Missing 'q' parameter\n");
+	squery = URL_EXTRACT(url, PARAM_SQUERY(0));
 
 	for (s = sinfos; *s; s++)
 		tabs[(*s)->tab].val = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);

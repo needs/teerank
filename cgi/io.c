@@ -454,3 +454,18 @@ void URL_(url_t url, const char *prefix, ...)
 
 	bputc(&buf, '\0');
 }
+
+char *URL_EXTRACT__(struct url *url, char *name, char *dflt)
+{
+	char *ret = NULL;
+	unsigned i;
+
+	for (i = 0; i < url->nargs; i++)
+		if (strcmp(url->args[i].name, name) == 0)
+			ret = url->args[i].val;
+
+	if (!ret)
+		ret = dflt;
+
+	return ret;
+}

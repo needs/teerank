@@ -55,7 +55,7 @@ static const struct search_info PLAYER_SINFO = {
 	" WHERE" IS_RELEVANT("name")
 	" LIMIT ?",
 
-	"SELECT name, clan, lastseen, server_ip, server_port"
+	"SELECT name, clan, lastseen"
 	" FROM players"
 	" WHERE" IS_RELEVANT("name")
 	" ORDER BY" RELEVANCE("name") ", clan"

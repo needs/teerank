@@ -26,7 +26,7 @@ static void print_player_list(void)
 
 	char qselect[512], *qselectfmt =
 		"SELECT rank, players.name, clan, elo,"
-		"       lastseen, server_ip, server_port"
+		"       lastseen"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE gametype = ? AND map = ?"
 		" ORDER BY %s"

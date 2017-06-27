@@ -15,12 +15,7 @@
  * If "text" is not NULL, store a string representation of the elapsed time.
  */
 unsigned elapsed_time(time_t t, char **timescale, char *text, size_t textsize);
-
-/*
- * Print a link to the given server if player is online.  Otherwise it
- * print the elapsed time since it's last connection.
- */
-void player_lastseen_link(time_t lastseen, char *ip, char *port);
+void player_lastseen(time_t lastseen);
 
 enum tab_type {
 	CTF_TAB,

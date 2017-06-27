@@ -16,7 +16,7 @@ void generate_html_clan(struct url *url)
 	url_t urlfmt;
 
 	const char *query =
-		"SELECT name, clan, lastseen, server_ip, server_port"
+		"SELECT name, clan, lastseen"
 		" FROM players"
 		" WHERE clan IS NOT NULL AND clan = ?"
 		" ORDER BY name";

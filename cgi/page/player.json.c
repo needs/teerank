@@ -17,8 +17,6 @@ static void json_player(sqlite3_stmt *res)
 	json("%s:%i,", "elo", column_int(res, 2));
 	json("%s:%u,", "rank", column_unsigned(res, 3));
 	json("%s:%d,", "lastseen", column_time_t(res, 4));
-	json("%s:%s,", "server_ip", column_text(res, 5));
-	json("%s:%s", "server_port", column_text(res, 6));
 }
 
 static void json_player_historic(const char *pname)
@@ -49,7 +47,7 @@ void generate_json_player(struct url *url)
 	sqlite3_stmt *res;
 
 	const char *query =
-		"SELECT players.name, clan, elo, rank, lastseen, server_ip, server_port"
+		"SELECT players.name, clan, elo, rank, lastseen"
 		" FROM players LEFT OUTER JOIN ranks ON players.name = ranks.name"
 		" WHERE players.name = ?";
 

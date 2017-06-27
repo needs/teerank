@@ -31,11 +31,9 @@ static bool upgrade_player(struct old_player *p)
 {
 	const char *query =
 		"INSERT INTO _players"
-		" VALUES(?, ?, ?, ?, ?)";
+		" VALUES(?, ?, ?)";
 
-	return exec(
-		query, "sstss", p->name, p->clan,
-		p->lastseen, p->server_ip, p->server_port);
+	return exec(query, "sstss", p->name, p->clan, p->lastseen);
 }
 
 static void upgrade_players(void)

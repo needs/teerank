@@ -13,7 +13,7 @@ void generate_json_clan(struct url *url)
 	char *cname;
 
 	const char *query =
-		"SELECT players.name"
+		"SELECT name"
 		" FROM players"
 		" WHERE clan IS NOT NULL AND clan = ?";
 

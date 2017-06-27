@@ -12,8 +12,6 @@ struct player {
 	char *name, name_[NAME_STRSIZE];
 	char *clan, clan_[CLAN_STRSIZE];
 	time_t lastseen;
-	char *server_ip, server_ip_[IP_STRSIZE];
-	char *server_port, server_port_[PORT_STRSIZE];
 };
 
 static void read_player(sqlite3_stmt *res, struct player *p)
@@ -22,8 +20,6 @@ static void read_player(sqlite3_stmt *res, struct player *p)
 	p->clan = column_text_copy(res, 1, p->clan_, sizeof(p->clan_));
 
 	p->lastseen = column_time_t(res, 2);
-	p->server_ip = column_text_copy(res, 3, p->server_ip_, sizeof(p->server_ip_));
-	p->server_port = column_text_copy(res, 4, p->server_port_, sizeof(p->server_port_));
 }
 
 void generate_html_player(struct url *url)
@@ -43,7 +39,7 @@ void generate_html_player(struct url *url)
 	};
 
 	const char *qmain =
-		"SELECT name, clan, lastseen, server_ip, server_port"
+		"SELECT name, clan, lastseen"
 		" FROM players"
 		" WHERE name = ?";
 
@@ -79,8 +75,7 @@ void generate_html_player(struct url *url)
 
 	html("<div>");
 	html("<p id=\"player_lastseen\">");
-	player_lastseen_link(
-		player.lastseen, player.server_ip, player.server_port);
+	player_lastseen(player.lastseen);
 	html("</p>");
 	html("</div>");
 

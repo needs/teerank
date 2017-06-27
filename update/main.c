@@ -83,12 +83,12 @@ static void update_players(struct server *sv)
 
 	const char *replace =
 		"REPLACE INTO players"
-		" VALUES(?, ?, ?, ?, ?)";
+		" VALUES(?, ?, ?)";
 
 	for (i = 0; i < sv->num_clients; i++) {
 		struct client *c = &sv->clients[i];
-		exec(replace, "sstss",
-		     c->name, c->clan, time(NULL), sv->ip, sv->port);
+		exec(replace, "sst",
+		     c->name, c->clan, time(NULL));
 	}
 }
 

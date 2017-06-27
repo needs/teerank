@@ -112,33 +112,21 @@ unsigned elapsed_time(time_t t, char **timescale, char *text, size_t textsize)
 
 #undef set_text_and_timescale
 
-void player_lastseen_link(time_t lastseen, char *ip, char *port)
+void player_lastseen(time_t lastseen)
 {
 	char text[64], strls[] = "00/00/1970 00h00", *timescale;
-	int is_online, have_strls;
-	url_t url;
+	bool have_strls;
 
 	if (!lastseen)
 		return;
 
-	is_online = !elapsed_time(lastseen, &timescale, text, sizeof(text));
+	elapsed_time(lastseen, &timescale, text, sizeof(text));
 	have_strls = strftime(strls, sizeof(strls), "%d/%m/%Y %Hh%M", gmtime(&lastseen));
-	URL(url, "/server", PARAM_IP(ip), PARAM_PORT(port));
 
-	if (is_online && have_strls)
-		html("<a class=\"%s\" href=\"%S\" title=\"%s\">%s</a>",
-		     timescale, url, strls, text);
-
-	else if (is_online)
-		html("<a class=\"%s\" href=\"%S\">%s</a>",
-		     timescale, url, text);
-
-	else if (have_strls)
-		html("<span class=\"%s\" title=\"%s\">%s</span>",
-		     timescale, strls, text);
-
-	else
-		html("<span class=\"%s\">%s</span>", timescale, text);
+	html("<span class=\"%s\"", timescale);
+	if (have_strls)
+		html(" title=\"%s\"", strls);
+	html(">%s</span>", text);
 }
 
 static void print_top_tab(
@@ -525,11 +513,8 @@ static void list_item(sqlite3_stmt *res, struct html_list_column *col, row_class
 
 		case HTML_COLTYPE_LASTSEEN: {
 			time_t lastseen = column_time_t(res, i++);
-			char *ip = column_text(res, i++);
-			char *port = column_text(res, i++);
-
 			html("<td>");
-			player_lastseen_link(lastseen, ip, port);
+			player_lastseen(lastseen);
 			html("</td>");
 			break;
 		}

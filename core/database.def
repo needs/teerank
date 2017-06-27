@@ -31,11 +31,7 @@
 	" name TEXT,"                                                   \
 	" clan TEXT,"                                                   \
 	" lastseen DATE,"                                               \
-	" server_ip TEXT,"                                              \
-	" server_port TEXT,"                                            \
-	" PRIMARY KEY(name),"                                           \
-	" FOREIGN KEY(server_ip, server_port)"                          \
-	"  REFERENCES servers(ip, port)"                                \
+	" PRIMARY KEY(name)"                                            \
 	")"
 
 #define TABLE_DESC_SERVER_CLIENTS "("                                   \

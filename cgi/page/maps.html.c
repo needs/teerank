@@ -28,8 +28,7 @@ void generate_html_maps(struct url *url)
 	const char *qcount =
 		"SELECT COUNT(1)"
 		" FROM ranks"
-		" WHERE gametype = ?"
-		" GROUP BY map";
+		" WHERE gametype = ?";
 
 	struct html_list_column cols[] = {
 		{ "Map", NULL, HTML_COLTYPE_MAP },

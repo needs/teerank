@@ -10,7 +10,7 @@ void generate_html_maps(struct url *url)
 	enum tab_type tab;
 	char *gametype, *pnum_;
 	unsigned nrow, pnum;
-	url_t listurl;
+	url_t url_;
 
 	const char *qselect =
 		"SELECT map, gametype,"
@@ -51,15 +51,17 @@ void generate_html_maps(struct url *url)
 	else
 		tab = GAMETYPE_TAB;
 
+	URL(url_, "/players", PARAM_GAMETYPE(gametype));
 	html_header(
 		tab, .title = gametype,
 		.subtab = "Map list",
-		.subtab_class = "allmaps");
+		.subtab_class = "allmaps",
+		.subtab_url = url_);
 
 	nrow = count_rows(qcount, "s", gametype);
 	res = foreach_init(qselect, "s", gametype);
-	URL(listurl, "/maps", PARAM_GAMETYPE(gametype));
-	html_list(res, cols, NULL, "maplist", listurl, pnum, nrow);
+	URL(url_, "/maps", PARAM_GAMETYPE(gametype));
+	html_list(res, cols, NULL, "maplist", url_, pnum, nrow);
 
 	html_footer(NULL, NULL);
 }

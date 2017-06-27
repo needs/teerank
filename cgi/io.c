@@ -79,9 +79,11 @@ static void bputc(struct dynbuf *buf, char c)
 
 static void bputs(struct dynbuf *buf, const char *str)
 {
-	if (str)
+	if (str) {
+		buf->havedata = true;
 		for (; *str; str++)
 			bputc(buf, *str);
+	}
 }
 
 static void bprint(struct dynbuf *buf, const char *fmt, ...)
@@ -395,10 +397,11 @@ static bool dynbuf_compare(struct dynbuf *buf, char *str)
 {
 	if (!buf->havedata)
 		return !str;
-	else if (!str)
+	if (!str)
 		return false;
-	else
-		return strcmp(buf->data, str) == 0;
+
+	bputc(buf, '\0');
+	return strcmp(buf->data, str) == 0;
 }
 
 static void process_params(struct dynbuf *buf, va_list_ ap, char sep)
@@ -419,9 +422,6 @@ static void process_params(struct dynbuf *buf, va_list_ ap, char sep)
 
 		reset_dynbuf(&tmp, tmpbuf, sizeof(tmpbuf));
 		print(&tmp, bputs, NULL, ptype, ap);
-
-		if (tmp.havedata)
-			bputc(&tmp, '\0');
 
 		if (!dynbuf_compare(&tmp, pdflt)) {
 			bputc(buf, sep);

@@ -21,7 +21,7 @@ void generate_json_about(struct url *url)
 	const char *query =
 		"SELECT node, service, lastseen,"
 		" (SELECT COUNT(1)"
-		"  FROM servers"
+		"  FROM server_masters"
 		"  WHERE master_node = node"
 		"  AND master_service = service)"
 		" FROM masters"

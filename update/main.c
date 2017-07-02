@@ -87,8 +87,7 @@ static void update_players(struct server *sv)
 
 	for (i = 0; i < sv->num_clients; i++) {
 		struct client *c = &sv->clients[i];
-		exec(replace, "sst",
-		     c->name, c->clan, time(NULL));
+		exec(replace, "sst", c->name, c->clan, time(NULL));
 	}
 }
 
@@ -191,12 +190,11 @@ static void reference_server(char *ip, char *port, struct master *master)
 		return;
 	}
 
-	query =
-		"UPDATE servers"
-		" SET master_node = ?, master_service = ?"
-		" WHERE ip = ? AND port = ?";
-
-	exec(query, "ssss", master->node, master->service, ip, port);
+	exec(
+		"INSERT OR IGNORE INTO server_masters"
+		" VALUES(?, ?, ?, ?)",
+		"ssss", ip, port, master->node, master->service
+	);
 }
 
 static void handle_master_packet(struct netclient *client, struct packet *packet)
@@ -257,12 +255,11 @@ static void handle(struct netclient *client, struct packet *packet)
  */
 static void unreference_servers(struct master *master)
 {
-	const char *query =
-		"UPDATE servers"
-		" SET master_node = '', master_service = ''"
-		" WHERE master_node = ? AND master_service = ?";
-
-	exec(query, "ss", master->node, master->service);
+	exec(
+		"DELETE FROM server_masters"
+		" WHERE master_node = ? AND master_service = ?",
+		"ss", master->node, master->service
+	);
 }
 
 static void add_to_pool(struct netclient *client)

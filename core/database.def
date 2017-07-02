@@ -11,6 +11,18 @@
 	" PRIMARY KEY(node, service)"                                   \
 	")"
 
+#define TABLE_DESC_SERVER_MASTERS "("                                   \
+	" ip TEXT,"                                                     \
+	" port TEXT,"                                                   \
+	" master_node TEXT,"                                            \
+	" master_service TEXT,"                                         \
+	" PRIMARY KEY(ip, port, master_node, master_service),"          \
+	" FOREIGN KEY(ip, port)"                                        \
+	"  REFERENCES servers(ip, port),"                               \
+	" FOREIGN KEY(master_node, master_service)"                     \
+	"  REFERENCES masters(master_node, master_service)"             \
+	")"
+
 #define TABLE_DESC_SERVERS "("                                          \
 	" ip TEXT,"                                                     \
 	" port TEXT,"                                                   \
@@ -19,12 +31,10 @@
 	" map TEXT,"                                                    \
 	" lastseen DATE,"                                               \
 	" expire DATE,"                                                 \
-	" master_node TEXT,"                                            \
-	" master_service TEXT,"                                         \
 	" max_clients INTEGER,"                                         \
 	" PRIMARY KEY(ip, port),"                                       \
-	" FOREIGN KEY(master_node, master_service)"                     \
-	"  REFERENCES masters(node, service)"                           \
+	" FOREIGN KEY(ip, port)"                                        \
+	"  REFERENCES server_masters(ip, port)"                         \
 	")"
 
 #define TABLE_DESC_PLAYERS "("                                          \

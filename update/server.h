@@ -10,8 +10,7 @@
 #define MAX_CLIENTS 16
 
 #define ALL_SERVER_COLUMNS \
-	" ip, port, name, gametype, map, lastseen, expire," \
-	" master_node, master_service, max_clients "
+	" ip, port, name, gametype, map, lastseen, expire, max_clients "
 
 #define NUM_CLIENTS_COLUMN \
 	" (SELECT COUNT(1)" \
@@ -39,9 +38,6 @@ struct server {
 	time_t lastseen;
 	time_t expire;
 
-	char master_node[NODE_STRSIZE];
-	char master_service[SERVICE_STRSIZE];
-
 	int num_clients;
 	int max_clients;
 	struct client {
@@ -52,9 +48,9 @@ struct server {
 	} clients[MAX_CLIENTS];
 };
 
-#define bind_server(s) "sssssttssu", \
+#define bind_server(s) "sssssttu", \
 	(s).ip, (s).port, (s).name, (s).gametype, (s).map, (s).lastseen, \
-	(s).expire, (s).master_node, (s).master_service, (s).max_clients
+	(s).expire, (s).max_clients
 
 void read_server(sqlite3_stmt *res, struct server *s);
 

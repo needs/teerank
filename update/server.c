@@ -22,10 +22,7 @@ void read_server(sqlite3_stmt *res, struct server *s)
 	s->lastseen = column_time_t(res, 5);
 	s->expire = column_time_t(res, 6);
 
-	column_text_copy(res, 7, s->master_node, sizeof(s->master_node));
-	column_text_copy(res, 8, s->master_service, sizeof(s->master_service));
-
-	s->max_clients = column_unsigned(res, 9);
+	s->max_clients = column_unsigned(res, 7);
 	s->num_clients = 0;
 }
 
@@ -90,7 +87,7 @@ int write_server(struct server *server)
 {
 	const char *query =
 		"INSERT OR REPLACE INTO servers"
-		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		" VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
 	return exec(query, bind_server(*server));
 }
@@ -109,29 +106,28 @@ int server_expired(struct server *server)
 	return now > server->expire;
 }
 
-static void remove_server_clients(const char *ip, const char *port)
-{
-	const char *query =
-		"DELETE FROM server_clients"
-		" WHERE ip = ? AND port = ?";
-
-	assert(ip != NULL);
-	assert(port != NULL);
-
-	exec(query, "ss", ip, port);
-}
-
 void remove_server(const char *ip, const char *port)
 {
-	const char *query =
-		"DELETE FROM servers"
-		" WHERE ip = ? AND port = ?";
-
 	assert(ip != NULL);
 	assert(port != NULL);
 
-	remove_server_clients(ip, port);
-	exec(query, "ss", ip, port);
+	exec(
+		"DELETE FROM servers"
+		" WHERE ip = ? AND port = ?",
+		"ss", ip, port
+	);
+
+	exec(
+		"DELETE FROM server_clients"
+		" WHERE ip = ? AND port = ?",
+		"ss", ip, port
+	);
+
+	exec(
+		"DELETE FROM server_masters"
+		" WHERE ip = ? AND port = ?",
+		"ss", ip, port
+	);
 }
 
 struct server create_server(
@@ -142,13 +138,18 @@ struct server create_server(
 
 	snprintf(s.ip, sizeof(s.ip), "%s", ip);
 	snprintf(s.port, sizeof(s.port), "%s", port);
-	snprintf(s.master_node, sizeof(s.master_node), "%s", master_node);
-	snprintf(s.master_service, sizeof(s.master_service), "%s", master_service);
 
-	const char *query =
-		"INSERT OR IGNORE INTO servers(" ALL_SERVER_COLUMNS ")"
-		" VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	exec(
+		"INSERT OR IGNORE INTO servers"
+		" VALUES (?, ?, NULL, NULL, NULL, 0, 0, NULL)",
+		"ss", ip, port
+	);
 
-	exec(query, bind_server(s));
+	exec(
+		"INSERT OR IGNORE INTO server_masters"
+		" VALUES (?, ?, ?, ?)",
+		"ssss", ip, port, master_node, master_service
+	);
+
 	return s;
 }

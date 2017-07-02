@@ -86,7 +86,7 @@ static int show_masters_status(int teerank_stopped)
 	const char *query =
 		"SELECT node, lastseen,"
 		" (SELECT COUNT(1)"
-		"  FROM servers"
+		"  FROM server_masters"
 		"  WHERE master_node = node"
 		"  AND master_service = service)"
 		" AS nservers "

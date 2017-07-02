@@ -63,12 +63,10 @@
 struct player_info {
 	char name[NAME_STRSIZE];
 
-	struct {
-		int elo;
-		unsigned rank;
-	} gametype, map;
+	int elo;
+	unsigned rank;
 
-	int is_rankable;
+	bool is_rankable;
 	struct client *old, *new;
 };
 
@@ -157,15 +155,21 @@ static void load_players(struct server *old, struct server *new, struct player_i
 		if (is_already_loaded(players, pname))
 			continue;
 
-		p->gametype.elo = latest_elo(pname, new->gametype, "");
-		p->map.elo      = latest_elo(pname, new->gametype, new->map);
-
 		snprintf(p->name, sizeof(p->name), "%s", pname);
 		p->new = &new->clients[i];
 		p->old = find_client(old, pname);
 
 		p++;
 	}
+}
+
+static void load_elos(struct player_info *players, const char *gametype, const char *map)
+{
+	struct player_info *p;
+	unsigned i;
+
+	foreach_player_info(p)
+		p->elo = latest_elo(p->name, gametype, map);
 }
 
 static time_t get_elapsed_time(struct server *old, struct server *new)
@@ -182,7 +186,7 @@ static time_t get_elapsed_time(struct server *old, struct server *new)
  * the difference between old score average and new score average is
  * greater than 3.
  */
-static int is_new_game(struct player_info *players)
+static bool is_new_game(struct player_info *players)
 {
 	struct player_info *p;
 	unsigned i, nr_players = 0;
@@ -197,7 +201,7 @@ static int is_new_game(struct player_info *players)
 	}
 
 	if (!nr_players)
-		return 0;
+		return false;
 
 	float oldavg = oldtotal / nr_players;
 	float newavg = newtotal / nr_players;
@@ -246,7 +250,7 @@ static void mark_rankable_players(
 	/* Mark rankable players */
 	foreach_player_info(p) {
 		if (p->old && p->new->ingame) {
-			p->is_rankable = 1;
+			p->is_rankable = true;
 			rankable++;
 		}
 	}
@@ -262,7 +266,7 @@ static void mark_rankable_players(
 
 dont_rank:
 	foreach_player_info(p)
-		p->is_rankable = 0;
+		p->is_rankable = false;
 }
 
 /* p() func as defined by Elo. */
@@ -277,7 +281,7 @@ static double p(double delta)
 }
 
 /* Classic Elo formula for two players */
-static void compute_elo_delta(struct player_info *p1, struct player_info *p2, int *delta)
+static int compute_elo_delta(struct player_info *p1, struct player_info *p2)
 {
 	const unsigned K = 25;
 	int d1, d2;
@@ -297,8 +301,7 @@ static void compute_elo_delta(struct player_info *p1, struct player_info *p2, in
 	else
 		W = 1.0;
 
-	delta[0] = K * (W - p(p1->gametype.elo - p2->gametype.elo));
-	delta[1] = K * (W - p(p1->map.elo      - p2->map.elo));
+	return K * (W - p(p1->elo - p2->elo));
 }
 
 /*
@@ -310,38 +313,33 @@ static void compute_elo_delta(struct player_info *p1, struct player_info *p2, in
  * other players and we make the average of every Elo deltas.  The Elo
  * delta is then added to the player's Elo points.
  */
-static void compute_new_elo(struct player_info *player, struct player_info *players, int *elo)
+static int compute_new_elo(struct player_info *player, struct player_info *players)
 {
 	struct player_info *p;
 	unsigned i;
-
 	int count = 0;
-	int delta[2], total[2] = { 0 };
+	int total = 0;
 
 	assert(player != NULL);
 	assert(players != NULL);
-	assert(elo != NULL);
 
 	foreach_player_info(p) {
 		if (p != player && p->is_rankable) {
-			compute_elo_delta(player, p, delta);
-			total[0] += delta[0];
-			total[1] += delta[1];
+			total += compute_elo_delta(player, p);
 			count++;
 		}
 	}
 
-	elo[0] = player->gametype.elo + total[0] / count;
-	elo[1] = player->map.elo      + total[1] / count;
+	return player->elo + total / count;
 }
 
-static void verbose_elo_update(struct player_info *p, int *newelo)
+static void verbose_elo_update(struct player_info *p, int newelo)
 {
 	verbose(
-		"\t%-16s | %4d | %4d %+3d | %4d %+3d",
+		"\t%-16s | %4d | %4d %+3d",
 		p->name, p->new->score - p->old->score,
-		newelo[0], newelo[0] - p->gametype.elo,
-		newelo[1], newelo[1] - p->map.elo);
+		newelo, newelo - p->elo
+	);
 }
 
 /*
@@ -355,7 +353,7 @@ static void update_elos(
 {
 	struct player_info *p;
 	unsigned i;
-	int elo[2];
+	int elo;
 	unsigned ranked = 0;
 
 	const char *query =
@@ -375,12 +373,20 @@ static void update_elos(
 	if (ranked)
 		verbose("%s:%s: %u players ranked, %s, %s", ip, port, ranked, gametype, map);
 
+	load_elos(players, gametype, map);
 	foreach_player_info(p) {
 		if (p->is_rankable) {
-			compute_new_elo(p, players, elo);
-			exec(query, "sssi", p->name, gametype, "",  elo[0]);
-			exec(query, "sssi", p->name, gametype, map, elo[1]);
+			elo = compute_new_elo(p, players);
+			exec(query, "sssi", p->name, gametype, map, elo);
 			verbose_elo_update(p, elo);
+		}
+	}
+
+	load_elos(players, gametype, "");
+	foreach_player_info(p) {
+		if (p->is_rankable) {
+			elo = compute_new_elo(p, players);
+			exec(query, "sssi", p->name, gametype, "",  elo);
 		}
 	}
 }

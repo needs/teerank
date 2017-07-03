@@ -61,15 +61,15 @@ static void list_item(sqlite3_stmt *res, struct json_list_column *col, enum list
 		json("]");
 }
 
-static void list(
-	sqlite3_stmt *res, struct json_list_column *cols,
+static void list_(
+	struct list *list, struct json_list_column *cols,
 	char *lenname, enum list_type type)
 {
 	unsigned nrow = 0;
 
 	json("[");
-	while ((res = foreach_next(res))) {
-		list_item(res, cols, type, nrow);
+	while ((list->res = foreach_next(list->res))) {
+		list_item(list->res, cols, type, nrow);
 		nrow++;
 	}
 	json("]");
@@ -79,17 +79,17 @@ static void list(
 }
 
 void json_list(
-	sqlite3_stmt *res, struct json_list_column *cols, char *lenname)
+	struct list *list, struct json_list_column *cols, char *lenname)
 {
-	list(res, cols, lenname, OBJECT);
+	list_(list, cols, lenname, OBJECT);
 }
 void json_array_list(
-	sqlite3_stmt *res, struct json_list_column *cols, char *lenname)
+	struct list *list, struct json_list_column *cols, char *lenname)
 {
-	list(res, cols, lenname, ARRAY);
+	list_(list, cols, lenname, ARRAY);
 }
 void json_value_list(
-	sqlite3_stmt *res, struct json_list_column *cols, char *lenname)
+	struct list *list, struct json_list_column *cols, char *lenname)
 {
-	list(res, cols, lenname, VALUE);
+	list_(list, cols, lenname, VALUE);
 }

@@ -324,16 +324,15 @@ void html_footer(char *jsonanchor, char *jsonurl)
 }
 
 static void list_header(
-	struct html_list_column *cols, char *order, char *class,
-	url_t listurl, unsigned pnum)
+	struct list *list, struct html_list_column *cols, struct html_list_args *args)
 {
 	const char *down = "<img src=\"/images/downarrow.png\"/>";
 	const char *dash = "<img src=\"/images/dash.png\"/>";
 	struct html_list_column *col;
 	url_t url;
 
-	if (class)
-		html("<table class=\"%s\">", class);
+	if (args->class)
+		html("<table class=\"%s\">", args->class);
 	else
 		html("<table>");
 
@@ -341,12 +340,12 @@ static void list_header(
 	html("<tr>");
 
 	for (col = cols; col->title; col++) {
-		if (!col->order || !order || !listurl)
+		if (!col->order || !list->order || !args->url)
 			html("<th>%s</th>", col->title);
-		else if (strcmp(order, col->order) == 0)
+		else if (strcmp(list->order, col->order) == 0)
 			html("<th>%s%S</th>", col->title, down);
 		else {
-			URL(url, listurl, PARAM_ORDER(col->order), PARAM_PAGENUM(pnum));
+			URL(url, args->url, PARAM_ORDER(col->order), PARAM_PAGENUM(list->pnum));
 			html("<th><a href=\"%S\">%s%S</a></th>",
 			     url, col->title, dash);
 		}
@@ -362,11 +361,11 @@ static unsigned min(unsigned a, unsigned b)
 	return a < b ? a : b;
 }
 
-static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
+static void list_footer(struct list *list, struct html_list_args *args, bool empty)
 {
 	/* Number of pages shown before and after the current page */
 	static const unsigned extra = 3;
-	unsigned i, npages;
+	unsigned pnum, i, npages;
 	url_t url;
 
 	html("</tbody>");
@@ -375,10 +374,11 @@ static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
 	if (empty)
 		html("<em class=\"no-results\">No results found</em>");
 
-	if (!fmt)
+	if (!list->plen)
 		return;
 
-	npages = nrow / 100 + 1;
+	pnum = list->pnum;
+	npages = list->nrow / list->plen + 1;
 
 	html("<nav class=\"pages\">");
 
@@ -386,13 +386,13 @@ static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
 	if (pnum == 1)
 		html("<a class=\"previous\">Previous</a>");
 	else {
-		URL(url, fmt, PARAM_PAGENUM(pnum - 1));
+		URL(url, args->url, PARAM_PAGENUM(pnum - 1));
 		html("<a class=\"previous\" href=\"%S\">Previous</a>", url);
 	}
 
 	/* Link to first page */
 	if (pnum > extra + 1) {
-		URL(url, fmt, PARAM_PAGENUM(1));
+		URL(url, args->url, PARAM_PAGENUM(1));
 		html("<a href=\"%S\">1</a>", url);
 	}
 	if (pnum > extra + 2)
@@ -400,7 +400,7 @@ static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
 
 	/* Extra pages before */
 	for (i = min(extra, pnum - 1); i > 0; i--) {
-		URL(url, fmt, PARAM_PAGENUM(pnum - i));
+		URL(url, args->url, PARAM_PAGENUM(pnum - i));
 		html("<a href=\"%S\">%u</a>", url, pnum - i);
 	}
 
@@ -408,7 +408,7 @@ static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
 
 	/* Extra pages after */
 	for (i = 1; i <= min(extra, npages - pnum); i++) {
-		URL(url, fmt, PARAM_PAGENUM(pnum + i));
+		URL(url, args->url, PARAM_PAGENUM(pnum + i));
 		html("<a href=\"%S\">%u</a>", url, pnum + i);
 	}
 
@@ -416,7 +416,7 @@ static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
 	if (pnum + extra + 1 < npages)
 		html("<span>...</span>");
 	if (pnum + extra < npages) {
-		URL(url, fmt, PARAM_PAGENUM(npages));
+		URL(url, args->url, PARAM_PAGENUM(npages));
 		html("<a href=\"%S\">%u</a>", url, npages);
 	}
 
@@ -424,7 +424,7 @@ static void list_footer(url_t fmt, bool empty, unsigned pnum, unsigned nrow)
 	if (pnum == npages)
 		html("<a class=\"next\">Next</a>");
 	else {
-		URL(url, fmt, PARAM_PAGENUM(pnum + 1));
+		URL(url, args->url, PARAM_PAGENUM(pnum + 1));
 		html("<a class=\"next\" href=\"%S\">Next</a>", url);
 	}
 
@@ -551,16 +551,16 @@ static void list_item(sqlite3_stmt *res, struct html_list_column *col, row_class
 }
 
 void html_list_(
-	sqlite3_stmt *res, struct html_list_column *cols, struct html_list_args args)
+	struct list *list, struct html_list_column *cols, struct html_list_args args)
 {
 	bool empty = true;
 
-	list_header(cols, args.order, args.class, args.url, args.pnum);
-	while ((res = foreach_next(res))) {
-		list_item(res, cols, args.row_class);
+	list_header(list, cols, &args);
+	while ((list->res = foreach_next(list->res))) {
+		list_item(list->res, cols, args.row_class);
 		empty = false;
 	}
-	list_footer(args.url, empty, args.pnum, args.nrow);
+	list_footer(list, &args, empty);
 }
 
 /* Only keep the two most significant digits */

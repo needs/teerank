@@ -6,10 +6,10 @@
 
 void generate_html_maps(struct url *url)
 {
-	sqlite3_stmt *res;
+	struct list list;
 	enum tab_type tab;
 	char *gametype, *pnum_;
-	unsigned nrow, pnum;
+	unsigned pnum;
 	url_t url_;
 
 	const char *qselect =
@@ -58,10 +58,9 @@ void generate_html_maps(struct url *url)
 		.subtab_class = "allmaps",
 		.subtab_url = url_);
 
-	nrow = count_rows(qcount, "s", gametype);
-	res = foreach_init(qselect, "s", gametype);
 	URL(url_, "/maps", PARAM_GAMETYPE(gametype));
-	html_list(res, cols, NULL, "maplist", url_, pnum, nrow);
+	list = init_list(qselect, qcount, 100, pnum, NULL, "s", gametype);
+	html_list(&list, cols, NULL, "maplist", url_);
 
 	html_footer(NULL, NULL);
 }

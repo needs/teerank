@@ -118,7 +118,7 @@ static const struct search_info SERVER_SINFO = {
 
 void generate_html_search(struct url *url)
 {
-	sqlite3_stmt *res;
+	struct list list;
 	char *squery;
 	char *pcs;
 
@@ -161,9 +161,9 @@ void generate_html_search(struct url *url)
 	URL(tabs[2].url, "/search/servers", PARAM_SQUERY(squery));
 
 	print_section_tabs(tabs);
-	res = foreach_init(
+	list = init_simple_list(
 		sinfo->search_query, "ssssi",
 		squery, squery, squery, squery, MAX_RESULTS);
-	html_list(res, sinfo->cols, .class = sinfo->class);
+	html_list(&list, sinfo->cols, .class = sinfo->class);
 	html_footer(NULL, NULL);
 }

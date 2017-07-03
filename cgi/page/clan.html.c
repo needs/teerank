@@ -11,7 +11,7 @@
 
 void generate_html_clan(struct url *url)
 {
-	sqlite3_stmt *res;
+	struct list list;
 	char *cname;
 	url_t urlfmt;
 
@@ -34,8 +34,8 @@ void generate_html_clan(struct url *url)
 	html_header(CUSTOM_TAB, .title = "Clan", .subtab = cname);
 	html("<h2>%s</h2>", cname);
 
-	res = foreach_init(query, "s", cname);
-	html_list(res, cols, .class = "clanplayerlist");
+	list = init_simple_list(query, "s", cname);
+	html_list(&list, cols, .class = "clanplayerlist");
 
 	URL(urlfmt, "/clan.json", PARAM_NAME(cname));
 	html_footer("clan", urlfmt);

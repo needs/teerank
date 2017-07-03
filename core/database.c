@@ -78,6 +78,9 @@ static int bind(sqlite3_stmt *res, const char *bindfmt, va_list ap)
 	unsigned i;
 	int ret;
 
+	if (!bindfmt)
+		return 1;
+
 	for (i = 0; bindfmt[i]; i++) {
 		switch (bindfmt[i]) {
 		case 'i':
@@ -307,35 +310,6 @@ int init_database(int readonly)
 	return 1;
 }
 
-unsigned count_rows_(const char *query, const char *bindfmt, ...)
-{
-	va_list ap;
-	unsigned ret, count;
-	struct sqlite3_stmt *res;
-
-	if (sqlite3_prepare_v2(db, query, -1, &res, NULL) != SQLITE_OK)
-		goto fail;
-
-	va_start(ap, bindfmt);
-	ret = bind(res, bindfmt, ap);
-	va_end(ap);
-
-	if (!ret)
-		goto fail;
-	if (sqlite3_step(res) != SQLITE_ROW)
-		goto fail;
-
-	count = column_unsigned(res, 0);
-
-	sqlite3_finalize(res);
-	return count;
-
-fail:
-	errmsg("count_rows", query);
-	sqlite3_finalize(res);
-	return 0;
-}
-
 /*
  * If the given query is the same than the previous one, we want to
  * reset it and clear any bindings instead of re-preparing it: that's
@@ -419,18 +393,22 @@ fail:
 
 sqlite3_stmt *foreach_init(const char *query, const char *bindfmt, ...)
 {
-	int ret;
+	sqlite3_stmt *res;
 	va_list ap;
+
+	va_start(ap, bindfmt);
+	res = foreach_init_(query, bindfmt, ap);
+	va_end(ap);
+	return res;
+}
+
+sqlite3_stmt *foreach_init_(const char *query, const char *bindfmt, va_list ap)
+{
 	sqlite3_stmt *res;
 
 	if (sqlite3_prepare_v2(db, query, -1, &res, NULL))
 		goto fail;
-
-	va_start(ap, bindfmt);
-	ret = bind(res, bindfmt, ap);
-	va_end(ap);
-
-	if (!ret)
+	if (!bind(res, bindfmt, ap))
 		goto fail;
 
 	return res;
@@ -472,4 +450,38 @@ char *column_text_copy(sqlite3_stmt *res, int i, char *buf, size_t size)
 bool is_column_null(sqlite3_stmt *res, int i)
 {
 	return sqlite3_column_type(res, i) == SQLITE_NULL;
+}
+
+unsigned count_rows_(const char *query, const char *bindfmt, ...)
+{
+	va_list ap;
+	unsigned ret;
+
+	va_start(ap, bindfmt);
+	ret = count_rows__(query, bindfmt, ap);
+	va_end(ap);
+	return ret;
+}
+
+unsigned count_rows__(const char *query, const char *bindfmt, va_list ap)
+{
+	unsigned count;
+	struct sqlite3_stmt *res;
+
+	if (sqlite3_prepare_v2(db, query, -1, &res, NULL) != SQLITE_OK)
+		goto fail;
+	if (!bind(res, bindfmt, ap))
+		goto fail;
+	if (sqlite3_step(res) != SQLITE_ROW)
+		goto fail;
+
+	count = column_unsigned(res, 0);
+
+	sqlite3_finalize(res);
+	return count;
+
+fail:
+	errmsg("count_rows", query);
+	sqlite3_finalize(res);
+	return 0;
 }

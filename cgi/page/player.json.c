@@ -21,6 +21,8 @@ static void json_player(sqlite3_stmt *res)
 
 static void json_player_historic(const char *pname)
 {
+	struct list list;
+
 	struct json_list_column cols[] = {
 		{ "timestamp", "%d" },
 		{ "elo", "%i" },
@@ -35,7 +37,8 @@ static void json_player_historic(const char *pname)
 		" ORDER BY ts";
 
 	json(",%s:{%s:", "historic", "records");
-	json_array_list(foreach_init(query, "s", pname), cols, "length");
+	list = init_simple_list(query, "s", pname);
+	json_array_list(&list, cols, "length");
 	json("}");
 }
 

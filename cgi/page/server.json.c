@@ -35,7 +35,7 @@ static void read_server(sqlite3_stmt *res, struct server *s)
 
 static void json_server(struct server *server)
 {
-	sqlite3_stmt *res;
+	struct list list;
 
 	struct json_list_column cols[] = {
 		{ "name", "%s" },
@@ -71,11 +71,11 @@ static void json_server(struct server *server)
 
 	json("%s:", "clients");
 
-	res = foreach_init(
+	list = init_simple_list(
 		query, "ssss",
 		server->gametype, server->map,
 		server->ip, server->port);
-	json_list(res, cols, "num_clients");
+	json_list(&list, cols, "num_clients");
 
 	json("}");
 }

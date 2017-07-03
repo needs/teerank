@@ -2,6 +2,7 @@
 #define JSON_H
 
 #include "database.h"
+#include "io.h"
 
 struct json_list_column {
 	char *title;
@@ -9,10 +10,10 @@ struct json_list_column {
 };
 
 void json_list(
-	sqlite3_stmt *res, struct json_list_column *cols, char *lenname);
+	struct list *list, struct json_list_column *cols, char *lenname);
 void json_array_list(
-	sqlite3_stmt *res, struct json_list_column *cols, char *lenname);
+	struct list *list, struct json_list_column *cols, char *lenname);
 void json_value_list(
-	sqlite3_stmt *res, struct json_list_column *cols, char *lenname);
+	struct list *list, struct json_list_column *cols, char *lenname);
 
 #endif /* JSON_H */

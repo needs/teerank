@@ -21,31 +21,22 @@ static unsigned pnum;
 
 static void print_player_list(void)
 {
-	struct sqlite3_stmt *res;
-	const char *sortby = NULL;
+	struct list list;
 
-	char qselect[512], *qselectfmt =
+	char *qselect =
 		"SELECT rank, players.name, clan, elo,"
 		"       lastseen"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE gametype = ? AND map = ?"
-		" ORDER BY %s"
-		" LIMIT 100 OFFSET %u";
+		" ORDER BY %s";
 
 	char *qcount =
 		"SELECT COUNT(1)"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE gametype = ? AND map = ?";
 
-	if (strcmp(order, "rank") == 0)
-		sortby = "rank";
-	else if (strcmp(order, "lastseen") == 0)
-		sortby = "lastseen DESC, rank";
-	else
-		error(400, "Invalid order \"%s\"", order);
-
-	snprintf(qselect, sizeof(qselect), qselectfmt, sortby, (pnum - 1) * 100);
-	res = foreach_init(qselect, "ss", gametype, map);
+	check_order(order, "rank", "lastseen");
+	list = init_list(qselect, qcount, 100, pnum, order, "ss", gametype, map);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -58,11 +49,10 @@ static void print_player_list(void)
 		};
 
 		json("{%s:", "players");
-		json_list(res, cols, "length");
+		json_list(&list, cols, "length");
 		json("}");
 	} else {
 		url_t url;
-		unsigned nrow;
 		struct html_list_column cols[] = {
 			{ "", NULL, HTML_COLTYPE_RANK },
 			{ "Name", NULL, HTML_COLTYPE_PLAYER },
@@ -72,30 +62,28 @@ static void print_player_list(void)
 			{ NULL }
 		};
 
-		nrow = count_rows(qcount, "ss", gametype, map);
 		URL(url, "/players", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-		html_list(res, cols, order, "playerlist", url, pnum, nrow);
+		html_list(&list, cols, order, "playerlist", url);
 	}
 }
 
 static void print_clan_list(void)
 {
-	struct sqlite3_stmt *res;
+	struct list list;
 
 	const char *qselect =
 		"SELECT clan, CAST(AVG(elo) AS Int) AS avgelo, COUNT(1) AS nmembers"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE clan IS NOT NULL"
 		" GROUP BY clan"
-		" ORDER BY avgelo DESC, nmembers DESC, clan"
-		" LIMIT 100 OFFSET ?";
+		" ORDER BY avgelo DESC, nmembers DESC, clan";
 
 	const char *qcount =
 		"SELECT COUNT(DISTINCT clan)"
 		" FROM players"
 		" WHERE clan IS NOT NULL";
 
-	res = foreach_init(qselect, "u", (pnum - 1) * 100);
+	list = init_list(qselect, qcount, 100, pnum, NULL, NULL);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -106,11 +94,10 @@ static void print_clan_list(void)
 		};
 
 		json("{%s:", "clans");
-		json_list(res, cols, "length");
+		json_list(&list, cols, "length");
 		json("}");
 	} else {
 		url_t url;
-		unsigned nrow;
 		struct html_list_column cols[] = {
 			{ "Name", NULL, HTML_COLTYPE_CLAN },
 			{ "Elo", NULL, HTML_COLTYPE_ELO },
@@ -118,15 +105,14 @@ static void print_clan_list(void)
 			{ NULL }
 		};
 
-		nrow = count_rows(qcount);
 		URL(url, "/clans", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-		html_list(res, cols, NULL, "clanlist", url, pnum, nrow);
+		html_list(&list, cols, NULL, "clanlist", url);
 	}
 }
 
 static void print_server_list(void)
 {
-	struct sqlite3_stmt *res;
+	struct list list;
 	char *map_ = *map ? map : NULL;
 
 	const char *qselect =
@@ -138,15 +124,14 @@ static void print_server_list(void)
 		" AS num_clients, max_clients "
 		" FROM servers"
 		" WHERE gametype = ? AND map = IFNULL(?, map)"
-		" ORDER BY num_clients DESC"
-		" LIMIT 100 OFFSET ?";
+		" ORDER BY num_clients DESC";
 
 	const char *qcount =
 		"SELECT COUNT(1)"
 		" FROM servers"
 		" WHERE gametype = ? AND map = IFNULL(?, map)";
 
-	res = foreach_init(qselect, "ssu", gametype, map_, (pnum - 1) * 100);
+	list = init_list(qselect, qcount, 100, pnum, NULL, "ss", gametype, map_);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -161,11 +146,10 @@ static void print_server_list(void)
 		};
 
 		json("{%s:", "servers");
-		json_list(res, cols, "length");
+		json_list(&list, cols, "length");
 		json("}");
 	} else {
 		url_t url;
-		unsigned nrow;
 		struct html_list_column cols[] = {
 			{ "Name", NULL, HTML_COLTYPE_SERVER },
 			{ "Gametype" },
@@ -174,9 +158,8 @@ static void print_server_list(void)
 			{ NULL }
 		};
 
-		nrow = count_rows(qcount, "ss", gametype, map_);
 		URL(url, "/servers", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
-		html_list(res, cols, NULL, "serverlist", url, pnum, nrow);
+		html_list(&list, cols, NULL, "serverlist", url);
 	}
 }
 

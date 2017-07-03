@@ -9,7 +9,9 @@
 
 void generate_json_about(struct url *url)
 {
+	struct list list;
 	unsigned nrow;
+
 	struct json_list_column cols[] = {
 		{ "node", "%s" },
 		{ "service", "%s" },
@@ -41,7 +43,8 @@ void generate_json_about(struct url *url)
 	json("%s:%d,", "last_update", last_database_update());
 
 	json("%s:", "masters");
-	json_list(foreach_init(query, ""), cols, "nmasters");
+	list = init_simple_list(query, NULL);
+	json_list(&list, cols, "nmasters");
 
 	json("}");
 }

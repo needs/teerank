@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>
+#include <assert.h>
 
 #include "cgi.h"
 
@@ -474,4 +475,85 @@ char *URL_EXTRACT__(struct url *url, char *name, char *dflt)
 		ret = dflt;
 
 	return ret;
+}
+
+void check_order_(char *order, ...)
+{
+	va_list ap;
+	char *str;
+
+	va_start(ap, order);
+	while ((str = va_arg(ap, char *)))
+		if (strcmp(str, "rank") != 0)
+			break;
+	va_end(ap);
+
+	if (!str)
+		error(400, "Invalid order \"%s\"", order);
+}
+
+static char *orderby(char *order)
+{
+	if (!order)
+		return "";
+	if (strcmp(order, "rank") == 0)
+		return "rank";
+	if (strcmp(order, "lastseen") == 0)
+		return "lastseen DESC, rank";
+
+	error(400, "Unkown order: \"%s\"\n", order);
+	return NULL;
+}
+
+struct list init_simple_list(const char *qselect, const char *bindfmt, ...)
+{
+	struct list list = { 0 };
+	va_list ap;
+
+	va_start(ap, bindfmt);
+	list.res = foreach_init_(qselect, bindfmt, ap);
+	va_end(ap);
+
+	return list;
+}
+
+struct list init_list(
+	const char *qselect, const char *qcount,
+	unsigned plen, unsigned pnum, char *order,
+	const char *bindfmt, ...)
+{
+	struct list list;
+	char fmt[512], qry[512];
+	va_list ap;
+	int ret;
+
+	assert(qselect != NULL);
+	assert(qcount != NULL);
+
+	ret = snprintf(
+		fmt, sizeof(fmt), "%s LIMIT %u OFFSET %u",
+		qselect, plen, (pnum - 1) * plen
+	);
+	if (ret >= sizeof(fmt))
+		error(500, "init_list: qselect too long");
+
+	ret = snprintf(qry, sizeof(qry), fmt, orderby(order));
+	if (ret >= sizeof(qry))
+		error(500, "init_list: qselect too long");
+
+	va_start(ap, bindfmt);
+	list.res = foreach_init_(qry, bindfmt, ap);
+	va_end(ap);
+
+	if (qcount) {
+		va_start(ap, bindfmt);
+		list.nrow = count_rows_(qcount, bindfmt, ap);
+		va_end(ap);
+	}
+
+	list.pnum = pnum;
+	list.plen = plen;
+	list.order = order;
+
+	return list;
 }

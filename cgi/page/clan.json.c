@@ -10,6 +10,7 @@
 
 void generate_json_clan(struct url *url)
 {
+	struct list list;
 	char *cname;
 
 	const char *query =
@@ -26,6 +27,7 @@ void generate_json_clan(struct url *url)
 		error(400, "Clan name required");
 
 	json("{%s:", "members");
-	json_value_list(foreach_init(query, "s", cname), cols, "nmembers");
+	list = init_simple_list(query, "s", cname);
+	json_value_list(&list, cols, "nmembers");
 	json("}");
 }

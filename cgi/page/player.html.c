@@ -28,8 +28,8 @@ void generate_html_player(struct url *url)
 	char *pname;
 	struct player player;
 	bool found = false;
-
 	sqlite3_stmt *res;
+	struct list list;
 
 	struct html_list_column cols[] = {
 		{ "",          NULL, HTML_COLTYPE_RANK },
@@ -82,8 +82,8 @@ void generate_html_player(struct url *url)
 	html("</header>");
 	html("");
 
-	res = foreach_init(qranks, "s", pname);
-	html_list(res, cols, .class = "ranklist");
+	list = init_simple_list(qranks, "s", pname);
+	html_list(&list, cols, .class = "ranklist");
 
 	html("<h2>Historic</h2>");
 	URL(urlfmt, "/player/historic.svg", PARAM_NAME(pname));

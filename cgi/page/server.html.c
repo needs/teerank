@@ -18,7 +18,7 @@ static char *row_class(sqlite3_stmt *res)
 
 static void show_client_list(char *ip, char *port, char *gametype, char *map)
 {
-	sqlite3_stmt *res;
+	struct list list;
 
 	const char *query =
 		"SELECT rank, server_clients.name, ingame, server_clients.clan, "
@@ -38,8 +38,8 @@ static void show_client_list(char *ip, char *port, char *gametype, char *map)
 		{ NULL }
 	};
 
-	res = foreach_init(query, "ssss", gametype, map, ip, port);
-	html_list(res, cols, .class = "playerlist", .row_class = row_class);
+	list = init_simple_list(query, "ssss", gametype, map, ip, port);
+	html_list(&list, cols, .class = "playerlist", .row_class = row_class);
 }
 
 struct server {

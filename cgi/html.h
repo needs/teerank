@@ -69,14 +69,12 @@ struct html_list_args {
 	char *order;
 	char *class;
 	char *url;
-	unsigned pnum;
-	unsigned nrow;
 	row_class_func_t row_class;
 };
 void html_list_(
-	sqlite3_stmt *res, struct html_list_column *cols, struct html_list_args args);
-#define html_list(res, cols, ...)                                       \
-	html_list_(res, cols, (struct html_list_args){ __VA_ARGS__ })
+	struct list *list, struct html_list_column *cols, struct html_list_args args);
+#define html_list(list, cols, ...)                                       \
+	html_list_(list, cols, (struct html_list_args){ __VA_ARGS__ })
 
 struct section_tab {
 	char *title;

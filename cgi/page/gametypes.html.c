@@ -6,9 +6,9 @@
 
 void generate_html_gametypes(struct url *url)
 {
-	sqlite3_stmt *res;
+	struct list list;
 	char *pnum_;
-	unsigned nrow, pnum;
+	unsigned pnum;
 	url_t listurl;
 
 	const char *qselect =
@@ -42,10 +42,9 @@ void generate_html_gametypes(struct url *url)
 
 	html_header(GAMETYPE_LIST_TAB);
 
-	nrow = count_rows(qcount);
-	res = foreach_init(qselect, "");
 	URL(listurl, "/gametypes");
-	html_list(res, cols, NULL, "gametypelist", listurl, pnum, nrow);
+	list = init_list(qselect, qcount, 100, pnum, NULL, NULL);
+	html_list(&list, cols, NULL, "gametypelist", listurl);
 
 	html_footer(NULL, NULL);
 }

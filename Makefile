@@ -41,47 +41,59 @@ CFLAGS += \
 UPDATE_BIN = teerank-update
 UPGRADE_BIN = teerank-upgrade
 CGI = teerank.cgi
+TEST_BIN = teerank-create-test-database
 
-BINS = $(UPGRADE_BIN) $(UPDATE_BIN) $(CGI)
+BINS = $(UPGRADE_BIN) $(UPDATE_BIN) $(CGI) $(TEST_BIN)
 
 # Add debugging symbols and optimizations to check for more warnings
 debug: CFLAGS += -O -g
-debug: $(BINS)
+debug: $(BINS) teerank-test
 
 # Remove assertions and enable optimizations
 release: CFLAGS += -DNDEBUG -O2
-release: $(BINS)
+release: $(BINS) teerank-test
 
 # Object files
 core_objs    = $(patsubst %.c,%.o,$(wildcard core/*.c))
 cgi_objs     = $(patsubst %.c,%.o,$(wildcard cgi/*.c) $(wildcard cgi/page/*.c))
 update_objs  = $(patsubst %.c,%.o,$(wildcard update/*.c))
 upgrade_objs = $(patsubst %.c,%.o,$(wildcard upgrade/*.c))
+test_objs    = $(patsubst %.c,%.o,$(wildcard test/*.c))
 
 # Header files
 core_headers    = $(wildcard core/*.h core/*.def)
 update_headers  = $(wildcard update/*.h)
 upgrade_headers = $(wildcard upgrade/*.h)
 cgi_headers     = $(wildcard cgi/*.h cgi/*.def)
+test_headers    = $(wildcard test/*.h)
 
 # Header files dependencies
 $(core_objs):    $(core_headers)
 $(update_objs):  $(core_headers) $(update_headers)
 $(upgrade_objs): $(core_headers) $(upgrade_headers)
 $(cgi_objs):     $(core_headers) $(cgi_headers)
+$(test_objs):    $(core_headers) $(test_headers)
 
 # Binaries objects dependencies
 $(UPDATE_BIN):  $(core_objs) $(update_objs)
 $(UPGRADE_BIN): $(core_objs) $(upgrade_objs)
 $(CGI):         $(core_objs) $(cgi_objs)
+$(TEST_BIN):    $(core_objs) $(test_objs)
 
 %.o: %.c
-	@$(CC) $(CFLAGS) -c -o $@ $<
 	@echo "BUILD $@"
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 $(BINS):
-	@$(CC) $(LDFLAGS) -o $@ $^
 	@echo "LINK $@"
+	@$(CC) $(LDFLAGS) -o $@ $^
+
+# Test process
+teerank-test: export TEERANK_DB = teerank-test.sqlite3
+teerank-test: test/test.sh $(BINS)
+	@echo "RUN TEST"
+	@cp $< $@
+	@./teerank-test || (rm ./teerank-test && false)
 
 #
 # Clean

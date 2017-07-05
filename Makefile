@@ -106,7 +106,7 @@ install:
 	mkdir -p $(TEERANK_DATA_ROOT)
 	mkdir -p $(TEERANK_BIN_ROOT)
 
-	cp $(BINS) $(SCRIPTS) $(TEERANK_BIN_ROOT)
+	cp $(BINS) $(TEERANK_BIN_ROOT)
 	cp -r $(CGI) assets/* $(TEERANK_DATA_ROOT)
 
 .PHONY: all debug release clean install

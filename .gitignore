@@ -1,19 +1,9 @@
 # SQlite database
-/*.sqlite3
-/*.sqlite3-*
-
-# Old database
-/.teerank/
+/*.sqlite3*
 
 # Build files
 *.o
-*.swp
-/libteerank*.a
-/.build/
-/generated/
 
 # Binaries
 /teerank-*
 /teerank.cgi
-/build/generate-default-config
-/build/prefix-header

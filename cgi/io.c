@@ -168,10 +168,8 @@ static void print(struct dynbuf *buf, escape_func_t escape, extend_func_t extend
 			bputc(buf, '%');
 			break;
 		default:
-			if (!extend || !extend(buf, *fmt, ap)) {
-				fprintf(stderr, "Unknown conversion specifier '%%%c'\n", *fmt);
-				abort();
-			}
+			if (!extend || !extend(buf, *fmt, ap))
+				error(500, "Unknown conversion specifier '%%%c'\n", *fmt);
 		}
 	}
 }

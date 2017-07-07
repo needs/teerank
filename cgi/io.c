@@ -356,12 +356,12 @@ void json(const char *fmt, ...)
 static bool safe_url_char(char c)
 {
 	if (isalnum(c))
-		return 1;
+		return true;
 
 	return strchr("-_.~", c) != NULL;
 }
 
-static char dectohex(char dec)
+static char dectohex(unsigned char dec)
 {
 	switch (dec) {
 	case 0: return '0';

@@ -13,20 +13,32 @@ void generate_html_gametypes(struct url *url)
 
 	const char *qselect =
 		"SELECT gametype,"
-		"  COUNT(DISTINCT name) AS nplayers,"
-		"  COUNT(DISTINCT clan) AS nclans,"
-		"  (SELECT COUNT(1)"
-		"   FROM servers"
-		"   WHERE servers.gametype = ranks.gametype) AS nservers,"
-		"  COUNT(DISTINCT map) AS nmaps"
-		" FROM ranks NATURAL JOIN players"
+
+		" (SELECT COUNT(DISTINCT name)"
+		"  FROM ranks AS r"
+		"  WHERE r.gametype = ranks.gametype)"
+		" AS nplayers,"
+
+		" (SELECT COUNT(DISTINCT clan)"
+		"  FROM ranks AS r NATURAL JOIN players AS p"
+		"  WHERE r.gametype = ranks.gametype"
+		"  AND clan <> '')"
+		" AS nclans,"
+
+		" (SELECT COUNT(1)"
+		"  FROM servers"
+		"  WHERE servers.gametype = ranks.gametype)"
+		" AS nservers,"
+
+		" COUNT(DISTINCT map) AS nmaps"
+		" FROM ranks"
+		" WHERE map <> ''"
 		" GROUP BY gametype"
 		" ORDER BY nplayers DESC";
 
 	const char *qcount =
-		"SELECT COUNT(1)"
-		" FROM ranks"
-		" GROUP BY gametype";
+		"SELECT COUNT(DISTINCT gametype)"
+		" FROM ranks";
 
 	struct html_list_column cols[] = {
 		{ "Gametype", NULL, HTML_COLTYPE_GAMETYPE },

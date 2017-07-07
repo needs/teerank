@@ -23,6 +23,11 @@ urls=(
 	"clan?name=clan1"
 	"server?ip=1.1.1.1&port=8000"
 
+	"search?q=tee"
+	"search/players?q=tee"
+	"search/clans?q=clan"
+	"search/servers?q=server"
+
 	"about"
 	"status"
 

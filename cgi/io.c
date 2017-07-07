@@ -427,8 +427,10 @@ static void process_params(struct dynbuf *buf, va_list_ ap, char sep)
 		if (!dynbuf_compare(&tmp, pdflt)) {
 			bputc(buf, sep);
 			url_encode(buf, pname);
-			bputc(buf, '=');
-			url_encode(buf, tmp.data);
+			if (tmp.havedata) {
+				bputc(buf, '=');
+				url_encode(buf, tmp.data);
+			}
 
 			if (sep == '?')
 				sep = '&';

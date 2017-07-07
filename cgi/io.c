@@ -94,8 +94,14 @@ static void bprint(struct dynbuf *buf, const char *fmt, ...)
 
 	va_start(ap, fmt);
 	vsnprintf(tmp, sizeof(tmp), fmt, ap);
-	bputs(buf, tmp);
 	va_end(ap);
+	bputs(buf, tmp);
+}
+
+static void nul_terminate(struct dynbuf *buf)
+{
+	if (buf->havedata)
+		bputc(buf, '\0');
 }
 
 /*
@@ -401,7 +407,6 @@ static bool dynbuf_compare(struct dynbuf *buf, char *str)
 	if (!str)
 		return false;
 
-	bputc(buf, '\0');
 	return strcmp(buf->data, str) == 0;
 }
 
@@ -423,6 +428,7 @@ static void process_params(struct dynbuf *buf, va_list_ ap, char sep)
 
 		reset_dynbuf(&tmp, tmpbuf, sizeof(tmpbuf));
 		print(&tmp, bputs, NULL, ptype, ap);
+		nul_terminate(&tmp);
 
 		if (!dynbuf_compare(&tmp, pdflt)) {
 			bputc(buf, sep);
@@ -461,7 +467,7 @@ void URL_(url_t url, const char *prefix, ...)
 	process_params(&buf, ap, sep);
 	va_end_(ap);
 
-	bputc(&buf, '\0');
+	nul_terminate(&buf);
 }
 
 char *URL_EXTRACT__(struct url *url, char *name, char *dflt)

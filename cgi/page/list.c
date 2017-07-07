@@ -74,16 +74,16 @@ static void print_clan_list(void)
 	const char *qselect =
 		"SELECT clan, CAST(AVG(elo) AS Int) AS avgelo, COUNT(1) AS nmembers"
 		" FROM players NATURAL JOIN ranks"
-		" WHERE clan IS NOT NULL"
+		" WHERE clan <> '' AND gametype = ? AND map = IFNULL(?, map)"
 		" GROUP BY clan"
 		" ORDER BY avgelo DESC, nmembers DESC, clan";
 
 	const char *qcount =
 		"SELECT COUNT(DISTINCT clan)"
-		" FROM players"
-		" WHERE clan IS NOT NULL";
+		" FROM players NATURAL JOIN ranks"
+		" WHERE clan <> '' AND gametype = ? AND map = IFNULL(?, map)";
 
-	list = init_list(qselect, qcount, 100, pnum, NULL, NULL);
+	list = init_list(qselect, qcount, 100, pnum, NULL, "ss", gametype, map);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -233,14 +233,14 @@ void generate_html_list(struct url *url)
 	tabs[0].val = count_rows(
 		"SELECT COUNT(1)"
 		" FROM ranks"
-		" WHERE gametype = ? AND map = ?",
+		" WHERE gametype = ? AND map = IFNULL(?, map)",
 		"ss", gametype, map
 	);
 
 	tabs[1].val = count_rows(
 		"SELECT COUNT(DISTINCT clan)"
 		" FROM players NATURAL JOIN ranks"
-		" WHERE gametype = ? AND map = ?",
+		" WHERE clan <> '' AND gametype = ? AND map = IFNULL(?, map)",
 		"ss", gametype, map
 	);
 

@@ -7,7 +7,7 @@
 void generate_html_gametypes(struct url *url)
 {
 	struct list list;
-	char *pnum_;
+	char *order;
 	unsigned pnum;
 	url_t listurl;
 
@@ -34,28 +34,29 @@ void generate_html_gametypes(struct url *url)
 		" FROM ranks"
 		" WHERE map <> ''"
 		" GROUP BY gametype"
-		" ORDER BY nplayers DESC";
+		" ORDER BY %s, nplayers DESC";
 
 	const char *qcount =
 		"SELECT COUNT(DISTINCT gametype)"
 		" FROM ranks";
 
 	struct html_list_column cols[] = {
-		{ "Gametype", NULL, HTML_COLTYPE_GAMETYPE },
-		{ "Players" },
-		{ "Clans" },
-		{ "Servers" },
-		{ "Maps" },
+		{ "Gametype", "gametype", HTML_COLTYPE_GAMETYPE },
+		{ "Players", "players" },
+		{ "Clans", "clans" },
+		{ "Servers", "servers" },
+		{ "Maps", "maps" },
 		{ NULL }
 	};
 
-	pnum_ = URL_EXTRACT(url, PARAM_PAGENUM(0));
-	pnum = strtol(pnum_, NULL, 10);
+	pnum = strtol(URL_EXTRACT(url, PARAM_PAGENUM(0)), NULL, 10);
+	order = URL_EXTRACT(url, PARAM("sort", "players", "%s", NULL));
+	check_order(order, "gametype", "players", "clans", "servers", "maps");
 
 	html_header(GAMETYPE_LIST_TAB);
 
 	URL(listurl, "/gametypes");
-	list = init_list(qselect, qcount, 100, pnum, NULL, NULL);
+	list = init_list(qselect, qcount, 100, pnum, order, NULL);
 	html_list(&list, cols, NULL, "gametypelist", listurl);
 
 	html_footer(NULL, NULL);

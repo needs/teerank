@@ -490,7 +490,7 @@ void check_order_(char *order, ...)
 
 	va_start(ap, order);
 	while ((str = va_arg(ap, char *)))
-		if (strcmp(str, "rank") != 0)
+		if (strcmp(order, str) == 0)
 			break;
 	va_end(ap);
 
@@ -506,6 +506,16 @@ static char *orderby(char *order)
 		return "rank";
 	if (strcmp(order, "lastseen") == 0)
 		return "lastseen DESC, rank";
+	if (strcmp(order, "gametype") == 0)
+		return "gametype";
+	if (strcmp(order, "players") == 0)
+		return "nplayers DESC";
+	if (strcmp(order, "clans") == 0)
+		return "nclans DESC";
+	if (strcmp(order, "servers") == 0)
+		return "nservers DESC";
+	if (strcmp(order, "maps") == 0)
+		return "nmaps DESC";
 
 	error(400, "Unkown order: \"%s\"\n", order);
 	return NULL;

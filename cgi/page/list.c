@@ -233,22 +233,22 @@ void generate_html_list(struct url *url)
 	tabs[0].val = count_rows(
 		"SELECT COUNT(1)"
 		" FROM ranks"
-		" WHERE gametype = ? AND map = IFNULL(?, map)",
+		" WHERE gametype = ? AND map = ?",
 		"ss", gametype, map
 	);
 
 	tabs[1].val = count_rows(
 		"SELECT COUNT(DISTINCT clan)"
 		" FROM players NATURAL JOIN ranks"
-		" WHERE clan <> '' AND gametype = ? AND map = IFNULL(?, map)",
+		" WHERE clan <> '' AND gametype = ? AND map = ?",
 		"ss", gametype, map
 	);
 
 	tabs[2].val = count_rows(
 		"SELECT COUNT(1)"
 		" FROM servers"
-		" WHERE gametype = ? AND map = IFNULL(?, map)",
-		"ss", gametype, *map ? map : NULL
+		" WHERE gametype = ?1 AND (?2 = '' OR map = ?2)",
+		"ss", gametype, map
 	);
 
 	switch (pcs) {

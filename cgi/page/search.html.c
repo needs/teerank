@@ -10,20 +10,20 @@
 #include "cgi.h"
 #include "html.h"
 
-/* Too many results is meaningless */
-#define MAX_RESULTS 50
-
 /*
  * This conditional evaluate the relevance of a string, using the
  * following order: exact match, prefix, suffix, anything else.
+ *
+ * We double '%' because the query will be passed to snprintf() when
+ * calling init_list().
  */
 #define IS_RELEVANT(col) \
-	" " col " LIKE '%' || ? || '%' "
+	" " col " LIKE '%%' || ?1 || '%%' "
 #define RELEVANCE(col) \
 	" CASE" \
-	"  WHEN " col " LIKE ? THEN 0" \
-	"  WHEN " col " LIKE ? || '%' THEN 1" \
-	"  WHEN " col " LIKE '%' || ? THEN 2" \
+	"  WHEN " col " LIKE ?1 THEN 0" \
+	"  WHEN " col " LIKE ?1 || '%%' THEN 1" \
+	"  WHEN " col " LIKE '%%' || ?1 THEN 2" \
 	"  ELSE 3" \
 	" END "
 
@@ -34,8 +34,8 @@ struct search_info {
 	int tab;
 	char *search_url;
 
-	const char *count_query;
-	const char *search_query;
+	const char *qcount;
+	const char *qselect;
 };
 
 static const struct search_info PLAYER_SINFO = {
@@ -52,14 +52,12 @@ static const struct search_info PLAYER_SINFO = {
 
 	"SELECT COUNT(1)"
 	" FROM players"
-	" WHERE" IS_RELEVANT("name")
-	" LIMIT ?",
+	" WHERE" IS_RELEVANT("name"),
 
 	"SELECT name, clan, lastseen"
 	" FROM players"
 	" WHERE" IS_RELEVANT("name")
 	" ORDER BY" RELEVANCE("name") ", clan"
-	" LIMIT ?"
 };
 
 static const struct search_info CLAN_SINFO = {
@@ -73,19 +71,18 @@ static const struct search_info CLAN_SINFO = {
 	1,
 	"/search/clans",
 
-	"SELECT COUNT(1)"
+	"SELECT COUNT(DISTINCT clan)"
 	" FROM players"
-	" WHERE clan <> '' AND" IS_RELEVANT("clan")
-	" GROUP BY clan"
-	" LIMIT ?",
+	" WHERE clan <> '' AND" IS_RELEVANT("clan"),
 
 	"SELECT clan, COUNT(1) AS nmembers"
 	" FROM players"
 	" WHERE clan <> '' AND" IS_RELEVANT("clan")
 	" GROUP BY clan"
 	" ORDER BY" RELEVANCE("clan") ", nmembers"
-	" LIMIT ?"
 };
+
+#define COUNT_SERVER_CLIENTS(ip, port)                                  \
 
 static const struct search_info SERVER_SINFO = {
 	"serverlist",
@@ -102,23 +99,23 @@ static const struct search_info SERVER_SINFO = {
 
 	"SELECT COUNT(1)"
 	" FROM servers"
-	" WHERE" IS_RELEVANT("name")
-	" LIMIT ?",
+	" WHERE" IS_RELEVANT("name"),
 
 	"SELECT name, ip, port, gametype, map,"
 	" (SELECT COUNT(1)"
-	"  FROM server_clients AS sc"
-	"  WHERE sc.ip = servers.ip"
-	"  AND sc.port = servers.port) AS num_clients, max_clients"
+	"  FROM server_clients"
+	"  WHERE server_clients.ip = servers.ip"
+	"  AND server_clients.port = servers.port)"
+	" AS num_clients, max_clients"
 	" FROM servers"
 	" WHERE" IS_RELEVANT("name")
 	" ORDER BY" RELEVANCE("name") ", num_clients"
-	" LIMIT ?"
 };
 
 void generate_html_search(struct url *url)
 {
 	struct list list;
+	unsigned pnum;
 	char *squery;
 	char *pcs;
 
@@ -145,9 +142,10 @@ void generate_html_search(struct url *url)
 		error(400, "%s: Should be either \"players\", \"clans\" or \"servers\"", pcs);
 
 	squery = URL_EXTRACT(url, PARAM_SQUERY(0));
+	pnum = strtol(URL_EXTRACT(url, PARAM_PAGENUM(0)), NULL, 10);
 
 	for (s = sinfos; *s; s++)
-		tabs[(*s)->tab].val = count_rows((*s)->count_query, "si", squery, MAX_RESULTS);
+		tabs[(*s)->tab].val = count_rows((*s)->qcount, "s", squery);
 
 	html_header(
 		CUSTOM_TAB,
@@ -156,14 +154,13 @@ void generate_html_search(struct url *url)
 		.search_url = sinfo->search_url,
 		.search_query = squery);
 
-	URL(tabs[0].url, "/search/players", PARAM_SQUERY(squery));
+	URL(tabs[0].url, "/search", PARAM_SQUERY(squery));
 	URL(tabs[1].url, "/search/clans",   PARAM_SQUERY(squery));
 	URL(tabs[2].url, "/search/servers", PARAM_SQUERY(squery));
 
 	print_section_tabs(tabs);
-	list = init_simple_list(
-		sinfo->search_query, "ssssi",
-		squery, squery, squery, squery, MAX_RESULTS);
+	list = init_list(
+		sinfo->qselect, sinfo->qcount, 100, pnum, NULL, "s", squery);
 	html_list(&list, sinfo->cols, .class = sinfo->class);
 	html_footer(NULL, NULL);
 }

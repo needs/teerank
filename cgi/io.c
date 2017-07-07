@@ -529,7 +529,7 @@ struct list init_list(
 	const char *bindfmt, ...)
 {
 	struct list list;
-	char fmt[512], qry[512];
+	char fmt[1024], qry[1024];
 	va_list ap;
 	int ret;
 

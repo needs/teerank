@@ -549,7 +549,7 @@ struct list init_list(
 
 	if (qcount) {
 		va_start(ap, bindfmt);
-		list.nrow = count_rows_(qcount, bindfmt, ap);
+		list.nrow = count_rows__(qcount, bindfmt, ap);
 		va_end(ap);
 	}
 

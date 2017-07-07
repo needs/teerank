@@ -22,9 +22,9 @@ void generate_html_clan(struct url *url)
 		" ORDER BY name";
 
 	struct html_list_column cols[] = {
-		{ "Name",      NULL,       HTML_COLTYPE_PLAYER },
-		{ "Clan",      NULL,       HTML_COLTYPE_CLAN },
-		{ "Last seen", "lastseen", HTML_COLTYPE_LASTSEEN },
+		{ "Name", HTML_COLTYPE_PLAYER },
+		{ "Clan", HTML_COLTYPE_CLAN },
+		{ "Last seen", HTML_COLTYPE_LASTSEEN },
 		{ NULL }
 	};
 

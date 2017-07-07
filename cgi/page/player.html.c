@@ -32,9 +32,9 @@ void generate_html_player(struct url *url)
 	struct list list;
 
 	struct html_list_column cols[] = {
-		{ "",          NULL, HTML_COLTYPE_RANK },
-		{ "Gametype",  NULL, HTML_COLTYPE_GAMETYPE },
-		{ "Elo",       NULL, HTML_COLTYPE_ELO },
+		{ "", HTML_COLTYPE_RANK },
+		{ "Gametype", HTML_COLTYPE_GAMETYPE },
+		{ "Elo", HTML_COLTYPE_ELO },
 		{ NULL }
 	};
 

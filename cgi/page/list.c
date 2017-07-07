@@ -54,11 +54,11 @@ static void print_player_list(void)
 	} else {
 		url_t url;
 		struct html_list_column cols[] = {
-			{ "", NULL, HTML_COLTYPE_RANK },
-			{ "Name", NULL, HTML_COLTYPE_PLAYER },
-			{ "Clan", NULL, HTML_COLTYPE_CLAN },
-			{ "Elo", "rank", HTML_COLTYPE_ELO },
-			{ "Last seen", "lastseen", HTML_COLTYPE_LASTSEEN },
+			{ "", HTML_COLTYPE_RANK },
+			{ "Name", HTML_COLTYPE_PLAYER },
+			{ "Clan", HTML_COLTYPE_CLAN },
+			{ "Elo", HTML_COLTYPE_ELO, "rank" },
+			{ "Last seen", HTML_COLTYPE_LASTSEEN, "lastseen" },
 			{ NULL }
 		};
 
@@ -99,9 +99,9 @@ static void print_clan_list(void)
 	} else {
 		url_t url;
 		struct html_list_column cols[] = {
-			{ "Name", NULL, HTML_COLTYPE_CLAN },
-			{ "Elo", NULL, HTML_COLTYPE_ELO },
-			{ "Members", NULL },
+			{ "Name", HTML_COLTYPE_CLAN },
+			{ "Elo", HTML_COLTYPE_ELO },
+			{ "Members" },
 			{ NULL }
 		};
 
@@ -151,10 +151,10 @@ static void print_server_list(void)
 	} else {
 		url_t url;
 		struct html_list_column cols[] = {
-			{ "Name", NULL, HTML_COLTYPE_SERVER },
+			{ "Name", HTML_COLTYPE_SERVER },
 			{ "Gametype" },
 			{ "Map" },
-			{ "Players", NULL, HTML_COLTYPE_PLAYER_COUNT },
+			{ "Players", HTML_COLTYPE_PLAYER_COUNT },
 			{ NULL }
 		};
 

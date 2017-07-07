@@ -45,7 +45,7 @@ void generate_html_maps(struct url *url)
 		" WHERE gametype = ?";
 
 	struct html_list_column cols[] = {
-		{ "Map", NULL, HTML_COLTYPE_MAP },
+		{ "Map", HTML_COLTYPE_MAP },
 		{ "Players" },
 		{ "Clans" },
 		{ "Servers" },

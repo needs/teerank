@@ -30,11 +30,11 @@ static void show_client_list(char *ip, char *port, char *gametype, char *map)
 		" ORDER BY ingame DESC, score DESC, elo DESC";
 
 	struct html_list_column cols[] = {
-		{ "",     NULL, HTML_COLTYPE_RANK },
-		{ "Name", NULL, HTML_COLTYPE_ONLINE_PLAYER },
-		{ "Clan", NULL, HTML_COLTYPE_CLAN },
+		{ "", HTML_COLTYPE_RANK },
+		{ "Name", HTML_COLTYPE_ONLINE_PLAYER },
+		{ "Clan", HTML_COLTYPE_CLAN },
 		{ "Score" },
-		{ "Elo", NULL, HTML_COLTYPE_ELO },
+		{ "Elo", HTML_COLTYPE_ELO },
 		{ NULL }
 	};
 

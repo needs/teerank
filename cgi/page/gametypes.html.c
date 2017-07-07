@@ -41,11 +41,11 @@ void generate_html_gametypes(struct url *url)
 		" FROM ranks";
 
 	struct html_list_column cols[] = {
-		{ "Gametype", "gametype", HTML_COLTYPE_GAMETYPE },
-		{ "Players", "players" },
-		{ "Clans", "clans" },
-		{ "Servers", "servers" },
-		{ "Maps", "maps" },
+		{ "Gametype", HTML_COLTYPE_GAMETYPE, "gametype" },
+		{ "Players", 0, "players" },
+		{ "Clans", 0, "clans" },
+		{ "Servers", 0, "servers" },
+		{ "Maps", 0, "maps" },
 		{ NULL }
 	};
 

@@ -41,9 +41,9 @@ struct search_info {
 static const struct search_info PLAYER_SINFO = {
 	"search-playerlist",
 	(struct html_list_column[]) {
-		{ "Name",      NULL, HTML_COLTYPE_PLAYER },
-		{ "Clan",      NULL, HTML_COLTYPE_CLAN },
-		{ "Last seen", NULL, HTML_COLTYPE_LASTSEEN },
+		{ "Name",      HTML_COLTYPE_PLAYER },
+		{ "Clan",      HTML_COLTYPE_CLAN },
+		{ "Last seen", HTML_COLTYPE_LASTSEEN },
 		{ NULL }
 	},
 
@@ -63,8 +63,8 @@ static const struct search_info PLAYER_SINFO = {
 static const struct search_info CLAN_SINFO = {
 	"clanlist",
 	(struct html_list_column[]) {
-		{ "Name",    NULL, HTML_COLTYPE_CLAN },
-		{ "Members", NULL },
+		{ "Name",    HTML_COLTYPE_CLAN },
+		{ "Members" },
 		{ NULL }
 	},
 
@@ -87,10 +87,10 @@ static const struct search_info CLAN_SINFO = {
 static const struct search_info SERVER_SINFO = {
 	"serverlist",
 	(struct html_list_column[]) {
-		{ "Name" , NULL, HTML_COLTYPE_SERVER },
+		{ "Name" , HTML_COLTYPE_SERVER },
 		{ "Gametype" },
 		{ "Map" },
-		{ "Players", NULL, HTML_COLTYPE_PLAYER_COUNT },
+		{ "Players", HTML_COLTYPE_PLAYER_COUNT },
 		{ NULL }
 	},
 

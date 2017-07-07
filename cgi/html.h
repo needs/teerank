@@ -60,8 +60,8 @@ enum html_coltype {
 
 struct html_list_column {
 	char *title;
-	char *order;
 	enum html_coltype type;
+	char *order;
 };
 
 typedef char *(*row_class_func_t)(sqlite3_stmt *res);

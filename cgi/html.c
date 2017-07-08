@@ -342,7 +342,7 @@ static void list_header(
 	for (col = cols; col->title; col++) {
 		if (!col->order || !list->order || !args->url)
 			html("<th>%s</th>", col->title);
-		else if (strcmp(list->order, col->order) == 0)
+		else if (strcmp(list->order->name, col->order) == 0)
 			html("<th>%s%S</th>", col->title, down);
 		else {
 			URL(url, args->url, PARAM_ORDER(col->order), PARAM_PAGENUM(list->pnum));

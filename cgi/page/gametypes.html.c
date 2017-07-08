@@ -49,14 +49,22 @@ void generate_html_gametypes(struct url *url)
 		{ NULL }
 	};
 
+	struct list_order orders[] = {
+		{ "players", "nplayers DESC" },
+		{ "gametype", "gametype" },
+		{ "clans", "nclans DESC" },
+		{ "servers", "nservers DESC" },
+		{ "maps", "nmaps DESC" },
+		{ NULL }
+	};
+
 	pnum = strtol(URL_EXTRACT(url, PARAM_PAGENUM(0)), NULL, 10);
-	order = URL_EXTRACT(url, PARAM("sort", "players", "%s", NULL));
-	check_order(order, "gametype", "players", "clans", "servers", "maps");
+	order = URL_EXTRACT(url, PARAM_ORDER(0));
 
 	html_header(GAMETYPE_LIST_TAB);
 
 	URL(listurl, "/gametypes");
-	list = init_list(qselect, qcount, 100, pnum, order, NULL);
+	list = init_list(qselect, qcount, 100, pnum, orders, order, NULL);
 	html_list(&list, cols, NULL, "gametypelist", listurl);
 
 	html_footer(NULL, NULL);

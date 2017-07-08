@@ -160,7 +160,7 @@ void generate_html_search(struct url *url)
 
 	print_section_tabs(tabs);
 	list = init_list(
-		sinfo->qselect, sinfo->qcount, 100, pnum, NULL, "s", squery);
+		sinfo->qselect, sinfo->qcount, 100, pnum, NULL, NULL, "s", squery);
 	html_list(&list, sinfo->cols, .class = sinfo->class);
 	html_footer(NULL, NULL);
 }

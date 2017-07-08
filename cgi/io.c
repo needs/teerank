@@ -483,39 +483,17 @@ char *URL_EXTRACT__(struct url *url, char *name, char *dflt)
 	return ret;
 }
 
-void check_order_(char *order, ...)
+static struct list_order *list_order(struct list_order *orders, char *order)
 {
-	va_list ap;
-	char *str;
-
-	va_start(ap, order);
-	while ((str = va_arg(ap, char *)))
-		if (strcmp(order, str) == 0)
-			break;
-	va_end(ap);
-
-	if (!str)
-		error(400, "Invalid order \"%s\"", order);
-}
-
-static char *orderby(char *order)
-{
+	if (!orders)
+		return NULL;
 	if (!order)
-		return "";
-	if (strcmp(order, "rank") == 0)
-		return "rank";
-	if (strcmp(order, "lastseen") == 0)
-		return "lastseen DESC, rank";
-	if (strcmp(order, "gametype") == 0)
-		return "gametype";
-	if (strcmp(order, "players") == 0)
-		return "nplayers DESC";
-	if (strcmp(order, "clans") == 0)
-		return "nclans DESC";
-	if (strcmp(order, "servers") == 0)
-		return "nservers DESC";
-	if (strcmp(order, "maps") == 0)
-		return "nmaps DESC";
+		return orders;
+
+	for (; orders->name; orders++) {
+		if (strcmp(orders->name, order) == 0)
+			return orders;
+	}
 
 	error(400, "Unkown order: \"%s\"\n", order);
 	return NULL;
@@ -535,11 +513,12 @@ struct list init_simple_list(const char *qselect, const char *bindfmt, ...)
 
 struct list init_list(
 	const char *qselect, const char *qcount,
-	unsigned plen, unsigned pnum, char *order,
+	unsigned plen, unsigned pnum, struct list_order *orders, char *order,
 	const char *bindfmt, ...)
 {
 	struct list list;
 	char fmt[1024], qry[1024];
+	char *orderby;
 	va_list ap;
 	int ret;
 
@@ -553,7 +532,9 @@ struct list init_list(
 	if (ret >= sizeof(fmt))
 		error(500, "init_list: qselect too long");
 
-	ret = snprintf(qry, sizeof(qry), fmt, orderby(order));
+	list.order = list_order(orders, order);
+	orderby = list.order ? list.order->orderby : NULL;
+	ret = snprintf(qry, sizeof(qry), fmt, orderby);
 	if (ret >= sizeof(qry))
 		error(500, "init_list: qselect too long");
 
@@ -569,7 +550,6 @@ struct list init_list(
 
 	list.pnum = pnum;
 	list.plen = plen;
-	list.order = order;
 
 	return list;
 }

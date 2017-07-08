@@ -24,8 +24,7 @@ static void print_player_list(void)
 	struct list list;
 
 	char *qselect =
-		"SELECT rank, players.name, clan, elo,"
-		"       lastseen"
+		"SELECT rank, players.name, clan, elo, lastseen"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE gametype = ? AND map = ?"
 		" ORDER BY %s";
@@ -35,8 +34,13 @@ static void print_player_list(void)
 		" FROM players NATURAL JOIN ranks"
 		" WHERE gametype = ? AND map = ?";
 
-	check_order(order, "rank", "lastseen");
-	list = init_list(qselect, qcount, 100, pnum, order, "ss", gametype, map);
+	struct list_order orders[] = {
+		{ "rank", "rank" },
+		{ "lastseen", "lastseen DESC, rank" },
+		{ NULL }
+	};
+
+	list = init_list(qselect, qcount, 100, pnum, orders, order, "ss", gametype, map);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -83,7 +87,7 @@ static void print_clan_list(void)
 		" FROM players NATURAL JOIN ranks"
 		" WHERE clan <> '' AND gametype = ? AND map = IFNULL(?, map)";
 
-	list = init_list(qselect, qcount, 100, pnum, NULL, "ss", gametype, map);
+	list = init_list(qselect, qcount, 100, pnum, NULL, NULL, "ss", gametype, map);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -131,7 +135,7 @@ static void print_server_list(void)
 		" FROM servers"
 		" WHERE gametype = ? AND map = IFNULL(?, map)";
 
-	list = init_list(qselect, qcount, 100, pnum, NULL, "ss", gametype, map_);
+	list = init_list(qselect, qcount, 100, pnum, NULL, NULL, "ss", gametype, map_);
 
 	if (JSON) {
 		struct json_list_column cols[] = {

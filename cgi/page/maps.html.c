@@ -73,7 +73,7 @@ void generate_html_maps(struct url *url)
 		.subtab_url = url_);
 
 	URL(url_, "/maps", PARAM_GAMETYPE(gametype));
-	list = init_list(qselect, qcount, 100, pnum, NULL, "s", gametype);
+	list = init_list(qselect, qcount, 100, pnum, NULL, NULL, "s", gametype);
 	html_list(&list, cols, NULL, "maplist", url_);
 
 	html_footer(NULL, NULL);

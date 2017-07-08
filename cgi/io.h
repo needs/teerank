@@ -54,7 +54,7 @@ void URL_(url_t buf, const char *prefix, ...);
 #define PARAM_PAGENUM(val)                                              \
 	PARAM("p", "1", "%u", val)
 #define PARAM_ORDER(val)                                                \
-	PARAM("sort", "rank", "%s", val)
+	PARAM("sort", NULL, "%s", val)
 #define PARAM_SQUERY(val)                                               \
 	PARAM("q", "", "%s", val)
 
@@ -67,13 +67,6 @@ struct url;
 char *URL_EXTRACT__(struct url *url, char *name, char *dflt);
 
 /*
- * Parameter "order" can have multiple value but their validity depends
- * on the context.  This function offer an easy way to validate them.
- */
-#define check_order(order, ...) check_order_(order, __VA_ARGS__, NULL)
-void check_order_(char *order, ...);
-
-/*
  * Lists is a concept shared by both HTML and JSON page, here we define
  * a structure holding list info used by both formats as well as
  * functions to initialize this structure.
@@ -83,11 +76,17 @@ struct list {
 	unsigned nrow;
 	unsigned pnum;
 	unsigned plen;
-	char *order;
+	struct list_order *order;
 };
+
+struct list_order {
+	char *name;
+	char *orderby;
+};
+
 struct list init_list(
 	const char *qselect, const char *qcount,
-	unsigned plen, unsigned pnum, char *order,
+	unsigned plen, unsigned pnum, struct list_order *orders, char *order,
 	const char *bindfmt, ...);
 struct list init_simple_list(const char *qselect, const char *bindfmt, ...);
 

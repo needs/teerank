@@ -135,14 +135,21 @@ static void print_server_list(void)
 		" AS num_clients, max_clients "
 		" FROM servers"
 		" WHERE gametype = ? AND map = IFNULL(?, map)"
-		" ORDER BY num_clients DESC";
+		" ORDER BY %s, num_clients DESC, name";
 
 	const char *qcount =
 		"SELECT COUNT(1)"
 		" FROM servers"
 		" WHERE gametype = ? AND map = IFNULL(?, map)";
 
-	list = init_list(qselect, qcount, 100, pnum, NULL, NULL, "ss", gametype, map_);
+	struct list_order orders[] = {
+		{ "players", "num_clients DESC" },
+		{ "name", "name" },
+		{ "map", "map" },
+		{ NULL }
+	};
+
+	list = init_list(qselect, qcount, 100, pnum, orders, order, "ss", gametype, map_);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -162,10 +169,10 @@ static void print_server_list(void)
 	} else {
 		url_t url;
 		struct html_list_column cols[] = {
-			{ "Name", HTML_COLTYPE_SERVER },
+			{ "Name", HTML_COLTYPE_SERVER, "name" },
 			{ "Gametype" },
-			{ "Map" },
-			{ "Players", HTML_COLTYPE_PLAYER_COUNT },
+			{ "Map", 0, "map" },
+			{ "Players", HTML_COLTYPE_PLAYER_COUNT, "players" },
 			{ NULL }
 		};
 

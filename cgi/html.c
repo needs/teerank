@@ -565,7 +565,7 @@ void html_list_(
 	list_footer(list, &args, empty);
 }
 
-/* Only keep the two most significant digits */
+/* Only keep the three most significant digits */
 static unsigned round(unsigned n)
 {
 	unsigned mod = 1;
@@ -573,7 +573,7 @@ static unsigned round(unsigned n)
 	while (mod < n)
 		mod *= 10;
 
-	mod /= 100;
+	mod /= 1000;
 
 	if (mod == 0)
 		return n;

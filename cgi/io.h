@@ -63,6 +63,11 @@ void URL_(url_t buf, const char *prefix, ...);
 	URL_EXTRACT_(url, __VA_ARGS__)
 #define URL_EXTRACT_(url, name, dflt, type, val)                        \
 	URL_EXTRACT__(url, name, dflt)
+
+/* Default parameter value */
+#define DEFAULT_PARAM_VALUE(param) DEFAULT_PARAM_VALUE_(param)
+#define DEFAULT_PARAM_VALUE_(name, dflt, type, val) dflt
+
 struct url;
 char *URL_EXTRACT__(struct url *url, char *name, char *dflt);
 

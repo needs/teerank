@@ -54,9 +54,9 @@ void generate_html_maps(struct url *url)
 
 	struct html_list_column cols[] = {
 		{ "Map", HTML_COLTYPE_MAP, "map" },
-		{ "Players", 0, "players" },
-		{ "Clans", 0, "clans"},
-		{ "Servers", 0, "servers" },
+		{ "Players", HTML_COLTYPE_NPLAYERS, "players" },
+		{ "Clans", HTML_COLTYPE_NCLANS, "clans"},
+		{ "Servers", HTML_COLTYPE_NSERVERS, "servers" },
 		{ NULL }
 	};
 

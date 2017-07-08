@@ -446,6 +446,14 @@ static void list_item(sqlite3_stmt *res, struct html_list_column *col, row_class
 	else
 		html("<tr>");
 
+	/*
+	 * Those variables keeps their value accros column because some
+	 * columns relies on them but have no other ways to know their
+	 * value.
+	 */
+	char *gametype = DEFAULT_PARAM_VALUE(PARAM_GAMETYPE(0));
+	char *map = DEFAULT_PARAM_VALUE(PARAM_MAP(0));
+
 	while (col->title) {
 		switch (col->type) {
 		case HTML_COLTYPE_NONE: {
@@ -528,9 +536,9 @@ static void list_item(sqlite3_stmt *res, struct html_list_column *col, row_class
 			break;
 		}
 
-		case HTML_COLTYPE_MAP: {
-			char *map = column_text(res, i++);
-			char *gametype = column_text(res, i++);
+		case HTML_COLTYPE_MAP:
+			map = column_text(res, i++);
+			gametype = column_text(res, i++);
 
 			URL(url, "/players", PARAM_GAMETYPE(gametype), PARAM_MAP(map));
 			if (*map)
@@ -538,14 +546,41 @@ static void list_item(sqlite3_stmt *res, struct html_list_column *col, row_class
 			else
 				html("<td><a class=\"allmaps\" href=\"%S\">All maps</a></td>", url, map);
 			break;
-		}
 
-		case HTML_COLTYPE_GAMETYPE: {
-			char *gametype = column_text(res, i++);
+		case HTML_COLTYPE_GAMETYPE:
+			gametype = column_text(res, i++);
 			URL(url, "/players", PARAM_GAMETYPE(gametype));
 			html("<td><a href=\"%S\">%s</a></td>", url, gametype);
 			break;
+
+		{
+			unsigned n;
+			char *prefix;
+
+		case HTML_COLTYPE_NPLAYERS:
+			prefix = "/players";
+			goto HTML_COLUMN_NXXX;
+		case HTML_COLTYPE_NCLANS:
+			prefix = "/clans";
+			goto HTML_COLUMN_NXXX;
+		case HTML_COLTYPE_NSERVERS:
+			prefix = "/servers";
+			goto HTML_COLUMN_NXXX;
+		case HTML_COLTYPE_NMAPS:
+			prefix = "/maps";
+			goto HTML_COLUMN_NXXX;
+
+		HTML_COLUMN_NXXX:
+			n = column_unsigned(res, i++);
+			if (n) {
+				URL(url, prefix, PARAM_GAMETYPE(gametype), PARAM_MAP(map));
+				html("<td><a href=\"%S\">%i</a></td>", url, n);
+			} else {
+				html("<td>0</td>");
+			}
+			break;
 		}
+
 		}
 		col++;
 	}

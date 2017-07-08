@@ -157,6 +157,7 @@ void generate_html_search(struct url *url)
 	URL(tabs[0].url, "/search", PARAM_SQUERY(squery));
 	URL(tabs[1].url, "/search/clans",   PARAM_SQUERY(squery));
 	URL(tabs[2].url, "/search/servers", PARAM_SQUERY(squery));
+	tabs[sinfo->tab].active = true;
 
 	print_section_tabs(tabs);
 	list = init_list(

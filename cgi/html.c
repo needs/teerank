@@ -340,9 +340,9 @@ static void list_header(
 	html("<tr>");
 
 	for (col = cols; col->title; col++) {
-		if (!col->order || !list->order || !args->url)
+		if (!col->order || !list->ordername || !args->url)
 			html("<th>%s</th>", col->title);
-		else if (strcmp(list->order->name, col->order) == 0)
+		else if (strcmp(list->ordername, col->order) == 0)
 			html("<th>%s%S</th>", col->title, down);
 		else {
 			URL(url, args->url, PARAM_ORDER(col->order), PARAM_PAGENUM(list->pnum));
@@ -366,6 +366,7 @@ static void list_footer(struct list *list, struct html_list_args *args, bool emp
 	/* Number of pages shown before and after the current page */
 	static const unsigned extra = 3;
 	unsigned pnum, i, npages;
+	char *order;
 	url_t url;
 
 	html("</tbody>");
@@ -379,6 +380,7 @@ static void list_footer(struct list *list, struct html_list_args *args, bool emp
 
 	pnum = list->pnum;
 	npages = list->nrow / list->plen + 1;
+	order = list->order;
 
 	html("<nav class=\"pages\">");
 
@@ -386,13 +388,13 @@ static void list_footer(struct list *list, struct html_list_args *args, bool emp
 	if (pnum == 1)
 		html("<a class=\"previous\">Previous</a>");
 	else {
-		URL(url, args->url, PARAM_PAGENUM(pnum - 1));
+		URL(url, args->url, PARAM_ORDER(order), PARAM_PAGENUM(pnum - 1));
 		html("<a class=\"previous\" href=\"%S\">Previous</a>", url);
 	}
 
 	/* Link to first page */
 	if (pnum > extra + 1) {
-		URL(url, args->url, PARAM_PAGENUM(1));
+		URL(url, args->url, PARAM_ORDER(order), PARAM_PAGENUM(1));
 		html("<a href=\"%S\">1</a>", url);
 	}
 	if (pnum > extra + 2)
@@ -400,7 +402,7 @@ static void list_footer(struct list *list, struct html_list_args *args, bool emp
 
 	/* Extra pages before */
 	for (i = min(extra, pnum - 1); i > 0; i--) {
-		URL(url, args->url, PARAM_PAGENUM(pnum - i));
+		URL(url, args->url, PARAM_ORDER(order), PARAM_PAGENUM(pnum - i));
 		html("<a href=\"%S\">%u</a>", url, pnum - i);
 	}
 
@@ -408,7 +410,7 @@ static void list_footer(struct list *list, struct html_list_args *args, bool emp
 
 	/* Extra pages after */
 	for (i = 1; i <= min(extra, npages - pnum); i++) {
-		URL(url, args->url, PARAM_PAGENUM(pnum + i));
+		URL(url, args->url, PARAM_ORDER(order), PARAM_PAGENUM(pnum + i));
 		html("<a href=\"%S\">%u</a>", url, pnum + i);
 	}
 
@@ -416,7 +418,7 @@ static void list_footer(struct list *list, struct html_list_args *args, bool emp
 	if (pnum + extra + 1 < npages)
 		html("<span>...</span>");
 	if (pnum + extra < npages) {
-		URL(url, args->url, PARAM_PAGENUM(npages));
+		URL(url, args->url, PARAM_ORDER(order), PARAM_PAGENUM(npages));
 		html("<a href=\"%S\">%u</a>", url, npages);
 	}
 
@@ -424,7 +426,7 @@ static void list_footer(struct list *list, struct html_list_args *args, bool emp
 	if (pnum == npages)
 		html("<a class=\"next\">Next</a>");
 	else {
-		URL(url, args->url, PARAM_PAGENUM(pnum + 1));
+		URL(url, args->url, PARAM_ORDER(order), PARAM_PAGENUM(pnum + 1));
 		html("<a class=\"next\" href=\"%S\">Next</a>", url);
 	}
 

@@ -76,7 +76,9 @@ struct list {
 	unsigned nrow;
 	unsigned pnum;
 	unsigned plen;
-	struct list_order *order;
+
+	char *order;
+	char *ordername;
 };
 
 struct list_order {

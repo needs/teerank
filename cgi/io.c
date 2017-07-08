@@ -517,8 +517,8 @@ struct list init_list(
 	const char *bindfmt, ...)
 {
 	struct list list;
+	struct list_order *lorder;
 	char fmt[1024], qry[1024];
-	char *orderby;
 	va_list ap;
 	int ret;
 
@@ -532,9 +532,8 @@ struct list init_list(
 	if (ret >= sizeof(fmt))
 		error(500, "init_list: qselect too long");
 
-	list.order = list_order(orders, order);
-	orderby = list.order ? list.order->orderby : NULL;
-	ret = snprintf(qry, sizeof(qry), fmt, orderby);
+	lorder = list_order(orders, order);
+	ret = snprintf(qry, sizeof(qry), fmt, lorder ? lorder->orderby : NULL);
 	if (ret >= sizeof(qry))
 		error(500, "init_list: qselect too long");
 
@@ -550,6 +549,8 @@ struct list init_list(
 
 	list.pnum = pnum;
 	list.plen = plen;
+	list.order = order;
+	list.ordername = lorder ? lorder->name : NULL;
 
 	return list;
 }

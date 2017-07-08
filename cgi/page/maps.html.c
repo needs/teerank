@@ -8,7 +8,7 @@ void generate_html_maps(struct url *url)
 {
 	struct list list;
 	enum tab_type tab;
-	char *gametype, *pnum_;
+	char *gametype, *order;
 	unsigned pnum;
 	url_t url_;
 
@@ -37,24 +37,32 @@ void generate_html_maps(struct url *url)
 		" FROM ranks"
 		" WHERE gametype = ?1"
 		" GROUP BY map"
-		" ORDER BY nplayers DESC";
+		" ORDER BY %s, nplayers DESC, nservers DESC";
 
 	const char *qcount =
 		"SELECT COUNT(DISTINCT map)"
 		" FROM ranks NATURAL JOIN players"
 		" WHERE gametype = ?";
 
+	struct list_order orders[] = {
+		{ "players", "nplayers DESC" },
+		{ "map", "map" },
+		{ "clans", "nclans DESC" },
+		{ "servers", "nservers DESC" },
+		{ NULL }
+	};
+
 	struct html_list_column cols[] = {
-		{ "Map", HTML_COLTYPE_MAP },
-		{ "Players" },
-		{ "Clans" },
-		{ "Servers" },
+		{ "Map", HTML_COLTYPE_MAP, "map" },
+		{ "Players", 0, "players" },
+		{ "Clans", 0, "clans"},
+		{ "Servers", 0, "servers" },
 		{ NULL }
 	};
 
 	gametype = URL_EXTRACT(url, PARAM_GAMETYPE(0));
-	pnum_ = URL_EXTRACT(url, PARAM_PAGENUM(0));
-	pnum = strtol(pnum_, NULL, 10);
+	pnum = strtol(URL_EXTRACT(url, PARAM_PAGENUM(0)), NULL, 10);
+	order = URL_EXTRACT(url, PARAM_ORDER(0));
 
 	if (strcmp(gametype, "CTF") == 0)
 		tab = CTF_TAB;
@@ -73,7 +81,7 @@ void generate_html_maps(struct url *url)
 		.subtab_url = url_);
 
 	URL(url_, "/maps", PARAM_GAMETYPE(gametype));
-	list = init_list(qselect, qcount, 100, pnum, NULL, NULL, "s", gametype);
+	list = init_list(qselect, qcount, 100, pnum, orders, order, "s", gametype);
 	html_list(&list, cols, NULL, "maplist", url_);
 
 	html_footer(NULL, NULL);

@@ -80,14 +80,21 @@ static void print_clan_list(void)
 		" FROM players NATURAL JOIN ranks"
 		" WHERE clan <> '' AND gametype = ? AND map = IFNULL(?, map)"
 		" GROUP BY clan"
-		" ORDER BY avgelo DESC, nmembers DESC, clan";
+		" ORDER BY %s, avgelo DESC, nmembers DESC, clan";
 
 	const char *qcount =
 		"SELECT COUNT(DISTINCT clan)"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE clan <> '' AND gametype = ? AND map = IFNULL(?, map)";
 
-	list = init_list(qselect, qcount, 100, pnum, NULL, NULL, "ss", gametype, map);
+	struct list_order orders[] = {
+		{ "elo", "avgelo DESC" },
+		{ "members", "nmembers DESC" },
+		{ "name", "clan" },
+		{ NULL }
+	};
+
+	list = init_list(qselect, qcount, 100, pnum, orders, order, "ss", gametype, map);
 
 	if (JSON) {
 		struct json_list_column cols[] = {
@@ -103,9 +110,9 @@ static void print_clan_list(void)
 	} else {
 		url_t url;
 		struct html_list_column cols[] = {
-			{ "Name", HTML_COLTYPE_CLAN },
-			{ "Elo", HTML_COLTYPE_ELO },
-			{ "Members" },
+			{ "Name", HTML_COLTYPE_CLAN, "name" },
+			{ "Elo", HTML_COLTYPE_ELO, "elo" },
+			{ "Members", 0, "members" },
 			{ NULL }
 		};
 

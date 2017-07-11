@@ -6,51 +6,55 @@
 #include <errno.h>
 
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
 #include <poll.h>
 
 #include "packet.h"
 
-int init_sockets(struct sockets *sockets)
-{
-	assert(sockets != NULL);
+/*
+ * Teeworlds works with UDP, over ipv4 and ipv6 so two sockets are
+ * needed.  That's the purpose of struct sockets.  Since we must have
+ * some sort of timeout when waiting for data, recv_packet() actually
+ * use poll().
+ */
+static struct sockets {
+	struct pollfd ipv4, ipv6;
+} sockets;
 
-	sockets->ipv4.fd = socket(AF_INET , SOCK_DGRAM, IPPROTO_UDP);
-	if (sockets->ipv4.fd == -1) {
+static void close_sockets(void)
+{
+	close(sockets.ipv4.fd);
+	close(sockets.ipv6.fd);
+}
+
+bool init_network(void)
+{
+	sockets.ipv4.fd = socket(AF_INET , SOCK_DGRAM, IPPROTO_UDP);
+	if (sockets.ipv4.fd == -1) {
 		perror("socket(ipv4)");
-		return 0;
+		return false;
 	}
 
-	sockets->ipv6.fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-	if (sockets->ipv6.fd == -1) {
+	sockets.ipv6.fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	if (sockets.ipv6.fd == -1) {
 		perror("socket(ipv6)");
-		close(sockets->ipv4.fd);
-		return 0;
+		close(sockets.ipv4.fd);
+		return false;
 	}
 
-	return 1;
+	atexit(close_sockets);
+	return true;
 }
 
-void close_sockets(struct sockets *sockets)
-{
-	assert(sockets != NULL);
-	close(sockets->ipv4.fd);
-	close(sockets->ipv6.fd);
-}
-
-int send_packet(
-	struct sockets *sockets, const struct packet *packet,
-	struct sockaddr_storage *addr)
+bool send_packet(const struct packet *packet, struct sockaddr_storage *addr)
 {
 	unsigned char buf[CONNLESS_PACKET_SIZE];
 	size_t bufsize;
 	ssize_t ret;
 	int fd;
 
-	assert(sockets != NULL);
-	assert(sockets->ipv4.fd >= 0);
-	assert(sockets->ipv6.fd >= 0);
+	assert(sockets.ipv4.fd >= 0);
+	assert(sockets.ipv6.fd >= 0);
 
 	assert(packet != NULL);
 	assert(packet->size > 0);
@@ -58,7 +62,7 @@ int send_packet(
 
 	assert(addr != NULL);
 
-	fd = addr->ss_family == AF_INET ? sockets->ipv4.fd : sockets->ipv6.fd;
+	fd = addr->ss_family == AF_INET ? sockets.ipv4.fd : sockets.ipv6.fd;
 
 	/*
 	 * We only use connless packets.  We use the extended packet
@@ -80,70 +84,67 @@ int send_packet(
 
 	if (ret == -1) {
 		perror("send()");
-		return 0;
+		return false;
 	} else if (ret != bufsize) {
 		fprintf(stderr,
 		        "Packet has not been fully sent (%zu bytes over %zu)\n",
 		        (size_t)ret, bufsize);
-		return 0;
+		return false;
 	}
 
-	return 1;
+	return true;
 }
 
-int recv_packet(
-	struct sockets *sockets, struct packet *packet,
-	struct sockaddr_storage *addr)
+bool recv_packet(struct packet *packet, struct sockaddr_storage *addr)
 {
 	unsigned char buf[CONNLESS_PACKET_SIZE];
 	socklen_t addrlen = sizeof(addr);
 	ssize_t ret;
 	int fd;
 
-	assert(sockets != NULL);
-	assert(sockets->ipv4.fd >= 0);
-	assert(sockets->ipv6.fd >= 0);
+	assert(sockets.ipv4.fd >= 0);
+	assert(sockets.ipv6.fd >= 0);
 
 	assert(packet != NULL);
 
 	/* Poll ipv4 and ipv6 sockets */
-	sockets->ipv4.events = POLLIN;
-	sockets->ipv6.events = POLLIN;
-	ret = poll((struct pollfd*)sockets, 2, 1000);
+	sockets.ipv4.events = POLLIN;
+	sockets.ipv6.events = POLLIN;
+	ret = poll((struct pollfd *)&sockets, 2, 1000);
 
 	if (ret == -1) {
 		if (errno != EINTR)
 			perror("poll()");
-		return 0;
+		return false;
 	} else if (ret == 0) {
-		return 0;
+		return false;
 	}
 
-	if (sockets->ipv4.revents & POLLIN)
-		fd = sockets->ipv4.fd;
+	if (sockets.ipv4.revents & POLLIN)
+		fd = sockets.ipv4.fd;
 	else
-		fd = sockets->ipv6.fd;
+		fd = sockets.ipv6.fd;
 
 	ret = recvfrom(fd, buf, sizeof(buf), 0,
 	               (struct sockaddr*)addr, addr ? &addrlen : NULL);
 	if (ret == -1) {
 		perror("recv()");
-		return 0;
+		return false;
 	} else if (ret < CONNLESS_PACKET_HEADER_SIZE) {
 		fprintf(stderr,
 		        "Packet too small (%zu bytes required, %zu received)\n",
 		        (size_t)CONNLESS_PACKET_HEADER_SIZE, (size_t)ret);
-		return 0;
+		return false;
 	}
 
 	/* Skip packet header (six bytes) */
 	packet->size = ret - CONNLESS_PACKET_HEADER_SIZE;
 	memcpy(packet->buffer, buf + CONNLESS_PACKET_HEADER_SIZE, packet->size);
 
-	return 1;
+	return true;
 }
 
-int get_sockaddr(char *node, char *service, struct sockaddr_storage *addr)
+bool get_sockaddr(char *node, char *service, struct sockaddr_storage *addr)
 {
 	int ret;
 	struct addrinfo hints, *res;
@@ -161,28 +162,28 @@ int get_sockaddr(char *node, char *service, struct sockaddr_storage *addr)
 	if (ret != 0) {
 		fprintf(stderr, "getaddrinfo(%s, %s): %s\n",
 		        node, service, gai_strerror(ret));
-		return 0;
+		return false;
 	}
 
 	/* Assume the first one works */
 	*(struct sockaddr*)addr = *res->ai_addr;
 
 	freeaddrinfo(res);
-	return 1;
+	return true;
 }
 
-int skip_header(struct packet *packet, const uint8_t *header, size_t size)
+bool skip_header(struct packet *packet, const uint8_t *header, size_t size)
 {
 	assert(packet != NULL);
 	assert(header != NULL);
 	assert(size > 0);
 
 	if (packet->size < size)
-		return 0;
+		return false;
 	if (memcmp(packet->buffer, header, size) != 0)
-		return 0;
+		return false;
 
 	packet->size -= size;
 	memmove(packet->buffer, &packet->buffer[size], packet->size);
-	return 1;
+	return true;
 }

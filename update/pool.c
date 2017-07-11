@@ -94,14 +94,14 @@ static void entry_expired(struct pool_entry *entry)
 	}
 }
 
-static void add_pending_entry(struct sockets *sockets, struct pool_entry *entry)
+static void add_pending_entry(struct pool_entry *entry)
 {
 	assert(entry != NULL);
 	assert(nr_pending < MAX_PENDING);
 
 	remove_entry(entry, &idle, &idletail);
 
-	if (!send_packet(sockets, entry->request, entry->addr)) {
+	if (!send_packet(entry->request, entry->addr)) {
 		entry_expired(entry);
 		return;
 	}
@@ -118,10 +118,10 @@ void remove_pool_entry(struct pool_entry *entry)
 	nr_pending--;
 }
 
-static void fill_pending_list(struct sockets *sockets)
+static void fill_pending_list(void)
 {
 	while (idletail && nr_pending < MAX_PENDING)
-		add_pending_entry(sockets, idletail);
+		add_pending_entry(idletail);
 }
 
 static void clean_expired_pending_entries(void)
@@ -201,12 +201,12 @@ static struct pool_entry *get_pending_entry(
 	return entry;
 }
 
-static struct pool_entry *next_failed_entry(struct sockets *sockets)
+static struct pool_entry *next_failed_entry(void)
 {
 	struct pool_entry *entry;
 
 	clean_expired_pending_entries();
-	fill_pending_list(sockets);
+	fill_pending_list();
 
 	if (!failed)
 		return NULL;
@@ -217,7 +217,7 @@ static struct pool_entry *next_failed_entry(struct sockets *sockets)
 	return entry;
 }
 
-struct pool_entry *poll_pool(struct sockets *sockets, struct packet **_packet)
+struct pool_entry *poll_pool(struct packet **_packet)
 {
 	static struct packet packet;
 	struct sockaddr_storage addr;
@@ -226,14 +226,14 @@ struct pool_entry *poll_pool(struct sockets *sockets, struct packet **_packet)
 	assert(_packet != NULL);
 
 again:
-	fill_pending_list(sockets);
-	if ((entry = next_failed_entry(sockets))) {
+	fill_pending_list();
+	if ((entry = next_failed_entry())) {
 		*_packet = NULL;
 		return entry;
 	}
 
 	if (pending) {
-		if (recv_packet(sockets, &packet, &addr))
+		if (recv_packet(&packet, &addr))
 			entry = get_pending_entry(&addr);
 
 		if (entry) {

@@ -6,11 +6,6 @@
  * have all the same header, so send_packet() and recv_packet() has been
  * designed to only send and receive connless packets.
  *
- * Teeworlds works with UDP, over ipv4 and ipv6 so two sockets are
- * needed.  That's the purpose of struct socket.  Since we must have
- * some sort of timeout when waiting for data, recv_packet() actually
- * use poll().
- *
  * A struct packet represent data without connless packet header.  Since
  * we only work with connless packet, we ignore their header right away.
  *
@@ -18,8 +13,8 @@
  * first adress found, handling every errors.
  */
 
+#include <stdbool.h>
 #include <sys/socket.h>
-#include <poll.h>
 #include <stdint.h>
 #include <netinet/in.h>
 
@@ -34,21 +29,12 @@ struct packet {
 	uint8_t buffer[PACKET_SIZE];
 };
 
-struct sockets {
-	struct pollfd ipv4, ipv6;
-};
+bool init_network(void);
 
-int init_sockets(struct sockets *sockets);
-void close_sockets(struct sockets *sockets);
+bool get_sockaddr(char *node, char *service, struct sockaddr_storage *addr);
+bool skip_header(struct packet *packet, const uint8_t *header, size_t size);
 
-int get_sockaddr(char *node, char *service, struct sockaddr_storage *addr);
-int skip_header(struct packet *packet, const uint8_t *header, size_t size);
-
-int send_packet(
-	struct sockets *sockets, const struct packet *packet,
-	struct sockaddr_storage *addr);
-int recv_packet(
-	struct sockets *sockets, struct packet *packet,
-	struct sockaddr_storage *addr);
+bool send_packet(const struct packet *packet, struct sockaddr_storage *addr);
+bool recv_packet(struct packet *packet, struct sockaddr_storage *addr);
 
 #endif /* PACKET_H */

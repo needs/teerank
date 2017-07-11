@@ -352,14 +352,12 @@ static int update(void)
 	struct packet *packet;
 	struct job *job;
 
-	struct sockets sockets;
-
 	struct job recompute_ranks_job;
 	bool do_recompute_ranks = false;
 
 	if (!have_schedule())
 		return EXIT_SUCCESS;
-	if (!init_sockets(&sockets))
+	if (!init_network())
 		return EXIT_FAILURE;
 
 	/*
@@ -387,7 +385,7 @@ static int update(void)
 		 */
 		exec("BEGIN");
 
-		while ((pentry = poll_pool(&sockets, &packet)))
+		while ((pentry = poll_pool(&packet)))
 			handle(get_netclient(pentry, pentry), packet);
 
 		if (do_recompute_ranks)
@@ -411,7 +409,6 @@ static int update(void)
 		}
 	}
 
-	close_sockets(&sockets);
 	return EXIT_SUCCESS;
 }
 

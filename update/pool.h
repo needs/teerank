@@ -63,11 +63,10 @@ void remove_pool_entry(struct pool_entry *pentry);
  * If the retuned entry is not manually removed from the pool using
  * remove_pool_entry(), then it will be polled again until failure.
  *
- * @param sockets Sockets to send to and receive from
  * @param Received answer (if any) for the returned entry (if any)
  *
  * @return Polled entry, NULL if any
  */
-struct pool_entry *poll_pool(struct sockets *socket, struct packet **packet);
+struct pool_entry *poll_pool(struct packet **packet);
 
 #endif /* POOL_H */

@@ -34,6 +34,11 @@ static const struct packet MSG_GETINFO = {
 		255, 255, 255, 255, 'g', 'i', 'e', '3', 0
 	}
 };
+static const struct packet MSG_GETINFO_64 = {
+	9, {
+		255, 255, 255, 255, 'f', 's', 't', 'd', 0
+	}
+};
 static const struct packet MSG_GETLIST = {
 	8, {
 		255, 255, 255, 255, 'r', 'e', 'q', '2'
@@ -91,38 +96,47 @@ static void update_players(struct server *sv)
 	}
 }
 
-static void handle_server_packet(struct netclient *client, struct packet *packet)
+/*
+ * Called when we have received every data to be able to rank the
+ * server.  New data are stored in client->newserver.
+ */
+static void server_poll_success(struct netclient *client)
 {
-	struct server old, *new;
+	struct server *old, *new;
 
-	assert(client != NULL);
-	assert(packet != NULL);
+	old = &client->server;
+	new = &client->newserver;
 
-	/* In any cases, we expect only one answer */
-	remove_pool_entry(&client->pentry);
-
-	old = client->info.server;
-	new = &client->info.server;
 	new->lastseen = time(NULL);
-
-	if (unpack_server_info(packet, new)) {
-		/* Update players before ranking them so that new
-		 * players are created */
-		update_players(new);
-		rank_players(&old, new);
-		write_server_clients(new);
-	}
-
 	new->expire = expire_in(5 * 60, 30);
 
+	/*
+	 * Update players before ranking them so that new players are
+	 * created.
+	 */
+	update_players(new);
+	rank_players(old, new);
+
 	write_server(new);
+	write_server_clients(new);
+
 	schedule(&client->update, new->expire);
+
+	/* New state becomes the "old" state */
+	*old = *new;
 }
 
-static void handle_server_timeout(struct netclient *client)
+/*
+ * Called when somehow we didn't get all the data to be able to rank the
+ * server.  Unpolled entries have their expiry date doubled.
+ */
+static void server_poll_failure(struct netclient *client)
 {
-	struct server *server = &client->info.server;
-	long elapsed_days = (time(NULL) - server->lastseen) / (3600 * 24);
+	struct server *server;
+	long elapsed_days;
+
+	server = &client->server;
+	elapsed_days = (time(NULL) - server->lastseen) / (3600 * 24);
 
 	if (elapsed_days >= 1) {
 		remove_server(server->ip, server->port);
@@ -130,9 +144,47 @@ static void handle_server_timeout(struct netclient *client)
 		return;
 	}
 
-	server->expire = double_expiry_date(server->expire, server->lastseen);
-	schedule(&client->update, server->expire);
+	if (client->pentry.polled) {
+		server->lastseen = time(NULL);
+		server->expire = expire_in(5 * 60, 30);
+	} else {
+		server->expire = double_expiry_date(server->expire, server->lastseen);
+	}
+
 	write_server(server);
+	schedule(&client->update, server->expire);
+}
+
+static void handle_server_packet(struct netclient *client, struct packet *packet)
+{
+	enum unpack_status status;
+	status = unpack_server_info(packet, &client->newserver);
+
+	switch (status) {
+	case UNPACK_ERROR:
+		remove_pool_entry(&client->pentry);
+		server_poll_failure(client);
+		break;
+
+	case UNPACK_SUCCESS:
+		remove_pool_entry(&client->pentry);
+		server_poll_success(client);
+		break;
+
+	case UNPACK_INCOMPLETE:
+		/* Just wait for more packets to come */
+		break;
+	}
+}
+
+static void handle_server_timeout(struct netclient *client)
+{
+	/*
+	 * In any cases, we should be able to detect when no more
+	 * packets are required.  So when an entry timeout, it is always
+	 * a failure.
+	 */
+	server_poll_failure(client);
 }
 
 /* Load netclients and schedule them right away */
@@ -206,7 +258,7 @@ static void handle_master_packet(struct netclient *client, struct packet *packet
 	assert(packet != NULL);
 
 	while (unpack_server_addr(packet, &ip, &port, &reset_context))
-		reference_server(ip, port, &client->info.master);
+		reference_server(ip, port, &client->master);
 }
 
 /*
@@ -216,7 +268,7 @@ static void handle_master_packet(struct netclient *client, struct packet *packet
  */
 static void handle_master_timeout(struct netclient *client)
 {
-	struct master *master = &client->info.master;
+	struct master *master = &client->master;
 
 	if (client->pentry.polled) { /* Online */
 		master->expire = expire_in(5 * 60, 1 * 60);
@@ -268,10 +320,18 @@ static void add_to_pool(struct netclient *client)
 
 	switch (client->type) {
 	case NETCLIENT_TYPE_SERVER:
-		request = &MSG_GETINFO;
+		client->newserver = (struct server){ 0 };
+		strcpy(client->newserver.ip, client->server.ip);
+		strcpy(client->newserver.port, client->server.port);
+
+		if (is_legacy_64(&client->server))
+			request = &MSG_GETINFO_64;
+		else
+			request = &MSG_GETINFO;
 		break;
+
 	case NETCLIENT_TYPE_MASTER:
-		unreference_servers(&client->info.master);
+		unreference_servers(&client->master);
 		request = &MSG_GETLIST;
 		break;
 	}

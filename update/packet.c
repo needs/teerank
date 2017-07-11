@@ -61,11 +61,12 @@ int send_packet(
 	fd = addr->ss_family == AF_INET ? sockets->ipv4.fd : sockets->ipv6.fd;
 
 	/*
-	 * We only use connless packets for our needs.  Connless packets
-	 * should have the first six bytes of packet's header set to 0xff.
+	 * We only use connless packets.  We use the extended packet
+	 * header as defined by ddrace so that we can support servers
+	 * with more than 16 players.
 	 */
-	buf[0] = 0xff;
-	buf[1] = 0xff;
+	buf[0] = 'x';
+	buf[1] = 'e';
 	buf[2] = 0xff;
 	buf[3] = 0xff;
 	buf[4] = 0xff;

@@ -18,9 +18,12 @@ struct netclient {
 
 	enum netclient_type type;
 	union {
-		struct server server;
+		struct {
+			struct server server;
+			struct server newserver;
+		};
 		struct master master;
-	} info;
+	};
 
 	struct netclient *nextfree;
 };

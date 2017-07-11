@@ -13,10 +13,20 @@ static const uint8_t MSG_INFO[] = {
 static const uint8_t MSG_LIST[] = {
 	255, 255, 255, 255, 'l', 'i', 's', '2'
 };
+static const uint8_t MSG_INFO_64[] = {
+	255, 255, 255, 255, 'd', 't', 's', 'f'
+};
+static const uint8_t MSG_INFO_EXTENDED[] = {
+	255, 255, 255, 255, 'i', 'e', 'x', 't'
+};
+static const uint8_t MSG_INFO_EXTENDED_MORE[] = {
+	255, 255, 255, 255, 'i', 'e', 'x', '+'
+};
 
 struct unpacker {
 	struct packet *packet;
 	size_t offset;
+	bool error;
 };
 
 static void init_unpacker(struct unpacker *up, struct packet *packet)
@@ -26,46 +36,39 @@ static void init_unpacker(struct unpacker *up, struct packet *packet)
 
 	up->packet = packet;
 	up->offset = 0;
+	up->error = false;
 }
 
-static int can_unpack(struct unpacker *up, unsigned length)
+static bool can_unpack(struct unpacker *up)
 {
-	unsigned offset;
-
 	assert(up != NULL);
-	assert(length > 0);
-
-	for (offset = up->offset; offset < up->packet->size; offset++)
-		if (up->packet->buffer[offset] == 0)
-			if (--length == 0)
-				return 1;
-
-	return 0;
+	return !up->error && up->offset < up->packet->size;
 }
 
+/*
+ * Unpack the actual field and set the cursor to the next field.
+ * Returns an empty string on error.
+ */
 static char *unpack(struct unpacker *up)
 {
-	size_t old_offset;
+	char *ret;
 
 	assert(up != NULL);
 
-	old_offset = up->offset;
-	while (up->offset < up->packet->size
-	       && up->packet->buffer[up->offset] != 0)
-		up->offset++;
+	if (!can_unpack(up))
+		goto fail;
 
-	/* Skip the remaining 0 */
+	ret = (char*)&up->packet->buffer[up->offset];
+	for (; up->packet->buffer[up->offset]; up->offset++)
+		if (up->offset >= up->packet->size)
+			goto fail;
+
 	up->offset++;
+	return ret;
 
-	/* can_unpack() should have been used */
-	assert(up->offset <= up->packet->size);
-
-	return (char*)&up->packet->buffer[old_offset];
-}
-
-static void skip_field(struct unpacker *up)
-{
-	unpack(up);
+fail:
+	up->error = true;
+	return "";
 }
 
 /*
@@ -75,9 +78,14 @@ static void skip_field(struct unpacker *up)
  */
 static void unpack_string(struct unpacker *up, char *buf, size_t size)
 {
-	snprintf(buf, size, "%s", unpack(up));
+	if (snprintf(buf, size, "%s", unpack(up)) >= size)
+		up->error = true;
 }
 
+/*
+ * Underflow, overflow and non numeric characters set unpacker's error
+ * state.  Because non-malicious packets shouldn't contain such values.
+ */
 static long int unpack_int(struct unpacker *up)
 {
 	long ret;
@@ -89,76 +97,125 @@ static long int unpack_int(struct unpacker *up)
 	errno = 0;
 	ret = strtol(str, &endptr, 10);
 
-	if (errno == ERANGE && ret == LONG_MIN)
-		fprintf(stderr, "unpack_int(%s): Underflow, value truncated\n", str);
-	else if (errno == ERANGE && ret == LONG_MAX)
-		fprintf(stderr, "unpack_int(%s): Overflow, value truncated\n", str);
-	else if (endptr == str)
-		fprintf(stderr, "unpack_int(%s): Cannot convert string\n", str);
+	if (errno || !*str || *endptr)
+		up->error = true;
+
 	return ret;
 }
 
-int unpack_server_info(struct packet *packet, struct server *sv)
-{
-	struct unpacker up;
-	unsigned i;
+enum packet_type {
+	VANILLA, LEGACY_64, EXTENDED, EXTENDED_MORE
+};
 
-	/*
-	 * Keep old data so that we an restore them in case of
-	 * failure.
-	 */
-	struct server old;
+static enum packet_type packet_type(struct packet *packet)
+{
+	if (skip_header(packet, MSG_INFO, sizeof(MSG_INFO)))
+		return VANILLA;
+	if (skip_header(packet, MSG_INFO_64, sizeof(MSG_INFO_64)))
+		return LEGACY_64;
+	if (skip_header(packet, MSG_INFO_EXTENDED, sizeof(MSG_INFO_EXTENDED)))
+		return EXTENDED;
+	if (skip_header(packet, MSG_INFO_EXTENDED_MORE, sizeof(MSG_INFO_EXTENDED_MORE)))
+		return EXTENDED_MORE;
+
+	return -1;
+}
+
+enum unpack_status unpack_server_info(struct packet *packet, struct server *sv)
+{
+	enum packet_type type;
+	struct unpacker up;
+	struct client *cl;
 
 	assert(packet != NULL);
 	assert(sv != NULL);
 
-	if (!skip_header(packet, MSG_INFO, sizeof(MSG_INFO)))
-		return 0;
+	if ((type = packet_type(packet)) == -1)
+		return UNPACK_ERROR;
 
 	init_unpacker(&up, packet);
-	old = *sv;
 
-	if (!can_unpack(&up, 10))
-		goto fail;
+	/*
+	 * Make things easier to read and helps identifying each fields,
+	 * even the skipped ones.
+	 */
+	#define SKIP(var) unpack(&up)
+	#define INT(var) var = unpack_int(&up)
+	#define STRING(var) unpack_string(&up, var, sizeof(var))
 
-	skip_field(&up); /* Token */
-	skip_field(&up); /* Version */
-	unpack_string(&up, sv->name,     sizeof(sv->name));     /* Name */
-	unpack_string(&up, sv->map,      sizeof(sv->map));      /* Map */
-	unpack_string(&up, sv->gametype, sizeof(sv->gametype)); /* Gametype */
+	SKIP(token);
 
-	skip_field(&up); /* Flags */
-	skip_field(&up); /* Player number */
-	skip_field(&up); /* Player max number */
-	sv->num_clients = unpack_int(&up); /* Client number */
-	sv->max_clients = unpack_int(&up); /* Client max number */
+	if (type == EXTENDED_MORE)
+		goto unpack_clients;
 
-	if (sv->num_clients > MAX_CLIENTS)
-		goto fail;
-	if (sv->max_clients > MAX_CLIENTS)
-		goto fail;
-	if (sv->num_clients > sv->max_clients)
-		goto fail;
+	SKIP(version);
+	STRING(sv->name);
+	STRING(sv->map);
 
-	/* Clients */
-	for (i = 0; i < sv->num_clients; i++) {
-		struct client *cl = &sv->clients[i];
-
-		if (!can_unpack(&up, 5))
-			goto fail;
-
-		unpack_string(&up, cl->name, sizeof(cl->name)); /* Name */
-		unpack_string(&up, cl->clan, sizeof(cl->clan)); /* Clan */
-
-		skip_field(&up); /* Country */
-		cl->score  = unpack_int(&up); /* Score */
-		cl->ingame = unpack_int(&up); /* Ingame? */
+	if (type == EXTENDED) {
+		SKIP(map_crc);
+		SKIP(map_size);
 	}
 
-	return 1;
-fail:
-	*sv = old;
-	return 0;
+	STRING(sv->gametype);
+	SKIP(flags);
+	SKIP(num_players);
+	SKIP(max_players);
+	INT(sv->num_clients);
+	INT(sv->max_clients);
+
+	/*
+	 * We perform some sanity checks before going further to make
+	 * sure the packet is well crafted.
+	 */
+	if (sv->num_clients > sv->max_clients)
+		return UNPACK_ERROR;
+	if (sv->num_clients > MAX_CLIENTS)
+		return UNPACK_ERROR;
+	if (sv->max_clients > MAX_CLIENTS)
+		return UNPACK_ERROR;
+
+unpack_clients:
+	switch (type) {
+	case VANILLA:
+		break;
+	case LEGACY_64:
+		SKIP(offset);
+		break;
+
+	case EXTENDED_MORE:
+		SKIP(pckno);
+	case EXTENDED:
+		SKIP(reserved);
+		break;
+	}
+
+	/*
+	 * We now unpack clients until there is no more clients to
+	 * unpack.  Incomplete client info is considered failure, even
+	 * though we could just discard it.
+	 */
+	while (can_unpack(&up) && (cl = new_client(sv))) {
+		STRING(cl->name);
+		STRING(cl->clan);
+		SKIP(country);
+		INT(cl->score);
+		INT(cl->ingame);
+
+		if (type == EXTENDED || type == EXTENDED_MORE)
+			SKIP(reserved);
+	}
+
+	if (up.error)
+		return UNPACK_ERROR;
+	else if (sv->received_clients < sv->num_clients)
+		return UNPACK_INCOMPLETE;
+	else
+		return UNPACK_SUCCESS;
+
+	#undef SKIP
+	#undef INT
+	#undef STRING
 }
 
 struct server_addr_raw {
@@ -218,7 +275,7 @@ static void raw_addr_to_strings(
 	*_port = port;
 }
 
-int unpack_server_addr(struct packet *packet, char **ip, char **port, int *reset_context)
+enum unpack_status unpack_server_addr(struct packet *packet, char **ip, char **port, int *reset_context)
 {
 	static size_t size;
 	static unsigned char *buf;
@@ -230,7 +287,7 @@ int unpack_server_addr(struct packet *packet, char **ip, char **port, int *reset
 
 	if (*reset_context) {
 		if (!skip_header(packet, MSG_LIST, sizeof(MSG_LIST)))
-			return 0;
+			return UNPACK_ERROR;
 
 		size = packet->size;
 		buf = packet->buffer;
@@ -246,8 +303,8 @@ int unpack_server_addr(struct packet *packet, char **ip, char **port, int *reset
 		buf += sizeof(raw);
 		size -= sizeof(raw);
 
-		return 1;
+		return UNPACK_SUCCESS;
 	}
 
-	return 0;
+	return UNPACK_ERROR;
 }

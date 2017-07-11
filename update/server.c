@@ -65,31 +65,38 @@ static int flush_server_clients(const char *ip, const char *port)
 	return exec(query, "ss", ip, port);
 }
 
-int write_server_clients(struct server *server)
+int write_server_clients(struct server *sv)
 {
-	struct client *client;
+	struct client *cl;
 	int ret = 1;
 
 	const char *query =
 		"INSERT OR REPLACE INTO server_clients"
 		" VALUES (?, ?, ?, ?, ?, ?)";
 
-	if (!flush_server_clients(server->ip, server->port))
+	if (!flush_server_clients(sv->ip, sv->port))
 		return 0;
 
-	for (client = server->clients; client - server->clients < server->num_clients; client++)
-		ret &= exec(query, bind_client(*server, *client));
+	for (cl = sv->clients; cl - sv->clients < sv->num_clients; cl++) {
+		ret &= exec(
+			query, "ssssii",
+			sv->ip, sv->port,
+			cl->name, cl->clan, cl->score, cl->ingame);
+	}
 
 	return ret;
 }
 
-int write_server(struct server *server)
+int write_server(struct server *s)
 {
 	const char *query =
 		"INSERT OR REPLACE INTO servers"
 		" VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-	return exec(query, bind_server(*server));
+	return exec(
+		query, "sssssttu",
+		s->ip, s->port, s->name, s->gametype, s->map,
+		s->lastseen, s->expire, s->max_clients);
 }
 
 int server_expired(struct server *server)
@@ -152,4 +159,20 @@ struct server create_server(
 	);
 
 	return s;
+}
+
+struct client *new_client(struct server *server)
+{
+	if (server->received_clients == MAX_CLIENTS)
+		return NULL;
+	else
+		return &server->clients[server->received_clients++];
+}
+
+bool is_legacy_64(struct server *server)
+{
+	return strstr(server->gametype, "64")
+		|| strstr(server->name, "64")
+		|| strstr(server->gametype, "DDraceNet")
+		|| strstr(server->gametype, "DDNet");
 }

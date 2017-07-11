@@ -7,7 +7,7 @@
 #include "master.h"
 
 /* Maximum clients connected to a server */
-#define MAX_CLIENTS 16
+#define MAX_CLIENTS 64
 
 #define ALL_SERVER_COLUMNS \
 	" ip, port, name, gametype, map, lastseen, expire, max_clients "
@@ -40,6 +40,8 @@ struct server {
 
 	int num_clients;
 	int max_clients;
+
+	int received_clients;
 	struct client {
 		char name[NAME_STRSIZE];
 		char clan[CLAN_STRSIZE];
@@ -47,10 +49,6 @@ struct server {
 		int ingame;
 	} clients[MAX_CLIENTS];
 };
-
-#define bind_server(s) "sssssttu", \
-	(s).ip, (s).port, (s).name, (s).gametype, (s).map, (s).lastseen, \
-	(s).expire, (s).max_clients
 
 void read_server(sqlite3_stmt *res, struct server *s);
 
@@ -117,5 +115,19 @@ void remove_server(const char *ip, const char *port);
  * @return 1 is server expired, 0 otherwise
  */
 int server_expired(struct server *server);
+
+/**
+ * Return the next free client slot.
+ *
+ * @param server Server to search for free slots
+ *
+ * @return A pointer to a free slot if any, NULL otherwise
+ */
+struct client *new_client(struct server *server);
+
+/**
+ * Returns true if the given server can handle 64 players.
+ */
+bool is_legacy_64(struct server *server);
 
 #endif /* SERVER_H */

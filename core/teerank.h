@@ -50,7 +50,7 @@ void verbose(const char *fmt, ...);
 #define CLAN_STRSIZE 16
 
 #define SERVERNAME_STRSIZE 256
-#define GAMETYPE_STRSIZE 8
+#define GAMETYPE_STRSIZE 32
 #define MAP_STRSIZE 64
 
 #define IP_STRSIZE sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx")

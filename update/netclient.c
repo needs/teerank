@@ -48,17 +48,17 @@ struct netclient *add_netclient(enum netclient_type type, void *info)
 
 	switch (type) {
 	case NETCLIENT_TYPE_SERVER:
-		netclient->info.server = *(struct server*)info;
+		netclient->server = *(struct server*)info;
 
-		node = netclient->info.server.ip;
-		service = netclient->info.server.port;
+		node = netclient->server.ip;
+		service = netclient->server.port;
 		break;
 
 	case NETCLIENT_TYPE_MASTER:
-		netclient->info.master = *(struct master*)info;
+		netclient->master = *(struct master*)info;
 
-		node = netclient->info.master.node;
-		service = netclient->info.master.service;
+		node = netclient->master.node;
+		service = netclient->master.service;
 		break;
 	default:
 		return NULL;

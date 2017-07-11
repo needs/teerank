@@ -21,7 +21,6 @@
 #include "netclient.h"
 #include "rank.h"
 #include "packet.h"
-#include "unpacker.h"
 
 static int stop;
 static void stop_gracefully(int sig)
@@ -252,12 +251,11 @@ static void reference_server(char *ip, char *port, struct master *master)
 static void handle_master_packet(struct netclient *client, struct packet *packet)
 {
 	char *ip, *port;
-	int reset_context = 1;
 
 	assert(client != NULL);
 	assert(packet != NULL);
 
-	while (unpack_server_addr(packet, &ip, &port, &reset_context))
+	while (unpack_server_addr(packet, &ip, &port) == UNPACK_INCOMPLETE)
 		reference_server(ip, port, &client->master);
 }
 

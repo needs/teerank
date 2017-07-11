@@ -18,6 +18,8 @@
 #include <stdint.h>
 #include <netinet/in.h>
 
+#include "server.h"
+
 /* From teeworlds source code */
 #define CONNLESS_PACKET_SIZE 1400
 #define CONNLESS_PACKET_HEADER_SIZE 6
@@ -25,16 +27,28 @@
 #define PACKET_SIZE (CONNLESS_PACKET_SIZE - CONNLESS_PACKET_HEADER_SIZE)
 
 struct packet {
+	/* Packet data */
 	int size;
 	uint8_t buffer[PACKET_SIZE];
+
+	/* Unpacking state */
+	size_t pos;
+	bool error;
 };
 
 bool init_network(void);
 
 bool get_sockaddr(char *node, char *service, struct sockaddr_storage *addr);
-bool skip_header(struct packet *packet, const uint8_t *header, size_t size);
-
 bool send_packet(const struct packet *packet, struct sockaddr_storage *addr);
 bool recv_packet(struct packet *packet, struct sockaddr_storage *addr);
+
+enum unpack_status {
+	UNPACK_ERROR, UNPACK_SUCCESS, UNPACK_INCOMPLETE
+};
+
+enum unpack_status unpack_server_info(
+	struct packet *packet, struct server *sv);
+enum unpack_status unpack_server_addr(
+	struct packet *packet, char **ip, char **port);
 
 #endif /* PACKET_H */

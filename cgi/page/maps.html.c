@@ -16,32 +16,39 @@ void generate_html_maps(struct url *url)
 		"SELECT map, gametype,"
 
 		" (SELECT COUNT(1)"
-		"  FROM ranks AS r"
-		"  WHERE r.gametype = ?1"
-		"  AND r.map = ranks.map)"
+		"  FROM ranks"
+		"  WHERE ranks.gametype = ?1"
+		"  AND ranks.map = foo.map)"
 		" AS nplayers,"
 
 		" (SELECT COUNT(DISTINCT clan)"
-		"  FROM ranks AS r NATURAL JOIN players AS p"
-		"  WHERE r.gametype = ?1"
-		"  AND r.map = ranks.map"
+		"  FROM ranks NATURAL JOIN players"
+		"  WHERE ranks.gametype = ?1"
+		"  AND ranks.map = foo.map"
 		"  AND clan <> '')"
 		" AS nclans,"
 
 		" (SELECT COUNT(1)"
 		"  FROM servers"
 		"  WHERE servers.gametype = ?1"
-		"  AND (ranks.map = '' OR servers.map = ranks.map))"
+		"  AND (foo.map = '' OR servers.map = foo.map))"
 		" AS nservers"
 
-		" FROM ranks"
+		" FROM ("
+		"  SELECT map, gametype from ranks UNION"
+		"  SELECT map, gametype from servers"
+		" ) AS foo"
+
 		" WHERE gametype = ?1"
 		" GROUP BY map"
 		" ORDER BY %s, nplayers DESC, nservers DESC";
 
 	const char *qcount =
 		"SELECT COUNT(DISTINCT map)"
-		" FROM ranks NATURAL JOIN players"
+		" FROM ("
+		"  SELECT map, gametype from ranks UNION"
+		"  SELECT map, gametype from servers"
+		" ) AS foo"
 		" WHERE gametype = ?";
 
 	struct list_order orders[] = {

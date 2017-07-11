@@ -21,10 +21,7 @@
 #include "server.h"
 
 /* From teeworlds source code */
-#define CONNLESS_PACKET_SIZE 1400
-#define CONNLESS_PACKET_HEADER_SIZE 6
-
-#define PACKET_SIZE (CONNLESS_PACKET_SIZE - CONNLESS_PACKET_HEADER_SIZE)
+#define PACKET_SIZE 1400
 
 struct packet {
 	/* Packet data */
@@ -38,6 +35,7 @@ struct packet {
 
 bool init_network(void);
 
+void create_packet(struct packet *packet, uint8_t *data, int size);
 bool get_sockaddr(char *node, char *service, struct sockaddr_storage *addr);
 bool send_packet(const struct packet *packet, struct sockaddr_storage *addr);
 bool recv_packet(struct packet *packet, struct sockaddr_storage *addr);

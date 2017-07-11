@@ -46,23 +46,11 @@ bool init_network(void)
 	return true;
 }
 
-bool send_packet(const struct packet *packet, struct sockaddr_storage *addr)
+void create_packet(struct packet *packet, uint8_t *data, int size)
 {
-	unsigned char buf[CONNLESS_PACKET_SIZE];
-	size_t bufsize;
-	ssize_t ret;
-	int fd;
+	uint8_t *buf = packet->buffer;
 
-	assert(sockets.ipv4.fd >= 0);
-	assert(sockets.ipv6.fd >= 0);
-
-	assert(packet != NULL);
-	assert(packet->size > 0);
-	assert(packet->size <= sizeof(packet->buffer));
-
-	assert(addr != NULL);
-
-	fd = addr->ss_family == AF_INET ? sockets.ipv4.fd : sockets.ipv6.fd;
+	assert(size + 6 <= sizeof(packet->buffer));
 
 	/*
 	 * We only use connless packets.  We use the extended packet
@@ -77,18 +65,34 @@ bool send_packet(const struct packet *packet, struct sockaddr_storage *addr)
 	buf[5] = 0xff;
 
 	/* Just copy packet data as it is to the remaining space */
-	memcpy(buf + CONNLESS_PACKET_HEADER_SIZE, packet->buffer, packet->size);
+	memcpy(buf + 6, data, size);
+	packet->size = size + 6;
+}
 
-	bufsize = packet->size + CONNLESS_PACKET_HEADER_SIZE;
-	ret = sendto(fd, buf, bufsize, 0, (struct sockaddr*)addr, sizeof(*addr));
+bool send_packet(const struct packet *packet, struct sockaddr_storage *addr)
+{
+	ssize_t ret;
+	int fd;
+
+	assert(sockets.ipv4.fd >= 0);
+	assert(sockets.ipv6.fd >= 0);
+
+	assert(packet != NULL);
+	assert(packet->size > 0);
+	assert(packet->size <= sizeof(packet->buffer));
+
+	assert(addr != NULL);
+
+	fd = addr->ss_family == AF_INET ? sockets.ipv4.fd : sockets.ipv6.fd;
+	ret = sendto(fd, packet->buffer, packet->size, 0, (struct sockaddr*)addr, sizeof(*addr));
 
 	if (ret == -1) {
 		perror("send()");
 		return false;
-	} else if (ret != bufsize) {
-		fprintf(stderr,
-		        "Packet has not been fully sent (%zu bytes over %zu)\n",
-		        (size_t)ret, bufsize);
+	} else if (ret != packet->size) {
+		fprintf(
+			stderr, "Packet not fully sent (%zu / %i bytes)\n",
+		        (size_t)ret, packet->size);
 		return false;
 	}
 
@@ -97,7 +101,6 @@ bool send_packet(const struct packet *packet, struct sockaddr_storage *addr)
 
 bool recv_packet(struct packet *packet, struct sockaddr_storage *addr)
 {
-	unsigned char buf[CONNLESS_PACKET_SIZE];
 	socklen_t addrlen = sizeof(addr);
 	ssize_t ret;
 	int fd;
@@ -125,23 +128,17 @@ bool recv_packet(struct packet *packet, struct sockaddr_storage *addr)
 	else
 		fd = sockets.ipv6.fd;
 
-	ret = recvfrom(fd, buf, sizeof(buf), 0,
-	               (struct sockaddr*)addr, addr ? &addrlen : NULL);
+	ret = recvfrom(
+		fd, packet->buffer, sizeof(packet->buffer), 0,
+		(struct sockaddr*)addr, addr ? &addrlen : NULL);
 	if (ret == -1) {
 		perror("recv()");
-		return false;
-	} else if (ret < CONNLESS_PACKET_HEADER_SIZE) {
-		fprintf(stderr,
-		        "Packet too small (%zu bytes required, %zu received)\n",
-		        (size_t)CONNLESS_PACKET_HEADER_SIZE, (size_t)ret);
 		return false;
 	}
 
 	/* Skip packet header (six bytes) */
-	packet->size = ret - CONNLESS_PACKET_HEADER_SIZE;
-	memcpy(packet->buffer, buf + CONNLESS_PACKET_HEADER_SIZE, packet->size);
-
-	packet->pos = 0;
+	packet->pos = 6;
+	packet->size = ret;
 	packet->error = false;
 
 	return true;
@@ -163,8 +160,9 @@ bool get_sockaddr(char *node, char *service, struct sockaddr_storage *addr)
 
 	ret = getaddrinfo(node, service, &hints, &res);
 	if (ret != 0) {
-		fprintf(stderr, "getaddrinfo(%s, %s): %s\n",
-		        node, service, gai_strerror(ret));
+		fprintf(
+			stderr, "getaddrinfo(%s, %s): %s\n",
+			node, service, gai_strerror(ret));
 		return false;
 	}
 
@@ -174,22 +172,6 @@ bool get_sockaddr(char *node, char *service, struct sockaddr_storage *addr)
 	freeaddrinfo(res);
 	return true;
 }
-
-static const uint8_t MSG_INFO[] = {
-	255, 255, 255, 255, 'i', 'n', 'f', '3'
-};
-static const uint8_t MSG_LIST[] = {
-	255, 255, 255, 255, 'l', 'i', 's', '2'
-};
-static const uint8_t MSG_INFO_64[] = {
-	255, 255, 255, 255, 'd', 't', 's', 'f'
-};
-static const uint8_t MSG_INFO_EXTENDED[] = {
-	255, 255, 255, 255, 'i', 'e', 'x', 't'
-};
-static const uint8_t MSG_INFO_EXTENDED_MORE[] = {
-	255, 255, 255, 255, 'i', 'e', 'x', '+'
-};
 
 static bool can_unpack(struct packet *pck)
 {
@@ -261,9 +243,9 @@ static bool skip_header(struct packet *packet, const uint8_t *header, size_t siz
 	assert(header != NULL);
 	assert(size > 0);
 
-	if (packet->size < size)
+	if (packet->pos + size > packet->size)
 		return false;
-	if (memcmp(packet->buffer, header, size) != 0)
+	if (memcmp(&packet->buffer[packet->pos], header, size) != 0)
 		return false;
 
 	packet->pos += size;
@@ -272,6 +254,22 @@ static bool skip_header(struct packet *packet, const uint8_t *header, size_t siz
 
 enum packet_type {
 	VANILLA, LEGACY_64, EXTENDED, EXTENDED_MORE
+};
+
+static const uint8_t MSG_INFO[] = {
+	255, 255, 255, 255, 'i', 'n', 'f', '3'
+};
+static const uint8_t MSG_LIST[] = {
+	255, 255, 255, 255, 'l', 'i', 's', '2'
+};
+static const uint8_t MSG_INFO_64[] = {
+	255, 255, 255, 255, 'd', 't', 's', 'f'
+};
+static const uint8_t MSG_INFO_EXTENDED[] = {
+	255, 255, 255, 255, 'i', 'e', 'x', 't'
+};
+static const uint8_t MSG_INFO_EXTENDED_MORE[] = {
+	255, 255, 255, 255, 'i', 'e', 'x', '+'
 };
 
 static enum packet_type packet_type(struct packet *packet)
@@ -445,12 +443,12 @@ enum unpack_status unpack_server_addr(struct packet *packet, char **ip, char **p
 	assert(ip != NULL);
 	assert(port != NULL);
 
-	if (packet->pos == 0) {
+	if (packet->pos == 6) {
 		if (!skip_header(packet, MSG_LIST, sizeof(MSG_LIST)))
 			return UNPACK_ERROR;
 	}
 
-	if (packet->size - packet->pos >= sizeof(struct server_addr_raw)) {
+	if (packet->pos + sizeof(struct server_addr_raw) <= packet->size) {
 		struct server_addr_raw raw;
 
 		memcpy(&raw, &packet->buffer[packet->pos], sizeof(raw));

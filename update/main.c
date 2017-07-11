@@ -28,21 +28,26 @@ static void stop_gracefully(int sig)
 	stop = 1;
 }
 
-static const struct packet MSG_GETINFO = {
-	9, {
+static struct packet PCK_GETINFO;
+static struct packet PCK_GETINFO_64;
+static struct packet PCK_GETLIST;
+
+static void create_static_packets(void)
+{
+	uint8_t MSG_GETINFO[] = {
 		255, 255, 255, 255, 'g', 'i', 'e', '3', 0
-	}
-};
-static const struct packet MSG_GETINFO_64 = {
-	9, {
+	};
+	uint8_t MSG_GETINFO_64[] = {
 		255, 255, 255, 255, 'f', 's', 't', 'd', 0
-	}
-};
-static const struct packet MSG_GETLIST = {
-	8, {
+	};
+	uint8_t MSG_GETLIST[] = {
 		255, 255, 255, 255, 'r', 'e', 'q', '2'
-	}
-};
+	};
+
+	create_packet(&PCK_GETINFO, MSG_GETINFO, sizeof(MSG_GETINFO));
+	create_packet(&PCK_GETINFO_64, MSG_GETINFO, sizeof(MSG_GETINFO_64));
+	create_packet(&PCK_GETLIST, MSG_GETLIST, sizeof(MSG_GETLIST));
+}
 
 static time_t expire_in(time_t sec, time_t maxdist)
 {
@@ -323,14 +328,14 @@ static void add_to_pool(struct netclient *client)
 		strcpy(client->newserver.port, client->server.port);
 
 		if (is_legacy_64(&client->server))
-			request = &MSG_GETINFO_64;
+			request = &PCK_GETINFO_64;
 		else
-			request = &MSG_GETINFO;
+			request = &PCK_GETINFO;
 		break;
 
 	case NETCLIENT_TYPE_MASTER:
 		unreference_servers(&client->master);
-		request = &MSG_GETLIST;
+		request = &PCK_GETLIST;
 		break;
 	}
 
@@ -422,6 +427,7 @@ int main(int argc, char **argv)
 	signal(SIGINT,  stop_gracefully);
 	signal(SIGTERM, stop_gracefully);
 
+	create_static_packets();
 	load_netclients();
 	return update();
 }

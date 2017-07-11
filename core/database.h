@@ -9,7 +9,7 @@
 extern sqlite3 *db;
 extern int dberr;
 
-int init_database(int readonly);
+bool init_database(bool readonly);
 
 /* Describe each table columns, used when creating a table */
 #include "database.def"

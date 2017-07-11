@@ -56,13 +56,9 @@ time_t last_database_update(void)
 	return wal > db ? wal : db;
 }
 
-static int init_version_table(void)
+static void init_version_table(void)
 {
-	const char *query =
-		"INSERT INTO version"
-		" VALUES(?)";
-
-	return exec(query, "i", DATABASE_VERSION);
+	exec("INSERT INTO version VALUES(?)", "i", DATABASE_VERSION);
 }
 
 static int bind_text(sqlite3_stmt *res, unsigned i, char *text)
@@ -110,7 +106,7 @@ static int bind(sqlite3_stmt *res, const char *bindfmt, va_list ap)
 	return 1;
 }
 
-static int init_masters_table(void)
+static void init_masters_table(void)
 {
 	const struct master {
 		char *node;
@@ -123,16 +119,12 @@ static int init_masters_table(void)
 		{ NULL }
 	};
 
-	int ret = 1;
-
-	const char *query =
-		"INSERT INTO masters"
-		" VALUES(?, ?, 0, 0)";
-
-	for (; master->node; master++)
-		ret &= exec(query, "ss", master->node, master->service);
-
-	return ret;
+	for (; master->node; master++) {
+		exec(
+			"INSERT INTO masters VALUES(?, ?, 0, 0)",
+			"ss", master->node, master->service
+		);
+	}
 }
 
 static void errmsg(const char *func, const char *query)
@@ -160,8 +152,8 @@ static void errmsg(const char *func, const char *query)
 
 void create_all_indices(void)
 {
-	exec("CREATE INDEX ranks_by_gametype ON ranks (gametype, map, rank)");
-	exec("CREATE INDEX players_by_clan ON players (clan)");
+	exec("CREATE INDEX IF NOT EXISTS ranks_by_gametype ON ranks (gametype, map, rank)");
+	exec("CREATE INDEX IF NOT EXISTS players_by_clan ON players (clan)");
 }
 
 /*
@@ -197,28 +189,63 @@ void drop_all_indices(void)
 		exec(qs[i]);
 }
 
-static int create_database(void)
+/*
+ * If every tables are already created, this basically does nothing.  If
+ * for some reason a table is missing, it will be recreated.
+ */
+static bool create_database(void)
 {
-	const int FLAGS = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-
 	const char **query = NULL, *queries[] = {
-		"CREATE TABLE version" TABLE_DESC_VERSION,
-		"CREATE TABLE masters" TABLE_DESC_MASTERS,
-		"CREATE TABLE servers" TABLE_DESC_SERVERS,
-		"CREATE TABLE players" TABLE_DESC_PLAYERS,
-		"CREATE TABLE server_clients" TABLE_DESC_SERVER_CLIENTS,
-		"CREATE TABLE server_masters" TABLE_DESC_SERVER_MASTERS,
-		"CREATE TABLE ranks" TABLE_DESC_RANKS,
-		"CREATE TABLE ranks_historic" TABLE_DESC_RANK_HISTORIC,
-		"CREATE TABLE pending" TABLE_DESC_PENDING,
+		"CREATE TABLE IF NOT EXISTS version" TABLE_DESC_VERSION,
+		"CREATE TABLE IF NOT EXISTS masters" TABLE_DESC_MASTERS,
+		"CREATE TABLE IF NOT EXISTS servers" TABLE_DESC_SERVERS,
+		"CREATE TABLE IF NOT EXISTS players" TABLE_DESC_PLAYERS,
+		"CREATE TABLE IF NOT EXISTS server_clients" TABLE_DESC_SERVER_CLIENTS,
+		"CREATE TABLE IF NOT EXISTS server_masters" TABLE_DESC_SERVER_MASTERS,
+		"CREATE TABLE IF NOT EXISTS ranks" TABLE_DESC_RANKS,
+		"CREATE TABLE IF NOT EXISTS ranks_historic" TABLE_DESC_RANK_HISTORIC,
+		"CREATE TABLE IF NOT EXISTS pending" TABLE_DESC_PENDING,
+		NULL
 
 		/* Note: Indices are created in create_all_indices() */
-		NULL
 	};
 
-	if (sqlite3_open_v2(config.dbpath, &db, FLAGS, NULL) != SQLITE_OK) {
-		errmsg("create_database", NULL);
-		return 0;
+	exec("BEGIN");
+
+	for (query = queries; *query; query++)
+		exec(*query);
+
+	init_version_table();
+	init_masters_table();
+	create_all_indices();
+
+	if (dberr)
+		return exec("ROLLBACK"), false;
+	else
+		return exec("COMMIT"), true;
+}
+
+static void close_database(void)
+{
+	/* Using NULL as a query free internal buffers exec() may keep */
+	exec(NULL);
+
+	if (sqlite3_close(db) != SQLITE_OK)
+		errmsg("close_database", NULL);
+}
+
+bool init_database(bool readonly)
+{
+	int flags;
+
+	if (readonly)
+		flags = SQLITE_OPEN_READONLY;
+	else
+		flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+
+	if (sqlite3_open_v2(config.dbpath, &db, flags, NULL) != SQLITE_OK) {
+		errmsg("init_database", NULL);
+		return false;
 	}
 
 	/*
@@ -243,62 +270,8 @@ static int create_database(void)
 	 */
 	exec("PRAGMA synchronous=NORMAL");
 
-	/*
-	 * Batch create queries in a single exclusive transaction so
-	 * that if someone else try to use the database at the same
-	 * time, one will quietly wait for the other to create the
-	 * database.
-	 */
-	if (sqlite3_exec(db, "BEGIN EXCLUSIVE", 0, 0, 0) != SQLITE_OK)
-		return 1;
-
-	for (query = queries; *query; query++) {
-		if (!exec(*query))
-			goto fail;
-	}
-
-	if (!init_version_table())
-		goto fail;
-	if (!init_masters_table())
-		goto fail;
-
-	create_all_indices();
-
-	if (!exec("COMMIT"))
-		goto fail;
-
-	return 1;
-
-fail:
-	exec("ROLLBACK");
-	return 0;
-}
-
-static void close_database(void)
-{
-	/* Using NULL as a query free internal buffers exec() may keep */
-	exec(NULL);
-
-	if (sqlite3_close(db) != SQLITE_OK)
-		errmsg("close_database", NULL);
-}
-
-int init_database(int readonly)
-{
-	int flags = SQLITE_OPEN_READWRITE;
-
-	if (readonly)
-		flags = SQLITE_OPEN_READONLY;
-
-	if (sqlite3_open_v2(config.dbpath, &db, flags, NULL) != SQLITE_OK) {
-		if (readonly) {
-			errmsg("init_database", NULL);
-			return 0;
-		}
-
-		if (!create_database())
-			return 0;
-	}
+	if (!readonly && !create_database())
+		return false;
 
 	/*
 	 * We want to properly close the database connexion so that
@@ -307,7 +280,7 @@ int init_database(int readonly)
 	 */
 	atexit(close_database);
 
-	return 1;
+	return true;
 }
 
 /*

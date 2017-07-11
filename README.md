@@ -13,7 +13,7 @@ Build it:
 make
 ```
 
-Then update database at least once:
+Then start updating the database:
 
 ```
 ./teerank-update
@@ -73,7 +73,7 @@ Setting up a CGI for developpement may be cumbursome, you can actually
 simulate CGI environment with the command line, like so:
 
 ```bash
-REQUEST_URI="/search?q=Nameless" ./teerank.cgi
+DOCUMENT_URI="/search" QUERY_STRING="q=Nameless" ./teerank.cgi
 ```
 
 Upgrading from a previous version

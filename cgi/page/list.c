@@ -95,7 +95,9 @@ static void print_clan_list(void)
 		" COUNT(name) AS ranked,"
 		" (SELECT COUNT(DISTINCT name)"
 		"  FROM players AS p"
-		"  WHERE p.clan = players.clan) AS total"
+		"  WHERE p.clan = players.clan) AS total,"
+
+		" MAX(lastseen) AS max_lastseen"
 
 		" FROM ranks NATURAL JOIN players"
 		" WHERE clan <> '' AND gametype = ?1 AND map = IFNULL(?2, map)"
@@ -123,6 +125,7 @@ static void print_clan_list(void)
 		{ "elo", elo_order_by },
 		{ "members", "ranked DESC" },
 		{ "name", "clan" },
+		{ "lastseen", "lastseen" },
 		{ NULL }
 	};
 
@@ -146,6 +149,7 @@ static void print_clan_list(void)
 			{ "Name", HTML_COLTYPE_CLAN, "name" },
 			{ "Elo", HTML_COLTYPE_ELO, "elo" },
 			{ "Members", HTML_COLTYPE_NMEMBERS, "members" },
+			{ "Activity", HTML_COLTYPE_LASTSEEN, "lastseen" },
 			{ NULL }
 		};
 

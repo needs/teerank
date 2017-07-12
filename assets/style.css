@@ -400,7 +400,13 @@ tr.spectator td img {
 /* Number of members */
 .clanlist td:nth-child(3),
 .clanlist th:nth-child(3) {
-	text-align: right;
+	text-align: center;
+}
+
+/* Activity */
+.clanlist td:nth-child(4),
+.clanlist th:nth-child(4) {
+	text-align: left;
 }
 
 /* Server list */

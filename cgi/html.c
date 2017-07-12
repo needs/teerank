@@ -581,6 +581,11 @@ static void list_item(sqlite3_stmt *res, struct html_list_column *col, row_class
 			break;
 		}
 
+		case HTML_COLTYPE_NMEMBERS: {
+			unsigned ranked = column_unsigned(res, i++);
+			unsigned total = column_unsigned(res, i++);
+			html("<td>%u / %u</td>", ranked, total);
+		}
 		}
 		col++;
 	}

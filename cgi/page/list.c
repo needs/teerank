@@ -75,21 +75,53 @@ static void print_clan_list(void)
 {
 	struct list list;
 
+
 	const char *qselect =
-		"SELECT clan, CAST(AVG(elo) AS Int) AS avgelo, COUNT(1) AS nmembers"
-		" FROM players NATURAL JOIN ranks"
-		" WHERE clan <> '' AND gametype = ? AND map = IFNULL(?, map)"
+		"SELECT clan,"
+
+		/*
+		 * Only the 10 best players contribute to the average
+		 * elo so that you can't lower one'es average by just
+		 * creating new players with the same clan tag.
+		 */
+		" (SELECT CAST(AVG(elo) AS Int)"
+		"  FROM ranks AS r NATURAL JOIN players AS p"
+		"  WHERE r.gametype = ?1"
+		"   AND r.map = IFNULL(?2, map)"
+		"   AND p.clan = players.clan"
+		"  ORDER BY r.rank"
+		"  LIMIT 10) AS avgelo,"
+
+		" COUNT(name) AS ranked,"
+		" (SELECT COUNT(DISTINCT name)"
+		"  FROM players AS p"
+		"  WHERE p.clan = players.clan) AS total"
+
+		" FROM ranks NATURAL JOIN players"
+		" WHERE clan <> '' AND gametype = ?1 AND map = IFNULL(?2, map)"
 		" GROUP BY clan"
-		" ORDER BY %s, avgelo DESC, nmembers DESC, clan";
+		" ORDER BY %s, avgelo DESC, ranked DESC, clan";
 
 	const char *qcount =
 		"SELECT COUNT(DISTINCT clan)"
 		" FROM players NATURAL JOIN ranks"
 		" WHERE clan <> '' AND gametype = ? AND map = IFNULL(?, map)";
 
+	/*
+	 * We want clan with more than 10 ranked players to all be
+	 * sorted on the average elo of their ten best players.
+	 * However, clan with less than 10 ranked players will be ranked
+	 * lower even if the average is higher.
+	 */
+	char *elo_order_by =
+		"CASE"
+		" WHEN ranked >= 10 THEN 0"
+		" ELSE 10 - ranked"
+		" END";
+
 	struct list_order orders[] = {
-		{ "elo", "avgelo DESC" },
-		{ "members", "nmembers DESC" },
+		{ "elo", elo_order_by },
+		{ "members", "ranked DESC" },
 		{ "name", "clan" },
 		{ NULL }
 	};
@@ -100,7 +132,8 @@ static void print_clan_list(void)
 		struct json_list_column cols[] = {
 			{ "name", "%s" },
 			{ "average_elo", "%i" },
-			{ "nmembers", "%u" },
+			{ "ranked_members", "%u" },
+			{ "total_members", "%u" },
 			{ NULL }
 		};
 
@@ -112,7 +145,7 @@ static void print_clan_list(void)
 		struct html_list_column cols[] = {
 			{ "Name", HTML_COLTYPE_CLAN, "name" },
 			{ "Elo", HTML_COLTYPE_ELO, "elo" },
-			{ "Members", 0, "members" },
+			{ "Members", HTML_COLTYPE_NMEMBERS, "members" },
 			{ NULL }
 		};
 

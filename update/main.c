@@ -22,10 +22,10 @@
 #include "rank.h"
 #include "packet.h"
 
-static int stop;
+static bool stop;
 static void stop_gracefully(int sig)
 {
-	stop = 1;
+	stop = false;
 }
 
 static struct packet PCK_GETINFO;
@@ -49,11 +49,11 @@ static void create_static_packets(void)
 	create_packet(&PCK_GETLIST, MSG_GETLIST, sizeof(MSG_GETLIST));
 }
 
-static time_t expire_in(time_t sec, time_t maxdist)
+static time_t expire_in(time_t t, time_t delta)
 {
 	double fact = ((double)rand() / (double)RAND_MAX);
-	time_t min = sec - maxdist;
-	time_t max = sec + maxdist;
+	time_t min = t - delta;
+	time_t max = t + delta;
 
 	return time(NULL) + min + (max - min) * fact;
 }
@@ -90,13 +90,12 @@ static void update_players(struct server *sv)
 {
 	unsigned i;
 
-	const char *replace =
-		"REPLACE INTO players"
-		" VALUES(?, ?, ?)";
-
 	for (i = 0; i < sv->num_clients; i++) {
 		struct client *c = &sv->clients[i];
-		exec(replace, "sst", c->name, c->clan, time(NULL));
+		exec(
+			"REPLACE INTO players VALUES(?, ?, ?)",
+			"sst", c->name, c->clan, time(NULL)
+		);
 	}
 }
 

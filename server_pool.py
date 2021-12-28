@@ -8,7 +8,7 @@ import time
 import random
 
 from server import Server
-from packet import Packet
+from packet import Packet, PacketException
 
 class ServerPool:
     """A list of servers to poll for data."""
@@ -71,7 +71,10 @@ class ServerPool:
             entry = self._batch.get(address, None)
 
             if entry is not None:
-                entry.server.process_packet(Packet(data))
+                try:
+                    entry.server.process_packet(Packet(data))
+                except PacketException as exception:
+                    logging.info(f'Server {entry.server.address}: Dropping packet: {exception}')
 
         # Stop polling for the current batch and re-schedule servers.
 

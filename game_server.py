@@ -2,7 +2,7 @@ import logging
 import secrets
 
 from server import Server
-from packet import Packet
+from packet import Packet, PacketException
 from player import Player
 
 class GameServer(Server):
@@ -86,11 +86,15 @@ class GameServer(Server):
         packet.unpack_bytes(10) # Padding
         packet_type = packet.unpack_bytes(4)
 
-        token = int(packet.unpack()).to_bytes(3, byteorder='big')
+        # Server sent token back as an integer merging both token and
+        # extra_token.  The integer needs to be converted back to bytes and some
+        # bytes needs to be swapped to get the token back.
+
+        token = packet.unpack_int().to_bytes(3, byteorder='big')
         token = bytes([token[2], token[0], token[1]])
 
         if token != self._request_token:
-            logging.debug(f'Dropping packet: wrong request token. ({packet_type}) {token} vs {self._request_token}')
+            raise PacketException('Wrong request token.')
 
         elif packet_type == b'inf3':
             self._process_packet_vanilla(packet)
@@ -102,7 +106,7 @@ class GameServer(Server):
             self._process_packet_extended_more(packet)
 
         else:
-            logging.debug('Dropping packet: packet type not supported.')
+            raise PacketException('Packet type not supported.')
 
 
     def _process_packet_vanilla(self, packet: Packet):
@@ -118,11 +122,11 @@ class GameServer(Server):
             'name': packet.unpack(),
             'map_name': packet.unpack(),
             'game_type': packet.unpack(),
-            'flags': int(packet.unpack()),
-            'num_players': int(packet.unpack()),
-            'max_players': int(packet.unpack()),
-            'num_clients': int(packet.unpack()),
-            'max_clients': int(packet.unpack()),
+            'flags': packet.unpack_int(),
+            'num_players': packet.unpack_int(),
+            'max_players': packet.unpack_int(),
+            'num_clients': packet.unpack_int(),
+            'max_clients': packet.unpack_int(),
             'players': []
         }
 
@@ -130,9 +134,9 @@ class GameServer(Server):
             self.data_new['players'].append({
                 'name': packet.unpack(),
                 'clan': packet.unpack(),
-                'country': int(packet.unpack()),
-                'score': int(packet.unpack()),
-                'ingame': bool(int(packet.unpack()))
+                'country': packet.unpack_int(),
+                'score': packet.unpack_int(),
+                'ingame': bool(packet.unpack_int())
             })
 
 
@@ -145,11 +149,11 @@ class GameServer(Server):
             'name': packet.unpack(),
             'map_name': packet.unpack(),
             'game_type': packet.unpack(),
-            'flags': int(packet.unpack()),
-            'num_players': int(packet.unpack()),
-            'max_players': int(packet.unpack()),
-            'num_clients': int(packet.unpack()),
-            'max_clients': int(packet.unpack()),
+            'flags': packet.unpack_int(),
+            'num_players': packet.unpack_int(),
+            'max_players': packet.unpack_int(),
+            'num_clients': packet.unpack_int(),
+            'max_clients': packet.unpack_int(),
             'players': []
         }
 
@@ -159,17 +163,16 @@ class GameServer(Server):
             self.data_new['players'].append({
                 'name': packet.unpack(),
                 'clan': packet.unpack(),
-                'country': int(packet.unpack()),
-                'score': int(packet.unpack()),
-                'ingame': bool(int(packet.unpack()))
+                'country': packet.unpack_int(),
+                'score': packet.unpack_int(),
+                'ingame': bool(packet.unpack_int())
             })
 
 
     def _process_packet_extended(self, packet: Packet) -> None:
         """Parse the extended server info packet."""
 
-        logging.debug('Dropping packet: packet type "extended" not supported.')
-        return
+        raise PacketException('Packet type "extended" not supported.')
 
         self.server_type = 'ext'
         self.version = packet.unpack()
@@ -198,8 +201,7 @@ class GameServer(Server):
     def _process_packet_extended_more(self, packet: Packet) -> None:
         """Parse the extended server info packet."""
 
-        logging.debug('Dropping packet: packet type "extended more" not supported.')
-        return
+        raise PacketException('Packet type "extended more" not supported.')
 
         packet.unpack()
 

@@ -1,4 +1,5 @@
 import logging
+import secrets
 
 from server import Server
 from packet import Packet
@@ -8,7 +9,7 @@ class GameServer(Server):
     def __init__(self, ip: str, port: int):
         super().__init__(ip, port)
         self.redis_key = f'game-servers:{self.key}'
-        self.data = None
+        self.data = {}
 
 
     def load(self) -> None:
@@ -21,19 +22,46 @@ class GameServer(Server):
         pass
 
 
+    def _request_info_packet(self, request: bytes):
+        """
+        Create a 'request info' packet with the given request.
+        """
+
+        token = self._request_token[0:1]
+        extra_token = self._request_token[1:3]
+
+        packet = Packet()
+
+        packet.pack_bytes(b'xe') # Magic header (2 bytes)
+        packet.pack_bytes(extra_token) # Extra token (2 bytes)
+        packet.pack_bytes(b'\x00\x00') # Reserved (2 bytes)
+        packet.pack_bytes(b'\xff\xff\xff\xff') # Padding (4 bytes)
+        packet.pack_bytes(request[0:4]) # Vanilla request (4 bytes)
+        packet.pack_bytes(token) # Token (1 byte)
+
+        return packet
+
+
     def start_polling(self) -> list[Packet]:
         self.data_new = {}
+        server_type = self.data.get('server_type', None)
+
+        # Generate a new request token.
+
+        if server_type == 'iext':
+            self._request_token = secrets.token_bytes(3)
+        else:
+            self._request_token = secrets.token_bytes(1) + bytes(2)
 
         # Pick a packet according to server type or send both packets if server
         # type is unknown.
 
-        server_type = self.data.get('server_type', None)
         packets = []
 
         if server_type is None or server_type == 'vanilla':
-            packets.append(Packet(packet_type=b'\xff\xff\xff\xffgie3\x00'))
+            packets.append(self._request_info_packet(b'gie3'))
         if server_type is None or server_type != 'vanilla':
-            packets.append(Packet(packet_type=b'\xff\xff\xff\xfffstd\x00'))
+            packets.append(self._request_info_packet(b'fstd'))
 
         return packets
 
@@ -50,18 +78,31 @@ class GameServer(Server):
 
 
     def process_packet(self, packet: Packet) -> None:
-        packet.unpack() # Server token
+        """
+        Process packet header and route the packet to its final process
+        function.
+        """
 
-        if packet.type == b'\xff\xff\xff\xffinf3':
-            return self._process_packet_vanilla(packet)
-        if packet.type == b'\xff\xff\xff\xffdtsf':
-            return self._process_packet_legacy_64(packet)
-        if packet.type == b'\xff\xff\xff\xffiext':
-            return self._process_packet_extended(packet)
-        if packet.type == b'\xff\xff\xff\xffiex+':
-            return self._process_packet_extended_more(packet)
+        packet.unpack_bytes(10) # Padding
+        packet_type = packet.unpack_bytes(4)
 
-        logging.debug('Dropping packet: packet type not supported.')
+        token = int(packet.unpack()).to_bytes(3, byteorder='big')
+        token = bytes([token[2], token[0], token[1]])
+
+        if token != self._request_token:
+            logging.debug(f'Dropping packet: wrong request token. ({packet_type}) {token} vs {self._request_token}')
+
+        elif packet_type == b'inf3':
+            self._process_packet_vanilla(packet)
+        elif packet_type == b'dtsf':
+            self._process_packet_legacy_64(packet)
+        elif packet_type == b'iext':
+            self._process_packet_extended(packet)
+        elif packet_type == b'iex+':
+            self._process_packet_extended_more(packet)
+
+        else:
+            logging.debug('Dropping packet: packet type not supported.')
 
 
     def _process_packet_vanilla(self, packet: Packet):

@@ -23,7 +23,8 @@ class MasterServer(Server):
 
     def start_polling(self) -> list[Packet]:
         self._packet_count = 0
-        return [Packet(packet_type=b'\xff\xff\xff\xffreq2')]
+        # 10 bytes of padding and the 'req2' packet type.
+        return [Packet(b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffreq2')]
 
 
     def stop_polling(self) -> bool:
@@ -35,7 +36,10 @@ class MasterServer(Server):
 
 
     def process_packet(self, packet: Packet) -> None:
-        if packet.type == b'\xff\xff\xff\xfflis2':
+        packet.unpack_bytes(10) # Padding
+        packet_type = packet.unpack_bytes(4)
+
+        if packet_type == b'lis2':
 
             while len(packet) >= 18:
                 data = packet.unpack_bytes(16)

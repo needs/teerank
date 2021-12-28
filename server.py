@@ -8,7 +8,7 @@ class Server:
         self.port = port
         self.key = f'{ip}:{port}'
         self.address = (ip, port)
-        self.token = secrets.token_bytes(nbytes=2)
+        self.token = secrets.token_bytes(nbytes=4)
 
     def save(self) -> None:
         pass

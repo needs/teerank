@@ -3,7 +3,6 @@ import secrets
 
 from server import Server
 from packet import Packet, PacketException
-from player import Player
 
 class GameServer(Server):
     def __init__(self, ip: str, port: int):
@@ -43,38 +42,82 @@ class GameServer(Server):
 
 
     def start_polling(self) -> list[Packet]:
-        self.data_new = {}
+        """
+        Setup internal state so that incoming data can be received.
+        """
+
         server_type = self.data.get('server_type', None)
 
         # Generate a new request token.
 
-        if server_type == 'iext':
+        if server_type == 'extended':
             self._request_token = secrets.token_bytes(3)
         else:
             self._request_token = secrets.token_bytes(1) + bytes(2)
 
         # Pick a packet according to server type or send both packets if server
         # type is unknown.
+        #
+        # The packet is the same for both vanilla and extended servers, thanks
+        # to a clever trick with the token field.
 
         packets = []
 
-        if server_type is None or server_type == 'vanilla':
+        if server_type is None or server_type == 'vanilla' or server_type == 'extended':
             packets.append(self._request_info_packet(b'gie3'))
-        if server_type is None or server_type != 'vanilla':
+        if server_type is None or server_type == 'legacy_64':
             packets.append(self._request_info_packet(b'fstd'))
+
+        # Reset containers for the data to be received.
+
+        self._data_new_vanilla = {}
+        self._data_new_legacy_64 = {}
+        self._data_new_legacy_64_clients = []
+        self._data_new_extended = {}
+        self._data_new_extended_clients = []
 
         return packets
 
 
     def stop_polling(self) -> bool:
-        if self.data_new:
-            self.data = self.data_new
+        """
+        Check any received data and process them.
+        """
 
-            logging.info(f'Updated server {self.address}: {self.data["game_type"]} ({self.data["num_clients"]}/{self.data["max_clients"]})')
-            self.save()
-            return True
+        # Try to use extended data first because they are considered to be the
+        # most superior format. Then use legacy 64 data because they provides
+        # more information than the vanilla format.
+        #
+        # Check that data is complete by comparing the number of clients on the
+        # server to the number of clients received.
+
+        if self._data_new_extended and self._data_new_extended['num_clients'] == len(self._data_new_extended_clients):
+            data_new = self._data_new_extended
+            data_new['clients'] = self._data_new_extended_clients
+        elif self._data_new_legacy_64 and self._data_new_legacy_64['num_clients'] == len(self._data_new_legacy_64_clients):
+            data_new = self._data_new_legacy_64
+            data_new['clients'] = self._data_new_legacy_64_clients
+        elif self._data_new_vanilla:
+            data_new = self._data_new_vanilla
         else:
             return False
+
+        self.data = data_new
+
+        # Delete received data because only self.data will be used now.
+
+        del self._data_new_vanilla
+        del self._data_new_legacy_64
+        del self._data_new_legacy_64_clients
+        del self._data_new_extended
+        del self._data_new_extended_clients
+
+        # Now that the server is fully updated, save its state.
+
+        logging.info(f'Updated server {self.address}: {self.data["game_type"]} ({self.data["num_clients"]}/{self.data["max_clients"]})')
+        self.save()
+
+        return True
 
 
     def process_packet(self, packet: Packet) -> None:
@@ -86,9 +129,10 @@ class GameServer(Server):
         packet.unpack_bytes(10) # Padding
         packet_type = packet.unpack_bytes(4)
 
-        # Server sent token back as an integer merging both token and
-        # extra_token.  The integer needs to be converted back to bytes and some
-        # bytes needs to be swapped to get the token back.
+        # Servers send token back as an integer that is a combination of token
+        # and extra_token fields of the packet we sent.  However the received
+        # token has some its byte mixed because of endianess and we need to swap
+        # some bytes to get the full token back.
 
         token = packet.unpack_int().to_bytes(3, byteorder='big')
         token = bytes([token[2], token[0], token[1]])
@@ -112,11 +156,7 @@ class GameServer(Server):
     def _process_packet_vanilla(self, packet: Packet):
         """Parse the default response of the vanilla client."""
 
-        # If a non-vanilla packet was already processed, drop this packet.
-        if self.data_new:
-            return
-
-        self.data_new = {
+        data = {
             'server_type': 'vanilla',
             'version': packet.unpack(),
             'name': packet.unpack(),
@@ -127,11 +167,11 @@ class GameServer(Server):
             'max_players': packet.unpack_int(),
             'num_clients': packet.unpack_int(),
             'max_clients': packet.unpack_int(),
-            'players': []
+            'clients': []
         }
 
         while packet.unpack_remaining() >= 5:
-            self.data_new['players'].append({
+            data['clients'].append({
                 'name': packet.unpack(),
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
@@ -139,11 +179,13 @@ class GameServer(Server):
                 'ingame': bool(packet.unpack_int())
             })
 
+        self._data_new_vanilla = data
+
 
     def _process_packet_legacy_64(self, packet: Packet) -> None:
         """Parse legacy 64 packet."""
 
-        self.data_new = {
+        data = {
             'server_type': 'legacy_64',
             'version': packet.unpack(),
             'name': packet.unpack(),
@@ -153,14 +195,18 @@ class GameServer(Server):
             'num_players': packet.unpack_int(),
             'max_players': packet.unpack_int(),
             'num_clients': packet.unpack_int(),
-            'max_clients': packet.unpack_int(),
-            'players': []
+            'max_clients': packet.unpack_int()
         }
 
-        packet.unpack() # Offset
+        # Even though the offset is advertised as an integer, in real condition
+        # we receive a single byte.
+
+        packet.unpack_bytes(1) # Offset
+
+        clients = []
 
         while packet.unpack_remaining() >= 5:
-            self.data_new['players'].append({
+            clients.append({
                 'name': packet.unpack(),
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
@@ -168,54 +214,65 @@ class GameServer(Server):
                 'ingame': bool(packet.unpack_int())
             })
 
+        self._data_new_legacy_64_clients += clients
+        self._data_new_legacy_64 = data
+
 
     def _process_packet_extended(self, packet: Packet) -> None:
         """Parse the extended server info packet."""
 
-        raise PacketException('Packet type "extended" not supported.')
+        data = {
+            'server_type': 'extended',
+            'version': packet.unpack(),
+            'name': packet.unpack(),
+            'map_name': packet.unpack(),
+            'map_crc': packet.unpack_int(),
+            'map_size': packet.unpack_int(),
+            'game_type': packet.unpack(),
+            'flags': packet.unpack_int(),
+            'num_players': packet.unpack_int(),
+            'max_players': packet.unpack_int(),
+            'num_clients': packet.unpack_int(),
+            'max_clients': packet.unpack_int()
+        }
 
-        self.server_type = 'ext'
-        self.version = packet.unpack()
-        self.name = packet.unpack()
-        self.map_name = packet.unpack()
-        self.map_crc = int(packet.unpack())
-        self.map_size = int(packet.unpack())
-        self.game_type = packet.unpack()
-        self.flags = int(packet.unpack())
-        self.num_players = int(packet.unpack())
-        self.max_players = int(packet.unpack())
-        self.num_clients = int(packet.unpack())
-        self.max_clients = int(packet.unpack())
+        packet.unpack() # Reserved
+
+        clients = []
 
         while packet.unpack_remaining() >= 6:
+            clients.append({
+                'name': packet.unpack(),
+                'clan': packet.unpack(),
+                'country': packet.unpack_int(-1),
+                'score': packet.unpack_int(),
+                'ingame': bool(packet.unpack_int())
+            })
             packet.unpack() # Reserved
-            self.append_player(Player(
-                name=packet.unpack(),
-                clan=packet.unpack(),
-                country=int(packet.unpack()),
-                score=int(packet.unpack()),
-                ingame=bool(int(packet.unpack()))
-            ))
+
+        self._data_new_extended_clients += clients
+        self._data_new_extended = data
 
 
     def _process_packet_extended_more(self, packet: Packet) -> None:
         """Parse the extended server info packet."""
 
-        raise PacketException('Packet type "extended more" not supported.')
+        packet.unpack_int() # Packet number
+        packet.unpack() # Reserved
 
-        packet.unpack()
-
-        self.server_type = 'ext+'
+        clients = []
 
         while packet.unpack_remaining() >= 6:
+            clients.append({
+                'name': packet.unpack(),
+                'clan': packet.unpack(),
+                'country': packet.unpack_int(-1),
+                'score': packet.unpack_int(),
+                'ingame': bool(packet.unpack_int())
+            })
             packet.unpack() # Reserved
-            self.append_player(Player(
-                name=packet.unpack(),
-                clan=packet.unpack(),
-                country=int(packet.unpack()),
-                score=int(packet.unpack()),
-                ingame=bool(int(packet.unpack()))
-            ))
+
+        self._data_new_extended_clients += clients
 
 
 def load_game_servers() -> list[GameServer]:

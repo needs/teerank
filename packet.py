@@ -52,10 +52,11 @@ class Packet:
         return data
 
 
-    def unpack_int(self) -> int:
+    def unpack_int(self, default: int = None) -> int:
         """Unpack an integer from packet data."""
         try:
-            return int(self.unpack())
+            value = self.unpack()
+            return default if value == '' else int(value)
         except ValueError as exception:
             raise PacketException('Cannot unpack an integer.') from exception
 

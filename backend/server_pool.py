@@ -37,7 +37,7 @@ class ServerPool:
             Randomize poll delay so that servers are evenly spread for polling,
             and that should decrease packet loss even further.
             """
-            self.poll_time = time.time() # + random.randrange(ServerPool.POLL_DELAY)
+            self.poll_time = time.time() + random.randrange(ServerPool.POLL_DELAY)
 
 
     def __init__(self):

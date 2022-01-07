@@ -2,20 +2,18 @@
 Implement Server class.
 """
 
-import secrets
+from dataclasses import dataclass, field
 
+@dataclass
 class Server:
     """
     Server class.
     """
 
-    def __init__(self, ip: str, port: int):
-        """
-        Initialize server with the given IP and port.
-        """
+    ip: str
+    port: int
+    address: tuple(str, int) = field(init=False)
 
-        self.ip = ip
-        self.port = port
-        self.key = f'{ip}:{port}'
-        self.address = (ip, port)
-        self.token = secrets.token_bytes(nbytes=4)
+    def __post_init__(self):
+        self.address = (self.ip, self.port)
+        self.key = f'{self.ip}:{self.port}'

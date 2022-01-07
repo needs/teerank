@@ -1,3 +1,7 @@
+"""
+Launch backend server.
+"""
+
 import logging
 from time import sleep
 

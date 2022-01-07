@@ -1,3 +1,7 @@
+"""
+Implement MasterServer.
+"""
+
 import socket
 
 from server import Server
@@ -6,28 +10,54 @@ from server_pool import server_pool
 from game_server import GameServer
 
 class MasterServer(Server):
+    """
+    Teeworld master server.
+    """
+
     def __init__(self, hostname: str):
+        """
+        Initialize master server with the given hostname.
+
+        :param hostname: The hostname
+        :type hostname: str
+        """
         self.hostname = hostname
         super().__init__(socket.gethostbyname(hostname), 8300)
 
+        self.data = None
+        self._packet_count = None
+
 
     def load(self) -> None:
+        """
+        Load master server.
+        """
         # self.data = json.loads(redis.get(self.redis_key))
         self.data = {}
 
 
     def save(self) -> None:
+        """
+        Save master server.
+        """
         # redis.set(self.redis_key, json.dumps(self.data))
-        pass
 
 
     def start_polling(self) -> list[Packet]:
+        """
+        Poll master server.
+        """
+
         self._packet_count = 0
         # 10 bytes of padding and the 'req2' packet type.
         return [Packet(b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffreq2')]
 
 
     def stop_polling(self) -> bool:
+        """
+        Stop master server polling.
+        """
+
         # There is no reliable way to know when all packets have been received.
         # Therefor when at least one packet have been received, we considere
         # that the polling was a success and we move on.
@@ -36,6 +66,12 @@ class MasterServer(Server):
 
 
     def process_packet(self, packet: Packet) -> None:
+        """
+        Process master server packet.
+
+        Add any game server not yet in the server pool.
+        """
+
         packet.unpack_bytes(10) # Padding
         packet_type = packet.unpack_bytes(4)
 
@@ -59,7 +95,9 @@ class MasterServer(Server):
 
 
 def load_master_servers() -> list[MasterServer]:
-    """Load all master servers stored in the database."""
+    """
+    Load all master servers stored in the database.
+    """
 
     # hostnames = redis.smembers('master-servers')
     hostnames = None

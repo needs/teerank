@@ -1,7 +1,8 @@
-import logging
+"""
+Implement rank() function.
+"""
 
-from itertools import combinations
-from math import pow
+from itertools import combinations, product
 from player import PlayerELO
 
 def _elo_delta(score1: int, elo1: int, score2: int, elo2: int) -> int:
@@ -9,45 +10,45 @@ def _elo_delta(score1: int, elo1: int, score2: int, elo2: int) -> int:
     Classic ELO formula for two players, return the ELO delta for both players.
     """
 
-    K = 25
+    k_factor = 25
 
     if score1 < score2:
-        W = 0.0
+        result = 0.0
     elif score1 == score2:
-        W = 0.5
+        result = 0.5
     else:
-        W = 1.0
+        result = 1.0
 
     delta = max(400.0, min(-400.0, elo1 - elo2))
-    p = 1.0 / (1.0 + pow(10.0, -delta / 400.0))
+    expected = 1.0 / (1.0 + pow(10.0, -delta / 400.0))
 
-    return K * (W - p)
+    return k_factor * (result - expected)
 
 
-def rank(old: dict, new: dict) -> None:
+def rank(old: 'GameServerState', new: 'GameServerState') -> None:
     """
     Rank players given the old and new server state.
     """
 
     # Both old and new must be valid to be able to compare them.
 
-    if not old or not new:
+    if not old.is_complete() or not new.is_complete():
         return
 
     # If game type or map changed, then it makes no sens to rank players.
 
-    if old['game_type'] != new['game_type']:
+    if old.info['game_type'] != new.info['game_type']:
         return
-    if old['map_name'] != new['map_name']:
+    if old.info['map_name'] != new.info['map_name']:
         return
 
-    if new['game_type'] not in ('CTF', 'DM', 'TDM'):
+    if new.info['game_type'] not in ('CTF', 'DM', 'TDM'):
         return
 
     # Create a list of all players that are ingame in both old and new state.
 
-    old_names = { name for name, client in old['clients'].items() if client['ingame'] }
-    new_names = { name for name, client in new['clients'].items() if client['ingame'] }
+    old_names = { name for name, client in old.clients.items() if client['ingame'] }
+    new_names = { name for name, client in new.clients.items() if client['ingame'] }
     names = list(old_names.intersection(new_names))
 
     # Player score is the difference between its old score and new score.
@@ -56,7 +57,7 @@ def rank(old: dict, new: dict) -> None:
     # all players scores in new state, then we don't rank the game because there
     # is a high chance that a new game started.
 
-    scores = [ new['clients'][name]['score'] - old['clients'][name]['score'] for name in names ]
+    scores = [ new.clients[name]['score'] - old.clients[name]['score'] for name in names ]
 
     if sum(scores) <= 0:
         return
@@ -69,7 +70,7 @@ def rank(old: dict, new: dict) -> None:
     #
     # We do this for each combination of game type and map name.
 
-    for game_type, map_name in product((new['game_type'], None), (new['map_name'], None)):
+    for game_type, map_name in product((new.info['game_type'], None), (new.info['map_name'], None)):
 
         elos = [ PlayerELO.load(name, game_type, map_name) for name in names ]
         deltas = [0] * len(names)
@@ -79,6 +80,6 @@ def rank(old: dict, new: dict) -> None:
             deltas[i] += delta
             deltas[j] -= delta
 
-        for i in range(len(names)):
+        for i, name in enumerate(names):
             new_elo = elos[i] + deltas[i] / (len(names) - 1)
-            PlayerELO.save(names[i], game_type, map_name)
+            PlayerELO.save(name, game_type, map_name, new_elo)

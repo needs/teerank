@@ -1,3 +1,7 @@
+"""
+Implement ServerPool class.
+"""
+
 from dataclasses import dataclass, field
 from socket import socket as Socket
 from socket import AF_INET, SOCK_DGRAM
@@ -52,7 +56,7 @@ class ServerPool:
     def add(self, server: Server) -> None:
         """Add the given server to the pool."""
 
-        logging.info(f'Adding server {server.address}')
+        logging.info('Adding server %s', server.address)
 
         heapq.heappush(self._entries, ServerPool._Entry(server))
         self._servers[server.address] = server
@@ -74,7 +78,7 @@ class ServerPool:
                 try:
                     entry.server.process_packet(Packet(data))
                 except PacketException as exception:
-                    logging.info(f'Server {entry.server.address}: Dropping packet: {exception}')
+                    logging.info('Server %s: Dropping packet: %s', entry.server.address, exception)
 
         # Stop polling for the current batch and re-schedule servers.
 
@@ -87,7 +91,7 @@ class ServerPool:
                 entry.poll_failure += 1
 
                 if entry.poll_failure == ServerPool.MAX_POLL_FAILURE:
-                    logging.info(f'Removing server {entry.server.address}')
+                    logging.info('Removing server %s', entry.server.address)
                     del self._servers[entry.server.address]
                     continue
 
@@ -100,7 +104,11 @@ class ServerPool:
 
         packet_count = 0
 
-        while len(self._entries) > 0 and self._entries[0].poll_time <= current_time and packet_count < ServerPool.MAX_PACKET_SENT_PER_POLL:
+        while self._entries:
+            if self._entries[0].poll_time > current_time:
+                break
+            if packet_count >= ServerPool.MAX_PACKET_SENT_PER_POLL:
+                break
 
             entry = heapq.heappop(self._entries)
             server = entry.server

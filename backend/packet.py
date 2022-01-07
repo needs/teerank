@@ -3,7 +3,10 @@ Implement class Packet and class PacketException.
 """
 
 class PacketException(Exception):
-    pass
+    """
+    Type for exception happening when processing packet.
+    """
+
 
 class Packet:
     """
@@ -40,15 +43,15 @@ class Packet:
         return data.decode('utf-8')
 
 
-    def unpack_bytes(self, n: int) -> bytes:
+    def unpack_bytes(self, count: int) -> bytes:
         """
         Unpack bytes from packet data.
         """
-        if len(self._data) < n:
+        if len(self._data) < count:
             raise PacketException('Cannot unpack the required amount of bytes.')
 
-        data = self._data[:n]
-        self._data = self._data[n:]
+        data = self._data[:count]
+        self._data = self._data[count:]
         return data
 
 
@@ -61,11 +64,11 @@ class Packet:
             raise PacketException('Cannot unpack an integer.') from exception
 
 
-    def pack(self, str: str) -> None:
+    def pack(self, string: str) -> None:
         """
         Pack a string to packet data.
         """
-        self._data.extend(str.encode('utf-8'))
+        self._data.extend(string.encode('utf-8'))
 
 
     def pack_bytes(self, data: bytes) -> None:

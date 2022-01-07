@@ -1,25 +1,124 @@
-import logging
+"""
+Implement GameServer, GameServerState and GameServerType classes.
+"""
+
 import secrets
+import json
+from enum import IntEnum
 
 from server import Server
 from packet import Packet, PacketException
 from rank import rank
 
+class GameServerType(IntEnum):
+    """
+    Game server type.  Higher is better.
+    """
+
+    UNKNOWN = -1
+    VANILLA = 0
+    LEGACY_64 = 1
+    EXTENDED = 2
+
+
+class GameServerState:
+    """
+    Internal game server state.
+    """
+
+    def __init__(self, server_type: GameServerType):
+        """
+        Initialize a server state with the given server type.
+        """
+
+        self.server_type = server_type
+        self.info = {}
+        self.clients = {}
+
+
+    def merge(self, state: 'GameServerState') -> None:
+        """
+        Merge two states into a single one.
+
+        The server state with the highest server type overide the other.  If
+        server types are equal, do a classic merge.
+        """
+
+        if self.server_type <= state.server_type:
+            self.server_type = state.server_type
+            if state.info:
+                self.info = state.info
+
+            if state.server_type == self.server_type:
+                self.clients |= state.clients
+            else:
+                self.clients = state.clients
+
+
+    def is_complete(self) -> bool:
+        """
+        Return true if server state is valid and have all its data.
+        """
+
+        return self.info and len(self.clients) == self.info['num_clients']
+
+
+    @staticmethod
+    def to_json(state: 'GameServerState') -> str:
+        """
+        Convert the givne server state into JSON.
+        """
+
+        data = state.info
+        data['server_type'] = state.server_type
+        data['clients'] = state.clients
+        return json.dumps(state)
+
+    @staticmethod
+    def from_json(data: str) -> 'GameServerState':
+        """
+        Create a new server state from its JSON.
+        """
+
+        data = json.loads(data)
+
+        state = GameServerState(data.pop('server_type'))
+        state.clients = data.pop('clients')
+        state.info = data
+
+        return state
+
+
 class GameServer(Server):
+    """
+    Teeworld game server.
+    """
+
     def __init__(self, ip: str, port: int):
+        """
+        Initialize game server with the given IP and port.
+        """
+
         super().__init__(ip, port)
         self.redis_key = f'game-servers:{self.key}'
-        self.data = {}
+        self.state = GameServerState(GameServerType.UNKNOWN)
+        self._state_new = None
+        self._request_token = None
 
 
     def load(self) -> None:
-        # self.data = json.loads(redis.get(self.redis_key))
-        self.data = {}
+        """
+        Load game server data.
+        """
+        # self.state = GameServerState.from_json(redis.get(self.redis_key))
+        self.state = GameServerState(GameServerType.UNKNOWN)
 
 
     def save(self) -> None:
-        # redis.set(self.redis_key, json.dumps(self.data))
-        pass
+        """
+        Save game server data.
+        """
+        # redis.set(self.redis_key, GameServerState.to_json(self.state))
 
 
     def _request_info_packet(self, request: bytes):
@@ -47,11 +146,9 @@ class GameServer(Server):
         Setup internal state so that incoming data can be received.
         """
 
-        server_type = self.data.get('server_type', None)
-
         # Generate a new request token.
 
-        if server_type == 'extended':
+        if self.state.server_type == GameServerType.EXTENDED:
             self._request_token = secrets.token_bytes(3)
         else:
             self._request_token = secrets.token_bytes(1) + bytes(2)
@@ -64,18 +161,17 @@ class GameServer(Server):
 
         packets = []
 
-        if server_type is None or server_type == 'vanilla' or server_type == 'extended':
+        if self.state.server_type in (GameServerType.UNKNOWN, \
+                                      GameServerType.VANILLA, \
+                                      GameServerType.EXTENDED):
             packets.append(self._request_info_packet(b'gie3'))
-        if server_type is None or server_type == 'legacy_64':
+        if self.state.server_type in (GameServerType.UNKNOWN, \
+                                      GameServerType.LEGACY_64):
             packets.append(self._request_info_packet(b'fstd'))
 
-        # Reset containers for the data to be received.
+        # Reset _state_new.
 
-        self._data_new_vanilla = {}
-        self._data_new_legacy_64 = {}
-        self._data_new_legacy_64_clients = {}
-        self._data_new_extended = {}
-        self._data_new_extended_clients = {}
+        self._state_new = GameServerState(GameServerType.UNKNOWN)
 
         return packets
 
@@ -92,32 +188,17 @@ class GameServer(Server):
         # Check that data is complete by comparing the number of clients on the
         # server to the number of clients received.
 
-        if self._data_new_extended and self._data_new_extended['num_clients'] == len(self._data_new_extended_clients):
-            data_new = self._data_new_extended
-            data_new['clients'] = self._data_new_extended_clients
-        elif self._data_new_legacy_64 and self._data_new_legacy_64['num_clients'] == len(self._data_new_legacy_64_clients):
-            data_new = self._data_new_legacy_64
-            data_new['clients'] = self._data_new_legacy_64_clients
-        elif self._data_new_vanilla:
-            data_new = self._data_new_vanilla
-        else:
+        if not self._state_new.is_complete():
             return False
 
-        # Delete received data because only self.data will be used now.
+        # Rank players before overing server state.
 
-        del self._data_new_vanilla
-        del self._data_new_legacy_64
-        del self._data_new_legacy_64_clients
-        del self._data_new_extended
-        del self._data_new_extended_clients
-
-        # Rank players before erasing server data.
-
-        rank(self.data, data_new)
+        rank(self.state, self._state_new)
 
         # Now that the server is fully updated, save its state.
 
-        self.data = data_new
+        self.state = self._state_new
+        self._state_new = None
         self.save()
 
         return True
@@ -143,24 +224,30 @@ class GameServer(Server):
         if token != self._request_token:
             raise PacketException('Wrong request token.')
 
-        elif packet_type == b'inf3':
-            self._process_packet_vanilla(packet)
+        if packet_type == b'inf3':
+            state = self._process_packet_vanilla(packet)
         elif packet_type == b'dtsf':
-            self._process_packet_legacy_64(packet)
+            state = self._process_packet_legacy_64(packet)
         elif packet_type == b'iext':
-            self._process_packet_extended(packet)
+            state = self._process_packet_extended(packet)
         elif packet_type == b'iex+':
-            self._process_packet_extended_more(packet)
+            state = self._process_packet_extended_more(packet)
 
         else:
             raise PacketException('Packet type not supported.')
 
+        self._state_new.merge(state)
 
-    def _process_packet_vanilla(self, packet: Packet):
-        """Parse the default response of the vanilla client."""
 
-        data = {
-            'server_type': 'vanilla',
+    @staticmethod
+    def _process_packet_vanilla(packet: Packet) -> GameServerState:
+        """
+        Parse the default response of the vanilla client.
+        """
+
+        state = GameServerState(GameServerType.VANILLA)
+
+        state.info = {
             'version': packet.unpack(),
             'name': packet.unpack(),
             'map_name': packet.unpack(),
@@ -169,27 +256,30 @@ class GameServer(Server):
             'num_players': packet.unpack_int(),
             'max_players': packet.unpack_int(),
             'num_clients': packet.unpack_int(),
-            'max_clients': packet.unpack_int(),
-            'clients': {}
+            'max_clients': packet.unpack_int()
         }
 
         while packet.unpack_remaining() >= 5:
             name = packet.unpack()
-            data['clients'][name] = {
+            state.clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
             }
 
-        self._data_new_vanilla = data
+        return state
 
 
-    def _process_packet_legacy_64(self, packet: Packet) -> None:
-        """Parse legacy 64 packet."""
+    @staticmethod
+    def _process_packet_legacy_64(packet: Packet) -> GameServerState:
+        """
+        Parse legacy 64 packet.
+        """
 
-        data = {
-            'server_type': 'legacy_64',
+        state = GameServerState(GameServerType.LEGACY_64)
+
+        state.info = {
             'version': packet.unpack(),
             'name': packet.unpack(),
             'map_name': packet.unpack(),
@@ -206,26 +296,27 @@ class GameServer(Server):
 
         packet.unpack_bytes(1) # Offset
 
-        clients = {}
-
         while packet.unpack_remaining() >= 5:
             name = packet.unpack()
-            clients[name] = {
+            state.clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
             }
 
-        self._data_new_legacy_64_clients |= clients
-        self._data_new_legacy_64 = data
+        return state
 
 
-    def _process_packet_extended(self, packet: Packet) -> None:
-        """Parse the extended server info packet."""
+    @staticmethod
+    def _process_packet_extended(packet: Packet) -> GameServerState:
+        """
+        Parse the extended server info packet.
+        """
 
-        data = {
-            'server_type': 'extended',
+        state = GameServerState(GameServerType.EXTENDED)
+
+        state.info = {
             'version': packet.unpack(),
             'name': packet.unpack(),
             'map_name': packet.unpack(),
@@ -241,11 +332,9 @@ class GameServer(Server):
 
         packet.unpack() # Reserved
 
-        clients = {}
-
         while packet.unpack_remaining() >= 6:
             name = packet.unpack()
-            clients[name] = {
+            state.clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
@@ -253,21 +342,23 @@ class GameServer(Server):
             }
             packet.unpack() # Reserved
 
-        self._data_new_extended_clients |= clients
-        self._data_new_extended = data
+        return state
 
 
-    def _process_packet_extended_more(self, packet: Packet) -> None:
-        """Parse the extended server info packet."""
+    @staticmethod
+    def _process_packet_extended_more(packet: Packet) -> GameServerState:
+        """
+        Parse the extended server info packet.
+        """
+
+        state = GameServerState(GameServerType.EXTENDED)
 
         packet.unpack_int() # Packet number
         packet.unpack() # Reserved
 
-        clients = {}
-
         while packet.unpack_remaining() >= 6:
             name = packet.unpack()
-            clients[name] = {
+            state.clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
@@ -275,11 +366,13 @@ class GameServer(Server):
             }
             packet.unpack() # Reserved
 
-        self._data_new_extended_clients |= clients
+        return state
 
 
 def load_game_servers() -> list[GameServer]:
-    """Load all game servers stored in the database."""
+    """
+    Load all game servers stored in the database.
+    """
 
     # addresses = redis.smembers('game-servers')
     addresses = []

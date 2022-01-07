@@ -23,4 +23,4 @@ COPY backend-test/requirements.txt backend-test/requirements.txt
 RUN pip install --no-cache-dir -r backend-test/requirements.txt
 COPY backend-test backend-test
 
-CMD [ "pytest", "--cov", "--cov-report", "term-missing", "--pylint" ]
+CMD [ "pytest", "--cov", "--cov-report", "term-missing", "--pylint", "--pylint-rcfile=backend-test/pylint.rc" ]

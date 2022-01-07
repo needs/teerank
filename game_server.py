@@ -3,6 +3,7 @@ import secrets
 
 from server import Server
 from packet import Packet, PacketException
+from rank import rank
 
 class GameServer(Server):
     def __init__(self, ip: str, port: int):
@@ -72,9 +73,9 @@ class GameServer(Server):
 
         self._data_new_vanilla = {}
         self._data_new_legacy_64 = {}
-        self._data_new_legacy_64_clients = []
+        self._data_new_legacy_64_clients = {}
         self._data_new_extended = {}
-        self._data_new_extended_clients = []
+        self._data_new_extended_clients = {}
 
         return packets
 
@@ -102,8 +103,6 @@ class GameServer(Server):
         else:
             return False
 
-        self.data = data_new
-
         # Delete received data because only self.data will be used now.
 
         del self._data_new_vanilla
@@ -112,9 +111,13 @@ class GameServer(Server):
         del self._data_new_extended
         del self._data_new_extended_clients
 
+        # Rank players before erasing server data.
+
+        rank(self.data, data_new)
+
         # Now that the server is fully updated, save its state.
 
-        logging.info(f'Updated server {self.address}: {self.data["game_type"]} ({self.data["num_clients"]}/{self.data["max_clients"]})')
+        self.data = data_new
         self.save()
 
         return True
@@ -167,17 +170,17 @@ class GameServer(Server):
             'max_players': packet.unpack_int(),
             'num_clients': packet.unpack_int(),
             'max_clients': packet.unpack_int(),
-            'clients': []
+            'clients': {}
         }
 
         while packet.unpack_remaining() >= 5:
-            data['clients'].append({
-                'name': packet.unpack(),
+            name = packet.unpack()
+            data['clients'][name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
-            })
+            }
 
         self._data_new_vanilla = data
 
@@ -203,18 +206,18 @@ class GameServer(Server):
 
         packet.unpack_bytes(1) # Offset
 
-        clients = []
+        clients = {}
 
         while packet.unpack_remaining() >= 5:
-            clients.append({
-                'name': packet.unpack(),
+            name = packet.unpack()
+            clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
-            })
+            }
 
-        self._data_new_legacy_64_clients += clients
+        self._data_new_legacy_64_clients |= clients
         self._data_new_legacy_64 = data
 
 
@@ -238,19 +241,19 @@ class GameServer(Server):
 
         packet.unpack() # Reserved
 
-        clients = []
+        clients = {}
 
         while packet.unpack_remaining() >= 6:
-            clients.append({
-                'name': packet.unpack(),
+            name = packet.unpack()
+            clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
-            })
+            }
             packet.unpack() # Reserved
 
-        self._data_new_extended_clients += clients
+        self._data_new_extended_clients |= clients
         self._data_new_extended = data
 
 
@@ -260,19 +263,19 @@ class GameServer(Server):
         packet.unpack_int() # Packet number
         packet.unpack() # Reserved
 
-        clients = []
+        clients = {}
 
         while packet.unpack_remaining() >= 6:
-            clients.append({
-                'name': packet.unpack(),
+            name = packet.unpack()
+            clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
-            })
+            }
             packet.unpack() # Reserved
 
-        self._data_new_extended_clients += clients
+        self._data_new_extended_clients |= clients
 
 
 def load_game_servers() -> list[GameServer]:

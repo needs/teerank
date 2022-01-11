@@ -21,7 +21,7 @@ def _elo_delta(score1: int, elo1: int, score2: int, elo2: int) -> int:
     else:
         result = 1.0
 
-    delta = max(400.0, min(-400.0, elo1 - elo2))
+    delta = min(400.0, max(-400.0, elo1 - elo2))
     expected = 1.0 / (1.0 + pow(10.0, -delta / 400.0))
 
     return k_factor * (result - expected)

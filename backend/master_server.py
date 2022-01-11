@@ -2,16 +2,14 @@
 Implement MasterServer.
 """
 
-import logging
-
 import socket
 import json
 
-from database import redis, key_from_address, key_to_address
-from server import Server
-from packet import Packet
-from server_pool import server_pool
-from game_server import GameServer
+from backend.database import redis, key_from_address, key_to_address
+from backend.server import Server
+from backend.packet import Packet
+from backend.server_pool import server_pool
+from backend.game_server import GameServer
 
 class MasterServer(Server):
     """

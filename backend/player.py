@@ -4,7 +4,7 @@ Implement Player and PlayerELO classes.
 
 import json
 
-from database import redis
+from backend.database import redis
 
 class Player:
     """

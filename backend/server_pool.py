@@ -12,8 +12,8 @@ import time
 import random
 import os
 
-from server import Server
-from packet import Packet, PacketException
+from backend.server import Server
+from backend.packet import Packet, PacketException
 
 class ServerPool:
     """A list of servers to poll for data."""

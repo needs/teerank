@@ -2,18 +2,17 @@
 Launch backend server.
 """
 
+from time import sleep
 import logging
 
-logging.basicConfig()
-logging.getLogger().setLevel(logging.INFO)
-
-from time import sleep
-
-from server_pool import server_pool
-from master_server import load_master_servers
-from game_server import load_game_servers
+from backend.server_pool import server_pool
+from backend.master_server import load_master_servers
+from backend.game_server import load_game_servers
 
 if __name__ == '__main__':
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
+
     for master_server in load_master_servers():
         server_pool.add(master_server)
 

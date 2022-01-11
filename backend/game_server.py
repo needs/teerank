@@ -6,10 +6,10 @@ import secrets
 import json
 from enum import IntEnum
 
-from database import redis, key_to_address, key_from_string
-from server import Server
-from packet import Packet, PacketException
-from rank import rank
+from backend.database import redis, key_to_address, key_from_string
+from backend.server import Server
+from backend.packet import Packet, PacketException
+from backend.rank import rank
 
 class GameServerType(IntEnum):
     """

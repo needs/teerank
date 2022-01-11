@@ -4,7 +4,6 @@ Connect to the databases used by teerank, and also implement some helpers.
 
 import os
 from base64 import b64encode, b64decode
-
 from redis import Redis as redis_connect
 
 #

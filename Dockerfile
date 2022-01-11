@@ -11,6 +11,8 @@ COPY backend/requirements.txt backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend backend
 
+EXPOSE 8311/udp
+
 CMD [ "python", "backend/main.py" ]
 
 #

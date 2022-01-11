@@ -3,13 +3,14 @@ Implement ServerPool class.
 """
 
 from dataclasses import dataclass, field
-from socket import socket as Socket
+from socket import socket as Socket, gethostname
 from socket import AF_INET, SOCK_DGRAM
 import heapq
 import logging
 import select
 import time
 import random
+import os
 
 from server import Server
 from packet import Packet, PacketException
@@ -46,6 +47,15 @@ class ServerPool:
         self._servers = {}
         self._batch = {}
         self._socket = Socket(family=AF_INET, type=SOCK_DGRAM)
+
+        # Bind socket to a specific port to be able to tell docker which port to
+        # expose in order to receive packets.
+
+        host = gethostname()
+        port = int(os.getenv('TEERANK_BACKEND_PORT', '8311'))
+
+        self._socket.bind((host, port))
+        logging.info('Socket bound to %s:%d', host, port)
 
 
     def __contains__(self, address: tuple[str, int]) -> bool:

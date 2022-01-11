@@ -12,8 +12,7 @@ class Server:
 
     ip: str
     port: int
-    address: tuple(str, int) = field(init=False)
+    address: tuple[str, int] = field(init=False)
 
     def __post_init__(self):
         self.address = (self.ip, self.port)
-        self.key = f'{self.ip}:{self.port}'

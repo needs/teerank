@@ -6,6 +6,7 @@ import secrets
 import json
 from enum import IntEnum
 
+from database import redis, key_to_address, key_from_string
 from server import Server
 from packet import Packet, PacketException
 from rank import rank
@@ -64,23 +65,27 @@ class GameServerState:
 
 
     @staticmethod
-    def to_json(state: 'GameServerState') -> str:
+    def to_bytes(state: 'GameServerState') -> bytes:
         """
-        Convert the givne server state into JSON.
+        Convert the given server state into JSON and then into bytes.
         """
 
         data = state.info
         data['server_type'] = state.server_type
         data['clients'] = state.clients
-        return json.dumps(state)
+
+        return json.dumps(data).encode()
 
     @staticmethod
-    def from_json(data: str) -> 'GameServerState':
+    def from_bytes(data: bytes) -> 'GameServerState':
         """
-        Create a new server state from its JSON.
+        Create a new server state from its byte data decoded as JSON.
         """
 
-        data = json.loads(data)
+        if not data:
+            return GameServerState(GameServerType.UNKNOWN)
+
+        data = json.loads(data.decode())
 
         state = GameServerState(data.pop('server_type'))
         state.clients = data.pop('clients')
@@ -94,31 +99,29 @@ class GameServer(Server):
     Teeworld game server.
     """
 
-    def __init__(self, ip: str, port: int):
+    def __init__(self, key: str):
         """
-        Initialize game server with the given IP and port.
+        Initialize game server with the given key.
         """
 
-        super().__init__(ip, port)
-        self.redis_key = f'game-servers:{self.key}'
-        self.state = GameServerState(GameServerType.UNKNOWN)
+        # GameServer host is already an IP.
+
+        super().__init__(*key_to_address(key))
+
+        self.key = key
+        self.state = GameServerState.from_bytes(redis.get(f'game-servers:{key}'))
+
         self._state_new = None
         self._request_token = None
-
-
-    def load(self) -> None:
-        """
-        Load game server data.
-        """
-        # self.state = GameServerState.from_json(redis.get(self.redis_key))
-        self.state = GameServerState(GameServerType.UNKNOWN)
 
 
     def save(self) -> None:
         """
         Save game server data.
         """
-        # redis.set(self.redis_key, GameServerState.to_json(self.state))
+
+        redis.sadd('game-servers', self.key)
+        redis.set(f'game-servers:{self.key}', GameServerState.to_bytes(self.state))
 
 
     def _request_info_packet(self, request: bytes):
@@ -260,8 +263,8 @@ class GameServer(Server):
         }
 
         while packet.unpack_remaining() >= 5:
-            name = packet.unpack()
-            state.clients[name] = {
+            key = key_from_string(packet.unpack())
+            state.clients[key] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
@@ -297,8 +300,8 @@ class GameServer(Server):
         packet.unpack_bytes(1) # Offset
 
         while packet.unpack_remaining() >= 5:
-            name = packet.unpack()
-            state.clients[name] = {
+            key = key_from_string(packet.unpack())
+            state.clients[key] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
@@ -333,8 +336,8 @@ class GameServer(Server):
         packet.unpack() # Reserved
 
         while packet.unpack_remaining() >= 6:
-            name = packet.unpack()
-            state.clients[name] = {
+            key = key_from_string(packet.unpack())
+            state.clients[key] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
@@ -357,8 +360,8 @@ class GameServer(Server):
         packet.unpack() # Reserved
 
         while packet.unpack_remaining() >= 6:
-            name = packet.unpack()
-            state.clients[name] = {
+            key = key_from_string(packet.unpack())
+            state.clients[key] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
@@ -374,13 +377,5 @@ def load_game_servers() -> list[GameServer]:
     Load all game servers stored in the database.
     """
 
-    # addresses = redis.smembers('game-servers')
-    addresses = []
-    game_servers = []
-
-    for address in addresses:
-        game_server = GameServer(address)
-        game_server.load()
-        game_servers.append(game_server)
-
-    return game_servers
+    keys = redis.smembers('game-servers')
+    return [GameServer(key.decode()) for key in keys]

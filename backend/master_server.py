@@ -2,8 +2,12 @@
 Implement MasterServer.
 """
 
-import socket
+import logging
 
+import socket
+import json
+
+from database import redis, key_from_address, key_to_address
 from server import Server
 from packet import Packet
 from server_pool import server_pool
@@ -14,33 +18,35 @@ class MasterServer(Server):
     Teeworld master server.
     """
 
-    def __init__(self, hostname: str):
+    def __init__(self, key: str):
         """
-        Initialize master server with the given hostname.
-
-        :param hostname: The hostname
-        :type hostname: str
+        Initialize master server with the given key.
         """
-        self.hostname = hostname
-        super().__init__(socket.gethostbyname(hostname), 8300)
 
-        self.data = None
+        self.key = key
+
+        data = redis.get(f'master-servers:{key}')
+
+        if data:
+            self.data = json.loads(data.decode())
+        else:
+            self.data = None
+
+        # Master servers host needs to be resolved to an IP.
+        host, port = key_to_address(key)
+        ip = socket.gethostbyname(host)
+
+        super().__init__(ip, port)
+
         self._packet_count = None
-
-
-    def load(self) -> None:
-        """
-        Load master server.
-        """
-        # self.data = json.loads(redis.get(self.redis_key))
-        self.data = {}
 
 
     def save(self) -> None:
         """
         Save master server.
         """
-        # redis.set(self.redis_key, json.dumps(self.data))
+        redis.sadd('master-servers', self.key)
+        redis.set(f'master-servers:{self.key}', json.dumps(self.data))
 
 
     def start_polling(self) -> list[Packet]:
@@ -49,6 +55,7 @@ class MasterServer(Server):
         """
 
         self._packet_count = 0
+
         # 10 bytes of padding and the 'req2' packet type.
         return [Packet(b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffreq2')]
 
@@ -89,7 +96,7 @@ class MasterServer(Server):
 
                 if not (ip == self.ip and port == self.port):
                     if (ip, port) not in server_pool:
-                        server_pool.add(GameServer(ip, port))
+                        server_pool.add(GameServer(key_from_address(ip, port)))
 
             self._packet_count += 1
 
@@ -99,25 +106,14 @@ def load_master_servers() -> list[MasterServer]:
     Load all master servers stored in the database.
     """
 
-    # hostnames = redis.smembers('master-servers')
-    hostnames = None
-    hostname = None
+    keys = redis.smembers('master-servers')
 
-    if hostnames is None:
-        hostnames = [
-            'master1.teeworlds.com',
-            'master2.teeworlds.com',
-            'master3.teeworlds.com',
-            'master4.teeworlds.com'
-        ]
+    if not keys:
+        keys = (
+            key_from_address('master1.teeworlds.com', 8300),
+            key_from_address('master2.teeworlds.com', 8300),
+            key_from_address('master3.teeworlds.com', 8300),
+            key_from_address('master4.teeworlds.com', 8300)
+        )
 
-        # redis.sadd('master-servers', *hostnames)
-
-    master_servers = []
-
-    for hostname in hostnames:
-        master_server = MasterServer(hostname)
-        master_server.load()
-        master_servers.append(master_server)
-
-    return master_servers
+    return [MasterServer(key) for key in keys]

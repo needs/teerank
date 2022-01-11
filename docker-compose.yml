@@ -1,0 +1,11 @@
+services:
+  backend:
+    build:
+      target: production
+    depends_on:
+      - database
+    ports:
+      - "8311:8311"
+
+  database:
+    image: redis:6

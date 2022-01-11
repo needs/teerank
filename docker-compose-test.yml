@@ -1,0 +1,13 @@
+services:
+  backend-test:
+    build:
+      target: test
+    depends_on:
+      - database
+    environment:
+      - TEERANK_REDIS_HOST=database-test
+
+  database-test:
+    image: "redis:6"
+    ports:
+      - "6379:6379"

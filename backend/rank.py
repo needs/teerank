@@ -27,7 +27,7 @@ def _elo_delta(score1: int, elo1: int, score2: int, elo2: int) -> int:
     return k_factor * (result - expected)
 
 
-def rank(old: 'GameServerState', new: 'GameServerState') -> None:
+def rank(old: 'GameServerState', new: 'GameServerState') -> bool:
     """
     Rank players given the old and new server state.
     """
@@ -35,21 +35,15 @@ def rank(old: 'GameServerState', new: 'GameServerState') -> None:
     # Both old and new must be valid to be able to compare them.
 
     if not old.is_complete() or not new.is_complete():
-        logging.info('Unable to rank: no old state to compare against.')
-        return
+        return False
 
-    # If game type or map changed, then it makes no sens to rank players.
+    # If game type is not rankable, or game type changed, or map changed, then
+    # it makes no sens to rank players.
 
-    if old.info['game_type'] != new.info['game_type']:
-        logging.info('Unable to rank: Gametype changed.')
-        return
-    if old.info['map_name'] != new.info['map_name']:
-        logging.info('Unable to rank: Map changed.')
-        return
-
-    if new.info['game_type'] not in ('CTF', 'DM', 'TDM'):
-        logging.info('Unable to rank: Game type cannot be ranked.')
-        return
+    if new.info['game_type'] not in ('CTF', 'DM', 'TDM') or \
+        old.info['game_type'] != new.info['game_type'] or \
+        old.info['map_name'] != new.info['map_name']:
+        return False
 
     # Create a list of all players that are ingame in both old and new state.
 
@@ -58,8 +52,7 @@ def rank(old: 'GameServerState', new: 'GameServerState') -> None:
     keys = list(old_keys.intersection(new_keys))
 
     if len(keys) <= 1:
-        logging.info('Unable to rank: At least two players required.')
-        return
+        return False
 
     # Player score is the difference between its old score and new score.
     #
@@ -70,8 +63,7 @@ def rank(old: 'GameServerState', new: 'GameServerState') -> None:
     scores = [ new.clients[key]['score'] - old.clients[key]['score'] for key in keys ]
 
     if sum(scores) <= 0:
-        logging.info('Unable to rank: Scores regressed.')
-        return
+        return False
 
     # Now that all sanity checks have been done, compute players new ELO.
     #
@@ -99,3 +91,5 @@ def rank(old: 'GameServerState', new: 'GameServerState') -> None:
                 'Gametype: %s: map %s: player %s: new_elo: %d -> %d',
                 game_type, map_name, key, elos[i], new_elo
             )
+
+    return True

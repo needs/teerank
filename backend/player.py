@@ -16,7 +16,13 @@ class Player:
         Load player with the given key.
         """
         self.key = key
-        self.data = json.loads(redis.get(f'players:{key}'))
+
+        data = redis.get(f'players:{key}')
+
+        if data:
+            self.data = json.loads(data)
+        else:
+            self.data = None
 
 
     def save(self) -> None:

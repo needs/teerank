@@ -3,20 +3,10 @@ Test rank.py.
 """
 
 import pytest
-import pytest_redis
 
 from backend.game_server import GameServerState, GameServerType
 from backend.rank import rank
 from backend.player import Player
-
-redis_instance = pytest_redis.factories.redis_noproc(
-    host='database-test'
-)
-
-_redis = pytest_redis.factories.redisdb(
-    'redis_instance'
-)
-
 
 @pytest.fixture(name='old')
 def fixture_old(_redis):
@@ -74,23 +64,53 @@ def fixture_new(_redis):
     return new
 
 
-def test_rank(old, new):
+def test_rank_player1_win(old, new):
     """
-    Test rank with a valid game state.
+    Test rank() when player1 wins.
     """
-
-    Player.set_elo('player1', None, None, 1500)
-    Player.set_elo('player2', None, None, 1500)
 
     new.clients['player1']['score'] += 1
 
     assert rank(old, new)
 
-    elo1 = Player.get_elo('player1', None, None)
-    elo2 = Player.get_elo('player2', None, None)
+    assert Player.get_elo('player1', None, None) == 1512.5
+    assert Player.get_elo('player2', None, None) == 1487.5
 
-    assert elo1 - 1500 == 12.5
-    assert elo2 - 1500 == -12.5
+
+def test_rank_draw(old, new):
+    """
+    Test rank() when both players have the same score delta.
+    """
+
+    new.clients['player1']['score'] += 1
+    new.clients['player2']['score'] += 1
+
+    assert rank(old, new)
+
+    assert Player.get_elo('player1', None, None) == 1500
+    assert Player.get_elo('player2', None, None) == 1500
+
+
+def test_rank_player2_win(old, new):
+    """
+    Test rank() when player2 wins.
+    """
+
+    new.clients['player2']['score'] += 1
+
+    assert rank(old, new)
+
+    assert Player.get_elo('player1', None, None) == 1487.5
+    assert Player.get_elo('player2', None, None) == 1512.5
+
+
+def test_rank_no_old(new):
+    """
+    Make sure rank() fails when there is no old state to compare against.
+    """
+
+    old = GameServerState(GameServerType.UNKNOWN)
+    assert not rank(old, new)
 
 
 def test_rank_gametype_not_supported(old, new):

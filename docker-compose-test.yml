@@ -1,4 +1,9 @@
 services:
+  database-test:
+    image: "redis:6"
+    ports:
+      - "6379:6379"
+
   test:
     build:
       dockerfile: test/Dockerfile
@@ -7,7 +12,37 @@ services:
     environment:
       - TEERANK_REDIS_HOST=database-test
 
-  database-test:
+  database:
     image: "redis:6"
     ports:
       - "6379:6379"
+    depends_on:
+      test:
+        condition: service_completed_successfully
+
+  # Change the frontend container so that it update itself on the fly when a
+  # file on the host changes.  This is done using the flask development server
+  # with the help of some bind mount pointing to the source files on the host.
+
+  frontend:
+    build:
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - database
+    environment:
+      - FLASK_APP=frontend.main:app
+      - FLASK_ENV=development
+    volumes:
+      - ./frontend:/usr/src/app/frontend:ro
+      - ./shared:/usr/src/app/shared:ro
+    ports:
+      - "80:5000"
+    command: flask run --host=0.0.0.0
+
+  backend:
+    build:
+      dockerfile: backend/Dockerfile
+    depends_on:
+      - database
+    ports:
+      - "8311:8311/udp"

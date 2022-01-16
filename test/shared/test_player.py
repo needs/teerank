@@ -2,7 +2,7 @@
 Test player.py
 """
 
-from backend.player import Player
+from shared.player import Player
 
 
 def test_player(_redis):

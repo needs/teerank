@@ -4,9 +4,10 @@ Test rank.py.
 
 import pytest
 
-from backend.game_server import GameServerState, GameServerType
+from shared.game_server import GameServerState, GameServerType
+from shared.player import Player
+
 from backend.rank import rank
-from backend.player import Player
 
 @pytest.fixture(name='old')
 def fixture_old(_redis):

@@ -1,5 +1,5 @@
 """
-Common fixtures for backend tests.
+Common fixtures for tests.
 """
 
 import pytest_redis

@@ -12,7 +12,8 @@ import time
 import random
 import os
 
-from backend.server import Server
+from shared.server import Server
+
 from backend.packet import Packet, PacketException
 
 class ServerPool:

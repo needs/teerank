@@ -1,9 +1,9 @@
 services:
-  backend-test:
+  test:
     build:
-      target: test
+      dockerfile: test/Dockerfile
     depends_on:
-      - database
+      - database-test
     environment:
       - TEERANK_REDIS_HOST=database-test
 

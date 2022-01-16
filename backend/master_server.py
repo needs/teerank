@@ -3,15 +3,16 @@ Implement MasterServer.
 """
 
 import socket
-import json
 
-from backend.database import redis, key_from_address, key_to_address
-from backend.server import Server
+from shared.database import key_from_address
+from shared.master_server import MasterServer as DatabaseMasterServer
+
 from backend.packet import Packet
 from backend.server_pool import server_pool
 from backend.game_server import GameServer
 
-class MasterServer(Server):
+
+class MasterServer(DatabaseMasterServer):
     """
     Teeworld master server.
     """
@@ -21,30 +22,8 @@ class MasterServer(Server):
         Initialize master server with the given key.
         """
 
-        self.key = key
-
-        data = redis.get(f'master-servers:{key}')
-
-        if data:
-            self.data = json.loads(data.decode())
-        else:
-            self.data = None
-
-        # Master servers host needs to be resolved to an IP.
-        host, port = key_to_address(key)
-        ip = socket.gethostbyname(host)
-
-        super().__init__(ip, port)
-
+        super().__init__(key)
         self._packet_count = None
-
-
-    def save(self) -> None:
-        """
-        Save master server.
-        """
-        redis.sadd('master-servers', self.key)
-        redis.set(f'master-servers:{self.key}', json.dumps(self.data))
 
 
     def start_polling(self) -> list[Packet]:
@@ -97,21 +76,3 @@ class MasterServer(Server):
                         server_pool.add(GameServer(key_from_address(ip, port)))
 
             self._packet_count += 1
-
-
-def load_master_servers() -> list[MasterServer]:
-    """
-    Load all master servers stored in the database.
-    """
-
-    keys = redis.smembers('master-servers')
-
-    if not keys:
-        keys = (
-            key_from_address('master1.teeworlds.com', 8300),
-            key_from_address('master2.teeworlds.com', 8300),
-            key_from_address('master3.teeworlds.com', 8300),
-            key_from_address('master4.teeworlds.com', 8300)
-        )
-
-    return [MasterServer(key) for key in keys]

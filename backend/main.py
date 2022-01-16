@@ -5,19 +5,22 @@ Launch backend server.
 from time import sleep
 import logging
 
+from shared.master_server import MasterServer as DatabaseMasterServer
+from shared.game_server import GameServer as DatabaseGameServer
+
 from backend.server_pool import server_pool
-from backend.master_server import load_master_servers
-from backend.game_server import load_game_servers
+from backend.master_server import MasterServer
+from backend.game_server import GameServer
 
 if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
 
-    for master_server in load_master_servers():
-        server_pool.add(master_server)
+    for key in DatabaseMasterServer.keys():
+        server_pool.add(MasterServer(key))
 
-    for game_server in load_game_servers():
-        server_pool.add(game_server)
+    for key in DatabaseGameServer.keys():
+        server_pool.add(GameServer(key))
 
     while True:
         sleep(1)

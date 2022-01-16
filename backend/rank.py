@@ -5,7 +5,7 @@ Implement rank() function.
 import logging
 from itertools import combinations, product
 
-from backend.player import Player
+from shared.player import Player
 
 def _elo_delta(score1: int, elo1: int, score2: int, elo2: int) -> int:
     """

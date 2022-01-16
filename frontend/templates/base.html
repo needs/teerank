@@ -1,0 +1,98 @@
+<!doctype html>
+	<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="description" content="Teerank is a simple and fast ranking system for teeworlds.">
+		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+		<title>{{ game_type }} - Teerank</title>
+	</head>
+	<body>
+		<header>
+			<a id="logo" href="/">
+				<img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
+			</a>
+			<section>
+				<form action="/players/search" id="searchform">
+					<input name="q" type="text" placeholder="Search">
+					<input type="submit" value="">
+				</form>
+			</section>
+		</header>
+
+		<main>
+			<nav id="toptabs">
+				<a class="active">{{ game_type }}</a>
+				<a href="/about">About</a>
+			</nav>
+
+			<section>
+				<nav class="section_tabs">
+					<a class="enabled">Players<small>590000</small></a>
+					<a href="/clans">Clans<small>61000</small></a>
+					<a href="/servers">Servers<small>14</small></a>
+				</nav>
+
+				<table class="playerlist">
+					<thead>
+						<tr>
+							<th></th>
+							<th>Name</th>
+							<th>Clan</th>
+							<th>Elo<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
+							<th>
+								<a href="/players/by-lastseen?p=1">
+									Last seen<img src="{{ url_for('static', filename='images/dash.png') }}">
+								</a>
+							</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						{% for player in players %}
+						<tr>
+							<td>{{ player['rank'] }}</td>
+							<td><a href="/player/2m56nv7skj3ku9w">{{ player['name'] }}</a></td>
+							<td><a href="/clan/kstvidbtaa">kstvidbtaa</a></td>
+							<td>{{ player['elo'] }}</td>
+							<td><span class="years" title="19/08/2018 22h21">1 year</span></td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+
+				<nav class="pages">
+					<a class="previous">Previous</a>
+					<a class="current">1</a>
+					<a href="/players?p=2">2</a>
+					<a href="/players?p=3">3</a>
+					<a href="/players?p=4">4</a>
+					<span>...</span>
+					<a href="/players?p=5942">5942</a>
+					<a class="next" href="/players?p=2">Next</a>
+				</nav>
+			</section>
+			<nav id="bottabs">
+				<a href="/players/by-rank.json?p=1">JSON</a>
+				<a href="/about-json-api#player-list">JSON Doc</a>
+				<a class="active">HTML</a>
+			</nav>
+		</main>
+
+		<footer id="footer">
+			<ul>
+				<li>
+					<a href="https://web.archive.org/web/20190825115337/https://github.com/needs/teerank/commit/d42209b10598732e990f73d8bf3ac68041b87350">Teerank 4.0</a>
+				 	<a href="https://web.archive.org/web/20190825115337/https://github.com/needs/teerank/tree/HEAD">(stable)</a>
+				</li>
+				<li>
+					<a href="/status">Status</a>
+				</li>
+				<li>
+					<a href="/about">About</a>
+				</li>
+			</ul>
+		</footer>
+	</body>
+
+	</html>
+

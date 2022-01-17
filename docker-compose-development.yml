@@ -1,34 +1,38 @@
 services:
+  # Hide redis database logs because they don't provides useful development
+  # information.
+
   database:
     image: "redis:6"
-    ports:
-      - "6379:6379"
     logging:
       driver: none
 
-  # Change the frontend container so that it update itself on the fly when a
-  # file on the host changes.  This is done using the flask development server
-  # with the help of some bind mount pointing to the source files on the host.
+  # Bind host source files to the container so that it can be restarted when
+  # they change.
 
   frontend:
     build:
       dockerfile: frontend/Dockerfile
+      target: development
     depends_on:
       - database
-    environment:
-      - FLASK_APP=frontend.main:app
-      - FLASK_ENV=development
     volumes:
       - ./frontend:/usr/src/app/frontend:ro
       - ./shared:/usr/src/app/shared:ro
     ports:
       - "80:5000"
-    command: flask run --host=0.0.0.0
+
+  # Bind host source files to the container so that it can be restarted when
+  # they change.
 
   backend:
     build:
       dockerfile: backend/Dockerfile
+      target: development
     depends_on:
       - database
+    volumes:
+      - ./backend:/usr/src/app/backend:ro
+      - ./shared:/usr/src/app/shared:ro
     ports:
       - "8311:8311/udp"

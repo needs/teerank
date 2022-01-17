@@ -1,15 +1,14 @@
 services:
-  # Hide logs from the database because they are not useful and only add noises.
+  # Hide redis database logs because they don't provides useful development
+  # information.
 
   database-test:
     image: "redis:6"
-    ports:
-      - "6379:6379"
     logging:
       driver: none
 
   # The test container uses pytest-watch to run tests as soon as a file changes.
-  # Bind host folders to the container so tha tpytest-watch can work properly.
+  # Bind host folders to the container so that pytest-watch can work properly.
 
   test:
     build:

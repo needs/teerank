@@ -2,12 +2,14 @@ services:
   frontend:
     build:
       dockerfile: frontend/Dockerfile
+      target: production
     ports:
       - "80:8080"
 
   backend:
     build:
       dockerfile: backend/Dockerfile
+      target: production
     depends_on:
       - database
     ports:

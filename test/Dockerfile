@@ -23,4 +23,4 @@ COPY backend backend
 COPY frontend frontend
 COPY test test
 
-CMD [ "pytest", "--cov", "--cov-report", "term-missing", "--pylint", "--pylint-rcfile=test/pylint.rc" ]
+CMD [ "ptw", "--poll", "--runner", "pytest --cov --cov-report term-missing --pylint --pylint-rcfile=test/pylint.rc" ]

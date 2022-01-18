@@ -439,8 +439,8 @@ tr.spectator td img {
 .gametypelist th, .gametypelist td {
 	text-align: center;
 }
-.gametypelist th:nth-child(1),
-.gametypelist td:nth-child(1) {
+.gametypelist th:nth-child(2),
+.gametypelist td:nth-child(2) {
 	text-align: left;
 	width: 100%;
 }

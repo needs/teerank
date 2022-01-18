@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}
+All gametypes
+{% endblock %}
+
+{% block content %}
+	<table class="gametypelist">
+		<thead>
+			<tr>
+				<th></th>
+				<th>Gametype</th>
+				<th>Players</th>
+				<th>Clans</th>
+				<th>Servers</th>
+				<th>Maps</th>
+			</tr>
+		</thead>
+
+		<tbody>
+			{% for game_type in game_types %}
+			<tr>
+				<td>{{ game_type['rank'] }}</td>
+				<td><a href="{{ url_for('players', gametype=game_type['name']) }}">{{ game_type['name'] }}</a></td>
+				<td><a href="{{ url_for('players', gametype=game_type['name']) }}">{{ game_type['players'] }}</a></td>
+				<td><a href="{{ url_for('clans', gametype=game_type['name']) }}">{{ game_type['clans'] }}</a></td>
+				<td><a href="{{ url_for('servers', gametype=game_type['name']) }}">{{ game_type['servers'] }}</a></td>
+				<td><a href="{{ url_for('maps', gametype=game_type['name']) }}">{{ game_type['maps'] }}</a></td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% endblock %}

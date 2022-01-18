@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<meta name="description" content="Teerank is a simple and fast ranking system for teeworlds.">
 		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-		<title>{{ game_type }} - Teerank</title>
+		<title>{% block title %}{% endblock %} - Teerank</title>
 	</head>
 	<body>
 		<header>
@@ -39,9 +39,15 @@
 						{% endif %}
 					{% endfor %}
 
+					{% if game_type is none %}
+					<li class="active">
+						<a>...</a>
+					</li>
+					{% else %}
 					<li>
 						<a href="{{ url_for('gametypes') }}">...</a>
 					</li>
+					{% endif %}
 				</ul>
 
 				<ul>
@@ -52,51 +58,9 @@
 			</nav>
 
 			<section>
-				<nav class="section_tabs">
-					<a class="enabled">Players<small>{{ players_count }}</small></a>
-					<a href="/clans">Clans<small>61000</small></a>
-					<a href="/servers">Servers<small>14</small></a>
-				</nav>
-
-				<table class="playerlist">
-					<thead>
-						<tr>
-							<th></th>
-							<th>Name</th>
-							<th>Clan</th>
-							<th>Elo<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
-							<th>
-								<a href="/players/by-lastseen?p=1">
-									Last seen<img src="{{ url_for('static', filename='images/dash.png') }}">
-								</a>
-							</th>
-						</tr>
-					</thead>
-
-					<tbody>
-						{% for player in players %}
-						<tr>
-							<td>{{ player['rank'] }}</td>
-							<td><a href="/player/2m56nv7skj3ku9w">{{ player['name'] }}</a></td>
-							<td><a href="/clan/kstvidbtaa">kstvidbtaa</a></td>
-							<td>{{ player['elo'] }}</td>
-							<td><span class="years" title="19/08/2018 22h21">1 year</span></td>
-						</tr>
-						{% endfor %}
-					</tbody>
-				</table>
-
-				<nav class="pages">
-					<a class="previous">Previous</a>
-					<a class="current">1</a>
-					<a href="/players?p=2">2</a>
-					<a href="/players?p=3">3</a>
-					<a href="/players?p=4">4</a>
-					<span>...</span>
-					<a href="/players?p=5942">5942</a>
-					<a class="next" href="/players?p=2">Next</a>
-				</nav>
+				{% block content %}{% endblock %}
 			</section>
+
 			<nav id="bottabs">
 				<ul>
 					<li>

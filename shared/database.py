@@ -45,4 +45,6 @@ def key_from_string(string: str) -> str:
     """
     Return an unique key from the given string.
     """
+    if string is None:
+        return None
     return b64encode(string.encode()).decode()

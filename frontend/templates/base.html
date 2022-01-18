@@ -21,13 +21,39 @@
 
 		<main>
 			<nav id="toptabs">
-				<a class="active">{{ game_type }}</a>
-				<a href="/about">About</a>
+				<ul>
+					{% for name in main_game_types %}
+						{% if game_type == name %}
+							<li class="active">
+								<a>{{ name }}</a>
+								{% if map_name is none %}
+									<a href="{{ url_for('maps', gametype=name) }}">All maps</a>
+								{% else %}
+									<a href="{{ url_for('maps', gametype=name) }}">{{ map_name }}</a>
+								{% endif %}
+							</li>
+						{% else %}
+							<li>
+								<a href="{{ url_for('players', gametype=name) }}">{{ name }}</a>
+							</li>
+						{% endif %}
+					{% endfor %}
+
+					<li>
+						<a href="{{ url_for('gametypes') }}">...</a>
+					</li>
+				</ul>
+
+				<ul>
+					<li>
+						<a href="/about">About</a>
+					</li>
+				</ul>
 			</nav>
 
 			<section>
 				<nav class="section_tabs">
-					<a class="enabled">Players<small>590000</small></a>
+					<a class="enabled">Players<small>{{ players_count }}</small></a>
 					<a href="/clans">Clans<small>61000</small></a>
 					<a href="/servers">Servers<small>14</small></a>
 				</nav>
@@ -72,9 +98,17 @@
 				</nav>
 			</section>
 			<nav id="bottabs">
-				<a href="/players/by-rank.json?p=1">JSON</a>
-				<a href="/about-json-api#player-list">JSON Doc</a>
-				<a class="active">HTML</a>
+				<ul>
+					<li>
+						<a href="/players/by-rank.json?p=1">JSON</a>
+					</li>
+					<li>
+						<a href="/about-json-api#player-list">JSON Doc</a>
+					</li>
+					<li class="active">
+						<a>HTML</a>
+					</li>
+				</ul>
 			</nav>
 		</main>
 

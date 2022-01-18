@@ -149,39 +149,66 @@ body > main {
 	margin-bottom: -5px;
 }
 
-#toptabs > a, #bottabs > a {
-	color: #666;
-	border: 1px solid #dddddd;
+#toptabs ul, #bottabs ul {
+	display: flex;
+	flex-direction: row;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
 
-	padding: 7px 1em 7px 1em;
+#toptabs > ul:first-child {
+	margin-right: auto;
+}
+#bottabs > ul:first-child {
+	margin-left: auto;
+}
+
+#toptabs li, #bottabs li {
+	display: flex;
+	flex-direction: row;
+	border: 1px solid #dddddd;
 	margin-left: 0.25em;
 	margin-right: 0.25em;
 }
-
-#toptabs > a {
+#toptabs li {
 	background: linear-gradient(#ffffff, #cccccc);
 	border-radius: 5px 5px 0px 0px;
 	border-bottom: 0px;
 }
-#bottabs > a {
+#bottabs li {
 	background: linear-gradient(#cccccc, #ffffff);
 	border-radius: 0px 0px 5px 5px;
 	border-top: 0px;
 }
+#toptabs li.active, #bottabs li.active {
+	background: white;
+}
 
-#toptabs > a:hover, #bottabs > a:hover {
+#toptabs a, #bottabs a {
+	padding: 7px 1em 7px 1em;
+	color: #666;
+}
+#toptabs a:hover, #bottabs a:hover {
 	text-decoration: none;
 }
-
-#toptabs > a:first-child {
-	margin-right: auto;
+#toptabs a + a[href]:hover, #bottabs a + a[href]:hover {
+	text-decoration: underline;
 }
-#bottabs > a:first-child {
-	margin-left: auto;
+#toptabs a + a {
+	border-left: 1px dashed #dddddd;
 }
 
-#toptabs > a.active, #bottabs > a.active {
-	background: white;
+#bottabs a.jsondoc {
+	border-radius: 0px 0px 5px 0px;
+	color: white;
+	text-shadow: 0px 0px 1px #507fb9;
+	font-weight: bold;
+	background: linear-gradient(#a0caff, #d8eaff);
+	border-left: 1px solid #cccccc;
+}
+#bottabs a.jsondoc:hover {
+	text-decoration: none !important;
 }
 
 body > main > section {
@@ -190,6 +217,11 @@ body > main > section {
 	padding: 2em 5em 2em 5em;
 
 	box-shadow: 0px 0px 2px #aaa;
+}
+
+/* Special link class */
+a.allmaps {
+	font-style: italic;
 }
 
 /* Section tabs */
@@ -290,22 +322,39 @@ table a:hover {
 /* Player list */
 
 /* Name and clan */
+.playerlist th:nth-child(2),
 .playerlist td:nth-child(2),
+.playerlist th:nth-child(3),
 .playerlist td:nth-child(3) {
 	width: 50%;
 }
 
-/* Score */
+/* Elo */
 .playerlist td:nth-child(4),
 .playerlist th:nth-child(4) {
 	text-align: right;
+}
+
+.clanplayerlist th:nth-child(1),
+.clanplayerlist td:nth-child(1),
+.clanplayerlist th:nth-child(2),
+.clanplayerlist td:nth-child(2) {
+	width: 50%;
+}
+
+/* Name and clan for search results */
+.search-playerlist th:nth-child(1),
+.search-playerlist td:nth-child(1),
+.search-playerlist th:nth-child(2),
+.search-playerlist td:nth-child(2) {
+	width: 50%;
 }
 
 tr.spectator, tr.spectator a {
 	color: #aaa;
 }
 
-tr.spectator td:nth-child(2) img {
+tr.spectator td img {
 	margin-right: 10px;
 }
 
@@ -337,35 +386,77 @@ tr.spectator td:nth-child(2) img {
 /* Clan list */
 
 /* Name */
-.clanlist td:nth-child(2) {
+.clanlist th:nth-child(1),
+.clanlist td:nth-child(1) {
 	width: 100%;
+}
+
+/* Average elo */
+.clanlist td:nth-child(2),
+.clanlist th:nth-child(2) {
+	text-align: right;
 }
 
 /* Number of members */
 .clanlist td:nth-child(3),
 .clanlist th:nth-child(3) {
-	text-align: right;
+	text-align: center;
+}
+
+/* Activity */
+.clanlist td:nth-child(4),
+.clanlist th:nth-child(4) {
+	text-align: left;
 }
 
 /* Server list */
 
 /* Name */
-.serverlist td:nth-child(2) {
+.serverlist td:nth-child(1),
+.serverlist th:nth-child(1) {
 	max-width: 0;
 	width: 100%;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	text-align: left;
 }
 
 /* Gamtype, map, players */
-.serverlist td:nth-child(3),
-.serverlist th:nth-child(3),
-.serverlist td:nth-child(4),
-.serverlist th:nth-child(4),
-.serverlist td:nth-child(5),
-.serverlist th:nth-child(5) {
+.serverlist th, .serverlist td {
 	text-align: right;
+}
+
+.maplist th, .maplist td {
+	text-align: center;
+}
+.maplist th:nth-child(1),
+.maplist td:nth-child(1) {
+	text-align: left;
+	width: 100%;
+}
+
+.gametypelist th, .gametypelist td {
+	text-align: center;
+}
+.gametypelist th:nth-child(1),
+.gametypelist td:nth-child(1) {
+	text-align: left;
+	width: 100%;
+}
+
+.ranklist th, .ranklist td {
+	text-align: right;
+}
+.ranklist th:nth-child(2),
+.ranklist td:nth-child(2) {
+	text-align: left;
+	width: 100%;
+}
+
+em.no-results {
+	display: block;
+	margin-bottom: 1em;
 }
 
 /* Pages navigation */

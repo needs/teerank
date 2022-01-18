@@ -73,3 +73,11 @@ def players_by_rank(game_type: str, map_name: str, rank: int, count: int) -> lis
     """
 
     return redis.zrange(_key(game_type, map_name), rank, rank + count - 1, withscores=True)
+
+
+def players_count(game_type: str, map_name: str) -> int:
+    """
+    Return the number of players for the given game type and map.
+    """
+
+    return redis.zcard(_key(game_type, map_name))

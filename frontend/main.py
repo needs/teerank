@@ -21,11 +21,13 @@ _GQL_QUERY_PLAYERS = gql(
     query {
         queryPlayer {
             name
+            clan {
+                name
+            }
         }
     }
     """
 )
-
 
 @app.route("/players")
 def players():
@@ -48,11 +50,39 @@ def players():
     )
 
 
+_GQL_QUERY_CLANS = gql(
+    """
+    query {
+        queryClan {
+            name
+
+            playersAggregate {
+                count
+            }
+        }
+    }
+    """
+)
+
 @app.route('/clans')
 def clans():
     """
     List of maps for a given game type.
     """
+
+    game_type = request.args.get('gametype', default='CTF', type = str)
+    map_name = request.args.get('map', default=None, type = str)
+
+    result = graphql.execute(_GQL_QUERY_CLANS)
+
+    return render_template(
+        'clans.html',
+        game_type=game_type,
+        map_name=map_name,
+        clans=result['queryClan'],
+        clans_count=len(result['queryClan']),
+        main_game_types=main_game_types
+    )
 
 
 @app.route('/servers')

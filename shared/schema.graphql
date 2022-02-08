@@ -1,3 +1,9 @@
 type Player {
 	name: String! @id
+	clan: Clan
+}
+
+type Clan {
+	name: String! @id
+	players: [Player] @hasInverse(field: clan)
 }

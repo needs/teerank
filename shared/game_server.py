@@ -105,6 +105,18 @@ _GQL_UPDATE_PLAYERS = gql(
     """
 )
 
+_GQL_UPDATE_CLANS = gql(
+    """
+    mutation ($input: [AddClanInput!]!) {
+        addClan(input: $input, upsert: true) {
+            clan {
+                name
+            }
+        }
+    }
+    """
+)
+
 class GameServer(Server):
     """
     Teeworld game server.
@@ -128,17 +140,31 @@ class GameServer(Server):
         Save game server data.
         """
 
+        # Save clans before saving players so that new clans are already
+        # referenced when updating players.
+
+        if self.state.clients:
+            clans = { client['clan'] for client in self.state.clients.values() if client['clan'] }
+            variables = { 'input': [ { 'name': clan } for clan in clans ] }
+
+            graphql.execute(_GQL_UPDATE_CLANS, variable_values = variables)
+
         # Save players
 
         if self.state.clients:
-            variables = {
-                'input': []
-            }
+            players = []
 
-            for name in self.state.clients.keys():
-                variables['input'].append({
-                    'name': name
+            for name, client in self.state.clients.items():
+                players.append({
+                    'name': name,
+                    'clan': {
+                        'name': client['clan']
+                    } if client['clan'] else None
                 })
+
+            variables = {
+                'input': players
+            }
 
             graphql.execute(_GQL_UPDATE_PLAYERS, variable_values = variables)
 

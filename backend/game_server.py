@@ -97,15 +97,17 @@ class GameServer(DatabaseGameServer):
         if not self._state_new.is_complete():
             return False
 
-        # Rank players before overing server state.
-
-        rank(self.state, self._state_new)
-
         # Now that the server is fully updated, save its state.
 
+        old_state = self.state
         self.state = self._state_new
         self._state_new = None
         self.save()
+
+        # Rank players after saving server so that player already exist in the
+        # database.
+
+        rank(old_state, self.state)
 
         return True
 

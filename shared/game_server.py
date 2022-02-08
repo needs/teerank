@@ -4,8 +4,9 @@ Implement GameServer, GameServerState and GameServerType classes.
 
 import json
 from enum import IntEnum
+from gql import gql
 
-from shared.database import redis, key_to_address
+from shared.database import redis, key_to_address, graphql
 from shared.server import Server
 
 
@@ -92,6 +93,18 @@ class GameServerState:
         return state
 
 
+_GQL_UPDATE_PLAYERS = gql(
+    """
+    mutation ($input: [AddPlayerInput!]!) {
+        addPlayer(input: $input, upsert: true) {
+            player {
+                name
+            }
+        }
+    }
+    """
+)
+
 class GameServer(Server):
     """
     Teeworld game server.
@@ -115,8 +128,19 @@ class GameServer(Server):
         Save game server data.
         """
 
-        redis.sadd('game-servers', self.key)
-        redis.set(f'game-servers:{self.key}', GameServerState.to_bytes(self.state))
+        # Save players
+
+        if self.state.clients:
+            variables = {
+                'input': []
+            }
+
+            for name in self.state.clients.keys():
+                variables['input'].append({
+                    'name': name
+                })
+
+            graphql.execute(_GQL_UPDATE_PLAYERS, variable_values = variables)
 
 
     @staticmethod

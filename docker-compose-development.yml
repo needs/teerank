@@ -1,21 +1,45 @@
 services:
-  # Hide redis database logs because they don't provides useful development
+  # Hide database logs because they don't provides useful development
   # information.
 
-  database:
+  redis:
     image: "redis:6"
     logging:
       driver: none
+
+  dgraph-zero:
+    image: "dgraph/dgraph:latest"
+    logging:
+      driver: none
+    expose:
+      - 5080
+      - 6080
+    restart: on-failure
+    command: dgraph zero --my=dgraph-zero:5080
+
+  dgraph-alpha:
+    image: dgraph/dgraph:latest
+    depends_on:
+      - dgraph-zero
+    logging:
+      driver: none
+    expose:
+      - 8080
+      - 9080
+    restart: on-failure
+    command: dgraph alpha --my=dgraph-alpha:7080 --zero=dgraph-zero:5080 --security "whitelist=172.16.0.0/12"
 
   # Bind host source files to the container so that it can be restarted when
   # they change.
 
   frontend:
     build:
+      context: .
       dockerfile: frontend/Dockerfile
       target: development
     depends_on:
-      - database
+      - redis
+      - dgraph-alpha
     volumes:
       - ./frontend:/usr/src/app/frontend:ro
       - ./shared:/usr/src/app/shared:ro
@@ -27,10 +51,12 @@ services:
 
   backend:
     build:
+      context: .
       dockerfile: backend/Dockerfile
       target: development
     depends_on:
-      - database
+      - redis
+      - dgraph-alpha
     volumes:
       - ./backend:/usr/src/app/backend:ro
       - ./shared:/usr/src/app/shared:ro

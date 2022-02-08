@@ -1,1 +1,3 @@
 redis
+gql[aiohttp]
+requests

@@ -11,9 +11,9 @@ services:
       dockerfile: backend/Dockerfile
       target: production
     depends_on:
-      - database
+      - redis
     ports:
       - "8311:8311/udp"
 
-  database:
+  redis:
     image: redis:6

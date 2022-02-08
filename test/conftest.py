@@ -5,7 +5,7 @@ Common fixtures for tests.
 import pytest_redis
 
 redis_instance = pytest_redis.factories.redis_noproc(
-    host='database-test'
+    host='redis-test'
 )
 
 _redis = pytest_redis.factories.redisdb(

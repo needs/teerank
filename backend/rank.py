@@ -27,28 +27,28 @@ def _elo_delta(score1: int, elo1: int, score2: int, elo2: int) -> int:
     return k_factor * (result - expected)
 
 
-def rank(old: 'GameServerState', new: 'GameServerState') -> bool:
+def rank(old: dict, new: dict) -> bool:
     """
     Rank players given the old and new server state.
     """
 
     # Both old and new must be valid to be able to compare them.
 
-    if not old.is_complete() or not new.is_complete():
+    if not old:
         return False
 
     # If game type is not rankable, or game type changed, or map changed, then
     # it makes no sens to rank players.
 
-    if new.info['game_type'] not in ('CTF', 'DM', 'TDM') or \
-        old.info['game_type'] != new.info['game_type'] or \
-        old.info['map_name'] != new.info['map_name']:
+    if new['game_type'] not in ('CTF', 'DM', 'TDM') or \
+        old['game_type'] != new['game_type'] or \
+        old['map_name'] != new['map_name']:
         return False
 
     # Create a list of all players that are ingame in both old and new state.
 
-    old_keys = { key for key, client in old.clients.items() if client['ingame'] }
-    new_keys = { key for key, client in new.clients.items() if client['ingame'] }
+    old_keys = { key for key, client in old['clients'].items() if client['ingame'] }
+    new_keys = { key for key, client in new['clients'].items() if client['ingame'] }
     keys = list(old_keys.intersection(new_keys))
 
     if len(keys) <= 1:
@@ -60,7 +60,7 @@ def rank(old: 'GameServerState', new: 'GameServerState') -> bool:
     # all players scores in new state, then we don't rank the game because there
     # is a high chance that a new game started.
 
-    scores = [ new.clients[key]['score'] - old.clients[key]['score'] for key in keys ]
+    scores = [ new['clients'][key]['score'] - old['clients'][key]['score'] for key in keys ]
 
     if sum(scores) <= 0:
         return False
@@ -73,7 +73,7 @@ def rank(old: 'GameServerState', new: 'GameServerState') -> bool:
     #
     # We do this for each combination of game type and map name.
 
-    for game_type, map_name in product((new.info['game_type'], None), (new.info['map_name'], None)):
+    for game_type, map_name in product((new['game_type'], None), (new['map_name'], None)):
 
         elos = [ Player.get_elo(key, game_type, map_name) for key in keys ]
         deltas = [0] * len(keys)

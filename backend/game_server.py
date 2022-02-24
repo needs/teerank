@@ -3,8 +3,7 @@ Implement GameServer, GameServerState and GameServerType classes.
 """
 
 import secrets
-
-from shared.game_server import GameServerState, GameServerType
+from enum import IntEnum
 
 from backend.packet import Packet, PacketException
 from backend.rank import rank
@@ -12,6 +11,17 @@ from backend.server import Server
 
 import shared.clan
 import shared.player
+
+
+class GameServerType(IntEnum):
+    """
+    Game server type.  Higher is better.
+    """
+
+    UNKNOWN = -1
+    VANILLA = 0
+    LEGACY_64 = 1
+    EXTENDED = 2
 
 
 class GameServer(Server):
@@ -27,7 +37,7 @@ class GameServer(Server):
         super().__init__(host, port)
 
         self.state = shared.game_server.get(host, port)
-        self._state_new = None
+        self._state_new = {}
         self._request_token = None
 
 
@@ -58,7 +68,9 @@ class GameServer(Server):
 
         # Generate a new request token.
 
-        if self.state.server_type == GameServerType.EXTENDED:
+        server_type = self.state.get('type', GameServerType.UNKNOWN)
+
+        if server_type == GameServerType.EXTENDED:
             self._request_token = secrets.token_bytes(3)
         else:
             self._request_token = secrets.token_bytes(1) + bytes(2)
@@ -71,17 +83,17 @@ class GameServer(Server):
 
         packets = []
 
-        if self.state.server_type in (GameServerType.UNKNOWN, \
-                                      GameServerType.VANILLA, \
-                                      GameServerType.EXTENDED):
+        if server_type in (GameServerType.UNKNOWN, \
+                           GameServerType.VANILLA, \
+                           GameServerType.EXTENDED):
             packets.append(self._request_info_packet(b'gie3'))
-        if self.state.server_type in (GameServerType.UNKNOWN, \
-                                      GameServerType.LEGACY_64):
+        if server_type in (GameServerType.UNKNOWN, \
+                           GameServerType.LEGACY_64):
             packets.append(self._request_info_packet(b'fstd'))
 
         # Reset _state_new.
 
-        self._state_new = GameServerState(GameServerType.UNKNOWN)
+        self._state_new = {}
 
         return packets
 
@@ -91,14 +103,10 @@ class GameServer(Server):
         Check any received data and process them.
         """
 
-        # Try to use extended data first because they are considered to be the
-        # most superior format. Then use legacy 64 data because they provides
-        # more information than the vanilla format.
-        #
         # Check that data is complete by comparing the number of clients on the
         # server to the number of clients received.
 
-        if not self._state_new.is_complete():
+        if self._state_new.get('num_clients', -1) != len(self._state_new.get('clients', {})):
             return False
 
         # Now that the server is fully updated, save its state.
@@ -150,18 +158,20 @@ class GameServer(Server):
         else:
             raise PacketException('Packet type not supported.')
 
-        self._state_new.merge(state)
+        if state["type"] == self._state_new.get("type", GameServerType.UNKNOWN):
+            state['clients'] |= self._state_new.get('clients', {})
+        if state["type"] >= self._state_new.get("type", GameServerType.UNKNOWN):
+            self._state_new |= state
 
 
     @staticmethod
-    def _process_packet_vanilla(packet: Packet) -> GameServerState:
+    def _process_packet_vanilla(packet: Packet) -> dict:
         """
         Parse the default response of the vanilla client.
         """
 
-        state = GameServerState(GameServerType.VANILLA)
-
-        state.info = {
+        state = {
+            'type': GameServerType.VANILLA,
             'version': packet.unpack(),
             'name': packet.unpack(),
             'map_name': packet.unpack(),
@@ -170,12 +180,14 @@ class GameServer(Server):
             'num_players': packet.unpack_int(),
             'max_players': packet.unpack_int(),
             'num_clients': packet.unpack_int(),
-            'max_clients': packet.unpack_int()
+            'max_clients': packet.unpack_int(),
+
+            'clients': {}
         }
 
         while packet.unpack_remaining() >= 5:
             name = packet.unpack()
-            state.clients[name] = {
+            state['clients'][name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
@@ -186,14 +198,13 @@ class GameServer(Server):
 
 
     @staticmethod
-    def _process_packet_legacy_64(packet: Packet) -> GameServerState:
+    def _process_packet_legacy_64(packet: Packet) -> dict:
         """
         Parse legacy 64 packet.
         """
 
-        state = GameServerState(GameServerType.LEGACY_64)
-
-        state.info = {
+        state = {
+            'type': GameServerType.LEGACY_64,
             'version': packet.unpack(),
             'name': packet.unpack(),
             'map_name': packet.unpack(),
@@ -202,7 +213,9 @@ class GameServer(Server):
             'num_players': packet.unpack_int(),
             'max_players': packet.unpack_int(),
             'num_clients': packet.unpack_int(),
-            'max_clients': packet.unpack_int()
+            'max_clients': packet.unpack_int(),
+
+            'clients': {}
         }
 
         # Even though the offset is advertised as an integer, in real condition
@@ -212,7 +225,7 @@ class GameServer(Server):
 
         while packet.unpack_remaining() >= 5:
             name = packet.unpack()
-            state.clients[name] = {
+            state['clients'][name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
@@ -223,14 +236,13 @@ class GameServer(Server):
 
 
     @staticmethod
-    def _process_packet_extended(packet: Packet) -> GameServerState:
+    def _process_packet_extended(packet: Packet) -> dict:
         """
         Parse the extended server info packet.
         """
 
-        state = GameServerState(GameServerType.EXTENDED)
-
-        state.info = {
+        state = {
+            'type': GameServerType.EXTENDED,
             'version': packet.unpack(),
             'name': packet.unpack(),
             'map_name': packet.unpack(),
@@ -241,14 +253,16 @@ class GameServer(Server):
             'num_players': packet.unpack_int(),
             'max_players': packet.unpack_int(),
             'num_clients': packet.unpack_int(),
-            'max_clients': packet.unpack_int()
+            'max_clients': packet.unpack_int(),
+
+            'clients': {}
         }
 
         packet.unpack() # Reserved
 
         while packet.unpack_remaining() >= 6:
             name = packet.unpack()
-            state.clients[name] = {
+            state['clients'][name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
@@ -260,19 +274,22 @@ class GameServer(Server):
 
 
     @staticmethod
-    def _process_packet_extended_more(packet: Packet) -> GameServerState:
+    def _process_packet_extended_more(packet: Packet) -> dict:
         """
         Parse the extended server info packet.
         """
 
-        state = GameServerState(GameServerType.EXTENDED)
+        state = {
+            'type': GameServerType.EXTENDED,
+            'clients': {}
+        }
 
         packet.unpack_int() # Packet number
         packet.unpack() # Reserved
 
         while packet.unpack_remaining() >= 6:
             name = packet.unpack()
-            state.clients[name] = {
+            state['clients'][name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
@@ -289,7 +306,7 @@ class GameServer(Server):
         Update players and clans depending on the given state.
         """
 
-        if state.clients:
+        if state['clients']:
             #
             # Query players current clan.
             #
@@ -298,7 +315,7 @@ class GameServer(Server):
             # know in which clan the player was in to update their player count.
             #
 
-            players_clan = shared.player.get_clan(list(state.clients.keys()))
+            players_clan = shared.player.get_clan(list(state['clients'].keys()))
 
             #
             # Create new clans and update players clan.
@@ -310,7 +327,7 @@ class GameServer(Server):
 
             unique_clans = set()
 
-            for client in state.clients.values():
+            for client in state['clients'].values():
                 if client['clan']:
                     unique_clans.add(client['clan'])
 
@@ -318,7 +335,7 @@ class GameServer(Server):
 
             players = []
 
-            for name, client in state.clients.items():
+            for name, client in state['clients'].items():
                 clan_ref = { 'name': client['clan'] } if client['clan'] else None
 
                 players.append({

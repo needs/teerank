@@ -102,7 +102,8 @@ class ServerPool:
 
                 if entry.poll_failure == ServerPool.MAX_POLL_FAILURE:
                     logging.info('Removing server %s', entry.server)
-                    del self._servers[entry.server.address]
+                    if entry.server.address in self._servers:
+                        del self._servers[entry.server.address]
                     continue
 
             heapq.heappush(self._entries, entry)

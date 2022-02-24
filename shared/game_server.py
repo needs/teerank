@@ -1,16 +1,8 @@
 """
-Implement GameServer, GameServerState and GameServerType classes.
+Helpers for game server.
 """
 
-import json
 from enum import IntEnum
-from gql import gql
-
-from shared.database import redis, key_to_address, graphql
-from shared.server import Server
-
-import shared.clan
-import shared.player
 
 
 class GameServerType(IntEnum):
@@ -66,123 +58,22 @@ class GameServerState:
         return self.info and len(self.clients) == self.info['num_clients']
 
 
-    @staticmethod
-    def to_bytes(state: 'GameServerState') -> bytes:
-        """
-        Convert the given server state into JSON and then into bytes.
-        """
-
-        data = state.info
-        data['server_type'] = state.server_type
-        data['clients'] = state.clients
-
-        return json.dumps(data).encode()
-
-    @staticmethod
-    def from_bytes(data: bytes) -> 'GameServerState':
-        """
-        Create a new server state from its byte data decoded as JSON.
-        """
-
-        if not data:
-            return GameServerState(GameServerType.UNKNOWN)
-
-        data = json.loads(data.decode())
-
-        state = GameServerState(data.pop('server_type'))
-        state.clients = data.pop('clients')
-        state.info = data
-
-        return state
-
-
-class GameServer(Server):
+def all() -> list[tuple[str, str]]:
     """
-    Teeworld game server.
+    Get the list of all game servers host and port.
     """
-
-    def __init__(self, key: str):
-        """
-        Initialize game server with the given key.
-        """
-
-        # GameServer host is already an IP.
-
-        super().__init__(*key_to_address(key))
-
-        self.key = key
-        self.state = GameServerState.from_bytes(redis.get(f'game-servers:{key}'))
+    return []
 
 
-    def save(self) -> None:
-        """
-        Save game server data.
-        """
-
-        if self.state.clients:
-            #
-            # Query players current clan.
-            #
-            # Clan maintains a count of players to be able to sort clan by their
-            # number of players.  So before changing players clan, we need to
-            # know in which clan the player was in to update their player count.
-            #
-
-            players_clan = shared.player.get_clan(list(self.state.clients.keys()))
-
-            #
-            # Create new clans and update players clan.
-            #
-            # Since player clan have a @hasInverse() pointing to the clan player
-            # list, updating players clan automatically updates clan players list
-            # as well.
-            #
-
-            unique_clans = set()
-
-            for client in self.state.clients.values():
-                if client['clan']:
-                    unique_clans.add(client['clan'])
-
-            shared.clan.upsert([{'name': clan} for clan in unique_clans])
-
-            players = []
-
-            for name, client in self.state.clients.items():
-                clan_ref = { 'name': client['clan'] } if client['clan'] else None
-
-                players.append({
-                    'name': name,
-                    'clan': clan_ref
-                })
-
-            shared.player.upsert(players)
-
-            #
-            # Query clans playersCount.
-            #
-            # Complete unique_clans with the clan queried before updating
-            # players clan so that clans that losed a player also have their
-            # count updated.
-            #
-
-            for clan in players_clan.values():
-                if clan:
-                    unique_clans.add(clan['name'])
-
-            #
-            # Set clans playersCount.
-            #
-
-            for clan, count in shared.clan.get_player_count(list(unique_clans)).items():
-                shared.clan.set_player_count(clan, count)
+def get(host: str, port: str) -> GameServerState:
+    """
+    Get the game server with the given host and port.
+    """
+    return GameServerState(GameServerType.UNKNOWN)
 
 
-    @staticmethod
-    def keys() -> list[str]:
-        """
-        Load all game servers keys from the database.
-        """
-
-        keys = redis.smembers('game-servers')
-        return [key.decode() for key in keys]
+def set(host: str, port: str, state: GameServerState) -> None:
+    """
+    Set the game server with the given host and port.
+    """
+    pass

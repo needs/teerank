@@ -4,25 +4,29 @@ Implement GameServer, GameServerState and GameServerType classes.
 
 import secrets
 
-from shared.game_server import GameServer as DatabaseGameServer, GameServerState, GameServerType
-from shared.database import key_from_string
+from shared.game_server import GameServerState, GameServerType
 
 from backend.packet import Packet, PacketException
 from backend.rank import rank
+from backend.server import Server
+
+import shared.clan
+import shared.player
 
 
-class GameServer(DatabaseGameServer):
+class GameServer(Server):
     """
     Teeworld game server.
     """
 
-    def __init__(self, key: str):
+    def __init__(self, host: str, port: str):
         """
-        Initialize game server with the given key.
+        Initialize game server with the given host and port.
         """
 
-        super().__init__(key)
+        super().__init__(host, port)
 
+        self.state = shared.game_server.get(host, port)
         self._state_new = None
         self._request_token = None
 
@@ -102,7 +106,9 @@ class GameServer(DatabaseGameServer):
         old_state = self.state
         self.state = self._state_new
         self._state_new = None
-        self.save()
+
+        shared.game_server.set(self.host, self.port, self.state)
+        self.process_state(self.state)
 
         # Rank players after saving server so that player already exist in the
         # database.
@@ -168,8 +174,8 @@ class GameServer(DatabaseGameServer):
         }
 
         while packet.unpack_remaining() >= 5:
-            key = key_from_string(packet.unpack())
-            state.clients[key] = {
+            name = packet.unpack()
+            state.clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
@@ -205,8 +211,8 @@ class GameServer(DatabaseGameServer):
         packet.unpack_bytes(1) # Offset
 
         while packet.unpack_remaining() >= 5:
-            key = key_from_string(packet.unpack())
-            state.clients[key] = {
+            name = packet.unpack()
+            state.clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
@@ -241,8 +247,8 @@ class GameServer(DatabaseGameServer):
         packet.unpack() # Reserved
 
         while packet.unpack_remaining() >= 6:
-            key = key_from_string(packet.unpack())
-            state.clients[key] = {
+            name = packet.unpack()
+            state.clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
@@ -265,8 +271,8 @@ class GameServer(DatabaseGameServer):
         packet.unpack() # Reserved
 
         while packet.unpack_remaining() >= 6:
-            key = key_from_string(packet.unpack())
-            state.clients[key] = {
+            name = packet.unpack()
+            state.clients[name] = {
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
@@ -275,3 +281,68 @@ class GameServer(DatabaseGameServer):
             packet.unpack() # Reserved
 
         return state
+
+
+    @staticmethod
+    def process_state(state: dict) -> None:
+        """
+        Update players and clans depending on the given state.
+        """
+
+        if state.clients:
+            #
+            # Query players current clan.
+            #
+            # Clan maintains a count of players to be able to sort clan by their
+            # number of players.  So before changing players clan, we need to
+            # know in which clan the player was in to update their player count.
+            #
+
+            players_clan = shared.player.get_clan(list(state.clients.keys()))
+
+            #
+            # Create new clans and update players clan.
+            #
+            # Since player clan have a @hasInverse() pointing to the clan player
+            # list, updating players clan automatically updates clan players list
+            # as well.
+            #
+
+            unique_clans = set()
+
+            for client in state.clients.values():
+                if client['clan']:
+                    unique_clans.add(client['clan'])
+
+            shared.clan.upsert([{'name': clan} for clan in unique_clans])
+
+            players = []
+
+            for name, client in state.clients.items():
+                clan_ref = { 'name': client['clan'] } if client['clan'] else None
+
+                players.append({
+                    'name': name,
+                    'clan': clan_ref
+                })
+
+            shared.player.upsert(players)
+
+            #
+            # Query clans playersCount.
+            #
+            # Complete unique_clans with the clan queried before updating
+            # players clan so that clans that losed a player also have their
+            # count updated.
+            #
+
+            for clan in players_clan.values():
+                if clan:
+                    unique_clans.add(clan['name'])
+
+            #
+            # Set clans playersCount.
+            #
+
+            for clan, count in shared.clan.get_player_count(list(unique_clans)).items():
+                shared.clan.set_player_count(clan, count)

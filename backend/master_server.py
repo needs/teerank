@@ -4,25 +4,25 @@ Implement MasterServer.
 
 import socket
 
-from shared.database import key_from_address
-from shared.master_server import MasterServer as DatabaseMasterServer
-
+from backend.server import Server
 from backend.packet import Packet
 from backend.server_pool import server_pool
 from backend.game_server import GameServer
 
+import shared.master_server
 
-class MasterServer(DatabaseMasterServer):
+
+class MasterServer(Server):
     """
     Teeworld master server.
     """
 
-    def __init__(self, key: str):
+    def __init__(self, host: str, port: str):
         """
-        Initialize master server with the given key.
+        Initialize master server with the given host and port.
         """
 
-        super().__init__(key)
+        super().__init__(host, port)
         self._packet_count = None
 
 
@@ -65,14 +65,14 @@ class MasterServer(DatabaseMasterServer):
                 data = packet.unpack_bytes(16)
 
                 if data[:12] == b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff':
-                    ip = socket.inet_ntop(socket.AF_INET, data[12:16])
+                    host = socket.inet_ntop(socket.AF_INET, data[12:16])
                 else:
-                    ip = '[' + socket.inet_ntop(socket.AF_INET6, data[:16]) + ']'
+                    host = '[' + socket.inet_ntop(socket.AF_INET6, data[:16]) + ']'
 
-                port = int.from_bytes(packet.unpack_bytes(2), byteorder='big')
+                port = str(int.from_bytes(packet.unpack_bytes(2), byteorder='big'))
 
-                if not (ip == self.ip and port == self.port):
-                    if (ip, port) not in server_pool:
-                        server_pool.add(GameServer(key_from_address(ip, port)))
+                if not (host == self.host and port == self.port):
+                    if (host, port) not in server_pool:
+                        server_pool.add(GameServer(host, port))
 
             self._packet_count += 1

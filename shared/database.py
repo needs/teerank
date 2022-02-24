@@ -4,7 +4,6 @@ Connect to the databases used by teerank, and also implement some helpers.
 
 import os
 import logging
-from base64 import b64encode, b64decode
 from time import sleep
 
 import requests
@@ -60,34 +59,3 @@ def graphql_set_schema() -> None:
 
         logging.warning(response.text)
         sleep(10)
-
-
-def key_to_address(key: str) -> tuple[str, int]:
-    """
-    Return the host and port encoded by the given key.
-    """
-    host, port = key.rsplit(':', 1)
-    return (host, int(port))
-
-
-def key_from_address(host: str, port: int) -> str:
-    """
-    Return an unique key from the given host and port.
-    """
-    return f'{host}:{port}'
-
-
-def key_to_string(key: str) -> str:
-    """
-    Return the string encoded by the key.
-    """
-    return b64decode(key).decode()
-
-
-def key_from_string(string: str) -> str:
-    """
-    Return an unique key from the given string.
-    """
-    if string is None:
-        return None
-    return b64encode(string.encode()).decode()

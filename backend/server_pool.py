@@ -12,8 +12,7 @@ import time
 import random
 import os
 
-from shared.server import Server
-
+from backend.server import Server
 from backend.packet import Packet, PacketException
 
 class ServerPool:
@@ -67,7 +66,7 @@ class ServerPool:
     def add(self, server: Server) -> None:
         """Add the given server to the pool."""
 
-        logging.info('Adding server %s', server.address)
+        logging.info('Adding server %s', server)
 
         heapq.heappush(self._entries, ServerPool._Entry(server))
         self._servers[server.address] = server
@@ -89,7 +88,7 @@ class ServerPool:
                 try:
                     entry.server.process_packet(Packet(data))
                 except PacketException as exception:
-                    logging.info('Server %s: Dropping packet: %s', entry.server.address, exception)
+                    logging.info('Server %s: Dropping packet: %s', entry.server, exception)
 
         # Stop polling for the current batch and re-schedule servers.
 
@@ -102,7 +101,7 @@ class ServerPool:
                 entry.poll_failure += 1
 
                 if entry.poll_failure == ServerPool.MAX_POLL_FAILURE:
-                    logging.info('Removing server %s', entry.server.address)
+                    logging.info('Removing server %s', entry.server)
                     del self._servers[entry.server.address]
                     continue
 

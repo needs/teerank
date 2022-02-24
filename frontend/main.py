@@ -55,10 +55,7 @@ _GQL_QUERY_CLANS = gql(
     query {
         queryClan {
             name
-
-            playersAggregate {
-                count
-            }
+            playersCount
         }
     }
     """

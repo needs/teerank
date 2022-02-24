@@ -6,4 +6,5 @@ type Player {
 type Clan {
 	name: String! @id
 	players: [Player] @hasInverse(field: clan)
+	playersCount: Int
 }

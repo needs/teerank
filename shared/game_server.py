@@ -9,6 +9,9 @@ from gql import gql
 from shared.database import redis, key_to_address, graphql
 from shared.server import Server
 
+import shared.clan
+import shared.player
+
 
 class GameServerType(IntEnum):
     """
@@ -93,30 +96,6 @@ class GameServerState:
         return state
 
 
-_GQL_UPDATE_PLAYERS = gql(
-    """
-    mutation ($input: [AddPlayerInput!]!) {
-        addPlayer(input: $input, upsert: true) {
-            player {
-                name
-            }
-        }
-    }
-    """
-)
-
-_GQL_UPDATE_CLANS = gql(
-    """
-    mutation ($input: [AddClanInput!]!) {
-        addClan(input: $input, upsert: true) {
-            clan {
-                name
-            }
-        }
-    }
-    """
-)
-
 class GameServer(Server):
     """
     Teeworld game server.
@@ -140,33 +119,63 @@ class GameServer(Server):
         Save game server data.
         """
 
-        # Save clans before saving players so that new clans are already
-        # referenced when updating players.
-
         if self.state.clients:
-            clans = { client['clan'] for client in self.state.clients.values() if client['clan'] }
-            variables = { 'input': [ { 'name': clan } for clan in clans ] }
+            #
+            # Query players current clan.
+            #
+            # Clan maintains a count of players to be able to sort clan by their
+            # number of players.  So before changing players clan, we need to
+            # know in which clan the player was in to update their player count.
+            #
 
-            graphql.execute(_GQL_UPDATE_CLANS, variable_values = variables)
+            players_clan = shared.player.get_clan(list(self.state.clients.keys()))
 
-        # Save players
+            #
+            # Create new clans and update players clan.
+            #
+            # Since player clan have a @hasInverse() pointing to the clan player
+            # list, updating players clan automatically updates clan players list
+            # as well.
+            #
 
-        if self.state.clients:
+            unique_clans = set()
+
+            for client in self.state.clients.values():
+                if client['clan']:
+                    unique_clans.add(client['clan'])
+
+            shared.clan.upsert([{'name': clan} for clan in unique_clans])
+
             players = []
 
             for name, client in self.state.clients.items():
+                clan_ref = { 'name': client['clan'] } if client['clan'] else None
+
                 players.append({
                     'name': name,
-                    'clan': {
-                        'name': client['clan']
-                    } if client['clan'] else None
+                    'clan': clan_ref
                 })
 
-            variables = {
-                'input': players
-            }
+            shared.player.upsert(players)
 
-            graphql.execute(_GQL_UPDATE_PLAYERS, variable_values = variables)
+            #
+            # Query clans playersCount.
+            #
+            # Complete unique_clans with the clan queried before updating
+            # players clan so that clans that losed a player also have their
+            # count updated.
+            #
+
+            for clan in players_clan.values():
+                if clan:
+                    unique_clans.add(clan['name'])
+
+            #
+            # Set clans playersCount.
+            #
+
+            for clan, count in shared.clan.get_player_count(list(unique_clans)).items():
+                shared.clan.set_player_count(clan, count)
 
 
     @staticmethod

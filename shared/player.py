@@ -3,8 +3,9 @@ Implement Player and PlayerELO classes.
 """
 
 import json
+from gql import gql
+from shared.database import redis, graphql
 
-from shared.database import redis
 
 class Player:
     """
@@ -81,3 +82,52 @@ def players_count(game_type: str, map_name: str) -> int:
     """
 
     return redis.zcard(_key(game_type, map_name))
+
+
+_GQL_UPDATE_PLAYERS = gql(
+    """
+    mutation ($players: [AddPlayerInput!]!) {
+        addPlayer(input: $players, upsert: true) {
+            player {
+                name
+            }
+        }
+    }
+    """
+)
+
+def upsert(players):
+    """
+    Add or update the given players.
+    """
+
+    graphql.execute(
+        _GQL_UPDATE_PLAYERS,
+        variable_values = { 'players': players }
+    )
+
+
+_GQL_QUERY_PLAYERS_CLAN = gql(
+    """
+    query ($players: [String]!) {
+        queryPlayer(filter: {name: {in: $players}}) {
+            name
+            clan {
+                name
+            }
+        }
+    }
+    """
+)
+
+def get_clan(players):
+    """
+    Get clan for each of the given players.
+    """
+
+    players = graphql.execute(
+        _GQL_QUERY_PLAYERS_CLAN,
+        variable_values = { 'players': players }
+    )['queryPlayer']
+
+    return { player['name']: player['clan'] for player in players }

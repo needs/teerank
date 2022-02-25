@@ -4,6 +4,7 @@ Implement rank() function.
 
 import logging
 from itertools import combinations, product
+from dataclasses import dataclass, field
 
 from shared.player import Player
 
@@ -27,6 +28,20 @@ def _elo_delta(score1: int, elo1: int, score2: int, elo2: int) -> int:
     return k_factor * (result - expected)
 
 
+@dataclass
+class _Player:
+    name: str = field(init=False)
+    old: dict
+    new: dict
+    score: int = field(init=False)
+    delta: float = field(init=False)
+    elo: float = field(init=False)
+
+    def __post_init__(self):
+        self.name = self.old['name']
+        self.score = self.new['score'] - self.old['score']
+
+
 def rank(old: dict, new: dict) -> bool:
     """
     Rank players given the old and new server state.
@@ -47,11 +62,20 @@ def rank(old: dict, new: dict) -> bool:
 
     # Create a list of all players that are ingame in both old and new state.
 
-    old_keys = { key for key, client in old['clients'].items() if client['ingame'] }
-    new_keys = { key for key, client in new['clients'].items() if client['ingame'] }
-    keys = list(old_keys.intersection(new_keys))
+    clients = {}
 
-    if len(keys) <= 1:
+    for client in old['clients']:
+        clients[client['name']]['old'] = client
+    for client in new['clients']:
+        clients[client['name']]['new'] = client
+
+    players = []
+
+    for name, client in clients.items():
+        if 'old' in client and 'new' in client and client['old']['ingame'] and client['new']['ingame']:
+            players.append(_Player(client['old'], client['new']))
+
+    if len(players) <= 1:
         return False
 
     # Player score is the difference between its old score and new score.
@@ -60,9 +84,7 @@ def rank(old: dict, new: dict) -> bool:
     # all players scores in new state, then we don't rank the game because there
     # is a high chance that a new game started.
 
-    scores = [ new['clients'][key]['score'] - old['clients'][key]['score'] for key in keys ]
-
-    if sum(scores) <= 0:
+    if sum([player.score for player in players]) <= 0:
         return False
 
     # Now that all sanity checks have been done, compute players new ELO.
@@ -75,21 +97,22 @@ def rank(old: dict, new: dict) -> bool:
 
     for game_type, map_name in product((new['game_type'], None), (new['map_name'], None)):
 
-        elos = [ Player.get_elo(key, game_type, map_name) for key in keys ]
-        deltas = [0] * len(keys)
+        for player in players:
+            player.elo = Player.get_elo(player.name, game_type, map_name)
+            player.delta = 0
 
-        for i, j in combinations(range(len(keys)), 2):
-            delta = _elo_delta(scores[i], elos[i], scores[j], elos[j])
-            deltas[i] += delta
-            deltas[j] -= delta
+        for player1, player2 in combinations(players, 2):
+            delta = _elo_delta(player1.score, player1.elo, player2.score, player2.elo)
+            player1.delta += delta
+            player2.delta -= delta
 
-        for i, key in enumerate(keys):
-            new_elo = elos[i] + deltas[i] / (len(keys) - 1)
-            Player.set_elo(key, game_type, map_name, new_elo)
+        for player in players:
+            new_elo = player.elo + player.delta / (len(players) - 1)
+            Player.set_elo(player.name, game_type, map_name, new_elo)
 
             logging.info(
                 'Gametype: %s: map %s: player %s: new_elo: %d -> %d',
-                game_type, map_name, key, elos[i], new_elo
+                game_type, map_name, player.name, player.elo, new_elo
             )
 
     return True

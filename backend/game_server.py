@@ -158,8 +158,11 @@ class GameServer(Server):
         else:
             raise PacketException('Packet type not supported.')
 
+        # Merge received state into the new state.  This step is required
+        # because new state can be received in many smaller parts.
+
         if state["type"] == self._state_new.get("type", GameServerType.UNKNOWN):
-            state['clients'] |= self._state_new.get('clients', {})
+            state['clients'] += self._state_new.get('clients', [])
         if state["type"] >= self._state_new.get("type", GameServerType.UNKNOWN):
             self._state_new |= state
 
@@ -182,17 +185,17 @@ class GameServer(Server):
             'num_clients': packet.unpack_int(),
             'max_clients': packet.unpack_int(),
 
-            'clients': {}
+            'clients': []
         }
 
         while packet.unpack_remaining() >= 5:
-            name = packet.unpack()
-            state['clients'][name] = {
+            state['clients'].append({
+                'name': packet.unpack(),
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
-            }
+            })
 
         return state
 
@@ -215,7 +218,7 @@ class GameServer(Server):
             'num_clients': packet.unpack_int(),
             'max_clients': packet.unpack_int(),
 
-            'clients': {}
+            'clients': []
         }
 
         # Even though the offset is advertised as an integer, in real condition
@@ -224,13 +227,13 @@ class GameServer(Server):
         packet.unpack_bytes(1) # Offset
 
         while packet.unpack_remaining() >= 5:
-            name = packet.unpack()
-            state['clients'][name] = {
+            state['clients'].append({
+                'name': packet.unpack(),
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
-            }
+            })
 
         return state
 
@@ -255,19 +258,19 @@ class GameServer(Server):
             'num_clients': packet.unpack_int(),
             'max_clients': packet.unpack_int(),
 
-            'clients': {}
+            'clients': []
         }
 
         packet.unpack() # Reserved
 
         while packet.unpack_remaining() >= 6:
-            name = packet.unpack()
-            state['clients'][name] = {
+            state['clients'].append({
+                'name': packet.unpack(),
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
-            }
+            })
             packet.unpack() # Reserved
 
         return state
@@ -281,20 +284,20 @@ class GameServer(Server):
 
         state = {
             'type': GameServerType.EXTENDED,
-            'clients': {}
+            'clients': []
         }
 
         packet.unpack_int() # Packet number
         packet.unpack() # Reserved
 
         while packet.unpack_remaining() >= 6:
-            name = packet.unpack()
-            state['clients'][name] = {
+            state['clients'].append({
+                'name': packet.unpack(),
                 'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int())
-            }
+            })
             packet.unpack() # Reserved
 
         return state
@@ -315,7 +318,8 @@ class GameServer(Server):
             # know in which clan the player was in to update their player count.
             #
 
-            players_clan = shared.player.get_clan(list(state['clients'].keys()))
+            players_name = [client['name'] for client in state['clients']]
+            players_clan = shared.player.get_clan(players_name)
 
             #
             # Create new clans and update players clan.
@@ -327,7 +331,7 @@ class GameServer(Server):
 
             unique_clans = set()
 
-            for client in state['clients'].values():
+            for client in state['clients']:
                 if client['clan']:
                     unique_clans.add(client['clan'])
 
@@ -335,11 +339,11 @@ class GameServer(Server):
 
             players = []
 
-            for name, client in state['clients'].items():
+            for client in state['clients']:
                 clan_ref = { 'name': client['clan'] } if client['clan'] else None
 
                 players.append({
-                    'name': name,
+                    'name': client['name'],
                     'clan': clan_ref
                 })
 

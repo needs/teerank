@@ -59,3 +59,11 @@ def graphql_set_schema() -> None:
 
         logging.warning(response.text)
         sleep(10)
+
+
+def graphql_drop_all_data() -> None:
+    """
+    Drop all data stored in graphql.
+    """
+
+    requests.post(f'http://{_graphql_url}/alter', data='{"drop_op": "DATA"}')

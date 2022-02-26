@@ -58,7 +58,7 @@ class ServerPool:
         logging.info('Socket bound to %s:%d', host, port)
 
 
-    def __contains__(self, address: tuple[str, int]) -> bool:
+    def __contains__(self, address: str) -> bool:
         """Return whether or not the given address is in the server pool."""
         return address in self._servers
 
@@ -81,8 +81,8 @@ class ServerPool:
 
         while select.select([self._socket], [], [], 0)[0]:
 
-            data, address = self._socket.recvfrom(4096)
-            entry = self._batch.get(address, None)
+            data, socket_address = self._socket.recvfrom(4096)
+            entry = self._batch.get(socket_address, None)
 
             if entry is not None:
                 try:
@@ -126,9 +126,9 @@ class ServerPool:
             packets = server.start_polling()
 
             for packet in packets:
-                self._socket.sendto(bytes(packet), server.address)
+                self._socket.sendto(bytes(packet), server.socket_address)
 
-            self._batch[server.address] = entry
+            self._batch[server.socket_address] = entry
             packet_count += len(packets)
 
 

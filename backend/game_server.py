@@ -29,14 +29,14 @@ class GameServer(Server):
     Teeworld game server.
     """
 
-    def __init__(self, host: str, port: str):
+    def __init__(self, address: str):
         """
-        Initialize game server with the given host and port.
+        Initialize game server with the given address.
         """
 
-        super().__init__(host, port)
+        super().__init__(address)
 
-        self.state = shared.game_server.get(host, port)
+        self.state = shared.game_server.get(address)
         self._state_new = {}
         self._request_token = None
 
@@ -115,7 +115,7 @@ class GameServer(Server):
         self.state = self._state_new
         self._state_new = None
 
-        shared.game_server.set(self.host, self.port, self.state)
+        shared.game_server.set(self.address, self.state)
         self.process_state(self.state)
 
         # Rank players after saving server so that player already exist in the

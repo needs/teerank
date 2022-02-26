@@ -2,14 +2,14 @@
 Helpers for master server.
 """
 
-def all() -> list[tuple[str, str]]:
+def all() -> list[str]:
     """
-    Get the list of all master servers host and port.
+    Get the list of all master servers address.
     """
 
     return [
-        ('master1.teeworlds.com', "8300"),
-        ('master2.teeworlds.com', "8300"),
-        ('master3.teeworlds.com', "8300"),
-        ('master4.teeworlds.com', "8300")
+        'master1.teeworlds.com:8300',
+        'master2.teeworlds.com:8300',
+        'master3.teeworlds.com:8300',
+        'master4.teeworlds.com:8300'
     ]

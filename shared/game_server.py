@@ -2,22 +2,22 @@
 Helpers for game server.
 """
 
-def all() -> list[tuple[str, str]]:
+def all() -> list[str]:
     """
-    Get the list of all game servers host and port.
+    Get the list of all game servers adress.
     """
     return []
 
 
-def get(host: str, port: str) -> dict:
+def get(address: str) -> dict:
     """
-    Get the game server with the given host and port.
+    Get the game server with the given address.
     """
     return {}
 
 
-def set(host: str, port: str, state: dict) -> None:
+def set(address: str, state: dict) -> None:
     """
-    Set the game server with the given host and port.
+    Set the game server with the given address.
     """
     pass

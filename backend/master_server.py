@@ -17,12 +17,12 @@ class MasterServer(Server):
     Teeworld master server.
     """
 
-    def __init__(self, host: str, port: str):
+    def __init__(self, address: str):
         """
-        Initialize master server with the given host and port.
+        Initialize master server with the given address.
         """
 
-        super().__init__(host, port)
+        super().__init__(address)
         self._packet_count = None
 
 
@@ -70,9 +70,9 @@ class MasterServer(Server):
                     host = '[' + socket.inet_ntop(socket.AF_INET6, data[:16]) + ']'
 
                 port = str(int.from_bytes(packet.unpack_bytes(2), byteorder='big'))
+                address = host + ':' + port
 
-                if not (host == self.host and port == self.port):
-                    if (host, port) not in server_pool:
-                        server_pool.add(GameServer(host, port))
+                if address != self.address and address not in server_pool:
+                    server_pool.add(GameServer(address))
 
             self._packet_count += 1

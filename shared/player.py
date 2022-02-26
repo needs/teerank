@@ -84,6 +84,11 @@ def players_count(game_type: str, map_name: str) -> int:
     return redis.zcard(_key(game_type, map_name))
 
 
+def ref(name):
+    """Create a player reference from the given player name."""
+    return { 'name': name } if name else None
+
+
 _GQL_UPDATE_PLAYERS = gql(
     """
     mutation ($players: [AddPlayerInput!]!) {

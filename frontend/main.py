@@ -82,11 +82,39 @@ def clans():
     )
 
 
+_GQL_QUERY_SERVERS = gql(
+    """
+    query {
+        queryGameServer(order: {desc: numClients}) {
+            name
+            map
+            gameType
+            numClients
+            maxClients
+        }
+    }
+    """
+)
+
 @app.route('/servers')
 def servers():
     """
     List of maps for a given game type.
     """
+
+    game_type = request.args.get('gametype', default='CTF', type = str)
+    map_name = request.args.get('map', default=None, type = str)
+
+    result = graphql.execute(_GQL_QUERY_SERVERS)
+
+    return render_template(
+        'servers.html',
+        game_type=game_type,
+        map_name=map_name,
+        servers=result['queryGameServer'],
+        servers_count=len(result['queryGameServer']),
+        main_game_types=main_game_types
+    )
 
 
 @app.route('/maps')

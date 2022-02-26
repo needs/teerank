@@ -6,6 +6,11 @@ from gql import gql
 from shared.database import graphql
 
 
+def ref(name):
+    """Create a clan reference from the given clan name."""
+    return { 'name': name } if name else None
+
+
 _GQL_UPDATE_CLANS = gql(
     """
     mutation ($clans: [AddClanInput!]!) {

@@ -38,7 +38,7 @@ class _Player:
     elo: float = field(init=False)
 
     def __post_init__(self):
-        self.name = self.old['name']
+        self.name = self.old['player']['name']
         self.score = self.new['score'] - self.old['score']
 
 
@@ -55,9 +55,9 @@ def rank(old: dict, new: dict) -> bool:
     # If game type is not rankable, or game type changed, or map changed, then
     # it makes no sens to rank players.
 
-    if new['game_type'] not in ('CTF', 'DM', 'TDM') or \
-        old['game_type'] != new['game_type'] or \
-        old['map_name'] != new['map_name']:
+    if new['gameType'] not in ('CTF', 'DM', 'TDM') or \
+        old['gameType'] != new['gameType'] or \
+        old['map'] != new['map']:
         return False
 
     # Create a list of all players that are ingame in both old and new state.
@@ -65,9 +65,9 @@ def rank(old: dict, new: dict) -> bool:
     clients = {}
 
     for client in old['clients']:
-        clients[client['name']]['old'] = client
+        clients[client['player']['name']]['old'] = client
     for client in new['clients']:
-        clients[client['name']]['new'] = client
+        clients[client['player']['name']]['new'] = client
 
     players = []
 
@@ -95,7 +95,7 @@ def rank(old: dict, new: dict) -> bool:
     #
     # We do this for each combination of game type and map name.
 
-    for game_type, map_name in product((new['game_type'], None), (new['map_name'], None)):
+    for game_type, map_name in product((new['gameType'], None), (new['map'], None)):
 
         for player in players:
             player.elo = Player.get_elo(player.name, game_type, map_name)

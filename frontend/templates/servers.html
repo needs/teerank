@@ -1,35 +1,35 @@
 {% extends "base.html" %}
 
 {% block title %}
-{{ game_type }} - Clans
+{{ game_type }} - Servers
 {% endblock %}
 
 {% block content %}
 	<nav class="section_tabs">
 		<a href="/players">Players<small>620</small></a>
-		<a class="enabled">Clans<small>{{ clans_count }}</small></a>
-		<a href="/servers">Servers<small>14</small></a>
+		<a href="/clans">Clans<small>{{ clans_count }}</small></a>
+		<a class="enabled">Servers<small>{{ servers_count }}</small></a>
 	</nav>
 
-	<table class="clanlist">
+	<table class="serverlist">
 		<thead>
 			<tr>
 				<th></th>
 				<th>Name</th>
-				<th>Elo<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
+				<th>Gametype<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
+				<th>Map<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
 				<th>Players<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
-				<th>Activity<img src="{{ url_for('static', filename='images/dash.png') }}"></th>
 			</tr>
 		</thead>
 
 		<tbody>
-			{% for clan in clans %}
+			{% for server in servers %}
 			<tr>
 				<td>{{ 1 }}</td>
-				<td><a href="/clan/2m56nv7skj3ku9w">{{ clan['name'] }}</a></td>
-				<td>1500</td>
-				<td>{{ clan['playersCount'] }}</td>
-				<td><span class="years" title="19/08/2018 22h21">1 year</span></td>
+				<td><a href="/server?host=foo&port=8300">{{ server['name'] }}</a></td>
+				<td>{{ server['gameType'] }}</td>
+				<td>{{ server['map'] }}</td>
+				<td>{{ server['numClients'] }} / {{ server['maxClients'] }}</td>
 			</tr>
 			{% endfor %}
 		</tbody>

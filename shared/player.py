@@ -136,3 +136,35 @@ def get_clan(players):
     )['queryPlayer']
 
     return { player['name']: player['clan'] for player in players }
+
+
+_GQL_GET_PLAYER = gql(
+    """
+    query ($name: String!) {
+        getPlayer(name: $name) {
+            name
+
+            clan {
+                name
+            }
+        }
+    }
+    """
+)
+
+def get(name: str) -> dict:
+    """
+    Get player with the given name.
+    """
+
+    try:
+        player = graphql.execute(
+            _GQL_GET_PLAYER,
+            variable_values = {
+                'name': name,
+            }
+        )['getPlayer']
+    except:
+        return {}
+
+    return player if player else {}

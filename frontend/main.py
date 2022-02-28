@@ -8,6 +8,7 @@ from gql import gql
 
 from shared.database import graphql
 import shared.game_server
+import shared.player
 
 app = Flask(__name__)
 
@@ -61,7 +62,21 @@ def player():
     """
     Show a single player.
     """
-    pass
+
+    name = request.args.get('name', default=None, type=str)
+    player = shared.player.get(name)
+
+    if not player:
+        abort(404)
+
+    return render_template(
+        'player.html',
+        tab = {
+            'type': 'custom'
+        },
+        player=player,
+        main_game_types=main_game_types
+    )
 
 
 _GQL_QUERY_CLANS = gql(

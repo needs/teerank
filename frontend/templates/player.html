@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ player['name'] }} - Player
+{% endblock %}
+
+{% block tab %}
+<a>Player</a><a>{{ player['name'] }}</a>
+{% endblock %}
+
+{% block content %}
+	<header id="player_header">
+		<img src="{{ url_for('static', filename='images/player.png') }}" alt="Tee">
+		<div>
+			<h1 id="player_name">{{ player['name'] }}</h1>
+			<p id="player_clan"><a href="{{ url_for('clan', name=player['clan']['name']) }}">{{ player['clan']['name'] }}</a></p>
+		</div>
+		<div>
+			<p id="player_rank">#1 (2521 ELO)</p>
+			<p id="player_lastseen"><span class="hours" title="12/10/2017 20h37">12 hours</span></p>
+		</div>
+	</header>
+{% endblock %}

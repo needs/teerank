@@ -303,7 +303,7 @@ def clan():
     """
 
     name = request.args.get('name', default=None, type=str)
-    paginator = _paginator(shared.clan.get_player_count2(name))
+    paginator = _paginator(shared.clan.get_player_count(name))
 
     clan = graphql.execute(
         _GQL_GET_CLAN,

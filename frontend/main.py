@@ -19,6 +19,37 @@ main_game_types = (
     'TDM'
 )
 
+_GQL_QUERY_COUNTS = gql(
+    """
+    query {
+        aggregatePlayer {
+            count
+        }
+        aggregateClan {
+            count
+        }
+        aggregateGameServer {
+            count
+        }
+    }
+    """
+)
+
+def _section_tab(type: str) -> dict:
+    """
+    Build a section tabs with the proper values.
+    """
+
+    counts = graphql.execute(_GQL_QUERY_COUNTS)
+
+    return {
+        'type': type,
+        'players_count': counts['aggregatePlayer']['count'],
+        'clans_count': counts['aggregateClan']['count'],
+        'servers_count': counts['aggregateGameServer']['count']
+    }
+
+
 _GQL_QUERY_PLAYERS = gql(
     """
     query {
@@ -50,6 +81,8 @@ def players():
             'gametype': game_type,
             'map': map_name
         },
+
+        section_tab = _section_tab('players'),
         game_type=game_type,
         map_name=map_name,
         players=result['queryPlayer'],
@@ -109,6 +142,8 @@ def clans():
             'gametype': game_type,
             'map': map_name
         },
+
+        section_tab = _section_tab('clans'),
         game_type=game_type,
         map_name=map_name,
         clans=result['queryClan'],
@@ -192,6 +227,8 @@ def servers():
             'gametype': game_type,
             'map': map_name
         },
+
+        section_tab = _section_tab('servers'),
         game_type=game_type,
         map_name=map_name,
         servers=result['queryGameServer'],

@@ -4,13 +4,16 @@
 {{ game_type }} - Clans
 {% endblock %}
 
-{% block content %}
-	<nav class="section_tabs">
-		<a href="/players">Players<small>620</small></a>
-		<a class="enabled">Clans<small>{{ clans_count }}</small></a>
-		<a href="/servers">Servers<small>14</small></a>
-	</nav>
+{% block tab %}
+<a>{{ name }}</a>
+{% if map_name is none %}
+	<a href="{{ url_for('maps', gametype=name) }}">All maps</a>
+{% else %}
+	<a href="{{ url_for('maps', gametype=name) }}">{{ map_name }}</a>
+{% endif %}
+{% endblock %}
 
+{% block content %}
 	<table class="clanlist">
 		<thead>
 			<tr>

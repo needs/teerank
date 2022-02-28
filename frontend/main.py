@@ -3,10 +3,11 @@ Launch frontend application.
 """
 
 from flask import Flask, render_template
-from flask import request
+from flask import request, abort
 from gql import gql
 
 from shared.database import graphql
+import shared.game_server
 
 app = Flask(__name__)
 
@@ -50,6 +51,14 @@ def players():
     )
 
 
+@app.route("/player")
+def player():
+    """
+    Show a single player.
+    """
+    pass
+
+
 _GQL_QUERY_CLANS = gql(
     """
     query {
@@ -82,10 +91,19 @@ def clans():
     )
 
 
+@app.route("/clan")
+def clan():
+    """
+    Show a single clan.
+    """
+    pass
+
+
 _GQL_QUERY_SERVERS = gql(
     """
     query {
         queryGameServer(order: {desc: numClients}) {
+            address
             name
             map
             gameType
@@ -113,6 +131,25 @@ def servers():
         map_name=map_name,
         servers=result['queryGameServer'],
         servers_count=len(result['queryGameServer']),
+        main_game_types=main_game_types
+    )
+
+
+@app.route('/server')
+def server():
+    """
+    Show a single server.
+    """
+
+    address = request.args.get('address', default="", type=str)
+    server = shared.game_server.get(address)
+
+    if not server:
+        abort(404)
+
+    return render_template(
+        'server.html',
+        server=server,
         main_game_types=main_game_types
     )
 

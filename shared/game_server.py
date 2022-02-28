@@ -30,7 +30,7 @@ def all_addresses() -> list[str]:
 
 _GQL_GET_SERVER = gql(
     """
-    query ($address: String!) {
+    query ($address: String!, $clientsOrder: ClientOrder!) {
         getGameServer(address: $address) {
             address
 
@@ -45,7 +45,7 @@ _GQL_GET_SERVER = gql(
             numClients
             maxClients
 
-            clients {
+            clients(order: $clientsOrder) {
                 id
                 player {
                     name
@@ -63,7 +63,7 @@ _GQL_GET_SERVER = gql(
     """
 )
 
-def get(address: str) -> dict:
+def get(address: str, clients_order={'desc': 'score'}) -> dict:
     """
     Get the game server with the given address.
     """
@@ -71,7 +71,10 @@ def get(address: str) -> dict:
     try:
         server = graphql.execute(
             _GQL_GET_SERVER,
-            variable_values = { 'address': address }
+            variable_values = {
+                'address': address,
+                'clientsOrder': clients_order
+            }
         )['getGameServer']
     except:
         return {}

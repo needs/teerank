@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ server['address'] }} - Server
+{% endblock %}
+
+{% block content %}
+	<header id="server_header">
+		<section id="serverinfo">
+			<h2>{{ server['name'] }}</h2>
+			<ul>
+				<li>{{ server['gameType'] }}</li>
+				<li>{{ server['map'] }}</li>
+				<li>{{ server['numClients'] }} / {{ server['maxClients'] }}</li>
+
+				{% if server['numPlayers'] > 0 %}
+				<li>{{ server['numPlayers'] }} players</li>
+				{% endif %}
+
+				{% if server['numClients'] - server['numPlayers'] > 0 %}
+				<li>{{ server['numClients'] - server['numPlayers'] }} spectators</li>
+				{% endif %}
+			</ul>
+		</section>
+		<section id="serveraddr"><label for="serveraddr_input">Server address</label><input type="text" value="{{ server['address'] }}" size="20" id="serveraddr_input" readonly="">
+		</section>
+	</header>
+
+	<table class="playerlist">
+		<thead>
+			<tr>
+				<th></th>
+				<th>Name</th>
+				<th>Clan</th>
+				<th>Score</th>
+				<th>Elo</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for client in server['clients'] %}
+			{% if client['ingame'] %}
+			<tr>
+			{% else %}
+			<tr class="spectator">
+			{% endif %}
+				<td>{{ loop.index0 + 1 }}</td>
+				<td><a href="{{ url_for('player', name=client['player']['name']) }}">{{ client['player']['name'] }}</a></td>
+				<td>
+					{% if client['clan'] %}
+					<a href="{{ url_for('clan', name=client['clan']['name']) }}">{{ client['clan']['name'] }}</a>
+					{% endif %}
+				</td>
+				<td>{{ client['score'] }}</td>
+				<td>0</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% endblock %}

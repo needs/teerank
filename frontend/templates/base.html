@@ -23,13 +23,13 @@
 			<nav id="toptabs">
 				<ul>
 					{% for name in main_game_types %}
-						{% if game_type == name %}
+						{% if tab['type'] == 'gametype' and tab['gametype'] == name %}
 							<li class="active">
-								<a>{{ name }}</a>
-								{% if map_name is none %}
+								<a>{{ tab['gametype'] }}</a>
+								{% if tab['map'] is none %}
 									<a href="{{ url_for('maps', gametype=name) }}">All maps</a>
 								{% else %}
-									<a href="{{ url_for('maps', gametype=name) }}">{{ map_name }}</a>
+									<a href="{{ url_for('maps', gametype=name) }}">{{ tab['map'] }}</a>
 								{% endif %}
 							</li>
 						{% else %}
@@ -39,7 +39,18 @@
 						{% endif %}
 					{% endfor %}
 
-					{% if game_type is none %}
+					{% if tab['type'] == 'gametype' and tab['gametype'] not in main_game_types %}
+						<li class="active">
+							<a>{{ tab['gametype'] }}</a>
+							{% if tab['map'] is none %}
+								<a href="{{ url_for('maps', gametype=name) }}">All maps</a>
+							{% else %}
+								<a href="{{ url_for('maps', gametype=name) }}">{{ tab['map'] }}</a>
+							{% endif %}
+						</li>
+					{% endif %}
+
+					{% if tab['type'] == 'gametypes_list' %}
 					<li class="active">
 						<a>...</a>
 					</li>
@@ -51,9 +62,21 @@
 				</ul>
 
 				<ul>
+					{% if tab['type'] == 'custom' %}
+					<li class="active">
+						{% block tab %}{% endblock %}
+					</li>
+					{% endif %}
+
+					{% if tab['type'] == 'about' %}
+					<li class="active">
+						<a>About</a>
+					</li>
+					{% else %}
 					<li>
 						<a href="/about">About</a>
 					</li>
+					{% endif %}
 				</ul>
 			</nav>
 

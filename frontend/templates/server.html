@@ -4,6 +4,10 @@
 {{ server['address'] }} - Server
 {% endblock %}
 
+{% block tab %}
+<a>Server</a><a>{{ server['address'] }}</a>
+{% endblock %}
+
 {% block content %}
 	<header id="server_header">
 		<section id="serverinfo">

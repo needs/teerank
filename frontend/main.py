@@ -43,6 +43,11 @@ def players():
 
     return render_template(
         'players.html',
+        tab = {
+            'type': 'gametype',
+            'gametype': game_type,
+            'map': map_name
+        },
         game_type=game_type,
         map_name=map_name,
         players=result['queryPlayer'],
@@ -83,6 +88,11 @@ def clans():
 
     return render_template(
         'clans.html',
+        tab = {
+            'type': 'gametype',
+            'gametype': game_type,
+            'map': map_name
+        },
         game_type=game_type,
         map_name=map_name,
         clans=result['queryClan'],
@@ -127,6 +137,11 @@ def servers():
 
     return render_template(
         'servers.html',
+        tab = {
+            'type': 'gametype',
+            'gametype': game_type,
+            'map': map_name
+        },
         game_type=game_type,
         map_name=map_name,
         servers=result['queryGameServer'],
@@ -149,6 +164,9 @@ def server():
 
     return render_template(
         'server.html',
+        tab = {
+            'type': 'custom'
+        },
         server=server,
         main_game_types=main_game_types
     )
@@ -169,6 +187,9 @@ def gametypes():
 
     return render_template(
         'gametypes.html',
+        tab = {
+            'type': 'gametypes_list'
+        },
         game_type=None,
         map_name=None,
         game_types=['CTF'],

@@ -1,10 +1,10 @@
 <nav class="pages">
 	{% for link in paginator %}
-		{% if link['type'] == 'separator' %}
+		{% if link['type'] == '...' %}
 			<span>...</span>
 		{% elif link['type'] == 'current' %}
 			<a class="current">{{ link['page'] }}</a>
-		{% elif link['type'] == 'link' %}
+		{% elif link['type'] == 'page' %}
 			<a href="{{ link['href'] }}">{{ link['page'] }}</a>
 		{% elif link['type'] == 'button' %}
 			{% if link['href'] %}

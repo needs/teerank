@@ -51,8 +51,9 @@ def _section_tab(type: str) -> dict:
 
 
 PAGE_SIZE = 100
+PAGE_SPREAD = 2
 
-def _paginator(max_items: int) -> dict:
+def _paginator(count: int) -> dict:
     """
     Build paginator links.
     """
@@ -69,7 +70,7 @@ def _paginator(max_items: int) -> dict:
     except:
         page = 1
 
-    max_page = (max_items - 1) / PAGE_SIZE
+    last_page = int((count - 1) / PAGE_SIZE)
 
     # Add the "Previous" button.
 
@@ -80,6 +81,32 @@ def _paginator(max_items: int) -> dict:
         'href': url_for(endpoint, page=page-1, **args) if page > 1 else None
     })
 
+    # Add the first page.
+
+    if page > PAGE_SPREAD + 1:
+        links.append({
+            'type': 'page',
+            'page': 1,
+            'href': url_for(endpoint, page=1, **args)
+        })
+
+    # Notice any missing pages between the fist page and the start of the page spread.
+
+    if page > PAGE_SPREAD + 2:
+        links.append({
+            'type': '...'
+        })
+
+    # Start page spread.
+
+    for i in range(page-PAGE_SPREAD, page):
+        if i > 0:
+            links.append({
+                'type': 'page',
+                'page': i,
+                'href': url_for(endpoint, page=i, **args)
+            })
+
     # Add the current page.
 
     links.append({
@@ -87,13 +114,39 @@ def _paginator(max_items: int) -> dict:
         'page': page
     })
 
+    # End page spread.
+
+    for i in range(page + 1, page + PAGE_SPREAD + 1):
+        if i <= last_page:
+            links.append({
+                'type': 'page',
+                'page': i,
+                'href': url_for(endpoint, page=i, **args)
+            })
+
+    # Notice any missing pages between the end of the page spread and the last page.
+
+    if page < last_page - PAGE_SPREAD - 1:
+        links.append({
+            'type': '...'
+        })
+
+    # Add the last page.
+
+    if page < last_page - PAGE_SPREAD:
+        links.append({
+            'type': 'page',
+            'page': last_page,
+            'href': url_for(endpoint, page=last_page, **args)
+        })
+
     # Add the "Next" button.
 
     links.append({
         'type': 'button',
         'name': 'Next',
         'class': 'next',
-        'href': url_for(endpoint, page=page+1, **args) if page < max_page else None
+        'href': url_for(endpoint, page=page+1, **args) if page < last_page else None
     })
 
     return links

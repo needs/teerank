@@ -2,7 +2,7 @@
 Launch frontend application.
 """
 
-from flask import Flask, render_template
+from flask import Flask, render_template, url_for
 from flask import request, abort
 from gql import gql
 
@@ -50,6 +50,55 @@ def _section_tab(type: str) -> dict:
     }
 
 
+PAGE_SIZE = 100
+
+def _paginator(max_items: int) -> dict:
+    """
+    Build paginator links.
+    """
+
+    links = []
+
+    # URL settings for the page links.
+
+    endpoint = request.endpoint
+    args = request.args.copy()
+
+    try:
+        page = int(args.pop('page'))
+    except:
+        page = 1
+
+    max_page = (max_items - 1) / PAGE_SIZE
+
+    # Add the "Previous" button.
+
+    links.append({
+        'type': 'button',
+        'name': 'Previous',
+        'class': 'previous',
+        'href': url_for(endpoint, page=page-1, **args) if page > 1 else None
+    })
+
+    # Add the current page.
+
+    links.append({
+        'type': 'current',
+        'page': page
+    })
+
+    # Add the "Next" button.
+
+    links.append({
+        'type': 'button',
+        'name': 'Next',
+        'class': 'next',
+        'href': url_for(endpoint, page=page+1, **args) if page < max_page else None
+    })
+
+    return links
+
+
 _GQL_QUERY_PLAYERS = gql(
     """
     query {
@@ -72,6 +121,8 @@ def players():
     game_type = request.args.get('gametype', default='CTF', type = str)
     map_name = request.args.get('map', default=None, type = str)
 
+    section_tab = _section_tab('players')
+
     result = graphql.execute(_GQL_QUERY_PLAYERS)
 
     return render_template(
@@ -82,11 +133,12 @@ def players():
             'map': map_name
         },
 
-        section_tab = _section_tab('players'),
+        section_tab = section_tab,
+        paginator = _paginator(section_tab['players_count']),
+
         game_type=game_type,
         map_name=map_name,
         players=result['queryPlayer'],
-        players_count=len(result['queryPlayer']),
         main_game_types=main_game_types
     )
 
@@ -133,6 +185,8 @@ def clans():
     game_type = request.args.get('gametype', default='CTF', type = str)
     map_name = request.args.get('map', default=None, type = str)
 
+    section_tab = _section_tab('clans')
+
     result = graphql.execute(_GQL_QUERY_CLANS)
 
     return render_template(
@@ -143,11 +197,12 @@ def clans():
             'map': map_name
         },
 
-        section_tab = _section_tab('clans'),
+        section_tab = section_tab,
+        paginator = _paginator(section_tab['clans_count']),
+
         game_type=game_type,
         map_name=map_name,
         clans=result['queryClan'],
-        clans_count=len(result['queryClan']),
         main_game_types=main_game_types
     )
 
@@ -218,6 +273,8 @@ def servers():
     game_type = request.args.get('gametype', default='CTF', type = str)
     map_name = request.args.get('map', default=None, type = str)
 
+    section_tab = _section_tab('servers')
+
     result = graphql.execute(_GQL_QUERY_SERVERS)
 
     return render_template(
@@ -228,11 +285,12 @@ def servers():
             'map': map_name
         },
 
-        section_tab = _section_tab('servers'),
+        section_tab = section_tab,
+        paginator = _paginator(section_tab['servers_count']),
+
         game_type=game_type,
         map_name=map_name,
         servers=result['queryGameServer'],
-        servers_count=len(result['queryGameServer']),
         main_game_types=main_game_types
     )
 

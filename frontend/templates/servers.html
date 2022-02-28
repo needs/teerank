@@ -29,14 +29,5 @@
 		</tbody>
 	</table>
 
-	<nav class="pages">
-		<a class="previous">Previous</a>
-		<a class="current">1</a>
-		<a href="/players?p=2">2</a>
-		<a href="/players?p=3">3</a>
-		<a href="/players?p=4">4</a>
-		<span>...</span>
-		<a href="/players?p=5942">5942</a>
-		<a class="next" href="/players?p=2">Next</a>
-	</nav>
+	{% include "components/paginator.html" %}
 {% endblock %}

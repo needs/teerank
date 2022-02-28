@@ -284,11 +284,11 @@ def clans():
 
 _GQL_GET_CLAN = gql(
     """
-    query($name: String!) {
+    query($name: String!, $first: Int!, $offset: Int!) {
         getClan(name: $name) {
             name
 
-            players {
+            players(first: $first, offset: $offset) {
                 name
             }
         }
@@ -303,11 +303,14 @@ def clan():
     """
 
     name = request.args.get('name', default=None, type=str)
+    paginator = _paginator(shared.clan.get_player_count2(name))
 
     clan = graphql.execute(
         _GQL_GET_CLAN,
         variable_values = {
-            'name': name
+            'name': name,
+            'first': paginator['first'],
+            'offset': paginator['offset']
         }
     )['getClan']
 
@@ -319,6 +322,7 @@ def clan():
         tab = {
             'type': 'custom'
         },
+        paginator = paginator,
         clan=clan,
         main_game_types=main_game_types
     )

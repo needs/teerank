@@ -10,6 +10,7 @@
 
 {% block content %}
 	<h2>{{ clan['name'] }}</h2>
+
 	<table class="playerlist">
 		<thead>
 			<tr>
@@ -33,4 +34,6 @@
 			{% endfor %}
 		</tbody>
 	</table>
+
+	{% include "components/paginator.html" %}
 {% endblock %}

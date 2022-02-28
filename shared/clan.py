@@ -34,7 +34,7 @@ def upsert(clans):
     )
 
 
-_GQL_QUERY_CLANS_PLAYERS_COUNT = gql(
+_GQL_COMPUTE_CLANS_PLAYERS_COUNT = gql(
     """
     query ($clans: [String]!) {
         queryClan(filter: {name: {in: $clans}}) {
@@ -48,7 +48,7 @@ _GQL_QUERY_CLANS_PLAYERS_COUNT = gql(
     """
 )
 
-def get_player_count(clans):
+def compute_player_count(clans):
     """
     Return a dictionary where for each given clans is associated its player
     count.
@@ -58,11 +58,41 @@ def get_player_count(clans):
         return {}
 
     clans = graphql.execute(
-        _GQL_QUERY_CLANS_PLAYERS_COUNT,
-        variable_values = { 'clans': clans }
+        _GQL_COMPUTE_CLANS_PLAYERS_COUNT,
+        variable_values = {
+            'clans': clans
+        }
     )['queryClan']
 
     return { clan['name']: clan['playersAggregate']['count'] for clan in clans }
+
+
+_GQL_GET_CLAN_PLAYERS_COUNT = gql(
+    """
+    query ($name: String!) {
+        getClan(name: $name) {
+            playersCount
+        }
+    }
+    """
+)
+
+def get_player_count(name: str) -> str:
+    """
+    Return clan player count or None if any.
+    """
+
+    clan = graphql.execute(
+        _GQL_GET_CLAN_PLAYERS_COUNT,
+        variable_values = {
+            'name': name
+        }
+    )['getClan']
+
+    if not clan:
+        return None
+
+    return clan['playersCount']
 
 
 _GQL_UPDATE_CLAN_PLAYERS_COUNT = gql(

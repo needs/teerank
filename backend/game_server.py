@@ -374,5 +374,5 @@ class GameServer(Server):
             # Set clans playersCount.
             #
 
-            for clan, count in shared.clan.get_player_count(list(unique_clans)).items():
+            for clan, count in shared.clan.compute_player_count(list(unique_clans)).items():
                 shared.clan.set_player_count(clan, count)

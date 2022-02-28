@@ -386,34 +386,34 @@ tr.spectator td img {
 /* Clan list */
 
 /* Name */
-.clanlist th:nth-child(1),
-.clanlist td:nth-child(1) {
+.clanlist th:nth-child(2),
+.clanlist td:nth-child(2) {
 	width: 100%;
 }
 
 /* Average elo */
-.clanlist td:nth-child(2),
-.clanlist th:nth-child(2) {
+.clanlist td:nth-child(3),
+.clanlist th:nth-child(3) {
 	text-align: right;
 }
 
 /* Number of members */
-.clanlist td:nth-child(3),
-.clanlist th:nth-child(3) {
+.clanlist td:nth-child(4),
+.clanlist th:nth-child(4) {
 	text-align: center;
 }
 
 /* Activity */
-.clanlist td:nth-child(4),
-.clanlist th:nth-child(4) {
+.clanlist td:nth-child(5),
+.clanlist th:nth-child(5) {
 	text-align: left;
 }
 
 /* Server list */
 
 /* Name */
-.serverlist td:nth-child(1),
-.serverlist th:nth-child(1) {
+.serverlist td:nth-child(2),
+.serverlist th:nth-child(2) {
 	max-width: 0;
 	width: 100%;
 	white-space: nowrap;
@@ -422,9 +422,15 @@ tr.spectator td img {
 	text-align: left;
 }
 
+/* Players */
+.serverlist td:nth-child(5),
+.serverlist th:nth-child(5) {
+	text-align: center;
+}
+
 /* Gamtype, map, players */
 .serverlist th, .serverlist td {
-	text-align: right;
+	text-align: left;
 }
 
 .maplist th, .maplist td {

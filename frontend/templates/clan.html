@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ clan['name'] }} - Clan
+{% endblock %}
+
+{% block tab %}
+<a>Clan</a><a>{{ clan['name'] }}</a>
+{% endblock %}
+
+{% block content %}
+	<h2>{{ clan['name'] }}</h2>
+	<table class="playerlist">
+		<thead>
+			<tr>
+				<th></th>
+				<th>Name</th>
+				<th>Clan</th>
+				<th>Elo</th>
+				<th>Last seen</th>
+			</tr>
+		</thead>
+
+		<tbody>
+			{% for player in clan['players'] %}
+			<tr>
+				<td>{{ loop.index0 + 1 }}</td>
+				<td><a href="{{ url_for('player', name=player['name']) }}">{{ player['name'] }}</a></td>
+				<td><a href="{{ url_for('clan', name=clan['name']) }}">{{ clan['name'] }}</a></td>
+				<td>0</td>
+				<td>0</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% endblock %}

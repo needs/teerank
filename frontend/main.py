@@ -9,6 +9,7 @@ from gql import gql
 from shared.database import graphql
 import shared.game_server
 import shared.player
+import shared.clan
 
 app = Flask(__name__)
 
@@ -116,12 +117,46 @@ def clans():
     )
 
 
+_GQL_GET_CLAN = gql(
+    """
+    query($name: String!) {
+        getClan(name: $name) {
+            name
+
+            players {
+                name
+            }
+        }
+    }
+    """
+)
+
 @app.route("/clan")
 def clan():
     """
     Show a single clan.
     """
-    pass
+
+    name = request.args.get('name', default=None, type=str)
+
+    clan = graphql.execute(
+        _GQL_GET_CLAN,
+        variable_values = {
+            'name': name
+        }
+    )['getClan']
+
+    if not clan:
+        abort(404)
+
+    return render_template(
+        'clan.html',
+        tab = {
+            'type': 'custom'
+        },
+        clan=clan,
+        main_game_types=main_game_types
+    )
 
 
 _GQL_QUERY_SERVERS = gql(

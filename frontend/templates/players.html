@@ -25,7 +25,7 @@
 		<tbody>
 			{% for player in players %}
 			<tr>
-				<td>{{ 1 }}</td>
+				<td>{{ loop.index0 + paginator['offset'] + 1 }}</td>
 				<td><a href="{{ url_for('player', name=player['name']) }}">{{ player['name'] }}</a></td>
 				<td><a href="{{ url_for('clan', name=player['clan']['name']) }}">{{ player['clan']['name'] }}</a></td>
 				<td>{{ 1 }}</td>

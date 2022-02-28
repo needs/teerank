@@ -21,7 +21,7 @@
 		<tbody>
 			{% for server in servers %}
 			<tr>
-				<td>{{ 1 }}</td>
+				<td>{{ loop.index0 + paginator['offset'] + 1 }}</td>
 				<td><a href="{{ url_for('server', address=server['address']) }}">{{ server['name'] }}</a></td>
 				<td>{{ server['gameType'] }}</td>
 				<td>{{ server['map'] }}</td>

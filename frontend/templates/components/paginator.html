@@ -1,5 +1,5 @@
 <nav class="pages">
-	{% for link in paginator %}
+	{% for link in paginator['links'] %}
 		{% if link['type'] == '...' %}
 			<span>...</span>
 		{% elif link['type'] == 'current' %}

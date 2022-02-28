@@ -50,6 +50,9 @@ def _section_tab(type: str) -> dict:
     }
 
 
+def clamp(minval, maxval, val):
+    return max(minval, min(maxval, val))
+
 PAGE_SIZE = 100
 PAGE_SPREAD = 2
 
@@ -70,7 +73,8 @@ def _paginator(count: int) -> dict:
     except:
         page = 1
 
-    last_page = int((count - 1) / PAGE_SIZE)
+    last_page = int((count - 1) / PAGE_SIZE) + 1
+    page = clamp(1, last_page, page)
 
     # Add the "Previous" button.
 
@@ -149,13 +153,17 @@ def _paginator(count: int) -> dict:
         'href': url_for(endpoint, page=page+1, **args) if page < last_page else None
     })
 
-    return links
+    return {
+        'first': PAGE_SIZE,
+        'offset': (page - 1) * PAGE_SIZE,
+        'links': links
+    }
 
 
 _GQL_QUERY_PLAYERS = gql(
     """
-    query {
-        queryPlayer {
+    query($first: Int!, $offset: Int!) {
+        queryPlayer(first: $first, offset: $offset) {
             name
             clan {
                 name
@@ -175,8 +183,15 @@ def players():
     map_name = request.args.get('map', default=None, type = str)
 
     section_tab = _section_tab('players')
+    paginator = _paginator(section_tab['players_count'])
 
-    result = graphql.execute(_GQL_QUERY_PLAYERS)
+    result = graphql.execute(
+        _GQL_QUERY_PLAYERS,
+        variable_values = {
+            'offset': paginator['offset'],
+            'first': paginator['first']
+        }
+    )
 
     return render_template(
         'players.html',
@@ -187,7 +202,7 @@ def players():
         },
 
         section_tab = section_tab,
-        paginator = _paginator(section_tab['players_count']),
+        paginator = paginator,
 
         game_type=game_type,
         map_name=map_name,
@@ -220,8 +235,8 @@ def player():
 
 _GQL_QUERY_CLANS = gql(
     """
-    query {
-        queryClan {
+    query($first: Int!, $offset: Int!) {
+        queryClan(first: $first, offset: $offset, order: {desc: playersCount}) {
             name
             playersCount
         }
@@ -239,8 +254,15 @@ def clans():
     map_name = request.args.get('map', default=None, type = str)
 
     section_tab = _section_tab('clans')
+    paginator = _paginator(section_tab['clans_count'])
 
-    result = graphql.execute(_GQL_QUERY_CLANS)
+    result = graphql.execute(
+        _GQL_QUERY_CLANS,
+        variable_values = {
+            'offset': paginator['offset'],
+            'first': paginator['first']
+        }
+    )
 
     return render_template(
         'clans.html',
@@ -251,7 +273,7 @@ def clans():
         },
 
         section_tab = section_tab,
-        paginator = _paginator(section_tab['clans_count']),
+        paginator = paginator,
 
         game_type=game_type,
         map_name=map_name,
@@ -304,8 +326,8 @@ def clan():
 
 _GQL_QUERY_SERVERS = gql(
     """
-    query {
-        queryGameServer(order: {desc: numClients}) {
+    query($first: Int!, $offset: Int!) {
+        queryGameServer(first: $first, offset: $offset, order: {desc: numClients}) {
             address
             name
             map
@@ -327,8 +349,15 @@ def servers():
     map_name = request.args.get('map', default=None, type = str)
 
     section_tab = _section_tab('servers')
+    paginator = _paginator(section_tab['servers_count'])
 
-    result = graphql.execute(_GQL_QUERY_SERVERS)
+    result = graphql.execute(
+        _GQL_QUERY_SERVERS,
+        variable_values = {
+            'offset': paginator['offset'],
+            'first': paginator['first']
+        }
+    )
 
     return render_template(
         'servers.html',
@@ -339,7 +368,7 @@ def servers():
         },
 
         section_tab = section_tab,
-        paginator = _paginator(section_tab['servers_count']),
+        paginator = paginator,
 
         game_type=game_type,
         map_name=map_name,

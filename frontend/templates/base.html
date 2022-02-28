@@ -81,34 +81,6 @@
 			</nav>
 
 			<section>
-				{% if section_tab is defined %}
-				<nav class="section_tabs">
-					{% if section_tab['type'] == 'players' %}
-					<a class="enabled">
-					{% else %}
-					<a href="{{ url_for('players') }}">
-					{% endif %}
-						Players<small>{{ section_tab['players_count'] }}</small>
-					</a>
-
-					{% if section_tab['type'] == 'clans' %}
-					<a class="enabled">
-					{% else %}
-					<a href="{{ url_for('clans') }}">
-					{% endif %}
-						Clans<small>{{ section_tab['clans_count'] }}</small>
-					</a>
-
-					{% if section_tab['type'] == 'servers' %}
-					<a class="enabled">
-					{% else %}
-					<a href="{{ url_for('servers') }}">
-					{% endif %}
-						Servers<small>{{ section_tab['servers_count'] }}</small>
-					</a>
-				</nav>
-				{% endif %}
-
 				{% block content %}{% endblock %}
 			</section>
 

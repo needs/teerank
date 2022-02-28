@@ -337,17 +337,26 @@ class GameServer(Server):
 
             shared.clan.upsert([{'name': clan} for clan in unique_clans])
 
-            players = []
+            #
+            # Update player one by one.  It looks tempting to update all players
+            # with a single upsert, but it doesn't work without some more
+            # preprocessing on our side because such upsert will fail if there
+            # are players with the same name.
+            #
+            # When two players tries to connect to a server, they are both
+            # reported as (connecting) by the server, and that's how we can end
+            # up having two players with the same name.
+            #
 
             for client in state['clients']:
                 clan_ref = { 'name': client['clan']['name'] } if client['clan'] else None
 
-                players.append({
+                player = {
                     'name': client['player']['name'],
                     'clan': clan_ref
-                })
+                }
 
-            shared.player.upsert(players)
+                shared.player.upsert([player])
 
             #
             # Query clans playersCount.

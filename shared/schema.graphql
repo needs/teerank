@@ -16,6 +16,7 @@ type Client {
 	country: Int
 	score: Int!
 	ingame: Boolean!
+	gameServer: GameServer!
 }
 
 type GameServer {
@@ -32,5 +33,5 @@ type GameServer {
 	numClients: Int
 	maxClients: Int
 
-	clients: [Client]
+	clients: [Client] @hasInverse(field: gameServer)
 }

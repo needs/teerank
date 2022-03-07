@@ -115,8 +115,8 @@ class GameServer(Server):
         self.state = self._state_new
         self._state_new = None
 
-        shared.game_server.set(self.state)
         self.process_state(self.state)
+        shared.game_server.set(self.state)
 
         # Rank players after saving server so that player already exist in the
         # database.
@@ -194,7 +194,8 @@ class GameServer(Server):
                 'clan': shared.clan.ref(packet.unpack()),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
-                'ingame': bool(packet.unpack_int())
+                'ingame': bool(packet.unpack_int()),
+                'gameServer': shared.game_server.ref(self.address)
             })
 
         return state
@@ -232,7 +233,8 @@ class GameServer(Server):
                 'clan': shared.clan.ref(packet.unpack()),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
-                'ingame': bool(packet.unpack_int())
+                'ingame': bool(packet.unpack_int()),
+                'gameServer': shared.game_server.ref(self.address)
             })
 
         return state
@@ -269,7 +271,8 @@ class GameServer(Server):
                 'clan': shared.clan.ref(packet.unpack()),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
-                'ingame': bool(packet.unpack_int())
+                'ingame': bool(packet.unpack_int()),
+                'gameServer': shared.game_server.ref(self.address)
             })
             packet.unpack() # Reserved
 
@@ -296,7 +299,8 @@ class GameServer(Server):
                 'clan': shared.clan.ref(packet.unpack()),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
-                'ingame': bool(packet.unpack_int())
+                'ingame': bool(packet.unpack_int()),
+                'gameServer': shared.game_server.ref(self.address)
             })
             packet.unpack() # Reserved
 
@@ -322,11 +326,10 @@ class GameServer(Server):
             players_clan = shared.player.get_clan(players_name)
 
             #
-            # Create new clans and update players clan.
+            # Create new clans.
             #
-            # Since player clan have a @hasInverse() pointing to the clan player
-            # list, updating players clan automatically updates clan players list
-            # as well.
+            # Do this before updating players so that player can reference new
+            # clans.
             #
 
             unique_clans = set()
@@ -349,14 +352,10 @@ class GameServer(Server):
             #
 
             for client in state['clients']:
-                clan_ref = { 'name': client['clan']['name'] } if client['clan'] else None
-
-                player = {
+                shared.player.upsert({
                     'name': client['player']['name'],
-                    'clan': clan_ref
-                }
-
-                shared.player.upsert([player])
+                    'clan': client['clan']
+                })
 
             #
             # Query clans playersCount.

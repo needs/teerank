@@ -6,6 +6,11 @@ from gql import gql
 from shared.database import graphql
 
 
+def ref(address):
+    """Create a game server reference from the given address."""
+    return { 'address': address } if address else None
+
+
 _GQL_QUERY_SERVERS = gql(
     """
     query {
@@ -68,16 +73,13 @@ def get(address: str, clients_order={'desc': 'score'}) -> dict:
     Get the game server with the given address.
     """
 
-    try:
-        server = graphql.execute(
-            _GQL_GET_SERVER,
-            variable_values = {
-                'address': address,
-                'clientsOrder': clients_order
-            }
-        )['getGameServer']
-    except:
-        return {}
+    server = graphql.execute(
+        _GQL_GET_SERVER,
+        variable_values = {
+            'address': address,
+            'clientsOrder': clients_order
+        }
+    )['getGameServer']
 
     return server if server else {}
 
@@ -92,19 +94,11 @@ _GQL_SET_SERVER = gql(
         }
     }
 
-    mutation replaceClients($clientsToAdd: [AddClientInput!]!, $clientsToRemove: [ID!]) {
-        addClient(input: $clientsToAdd) {
-            client {
-                id
-            }
-        }
-        deleteClient(filter: {id: $clientsToRemove}) {
+    mutation setServer($server: AddGameServerInput!, $clientsToRemove: [ID!]) {
+        addGameServer(input: [$server], upsert: true) {
             numUids
         }
-    }
-
-    mutation upsertGameServer($server: AddGameServerInput!) {
-        addGameServer(input: [$server], upsert: true) {
+        deleteClient(filter: {id: $clientsToRemove}) {
             numUids
         }
     }
@@ -132,21 +126,11 @@ def set(server: dict) -> None:
     else:
         clients_to_remove = [client['id'] for client in clients_to_remove['clients']]
 
-    server = server.copy()
-
-    server['clients'] = graphql.execute(
-        _GQL_SET_SERVER,
-        operation_name = 'replaceClients',
-        variable_values = {
-            'clientsToRemove': clients_to_remove,
-            'clientsToAdd': server['clients']
-        }
-    )['addClient']['client']
-
     graphql.execute(
         _GQL_SET_SERVER,
-        operation_name = 'upsertGameServer',
+        operation_name = 'setServer',
         variable_values = {
-            'server': server
+            'server': server,
+            'clientsToRemove': clients_to_remove
         }
     )

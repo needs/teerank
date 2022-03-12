@@ -63,7 +63,7 @@ def rank(old: dict, new: dict) -> bool:
 
     # Create a list of all players that are ingame in both old and new state.
 
-    clients = {}
+    clients = defaultdict(lambda: dict())
 
     for client in old['clients']:
         clients[client['player']['name']]['old'] = client

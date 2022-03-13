@@ -57,12 +57,12 @@ def compute_player_count(clans):
     if not clans:
         return {}
 
-    clans = graphql.execute(
+    clans = dict(graphql.execute(
         _GQL_COMPUTE_CLANS_PLAYERS_COUNT,
         variable_values = {
             'clans': clans
         }
-    )['queryClan']
+    ))['queryClan']
 
     return { clan['name']: clan['playersAggregate']['count'] for clan in clans }
 
@@ -82,12 +82,12 @@ def get_player_count(name: str) -> str:
     Return clan player count or None if any.
     """
 
-    clan = graphql.execute(
+    clan = dict(graphql.execute(
         _GQL_GET_CLAN_PLAYERS_COUNT,
         variable_values = {
             'name': name
         }
-    )['getClan']
+    ))['getClan']
 
     if not clan:
         return None
@@ -116,4 +116,3 @@ def set_player_count(clan, count):
         _GQL_UPDATE_CLAN_PLAYERS_COUNT,
         variable_values = { 'clan': clan, 'count': count }
     )
-

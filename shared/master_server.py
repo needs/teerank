@@ -2,7 +2,7 @@
 Helpers for master server.
 """
 
-def all() -> list[str]:
+def all_addresses() -> list[str]:
     """
     Get the list of all master servers address.
     """

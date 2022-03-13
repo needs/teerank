@@ -9,8 +9,6 @@ from backend.packet import Packet
 from backend.server_pool import server_pool
 from backend.game_server import GameServer
 
-import shared.master_server
-
 
 class MasterServer(Server):
     """

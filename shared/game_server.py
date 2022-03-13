@@ -26,9 +26,9 @@ def all_addresses() -> list[str]:
     Get the list of all game servers addresses.
     """
 
-    servers = graphql.execute(
+    servers = dict(graphql.execute(
         _GQL_QUERY_SERVERS
-    )['queryGameServer']
+    ))['queryGameServer']
 
     return [server['address'] for server in servers]
 
@@ -68,18 +68,21 @@ _GQL_GET_SERVER = gql(
     """
 )
 
-def get(address: str, clients_order={'desc': 'score'}) -> dict:
+def get(address: str, clients_order=None) -> dict:
     """
     Get the game server with the given address.
     """
 
-    server = graphql.execute(
+    if clients_order is None:
+        clients_order = {'desc': 'score'}
+
+    server = dict(graphql.execute(
         _GQL_GET_SERVER,
         variable_values = {
             'address': address,
             'clientsOrder': clients_order
         }
-    )['getGameServer']
+    ))['getGameServer']
 
     return server if server else {}
 
@@ -105,7 +108,7 @@ _GQL_SET_SERVER = gql(
     """
 )
 
-def set(server: dict) -> None:
+def upsert(server: dict) -> None:
     """
     Update the given server.  Replace its clients list.
     """
@@ -113,13 +116,13 @@ def set(server: dict) -> None:
     # An upsert mutation adds clients to the existing clients list.  Therefor we
     # need to remove old clients, and for that we need to get their IDs.
 
-    clients_to_remove = graphql.execute(
+    clients_to_remove = dict(graphql.execute(
         _GQL_SET_SERVER,
         operation_name = 'queryClients',
         variable_values = {
             'address': server['address']
         }
-    )['getGameServer']
+    ))['getGameServer']
 
     if not clients_to_remove:
         clients_to_remove = []

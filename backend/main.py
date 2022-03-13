@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     graphql_set_schema()
 
-    for address in shared.master_server.all():
+    for address in shared.master_server.all_addresses():
         server_pool.add(MasterServer(address))
 
     for address in shared.game_server.all_addresses():

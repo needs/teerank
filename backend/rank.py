@@ -63,7 +63,7 @@ def rank(old: dict, new: dict) -> bool:
 
     # Create a list of all players that are ingame in both old and new state.
 
-    clients = defaultdict(lambda: dict())
+    clients = defaultdict(dict)
 
     for client in old['clients']:
         clients[client['player']['name']]['old'] = client
@@ -72,8 +72,13 @@ def rank(old: dict, new: dict) -> bool:
 
     players = []
 
-    for name, client in clients.items():
-        if 'old' in client and 'new' in client and client['old']['ingame'] and client['new']['ingame']:
+    for client in clients.values():
+        if all((
+            'old' in client,
+            client['old']['ingame'],
+            'new' in client,
+            client['new']['ingame']
+        )):
             players.append(_Player(client['old'], client['new']))
 
     if len(players) <= 1:
@@ -99,7 +104,7 @@ def rank(old: dict, new: dict) -> bool:
     for game_type, map_name in product((new['gameType'], None), (new['map'], None)):
 
         for player in players:
-            player.elo = shaed.player.get_elo(player.name, game_type, map_name)
+            player.elo = shared.player.get_elo(player.name, game_type, map_name)
             player.delta = 0
 
         for player1, player2 in combinations(players, 2):

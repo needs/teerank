@@ -116,7 +116,7 @@ class GameServer(Server):
         self._state_new = None
 
         self.process_state(self.state)
-        shared.game_server.set(self.state)
+        shared.game_server.upsert(self.state)
 
         # Rank players after saving server so that player already exist in the
         # database.

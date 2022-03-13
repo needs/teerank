@@ -2,23 +2,7 @@
 Test player.py
 """
 
-from shared.player import Player
-
-
-def test_player(_redis):
-    """
-    Test load and save from the database.
-    """
-
-    player = Player('player1')
-    assert not player.data
-
-    player.data = {
-        'test': 1
-    }
-
-    player.save()
-    assert player.data == Player(player.key).data
+import shared.player
 
 
 def test_player_elo(_redis):
@@ -34,6 +18,6 @@ def test_player_elo(_redis):
     )
 
     for combination in combinations:
-        assert Player.get_elo('player1', combination[0], combination[1]) == 1500
-        Player.set_elo('player1', combination[0], combination[1], 900)
-        assert Player.get_elo('player1', combination[0], combination[1]) == 900
+        assert shared.player.get_elo('player1', combination[0], combination[1]) == 1500
+        shared.player.set_elo('player1', combination[0], combination[1], 900)
+        assert shared.player.get_elo('player1', combination[0], combination[1]) == 900

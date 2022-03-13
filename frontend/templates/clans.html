@@ -7,9 +7,9 @@
 {% block tab %}
 <a>{{ name }}</a>
 {% if map_name is none %}
-	<a href="{{ url_for('maps', gametype=name) }}">All maps</a>
+	<a href="{{ url_for('route_maps', gametype=name) }}">All maps</a>
 {% else %}
-	<a href="{{ url_for('maps', gametype=name) }}">{{ map_name }}</a>
+	<a href="{{ url_for('route_maps', gametype=name) }}">{{ map_name }}</a>
 {% endif %}
 {% endblock %}
 
@@ -31,7 +31,7 @@
 			{% for clan in clans %}
 			<tr>
 				<td>{{ loop.index0 + paginator['offset'] + 1 }}</td>
-				<td><a href="{{ url_for('clan', name=clan['name']) }}">{{ clan['name'] }}</a></td>
+				<td><a href="{{ url_for('route_clan', name=clan['name']) }}">{{ clan['name'] }}</a></td>
 				<td>1500</td>
 				<td>{{ clan['playersCount'] }}</td>
 				<td><span class="years" title="19/08/2018 22h21">1 year</span></td>

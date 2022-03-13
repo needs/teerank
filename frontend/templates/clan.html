@@ -26,8 +26,8 @@
 			{% for player in clan['players'] %}
 			<tr>
 				<td>{{ loop.index0 + 1 }}</td>
-				<td><a href="{{ url_for('player', name=player['name']) }}">{{ player['name'] }}</a></td>
-				<td><a href="{{ url_for('clan', name=clan['name']) }}">{{ clan['name'] }}</a></td>
+				<td><a href="{{ url_for('route_player', name=player['name']) }}">{{ player['name'] }}</a></td>
+				<td><a href="{{ url_for('route_clan', name=clan['name']) }}">{{ clan['name'] }}</a></td>
 				<td>0</td>
 				<td>0</td>
 			</tr>

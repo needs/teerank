@@ -412,7 +412,6 @@ def route_maps():
     List of maps for a given game type.
     """
 
-
 @app.route('/gametypes')
 def route_gametypes():
     """
@@ -427,5 +426,20 @@ def route_gametypes():
         game_type=None,
         map_name=None,
         game_types=['CTF'],
+        main_game_types=main_game_types
+    )
+
+
+@app.route('/about')
+def route_about():
+    """
+    Render the about page.
+    """
+
+    return render_template(
+        'about.html',
+        tab = {
+            'type': 'about'
+        },
         main_game_types=main_game_types
     )

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}
+Status
+{% endblock %}
+
+{% block tab %}
+<a>Status</a>
+{% endblock %}
+
+{% block content %}
+	<h2>Teerank</h2>
+	<section class="status status_ok"><span>Teerank</span><span>OK</span></section>
+	<section class="status status_enabled"><span>2.x backward compatibility</span><span>Enabled</span></section>
+	<section class="status status_enabled"><span>3.x backward compatibility</span><span>Enabled</span></section>
+
+	<h2>Teeworlds</h2>
+	<section class="status status_down"><span>master1.teeworlds.com</span><span>Down</span></section>
+	<section class="status status_down"><span>master2.teeworlds.com</span><span class="comment">Since 1 month</span><span>Down</span></section>
+	<section class="status status_down"><span>master3.teeworlds.com</span><span class="comment">Since 8 months</span><span>Down</span></section>
+	<section class="status status_ok"><span>master4.teeworlds.com</span><span class="comment">20 servers</span><span>OK</span></section>
+{% endblock %}

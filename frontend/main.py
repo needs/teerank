@@ -443,3 +443,18 @@ def route_about():
         },
         main_game_types=main_game_types
     )
+
+
+@app.route('/status')
+def route_status():
+    """
+    Render the status page.
+    """
+
+    return render_template(
+        'status.html',
+        tab = {
+            'type': 'custom'
+        },
+        main_game_types=main_game_types
+    )

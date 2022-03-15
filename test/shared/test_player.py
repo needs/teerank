@@ -24,6 +24,20 @@ def test_player_elo(_redis):
         assert shared.player.get_elo('player1', combination[0], combination[1]) == 900
 
 
+def test_player_unescaped_name(_graphql):
+    """
+    Some strange string can confuse Dgraph parser.  Make sure Dgraph accept the
+    request.
+    """
+
+    player = {
+        'name': r'\U000e0021',
+        'clan': shared.clan.ref(None)
+    }
+
+    shared.player.upsert(player)
+
+
 def test_player_add(_graphql):
     """
     Test that upsert add a player when the player does not exist.

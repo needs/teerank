@@ -135,7 +135,7 @@ def up(address: str, game_servers_addresses: set[str]) -> None:
 
 _GQL_DOWN = gql(
     """
-    query toRemove($address: String!) {
+    query get($address: String!) {
         getMasterServer(address: $address) {
             downSince
             gameServers {
@@ -163,7 +163,7 @@ def down(address: str) -> None:
 
     master_server = dict(graphql.execute(
         _GQL_DOWN,
-        operation_name = 'toRemove',
+        operation_name = 'get',
         variable_values = {
             'address': address
         }

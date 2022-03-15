@@ -18,7 +18,9 @@ Status
 	{% for master_server in master_servers %}
 		<section class="status status_{{ master_server['status_class'] }}">
 			<span>{{ master_server['address'] }}</span>
+			{% if master_server['comment'] %}
 			<span class="comment">{{ master_server['comment'] }}</span>
+			{% endif %}
 			<span>{{ master_server['status'] }}</span>
 		</section>
 	{% endfor %}

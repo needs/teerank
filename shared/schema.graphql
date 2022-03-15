@@ -21,6 +21,8 @@ type Client {
 
 type MasterServer {
 	address: String! @id
+	gameServers: [GameServer]
+	downSince: DateTime
 }
 
 type GameServer {
@@ -38,4 +40,5 @@ type GameServer {
 	maxClients: Int
 
 	clients: [Client] @hasInverse(field: gameServer)
+	masterServers: [MasterServer] @hasInverse(field: gameServers)
 }

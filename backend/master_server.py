@@ -22,8 +22,8 @@ class MasterServer(Server):
         """
 
         super().__init__(address)
-        shared.master_server.upsert({'address': self.address})
-        self._packet_count = None
+        self._is_up = False
+        self._game_servers_addresses = None
 
 
     def start_polling(self) -> list[Packet]:
@@ -31,7 +31,8 @@ class MasterServer(Server):
         Poll master server.
         """
 
-        self._packet_count = 0
+        self._is_up = False
+        self._game_servers_addresses = set()
 
         # 10 bytes of padding and the 'req2' packet type.
         return [Packet(b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xffreq2')]
@@ -46,7 +47,13 @@ class MasterServer(Server):
         # Therefor when at least one packet have been received, we considere
         # that the polling was a success and we move on.
 
-        return self._packet_count > 0
+        if not self._is_up:
+            shared.master_server.down(self.address)
+            return False
+
+        shared.master_server.up(self.address, self._game_servers_addresses)
+
+        return True
 
 
     def process_packet(self, packet: Packet) -> None:
@@ -55,6 +62,8 @@ class MasterServer(Server):
 
         Add any game server not yet in the server pool.
         """
+
+        self._is_up = True
 
         packet.unpack_bytes(10) # Padding
         packet_type = packet.unpack_bytes(4)
@@ -75,4 +84,4 @@ class MasterServer(Server):
                 if address != self.address and address not in server_pool:
                     server_pool.add(GameServer(address))
 
-            self._packet_count += 1
+                self._game_servers_addresses.add(address)

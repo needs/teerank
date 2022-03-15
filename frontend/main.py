@@ -2,6 +2,8 @@
 Launch frontend application.
 """
 
+import datetime
+
 from flask import Flask, render_template, url_for
 from flask import request, abort
 from gql import gql
@@ -446,23 +448,40 @@ def route_about():
     )
 
 
+_GQL_QUERY_MASTER_SERVERS = gql(
+    """
+    query {
+        queryMasterServer {
+            address
+            downSince
+            gameServersAggregate {
+                count
+            }
+        }
+    }
+    """
+)
+
 @app.route('/status')
 def route_status():
     """
     Render the status page.
     """
 
-    master_servers = shared.master_server.get_all()
+    master_servers = dict(graphql.execute(
+        _GQL_QUERY_MASTER_SERVERS
+    ))['queryMasterServer']
 
-    for i, master_server in enumerate(master_servers):
-        if i % 2 == 0:
+    for master_server in master_servers:
+        if master_server['downSince']:
             master_server['status'] = 'Down'
             master_server['status_class'] = 'down'
-            master_server['comment'] = 'Since 1 month'
+            if master_server['downSince'] != datetime.datetime.min.isoformat() + 'Z':
+                master_server['comment'] = master_server['downSince']
         else:
             master_server['status'] = 'OK'
             master_server['status_class'] = 'ok'
-            master_server['comment'] = '20 servers'
+            master_server['comment'] = f'{master_server["gameServersAggregate"]["count"]} servers'
 
     return render_template(
         'status.html',

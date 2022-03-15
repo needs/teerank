@@ -15,7 +15,7 @@ _redis = pytest_redis.factories.redisdb(
     'redis_instance'
 )
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='session', name='_graphql_start')
 def fixture_graphql_start():
     """
     Prepare Dgraph to accept queries.
@@ -24,7 +24,7 @@ def fixture_graphql_start():
 
 
 @pytest.fixture(name='_graphql')
-def fixture_graphql():
+def fixture_graphql(_graphql_start):
     """
     Empty graphql before each test.
     """

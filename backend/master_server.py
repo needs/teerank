@@ -8,6 +8,7 @@ from backend.server import Server
 from backend.packet import Packet
 from backend.server_pool import server_pool
 from backend.game_server import GameServer
+import shared.master_server
 
 
 class MasterServer(Server):
@@ -21,6 +22,7 @@ class MasterServer(Server):
         """
 
         super().__init__(address)
+        shared.master_server.upsert({'address': self.address})
         self._packet_count = None
 
 

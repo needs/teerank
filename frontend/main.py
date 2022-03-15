@@ -8,6 +8,7 @@ from gql import gql
 
 from shared.database import graphql
 import shared.game_server
+import shared.master_server
 import shared.player
 import shared.clan
 
@@ -451,10 +452,23 @@ def route_status():
     Render the status page.
     """
 
+    master_servers = shared.master_server.get_all()
+
+    for i, master_server in enumerate(master_servers):
+        if i % 2 == 0:
+            master_server['status'] = 'Down'
+            master_server['status_class'] = 'down'
+            master_server['comment'] = 'Since 1 month'
+        else:
+            master_server['status'] = 'OK'
+            master_server['status_class'] = 'ok'
+            master_server['comment'] = '20 servers'
+
     return render_template(
         'status.html',
         tab = {
             'type': 'custom'
         },
+        master_servers = master_servers,
         main_game_types=main_game_types
     )

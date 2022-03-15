@@ -1,2 +1,2 @@
 [pylint]
-good-names=ip, i, j, k, _
+good-names=ip, i, j, k, _, up

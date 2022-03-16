@@ -9,6 +9,14 @@ from shared.database import graphql
 import shared.game_server
 
 
+DEFAULT_ADDRESSES = [
+    'master1.teeworlds.com:8300',
+    'master2.teeworlds.com:8300',
+    'master3.teeworlds.com:8300',
+    'master4.teeworlds.com:8300'
+]
+
+
 _GQL_CREATE = gql(
     """
     mutation($masterServer: AddMasterServerInput!) {
@@ -19,7 +27,7 @@ _GQL_CREATE = gql(
     """
 )
 
-def _create(address: str) -> None:
+def create(address: str) -> None:
     """
     Create a new master server with the given address.
     """
@@ -59,15 +67,10 @@ def all_addresses() -> list[str]:
     addresses = [server['address'] for server in servers]
 
     if not addresses:
-        addresses = [
-            'master1.teeworlds.com:8300',
-            'master2.teeworlds.com:8300',
-            'master3.teeworlds.com:8300',
-            'master4.teeworlds.com:8300'
-        ]
+        addresses = DEFAULT_ADDRESSES
 
         for address in addresses:
-            _create(address)
+            create(address)
 
     return addresses
 
@@ -169,11 +172,11 @@ def down(address: str) -> None:
         }
     ))['getMasterServer']
 
-    to_remove = master_server.get('gameServers', [])
-    down_since = master_server.get(
-        'downSince',
-        datetime.datetime.now(datetime.timezone.utc).isoformat()
-    )
+    to_remove = master_server['gameServers']
+    down_since = master_server['downSince']
+
+    if not down_since:
+        down_since = datetime.datetime.now().isoformat()
 
     graphql.execute(
         _GQL_DOWN,

@@ -73,12 +73,12 @@ def rank(old: dict, new: dict) -> bool:
     players = []
 
     for client in clients.values():
-        if all((
-            'old' in client,
-            client['old']['ingame'],
-            'new' in client,
+        if (
+            'old' in client and
+            client['old']['ingame'] and
+            'new' in client and
             client['new']['ingame']
-        )):
+        ):
             players.append(_Player(client['old'], client['new']))
 
     if len(players) <= 1:

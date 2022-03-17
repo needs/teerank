@@ -3,6 +3,7 @@ Launch frontend application.
 """
 
 import datetime
+import re
 
 from flask import Flask, render_template, url_for
 from flask import request, abort
@@ -38,18 +39,25 @@ _GQL_QUERY_COUNTS = gql(
     """
 )
 
-def _section_tab(tab_type: str) -> dict:
+def _section_tab(tab_type: str, counts = None) -> dict:
     """
     Build a section tabs with the proper values.
     """
 
-    counts = dict(graphql.execute(_GQL_QUERY_COUNTS))
+    if counts is None:
+        results = dict(graphql.execute(_GQL_QUERY_COUNTS))
+
+        counts = {
+            'players': results['aggregatePlayer']['count'],
+            'clans': results['aggregateClan']['count'],
+            'servers': results['aggregateGameServer']['count']
+        }
 
     return {
         'type': tab_type,
-        'players_count': counts['aggregatePlayer']['count'],
-        'clans_count': counts['aggregateClan']['count'],
-        'servers_count': counts['aggregateGameServer']['count']
+        'players_count': counts['players'],
+        'clans_count': counts['clans'],
+        'servers_count': counts['servers']
     }
 
 
@@ -490,4 +498,68 @@ def route_status():
         },
         master_servers = master_servers,
         main_game_types=main_game_types
+    )
+
+
+MAX_SEARCH_RESULTS = 100
+
+_GQL_SEARCH_PLAYERS = gql(
+    """
+    query($query: String!, $first: Int!) {
+        queryPlayer(filter: { name: { regexp: $query }}, first: $first) {
+            name,
+            clan {
+                name
+            }
+        }
+    }
+    """
+)
+
+@app.route('/search')
+def route_search():
+    """
+    List of players matching the search request.
+    """
+
+    query = request.args.get('q', default='', type = str)
+
+    result = dict(graphql.execute(
+        _GQL_SEARCH_PLAYERS,
+        variable_values = {
+            'query': "/.*" + re.escape(query) + ".*/i",
+            'first': MAX_SEARCH_RESULTS + 1
+        }
+    ))
+
+    counts = {
+        'players': len(result['queryPlayer']),
+        'clans': 0,
+        'servers': 0
+    }
+
+    # Search results are not paginated in order to limit the number of searches.
+    # So when the number of search results exceed the maximum, we just add a
+    # '+'' next to the number of results.
+
+    for key, count in counts.items():
+        if count > MAX_SEARCH_RESULTS:
+            counts[key] = f'{MAX_SEARCH_RESULTS}+'
+
+    section_tab = _section_tab(
+        'players', counts
+    )
+
+    return render_template(
+        'search.html',
+
+        tab = {
+            'type': 'custom'
+        },
+
+        section_tab = section_tab,
+        query = query,
+        players = result['queryPlayer'],
+
+        main_game_types = main_game_types
     )

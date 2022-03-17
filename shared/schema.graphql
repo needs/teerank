@@ -1,5 +1,5 @@
 type Player {
-	name: String! @id
+	name: String! @id @search(by: [hash, regexp])
 	clan: Clan
 }
 

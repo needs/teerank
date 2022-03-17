@@ -12,7 +12,7 @@
 				<img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
 			</a>
 			<section>
-				<form action="{{ url_for('route_search') }}" id="searchform">
+				<form action="{{ url_for('route_players_search') }}" id="searchform">
 					<input name="q" type="text" placeholder="Search" {% if query %}value="{{ query }}"{% endif %}>
 					<input type="submit" value="">
 				</form>

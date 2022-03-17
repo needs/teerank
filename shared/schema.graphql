@@ -4,7 +4,7 @@ type Player {
 }
 
 type Clan {
-	name: String! @id
+	name: String! @id @search(by: [hash, regexp])
 	players: [Player] @hasInverse(field: clan)
 	playersCount: Int
 }
@@ -30,7 +30,7 @@ type GameServer {
 
 	type: Int
 	version: String
-	name: String
+	name: String @search(by: [hash, regexp])
 	map: String
 	gameType: String
 

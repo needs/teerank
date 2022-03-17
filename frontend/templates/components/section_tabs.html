@@ -1,25 +1,25 @@
 <nav class="section_tabs">
-	{% if section_tab['type'] == 'players' %}
+	{% if section_tab['active'] == 'players' %}
 	<a class="enabled">
 	{% else %}
-	<a href="{{ url_for('route_players') }}">
+	<a href="{{ section_tab['players']['url'] }}">
 	{% endif %}
-		Players<small>{{ section_tab['players_count'] }}</small>
+		Players<small>{{ section_tab['players']['count'] }}</small>
 	</a>
 
-	{% if section_tab['type'] == 'clans' %}
+	{% if section_tab['active'] == 'clans' %}
 	<a class="enabled">
 	{% else %}
-	<a href="{{ url_for('route_clans') }}">
+	<a href="{{ section_tab['clans']['url'] }}">
 	{% endif %}
-		Clans<small>{{ section_tab['clans_count'] }}</small>
+		Clans<small>{{ section_tab['clans']['count'] }}</small>
 	</a>
 
-	{% if section_tab['type'] == 'servers' %}
+	{% if section_tab['active'] == 'servers' %}
 	<a class="enabled">
 	{% else %}
-	<a href="{{ url_for('route_servers') }}">
+	<a href="{{ section_tab['servers']['url'] }}">
 	{% endif %}
-		Servers<small>{{ section_tab['servers_count'] }}</small>
+		Servers<small>{{ section_tab['servers']['count'] }}</small>
 	</a>
 </nav>

@@ -39,7 +39,7 @@ _GQL_QUERY_COUNTS = gql(
     """
 )
 
-def _section_tab(tab_type: str, counts = None) -> dict:
+def _section_tab(active: str, counts = None, urls = None) -> dict:
     """
     Build a section tabs with the proper values.
     """
@@ -53,11 +53,28 @@ def _section_tab(tab_type: str, counts = None) -> dict:
             'servers': results['aggregateGameServer']['count']
         }
 
+    if urls is None:
+        urls = {
+            'players': url_for('route_players'),
+            'clans': url_for('route_clans'),
+            'servers': url_for('route_servers')
+        }
+
     return {
-        'type': tab_type,
-        'players_count': counts['players'],
-        'clans_count': counts['clans'],
-        'servers_count': counts['servers']
+        'active': active,
+
+        'players': {
+            'url': urls['players'],
+            'count': counts['players']
+        },
+        'clans': {
+            'url': urls['clans'],
+            'count': counts['clans']
+        },
+        'servers': {
+            'url': urls['servers'],
+            'count': counts['servers']
+        }
     }
 
 
@@ -197,7 +214,7 @@ def route_players():
     map_name = request.args.get('map', default=None, type = str)
 
     section_tab = _section_tab('players')
-    paginator = _paginator(section_tab['players_count'])
+    paginator = _paginator(section_tab['players']['count'])
 
     result = dict(graphql.execute(
         _GQL_QUERY_PLAYERS,
@@ -268,7 +285,7 @@ def route_clans():
     map_name = request.args.get('map', default=None, type = str)
 
     section_tab = _section_tab('clans')
-    paginator = _paginator(section_tab['clans_count'])
+    paginator = _paginator(section_tab['clans']['count'])
 
     result = dict(graphql.execute(
         _GQL_QUERY_CLANS,
@@ -367,7 +384,7 @@ def route_servers():
     map_name = request.args.get('map', default=None, type = str)
 
     section_tab = _section_tab('servers')
-    paginator = _paginator(section_tab['servers_count'])
+    paginator = _paginator(section_tab['servers']['count'])
 
     result = dict(graphql.execute(
         _GQL_QUERY_SERVERS,
@@ -503,55 +520,111 @@ def route_status():
 
 MAX_SEARCH_RESULTS = 100
 
-_GQL_SEARCH_PLAYERS = gql(
+_GQL_SEARCH = gql(
     """
-    query($query: String!, $first: Int!) {
+    query counts($query: String!) {
+        aggregatePlayer(filter: { name: { regexp: $query }}) {
+            count
+        }
+        aggregateClan(filter: { name: { regexp: $query }}) {
+            count
+        }
+        aggregateGameServer(filter: { name: { regexp: $query }}) {
+            count
+        }
+    }
+
+    query searchPlayers($query: String!, $first: Int!) {
         queryPlayer(filter: { name: { regexp: $query }}, first: $first) {
-            name,
+            name
             clan {
                 name
             }
         }
     }
+
+    query searchClans($query: String!, $first: Int!) {
+        queryClan(
+            filter: { name: { regexp: $query }},
+            first: $first,
+            order: { desc: playersCount }
+        ) {
+            name
+            playersCount
+        }
+    }
+
+    query searchServers($query: String!, $first: Int!) {
+        queryGameServer(
+            filter: { name: { regexp: $query }},
+            first: $first,
+            order: { desc: numClients }
+        ) {
+            address
+            name
+            gameType
+            map
+            numClients
+            maxClients
+        }
+    }
     """
 )
 
-@app.route('/search')
-def route_search():
+def search(template_name, section_tab_active, operation_name, query_name):
     """
-    List of players matching the search request.
+    Search for the given category.
     """
 
     query = request.args.get('q', default='', type = str)
+    regexp = '/.*' + re.escape(query) + '.*/i'
 
-    result = dict(graphql.execute(
-        _GQL_SEARCH_PLAYERS,
+    # Count the number of results for players, clans and servers.  If the count
+    # exceed the maximum, add a '+' after.
+
+    counts_results = dict(graphql.execute(
+        _GQL_SEARCH,
+        operation_name = 'counts',
         variable_values = {
-            'query': "/.*" + re.escape(query) + ".*/i",
-            'first': MAX_SEARCH_RESULTS + 1
+            'query': regexp
         }
     ))
 
     counts = {
-        'players': len(result['queryPlayer']),
-        'clans': 0,
-        'servers': 0
+        'players': counts_results['aggregatePlayer']['count'],
+        'clans': counts_results['aggregateClan']['count'],
+        'servers': counts_results['aggregateGameServer']['count']
     }
-
-    # Search results are not paginated in order to limit the number of searches.
-    # So when the number of search results exceed the maximum, we just add a
-    # '+'' next to the number of results.
 
     for key, count in counts.items():
         if count > MAX_SEARCH_RESULTS:
             counts[key] = f'{MAX_SEARCH_RESULTS}+'
 
+    # Do the real search query.
+
+    results = dict(graphql.execute(
+        _GQL_SEARCH,
+        operation_name = operation_name,
+        variable_values = {
+            'query': regexp,
+            'first': MAX_SEARCH_RESULTS
+        }
+    ))[query_name]
+
+    # Build the page.
+
+    urls = {
+        'players': url_for('route_players_search', q = query),
+        'clans': url_for('route_clans_search', q = query),
+        'servers': url_for('route_servers_search', q = query)
+    }
+
     section_tab = _section_tab(
-        'players', counts
+        section_tab_active, counts, urls
     )
 
     return render_template(
-        'search.html',
+        template_name,
 
         tab = {
             'type': 'custom'
@@ -559,7 +632,34 @@ def route_search():
 
         section_tab = section_tab,
         query = query,
-        players = result['queryPlayer'],
+        results = results,
 
         main_game_types = main_game_types
     )
+
+
+@app.route('/players/search')
+def route_players_search():
+    """
+    List of players matching the search query.
+    """
+
+    return search('search_players.html', 'players', 'searchPlayers', 'queryPlayer')
+
+
+@app.route('/clans/search')
+def route_clans_search():
+    """
+    List of clans matching the search query.
+    """
+
+    return search('search_clans.html', 'clans', 'searchClans', 'queryClan')
+
+
+@app.route('/servers/search')
+def route_servers_search():
+    """
+    List of servers matching the search query.
+    """
+
+    return search('search_servers.html', 'servers', 'searchServers', 'queryGameServer')

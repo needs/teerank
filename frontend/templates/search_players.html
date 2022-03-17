@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-Search - Players
+Search - {{ query }}
 {% endblock %}
 
 {% block tab %}
@@ -27,7 +27,7 @@ Search - Players
 		</thead>
 
 		<tbody>
-			{% for player in players %}
+			{% for player in results %}
 			<tr>
 				<td>{{ loop.index0 + 1 }}</td>
 				<td><a href="{{ url_for('route_player', name=player['name']) }}">{{ player['name'] }}</a></td>

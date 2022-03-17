@@ -2,7 +2,7 @@
 Test player.py
 """
 
-import shared.player
+from shared.player import get_elo, set_elo, upsert, get, get_clan
 import shared.clan
 
 
@@ -19,9 +19,9 @@ def test_player_elo(_redis):
     )
 
     for combination in combinations:
-        assert shared.player.get_elo('player1', combination[0], combination[1]) == 1500
-        shared.player.set_elo('player1', combination[0], combination[1], 900)
-        assert shared.player.get_elo('player1', combination[0], combination[1]) == 900
+        assert get_elo('player1', combination[0], combination[1]) == 1500
+        set_elo('player1', combination[0], combination[1], 900)
+        assert get_elo('player1', combination[0], combination[1]) == 900
 
 
 def test_player_unescaped_name(_graphql):
@@ -35,7 +35,7 @@ def test_player_unescaped_name(_graphql):
         'clan': shared.clan.ref(None)
     }
 
-    shared.player.upsert(player)
+    upsert(player)
 
 
 def test_player_add(_graphql):
@@ -48,9 +48,9 @@ def test_player_add(_graphql):
         'clan': shared.clan.ref(None)
     }
 
-    assert shared.player.get(player['name']) == {}
-    shared.player.upsert(player)
-    assert shared.player.get(player['name']) == player
+    assert get(player['name']) == {}
+    upsert(player)
+    assert get(player['name']) == player
 
 
 def test_player_upsert(_graphql):
@@ -63,21 +63,21 @@ def test_player_upsert(_graphql):
         'clan': shared.clan.ref(None)
     }
 
-    shared.player.upsert(player)
+    upsert(player)
 
     player = {
         'name': 'Test Player',
         'clan': shared.clan.ref('Test Clan')
     }
 
-    shared.player.upsert(player)
+    upsert(player)
 
-    assert shared.player.get(player['name']) == player
+    assert get(player['name']) == player
 
 
 def test_player_get_clan(_graphql):
     """
-    Test shared.player.get_clan()
+    Test get_clan()
     """
 
     player = {
@@ -85,5 +85,5 @@ def test_player_get_clan(_graphql):
         'clan': shared.clan.ref('Test Clan')
     }
 
-    shared.player.upsert(player)
-    assert shared.player.get_clan([player['name']]) == {player['name']: player['clan']}
+    upsert(player)
+    assert get_clan([player['name']]) == {player['name']: player['clan']}

@@ -12,7 +12,17 @@
 				<img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
 			</a>
 			<section>
-				<form action="{{ url_for('route_players_search') }}" id="searchform">
+				{% if section_tab is defined %}
+					{% if section_tab['active'] == 'clans' %}
+						<form action="{{ url_for('route_clans_search') }}" id="searchform">
+					{% elif section_tab['active'] == 'servers' %}
+						<form action="{{ url_for('route_servers_search') }}" id="searchform">
+					{% else %}
+						<form action="{{ url_for('route_players_search') }}" id="searchform">
+					{% endif %}
+				{% else %}
+					<form action="{{ url_for('route_players_search') }}" id="searchform">
+				{% endif %}
 					<input name="q" type="text" placeholder="Search" {% if query %}value="{{ query }}"{% endif %}>
 					<input type="submit" value="">
 				</form>

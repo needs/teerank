@@ -11,6 +11,7 @@ Search - {{ query }}
 {% block content %}
 	{% include "components/section_tabs.html" %}
 
+	{% if results %}
 	<table class="serverlist">
 		<thead>
 			<tr>
@@ -34,4 +35,7 @@ Search - {{ query }}
 			{% endfor %}
 		</tbody>
 	</table>
+	{% else %}
+	<p>No servers found.</p>
+	{% endif %}
 {% endblock %}

@@ -11,6 +11,7 @@ Search - {{ query }}
 {% block content %}
 	{% include "components/section_tabs.html" %}
 
+	{% if results %}
 	<table class="clanlist">
 		<thead>
 			<tr>
@@ -34,4 +35,8 @@ Search - {{ query }}
 			{% endfor %}
 		</tbody>
 	</table>
+	{% else %}
+	<p>No clans found.</p>
+	{% endif %}
+
 {% endblock %}

@@ -579,37 +579,45 @@ def search(template_name, section_tab_active, operation_name, query_name):
     query = request.args.get('q', default='', type = str)
     regexp = '/.*' + re.escape(query) + '.*/i'
 
-    # Count the number of results for players, clans and servers.  If the count
-    # exceed the maximum, add a '+' after.
+    if query == '':
+        # If nothing is done, an empty query will juste return all entries.
+        # There is no real use case for such query so instead just return
+        # nothing to avoid overcharging dgraph.
 
-    counts_results = dict(graphql.execute(
-        _GQL_SEARCH,
-        operation_name = 'counts',
-        variable_values = {
-            'query': regexp
+        counts = {
+            'players': 0,
+            'clans': 0,
+            'servers': 0
         }
-    ))
 
-    counts = {
-        'players': counts_results['aggregatePlayer']['count'],
-        'clans': counts_results['aggregateClan']['count'],
-        'servers': counts_results['aggregateGameServer']['count']
-    }
+        results = []
+    else:
+        # Count the number of results for players, clans and servers.
 
-    for key, count in counts.items():
-        if count > MAX_SEARCH_RESULTS:
-            counts[key] = f'{MAX_SEARCH_RESULTS}+'
+        counts_results = dict(graphql.execute(
+            _GQL_SEARCH,
+            operation_name = 'counts',
+            variable_values = {
+                'query': regexp
+            }
+        ))
 
-    # Do the real search query.
-
-    results = dict(graphql.execute(
-        _GQL_SEARCH,
-        operation_name = operation_name,
-        variable_values = {
-            'query': regexp,
-            'first': MAX_SEARCH_RESULTS
+        counts = {
+            'players': counts_results['aggregatePlayer']['count'],
+            'clans': counts_results['aggregateClan']['count'],
+            'servers': counts_results['aggregateGameServer']['count']
         }
-    ))[query_name]
+
+        # Do the real search query.
+
+        results = dict(graphql.execute(
+            _GQL_SEARCH,
+            operation_name = operation_name,
+            variable_values = {
+                'query': regexp,
+                'first': MAX_SEARCH_RESULTS
+            }
+        ))[query_name]
 
     # Build the page.
 
@@ -618,6 +626,13 @@ def search(template_name, section_tab_active, operation_name, query_name):
         'clans': url_for('route_clans_search', q = query),
         'servers': url_for('route_servers_search', q = query)
     }
+
+    # If the number of results exceed the maximum number of results, add a small
+    # '+' to indicate that too many results were found.
+
+    for key, count in counts.items():
+        if count > MAX_SEARCH_RESULTS:
+            counts[key] = f'{MAX_SEARCH_RESULTS}+'
 
     section_tab = _section_tab(
         section_tab_active, counts, urls

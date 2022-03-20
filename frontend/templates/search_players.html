@@ -11,36 +11,6 @@ Search - {{ query }}
 {% block content %}
 	{% include "components/section_tabs.html" %}
 
-	{% if results %}
-	<table class="playerlist">
-		<thead>
-			<tr>
-				<th></th>
-				<th>Name</th>
-				<th>Clan</th>
-				<th>Elo<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
-				<th>
-					<a href="/players/by-lastseen?p=1">
-						Last seen<img src="{{ url_for('static', filename='images/dash.png') }}">
-					</a>
-				</th>
-			</tr>
-		</thead>
-
-		<tbody>
-			{% for player in results %}
-			<tr>
-				<td>{{ loop.index0 + 1 }}</td>
-				<td><a href="{{ url_for('route_player', name=player['name']) }}">{{ player['name'] }}</a></td>
-				<td><a href="{{ url_for('route_clan', name=player['clan']['name']) }}">{{ player['clan']['name'] }}</a></td>
-				<td>{{ 1 }}</td>
-				<td><span class="years" title="19/08/2018 22h21">1 year</span></td>
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
-	{% else %}
-	<p>No players found.</p>
-	{% endif %}
-
+	{% set players = results %}
+	{% include "components/players_list.html" %}
 {% endblock %}

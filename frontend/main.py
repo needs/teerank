@@ -216,13 +216,16 @@ def route_players():
     section_tab = _section_tab('players')
     paginator = _paginator(section_tab['players']['count'])
 
-    result = dict(graphql.execute(
+    players = dict(graphql.execute(
         _GQL_QUERY_PLAYERS,
         variable_values = {
             'offset': paginator['offset'],
             'first': paginator['first']
         }
-    ))
+    ))['queryPlayer']
+
+    for i, player in enumerate(players):
+        player['rank'] = paginator['offset'] + i + 1
 
     return render_template(
         'players.html',
@@ -237,7 +240,7 @@ def route_players():
 
         game_type=game_type,
         map_name=map_name,
-        players=result['queryPlayer'],
+        players = players,
         main_game_types=main_game_types
     )
 
@@ -348,6 +351,10 @@ def route_clan():
     if not clan:
         abort(404)
 
+    for i, player in enumerate(clan['players']):
+        player['rank'] = paginator['offset'] + i + 1
+        player['clan'] = shared.clan.ref(name)
+
     return render_template(
         'clan.html',
         tab = {
@@ -355,6 +362,7 @@ def route_clan():
         },
         paginator = paginator,
         clan=clan,
+        players = clan['players'],
         main_game_types=main_game_types
     )
 

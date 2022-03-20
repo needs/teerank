@@ -522,20 +522,26 @@ MAX_SEARCH_RESULTS = 100
 
 _GQL_SEARCH = gql(
     """
-    query counts($query: String!) {
-        aggregatePlayer(filter: { name: { regexp: $query }}) {
+    query counts($regexp: String!) {
+        aggregatePlayer(filter: { name: { regexp: $regexp }}) {
             count
         }
-        aggregateClan(filter: { name: { regexp: $query }}) {
+        aggregateClan(filter: { name: { regexp: $regexp }}) {
             count
         }
-        aggregateGameServer(filter: { name: { regexp: $query }}) {
+        aggregateGameServer(filter: { name: { regexp: $regexp }}) {
             count
         }
     }
 
-    query searchPlayers($query: String!, $first: Int!) {
-        queryPlayer(filter: { name: { regexp: $query }}, first: $first) {
+    query searchPlayers(
+        $regexp: String!,
+        $first: Int!
+    ) {
+        queryPlayer(
+            filter: { name: { regexp: $regexp }},
+            first: $first
+        ) {
             name
             clan {
                 name
@@ -543,9 +549,12 @@ _GQL_SEARCH = gql(
         }
     }
 
-    query searchClans($query: String!, $first: Int!) {
+    query searchClans(
+        $regexp: String!, $
+        first: Int!
+    ) {
         queryClan(
-            filter: { name: { regexp: $query }},
+            filter: { name: { regexp: $regexp }},
             first: $first,
             order: { desc: playersCount }
         ) {
@@ -554,9 +563,12 @@ _GQL_SEARCH = gql(
         }
     }
 
-    query searchServers($query: String!, $first: Int!) {
+    query searchServers(
+        $regexp: String!,
+        $first: Int!
+    ) {
         queryGameServer(
-            filter: { name: { regexp: $query }},
+            filter: { name: { regexp: $regexp }},
             first: $first,
             order: { desc: numClients }
         ) {
@@ -577,7 +589,6 @@ def search(template_name, section_tab_active, operation_name, query_name):
     """
 
     query = request.args.get('q', default='', type = str)
-    regexp = '/.*' + re.escape(query) + '.*/i'
 
     if query == '':
         # If nothing is done, an empty query will juste return all entries.
@@ -594,11 +605,13 @@ def search(template_name, section_tab_active, operation_name, query_name):
     else:
         # Count the number of results for players, clans and servers.
 
+        query_escaped = re.escape(query)
+
         counts_results = dict(graphql.execute(
             _GQL_SEARCH,
             operation_name = 'counts',
             variable_values = {
-                'query': regexp
+                'regexp': '/.*' + query_escaped + '.*/i'
             }
         ))
 
@@ -608,16 +621,28 @@ def search(template_name, section_tab_active, operation_name, query_name):
             'servers': counts_results['aggregateGameServer']['count']
         }
 
-        # Do the real search query.
+        # Build the various regexp that are going to be given to dgraph to perform
+        # the actual search.
 
-        results = dict(graphql.execute(
-            _GQL_SEARCH,
-            operation_name = operation_name,
-            variable_values = {
-                'query': regexp,
-                'first': MAX_SEARCH_RESULTS
-            }
-        ))[query_name]
+        regexps = (
+            '/^' + query_escaped + '$/i',
+            '/^' + query_escaped + '.+/i',
+            '/.+' + query_escaped + '$/i',
+            '/.+' + query_escaped + '.+/i'
+        )
+
+        results = []
+
+        for regexp in regexps:
+            if len(results) < MAX_SEARCH_RESULTS:
+                results.extend(dict(graphql.execute(
+                    _GQL_SEARCH,
+                    operation_name = operation_name,
+                    variable_values = {
+                        'regexp': regexp,
+                        'first': MAX_SEARCH_RESULTS - len(results)
+                    }
+                ))[query_name])
 
     # Build the page.
 

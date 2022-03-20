@@ -397,13 +397,16 @@ def route_servers():
     section_tab = _section_tab('servers')
     paginator = _paginator(section_tab['servers']['count'])
 
-    result = dict(graphql.execute(
+    servers = dict(graphql.execute(
         _GQL_QUERY_SERVERS,
         variable_values = {
             'offset': paginator['offset'],
             'first': paginator['first']
         }
-    ))
+    ))['queryGameServer']
+
+    for i, server in enumerate(servers):
+        server['rank'] = paginator['offset'] + i + 1
 
     return render_template(
         'servers.html',
@@ -418,7 +421,7 @@ def route_servers():
 
         game_type=game_type,
         map_name=map_name,
-        servers=result['queryGameServer'],
+        servers = servers,
         main_game_types=main_game_types
     )
 

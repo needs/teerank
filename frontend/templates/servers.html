@@ -7,29 +7,7 @@
 {% block content %}
 	{% include "components/section_tabs.html" %}
 
-	<table class="serverlist">
-		<thead>
-			<tr>
-				<th></th>
-				<th>Name</th>
-				<th>Gametype<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
-				<th>Map<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
-				<th>Players<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
-			</tr>
-		</thead>
-
-		<tbody>
-			{% for server in servers %}
-			<tr>
-				<td>{{ loop.index0 + paginator['offset'] + 1 }}</td>
-				<td><a href="{{ url_for('route_server', address=server['address']) }}">{{ server['name'] }}</a></td>
-				<td>{{ server['gameType'] }}</td>
-				<td>{{ server['map'] }}</td>
-				<td>{{ server['numClients'] }} / {{ server['maxClients'] }}</td>
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
+	{% include "components/servers_list.html" %}
 
 	{% include "components/paginator.html" %}
 {% endblock %}

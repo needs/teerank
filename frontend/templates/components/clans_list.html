@@ -1,0 +1,27 @@
+{% if clans %}
+<table class="clanlist">
+	<thead>
+		<tr>
+			<th></th>
+			<th>Name</th>
+			<th>Elo<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
+			<th>Players<img src="{{ url_for('static', filename='images/downarrow.png') }}"></th>
+			<th>Activity<img src="{{ url_for('static', filename='images/dash.png') }}"></th>
+		</tr>
+	</thead>
+
+	<tbody>
+		{% for clan in clans %}
+		<tr>
+			<td>{{ clan['rank'] }}</td>
+			<td><a href="{{ url_for('route_clan', name=clan['name']) }}">{{ clan['name'] }}</a></td>
+			<td>1500</td>
+			<td>{{ clan['playersCount'] }}</td>
+			<td><span class="years" title="19/08/2018 22h21">1 year</span></td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p>No clans found.</p>
+{% endif %}

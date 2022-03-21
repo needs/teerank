@@ -44,7 +44,7 @@
 							</li>
 						{% else %}
 							<li>
-								<a href="{{ url_for('route_players', gametype=name) }}">{{ name }}</a>
+								<a href="{{ url_for('routes.players', gametype=name) }}">{{ name }}</a>
 							</li>
 						{% endif %}
 					{% endfor %}

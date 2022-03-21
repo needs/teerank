@@ -371,10 +371,7 @@ def route_clan():
         variable_values = {
             'name': name
         }
-    ))['getClan']
-
-    if not players_count:
-        players_count = 0
+    ))['getClan'].get('playersCount', 0)
 
     paginator = _paginator(players_count)
 

@@ -4,12 +4,28 @@ Launch frontend application.
 
 import datetime
 import re
+import logging
 
 from flask import Flask, render_template, url_for
 from flask import request, abort
-from gql import gql
+from gql import gql, Client as gql_connect
 
-from shared.database import graphql
+from gql.transport.aiohttp import AIOHTTPTransport, log as aiohttp_logger
+
+#
+# Graphql
+#
+
+graphql = gql_connect(
+    transport=AIOHTTPTransport(url='http://dgraph-alpha:8080/graphql'),
+)
+
+# By default gql is very verbose, limit logs to only warnings and above.
+aiohttp_logger.setLevel(logging.WARNING)
+
+#
+# Flask
+#
 
 app = Flask(__name__)
 

@@ -3,7 +3,7 @@ Implement clan related functions.
 """
 
 from gql import gql
-from shared.database import graphql
+from backend.database import graphql
 
 
 def ref(name):
@@ -28,7 +28,7 @@ def upsert(clans):
     Add or update the given clans.
     """
 
-    graphql.execute(
+    graphql().execute(
         _GQL_UPDATE_CLANS,
         variable_values = { 'clans': clans }
     )
@@ -57,7 +57,7 @@ def compute_player_count(clans):
     if not clans:
         return {}
 
-    clans = dict(graphql.execute(
+    clans = dict(graphql().execute(
         _GQL_COMPUTE_CLANS_PLAYERS_COUNT,
         variable_values = {
             'clans': clans
@@ -82,7 +82,7 @@ def get_player_count(name: str) -> str:
     Return clan player count or None if any.
     """
 
-    clan = dict(graphql.execute(
+    clan = dict(graphql().execute(
         _GQL_GET_CLAN_PLAYERS_COUNT,
         variable_values = {
             'name': name
@@ -112,7 +112,7 @@ def set_player_count(clan, count):
     Set player count for the given clan.
     """
 
-    graphql.execute(
+    graphql().execute(
         _GQL_UPDATE_CLAN_PLAYERS_COUNT,
         variable_values = { 'clan': clan, 'count': count }
     )

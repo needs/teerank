@@ -4,7 +4,7 @@ Test master_server.py
 
 import pytest
 from gql import gql
-from shared.database import graphql
+from backend.database import graphql
 
 from backend.database.master_server import create, all_addresses, up, down, DEFAULT_ADDRESSES
 
@@ -27,7 +27,7 @@ def get(address: str) -> dict:
     Get the master server (if any) with the specified address.
     """
 
-    return dict(graphql.execute(
+    return dict(graphql().execute(
         _GQL_GET,
         variable_values = {
             'address': address

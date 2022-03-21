@@ -5,7 +5,7 @@ Helpers for master server.
 import datetime
 
 from gql import gql
-from shared.database import graphql
+from backend.database import graphql
 import backend.database.game_server
 
 
@@ -32,7 +32,7 @@ def create(address: str) -> None:
     Create a new master server with the given address.
     """
 
-    graphql.execute(
+    graphql().execute(
         _GQL_CREATE,
         variable_values = {
             'masterServer': {
@@ -60,7 +60,7 @@ def all_addresses() -> list[str]:
     If no servers are found, return a default list of servers.
     """
 
-    servers = dict(graphql.execute(
+    servers = dict(graphql().execute(
         _GQL_ALL_ADDRESSES
     ))['queryMasterServer']
 
@@ -108,7 +108,7 @@ def up(address: str, game_servers_addresses: set[str]) -> None:
     new ones.
     """
 
-    master_server = dict(graphql.execute(
+    master_server = dict(graphql().execute(
         _GQL_UP,
         operation_name = 'get',
         variable_values = {
@@ -126,7 +126,7 @@ def up(address: str, game_servers_addresses: set[str]) -> None:
     to_remove = [ backend.database.game_server.ref(address) for address in old.difference(new) ]
     to_add = [ backend.database.game_server.ref(address) for address in new.difference(old) ]
 
-    graphql.execute(
+    graphql().execute(
         _GQL_UP,
         operation_name = 'update',
         variable_values = {
@@ -164,7 +164,7 @@ def down(address: str) -> None:
     Mark the given game server as down.
     """
 
-    master_server = dict(graphql.execute(
+    master_server = dict(graphql().execute(
         _GQL_DOWN,
         operation_name = 'get',
         variable_values = {
@@ -178,7 +178,7 @@ def down(address: str) -> None:
     if not down_since:
         down_since = datetime.datetime.now().isoformat()
 
-    graphql.execute(
+    graphql().execute(
         _GQL_DOWN,
         operation_name = 'update',
         variable_values = {

@@ -4,7 +4,7 @@ Implement Player and PlayerELO classes.
 
 from base64 import b64encode
 from gql import gql
-from shared.database import redis, graphql
+from backend.database import redis, graphql
 
 def _key(game_type: str, map_name: str) -> str:
     """
@@ -25,7 +25,7 @@ def get_elo(name: str, game_type: str, map_name: str) -> int:
     Load player ELO for the given game type and map.
     """
 
-    elo = redis.zscore(_key(game_type, map_name), name)
+    elo = redis().zscore(_key(game_type, map_name), name)
     return elo if elo else 1500
 
 
@@ -34,7 +34,7 @@ def set_elo(name: str, game_type: str, map_name: str, elo: int) -> None:
     Save player ELO for the given game type.
     """
 
-    redis.zadd(_key(game_type, map_name), {name: elo})
+    redis().zadd(_key(game_type, map_name), {name: elo})
 
 
 def ref(name):
@@ -59,7 +59,7 @@ def upsert(players):
     Add or update the given players.
     """
 
-    graphql.execute(
+    graphql().execute(
         _GQL_UPDATE_PLAYERS,
         variable_values = { 'players': players }
     )
@@ -83,7 +83,7 @@ def get_clan(players):
     Get clan for each of the given players.
     """
 
-    players = dict(graphql.execute(
+    players = dict(graphql().execute(
         _GQL_QUERY_PLAYERS_CLAN,
         variable_values = { 'players': players }
     ))['queryPlayer']
@@ -110,7 +110,7 @@ def get(name: str) -> dict:
     Get player with the given name.
     """
 
-    player = dict(graphql.execute(
+    player = dict(graphql().execute(
         _GQL_GET_PLAYER,
         variable_values = {
             'name': name,

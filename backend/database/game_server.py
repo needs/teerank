@@ -3,7 +3,7 @@ Helpers for game server.
 """
 
 from gql import gql
-from shared.database import graphql
+from backend.database import graphql
 
 
 def ref(address):
@@ -26,7 +26,7 @@ def all_addresses() -> list[str]:
     Get the list of all game servers addresses.
     """
 
-    servers = dict(graphql.execute(
+    servers = dict(graphql().execute(
         _GQL_QUERY_SERVERS
     ))['queryGameServer']
 
@@ -76,7 +76,7 @@ def get(address: str, clients_order=None) -> dict:
     if clients_order is None:
         clients_order = {'desc': 'score'}
 
-    server = dict(graphql.execute(
+    server = dict(graphql().execute(
         _GQL_GET_SERVER,
         variable_values = {
             'address': address,
@@ -116,7 +116,7 @@ def upsert(server: dict) -> None:
     # An upsert mutation adds clients to the existing clients list.  Therefor we
     # need to remove old clients, and for that we need to get their IDs.
 
-    clients_to_remove = dict(graphql.execute(
+    clients_to_remove = dict(graphql().execute(
         _GQL_SET_SERVER,
         operation_name = 'queryClients',
         variable_values = {
@@ -129,7 +129,7 @@ def upsert(server: dict) -> None:
     else:
         clients_to_remove = [client['id'] for client in clients_to_remove['clients']]
 
-    graphql.execute(
+    graphql().execute(
         _GQL_SET_SERVER,
         operation_name = 'setServer',
         variable_values = {

@@ -39,9 +39,6 @@ services:
     depends_on:
       - dgraph-alpha-test
       - redis-test
-    environment:
-      - TEERANK_REDIS_HOST=redis-test
-      - TEERANK_GRAPHQL_HOST=dgraph-alpha-test
     volumes:
       - ./frontend:/usr/src/app/frontend:ro
       - ./backend:/usr/src/app/backend:ro

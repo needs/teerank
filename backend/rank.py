@@ -7,7 +7,7 @@ from itertools import combinations, product
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-import shared.player
+import backend.database.player
 
 def _elo_delta(score1: int, elo1: int, score2: int, elo2: int) -> int:
     """
@@ -104,7 +104,7 @@ def rank(old: dict, new: dict) -> bool:
     for game_type, map_name in product((new['gameType'], None), (new['map'], None)):
 
         for player in players:
-            player.elo = shared.player.get_elo(player.name, game_type, map_name)
+            player.elo = backend.database.player.get_elo(player.name, game_type, map_name)
             player.delta = 0
 
         for player1, player2 in combinations(players, 2):
@@ -114,7 +114,7 @@ def rank(old: dict, new: dict) -> bool:
 
         for player in players:
             new_elo = player.elo + player.delta / (len(players) - 1)
-            shared.player.set_elo(player.name, game_type, map_name, new_elo)
+            backend.database.player.set_elo(player.name, game_type, map_name, new_elo)
 
             logging.info(
                 'Gametype: %s: map %s: player %s: new_elo: %d -> %d',

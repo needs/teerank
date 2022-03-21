@@ -6,7 +6,7 @@ import pytest
 from gql import gql
 from shared.database import graphql
 
-from shared.master_server import create, all_addresses, up, down, DEFAULT_ADDRESSES
+from backend.database.master_server import create, all_addresses, up, down, DEFAULT_ADDRESSES
 
 _GQL_GET = gql(
     """

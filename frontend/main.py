@@ -10,10 +10,6 @@ from flask import request, abort
 from gql import gql
 
 from shared.database import graphql
-import shared.game_server
-import shared.master_server
-import shared.player
-import shared.clan
 
 app = Flask(__name__)
 
@@ -245,6 +241,19 @@ def route_players():
     )
 
 
+_GQL_GET_PLAYER = gql(
+    """
+    query ($name: String!) {
+        getPlayer(name: $name) {
+            name
+            clan {
+                name
+            }
+        }
+    }
+    """
+)
+
 @app.route("/player")
 def route_player():
     """
@@ -252,7 +261,13 @@ def route_player():
     """
 
     name = request.args.get('name', default=None, type=str)
-    player = shared.player.get(name)
+
+    player = dict(graphql.execute(
+        _GQL_GET_PLAYER,
+        variable_values = {
+            'name': name,
+        }
+    ))['getPlayer']
 
     if not player:
         abort(404)
@@ -333,6 +348,16 @@ _GQL_GET_CLAN = gql(
     """
 )
 
+_GQL_GET_CLAN_PLAYERS_COUNT = gql(
+    """
+    query ($name: String!) {
+        getClan(name: $name) {
+            playersCount
+        }
+    }
+    """
+)
+
 @app.route("/clan")
 def route_clan():
     """
@@ -340,7 +365,18 @@ def route_clan():
     """
 
     name = request.args.get('name', default=None, type=str)
-    paginator = _paginator(shared.clan.get_player_count(name))
+
+    players_count = dict(graphql.execute(
+        _GQL_GET_CLAN_PLAYERS_COUNT,
+        variable_values = {
+            'name': name
+        }
+    ))['getClan']
+
+    if not players_count:
+        players_count = 0
+
+    paginator = _paginator(players_count)
 
     clan = dict(graphql.execute(
         _GQL_GET_CLAN,
@@ -356,7 +392,7 @@ def route_clan():
 
     for i, player in enumerate(clan['players']):
         player['rank'] = paginator['offset'] + i + 1
-        player['clan'] = shared.clan.ref(name)
+        player['clan'] = { 'name': name }
 
     return render_template(
         'clan.html',
@@ -426,6 +462,37 @@ def route_servers():
     )
 
 
+_GQL_GET_SERVER = gql(
+    """
+    query ($address: String!, $clientsOrder: ClientOrder!) {
+        getGameServer(address: $address) {
+            address
+
+            name
+            map
+            gameType
+
+            numPlayers
+            maxPlayers
+            numClients
+            maxClients
+
+            clients(order: $clientsOrder) {
+                player {
+                    name
+                }
+                clan {
+                    name
+                }
+
+                score
+                ingame
+            }
+        }
+    }
+    """
+)
+
 @app.route('/server')
 def route_server():
     """
@@ -433,7 +500,14 @@ def route_server():
     """
 
     address = request.args.get('address', default="", type=str)
-    server = shared.game_server.get(address)
+
+    server = dict(graphql.execute(
+        _GQL_GET_SERVER,
+        variable_values = {
+            'address': address,
+            'clientsOrder': {'desc': 'score'}
+        }
+    ))['getGameServer']
 
     if not server:
         abort(404)
@@ -443,7 +517,7 @@ def route_server():
         tab = {
             'type': 'custom'
         },
-        server=server,
+        server = server,
         main_game_types=main_game_types
     )
 

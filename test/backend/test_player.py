@@ -2,8 +2,8 @@
 Test player.py
 """
 
-from shared.player import get_elo, set_elo, upsert, get, get_clan
-import shared.clan
+from backend.database.player import get_elo, set_elo, upsert, get, get_clan
+import backend.database.clan
 
 
 def test_player_elo(_redis):
@@ -32,7 +32,7 @@ def test_player_unescaped_name(_graphql):
 
     player = {
         'name': r'\U000e0021',
-        'clan': shared.clan.ref(None)
+        'clan': backend.database.clan.ref(None)
     }
 
     upsert(player)
@@ -45,7 +45,7 @@ def test_player_add(_graphql):
 
     player = {
         'name': 'Test Player',
-        'clan': shared.clan.ref(None)
+        'clan': backend.database.clan.ref(None)
     }
 
     assert get(player['name']) == {}
@@ -60,14 +60,14 @@ def test_player_upsert(_graphql):
 
     player = {
         'name': 'Test Player',
-        'clan': shared.clan.ref(None)
+        'clan': backend.database.clan.ref(None)
     }
 
     upsert(player)
 
     player = {
         'name': 'Test Player',
-        'clan': shared.clan.ref('Test Clan')
+        'clan': backend.database.clan.ref('Test Clan')
     }
 
     upsert(player)
@@ -82,7 +82,7 @@ def test_player_get_clan(_graphql):
 
     player = {
         'name': 'Test Player',
-        'clan': shared.clan.ref('Test Clan')
+        'clan': backend.database.clan.ref('Test Clan')
     }
 
     upsert(player)

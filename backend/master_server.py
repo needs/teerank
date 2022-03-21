@@ -8,7 +8,7 @@ from backend.server import Server
 from backend.packet import Packet
 from backend.server_pool import server_pool
 from backend.game_server import GameServer
-import shared.master_server
+import backend.database.master_server
 
 
 class MasterServer(Server):
@@ -48,10 +48,10 @@ class MasterServer(Server):
         # that the polling was a success and we move on.
 
         if not self._is_up:
-            shared.master_server.down(self.address)
+            backend.database.master_server.down(self.address)
             return False
 
-        shared.master_server.up(self.address, self._game_servers_addresses)
+        backend.database.master_server.up(self.address, self._game_servers_addresses)
 
         return True
 

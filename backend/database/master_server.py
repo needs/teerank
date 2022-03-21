@@ -6,7 +6,7 @@ import datetime
 
 from gql import gql
 from shared.database import graphql
-import shared.game_server
+import backend.database.game_server
 
 
 DEFAULT_ADDRESSES = [
@@ -123,8 +123,8 @@ def up(address: str, game_servers_addresses: set[str]) -> None:
     old = { game_server['address'] for game_server in master_server['gameServers'] }
     new = game_servers_addresses
 
-    to_remove = [ shared.game_server.ref(address) for address in old.difference(new) ]
-    to_add = [ shared.game_server.ref(address) for address in new.difference(old) ]
+    to_remove = [ backend.database.game_server.ref(address) for address in old.difference(new) ]
+    to_add = [ backend.database.game_server.ref(address) for address in new.difference(old) ]
 
     graphql.execute(
         _GQL_UP,

@@ -11,8 +11,8 @@ from backend.server_pool import server_pool
 from backend.master_server import MasterServer
 from backend.game_server import GameServer
 
-import shared.master_server
-import shared.game_server
+import backend.database.master_server
+import backend.database.game_server
 
 
 if __name__ == '__main__':
@@ -21,10 +21,10 @@ if __name__ == '__main__':
 
     graphql_set_schema()
 
-    for address in shared.master_server.all_addresses():
+    for address in backend.database.master_server.all_addresses():
         server_pool.add(MasterServer(address))
 
-    for address in shared.game_server.all_addresses():
+    for address in backend.database.game_server.all_addresses():
         server_pool.add(GameServer(address))
 
     while True:

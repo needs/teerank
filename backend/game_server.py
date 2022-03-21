@@ -9,8 +9,8 @@ from backend.packet import Packet, PacketException
 from backend.rank import rank
 from backend.server import Server
 
-import shared.clan
-import shared.player
+import backend.database.clan
+import backend.database.player
 
 
 class GameServerType(IntEnum):
@@ -36,7 +36,7 @@ class GameServer(Server):
 
         super().__init__(address)
 
-        self.state = shared.game_server.get(address)
+        self.state = backend.database.game_server.get(address)
         self._state_new = {}
         self._request_token = None
 
@@ -116,7 +116,7 @@ class GameServer(Server):
         self._state_new = None
 
         self.process_state(self.state)
-        shared.game_server.upsert(self.state)
+        backend.database.game_server.upsert(self.state)
 
         # Rank players after saving server so that player already exist in the
         # database.
@@ -190,12 +190,12 @@ class GameServer(Server):
 
         while packet.unpack_remaining() >= 5:
             state['clients'].append({
-                'player': shared.player.ref(packet.unpack()),
-                'clan': shared.clan.ref(packet.unpack()),
+                'player': backend.database.player.ref(packet.unpack()),
+                'clan': backend.database.clan.ref(packet.unpack()),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int()),
-                'gameServer': shared.game_server.ref(self.address)
+                'gameServer': backend.database.game_server.ref(self.address)
             })
 
         return state
@@ -229,12 +229,12 @@ class GameServer(Server):
 
         while packet.unpack_remaining() >= 5:
             state['clients'].append({
-                'player': shared.player.ref(packet.unpack()),
-                'clan': shared.clan.ref(packet.unpack()),
+                'player': backend.database.player.ref(packet.unpack()),
+                'clan': backend.database.clan.ref(packet.unpack()),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int()),
-                'gameServer': shared.game_server.ref(self.address)
+                'gameServer': backend.database.game_server.ref(self.address)
             })
 
         return state
@@ -267,12 +267,12 @@ class GameServer(Server):
 
         while packet.unpack_remaining() >= 6:
             state['clients'].append({
-                'player': shared.player.ref(packet.unpack()),
-                'clan': shared.clan.ref(packet.unpack()),
+                'player': backend.database.player.ref(packet.unpack()),
+                'clan': backend.database.clan.ref(packet.unpack()),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int()),
-                'gameServer': shared.game_server.ref(self.address)
+                'gameServer': backend.database.game_server.ref(self.address)
             })
             packet.unpack() # Reserved
 
@@ -295,12 +295,12 @@ class GameServer(Server):
 
         while packet.unpack_remaining() >= 6:
             state['clients'].append({
-                'player': shared.player.ref(packet.unpack()),
-                'clan': shared.clan.ref(packet.unpack()),
+                'player': backend.database.player.ref(packet.unpack()),
+                'clan': backend.database.clan.ref(packet.unpack()),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int()),
-                'gameServer': shared.game_server.ref(self.address)
+                'gameServer': backend.database.game_server.ref(self.address)
             })
             packet.unpack() # Reserved
 
@@ -323,7 +323,7 @@ class GameServer(Server):
             #
 
             players_name = [client['player']['name'] for client in state['clients']]
-            players_clan = shared.player.get_clan(players_name)
+            players_clan = backend.database.player.get_clan(players_name)
 
             #
             # Create new clans.
@@ -338,7 +338,7 @@ class GameServer(Server):
                 if client['clan']:
                     unique_clans.add(client['clan']['name'])
 
-            shared.clan.upsert([{'name': clan} for clan in unique_clans])
+            backend.database.clan.upsert([{'name': clan} for clan in unique_clans])
 
             #
             # Update player one by one.  It looks tempting to update all players
@@ -352,7 +352,7 @@ class GameServer(Server):
             #
 
             for client in state['clients']:
-                shared.player.upsert({
+                backend.database.player.upsert({
                     'name': client['player']['name'],
                     'clan': client['clan']
                 })
@@ -373,5 +373,5 @@ class GameServer(Server):
             # Set clans playersCount.
             #
 
-            for clan, count in shared.clan.compute_player_count(list(unique_clans)).items():
-                shared.clan.set_player_count(clan, count)
+            for clan, count in backend.database.clan.compute_player_count(list(unique_clans)).items():
+                backend.database.clan.set_player_count(clan, count)

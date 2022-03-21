@@ -6,10 +6,10 @@ import pytest
 
 from backend.game_server import GameServerType
 from backend.rank import rank
-from shared.player import get_elo
+from backend.database.player import get_elo
 
-import shared.player
-import shared.game_server
+import backend.database.player
+import backend.database.game_server
 
 def add_client(game_server, name, score, ingame=True):
     """
@@ -17,12 +17,12 @@ def add_client(game_server, name, score, ingame=True):
     """
 
     game_server['clients'].append({
-        'player': shared.player.ref(name),
-        'clan': shared.clan.ref(None),
+        'player': backend.database.player.ref(name),
+        'clan': backend.database.clan.ref(None),
         'country': 0,
         'score': score,
         'ingame': ingame,
-        'gameServer': shared.game_server.ref(game_server['address'])
+        'gameServer': backend.database.game_server.ref(game_server['address'])
     })
 
     game_server['numClients'] += 1

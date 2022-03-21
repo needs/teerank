@@ -30,65 +30,7 @@
 		</header>
 
 		<main>
-			<nav id="toptabs">
-				<ul>
-					{% for name in main_game_types %}
-						{% if tab['type'] == 'gametype' and tab['gametype'] == name %}
-							<li class="active">
-								<a>{{ tab['gametype'] }}</a>
-								{% if tab['map'] is none %}
-									<a href="{{ url_for('route_maps', gametype=name) }}">All maps</a>
-								{% else %}
-									<a href="{{ url_for('route_maps', gametype=name) }}">{{ tab['map'] }}</a>
-								{% endif %}
-							</li>
-						{% else %}
-							<li>
-								<a href="{{ url_for('routes.players', gametype=name) }}">{{ name }}</a>
-							</li>
-						{% endif %}
-					{% endfor %}
-
-					{% if tab['type'] == 'gametype' and tab['gametype'] not in main_game_types %}
-						<li class="active">
-							<a>{{ tab['gametype'] }}</a>
-							{% if tab['map'] is none %}
-								<a href="{{ url_for('route_maps', gametype=name) }}">All maps</a>
-							{% else %}
-								<a href="{{ url_for('route_maps', gametype=name) }}">{{ tab['map'] }}</a>
-							{% endif %}
-						</li>
-					{% endif %}
-
-					{% if tab['type'] == 'gametypes_list' %}
-					<li class="active">
-						<a>...</a>
-					</li>
-					{% else %}
-					<li>
-						<a href="{{ url_for('route_gametypes') }}">...</a>
-					</li>
-					{% endif %}
-				</ul>
-
-				<ul>
-					{% if tab['type'] == 'custom' %}
-					<li class="active">
-						{% block tab %}{% endblock %}
-					</li>
-					{% endif %}
-
-					{% if tab['type'] == 'about' %}
-					<li class="active">
-						<a>About</a>
-					</li>
-					{% else %}
-					<li>
-						<a href="/about">About</a>
-					</li>
-					{% endif %}
-				</ul>
-			</nav>
+			{% include "components/top_tabs.html" %}
 
 			<section>
 				{% block content %}{% endblock %}

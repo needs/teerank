@@ -8,13 +8,8 @@ from frontend.database import graphql
 
 import frontend.components.paginator
 import frontend.components.section_tabs
+import frontend.components.top_tabs
 from frontend.routes import blueprint
-
-main_game_types = (
-    'CTF',
-    'DM',
-    'TDM'
-)
 
 _GQL_QUERY_PLAYERS = gql(
     """
@@ -54,11 +49,12 @@ def route_players():
 
     return render_template(
         'players.html',
-        tab = {
+
+        top_tabs = frontend.components.top_tabs.init({
             'type': 'gametype',
             'gametype': game_type,
             'map': map_name
-        },
+        }),
 
         section_tabs = section_tabs,
         paginator = paginator,
@@ -66,5 +62,4 @@ def route_players():
         game_type=game_type,
         map_name=map_name,
         players = players,
-        main_game_types=main_game_types
     )

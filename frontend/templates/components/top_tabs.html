@@ -1,0 +1,20 @@
+<nav id="toptabs">
+	{% for list in top_tabs %}
+		<ul>
+			{% for tab in list %}
+				{% if tab['active'] %}
+					<li class="active">
+				{% else %}
+					<li>
+				{% endif %}
+				{% for link in tab['links'] %}
+					{% if link['url'] %}
+						<a href="{{ link['url'] }}">{{ link['name'] }}</a>
+					{% else %}
+						<a>{{ link['name'] }}</a>
+					{% endif %}
+				{% endfor %}
+			{% endfor %}
+		</ul>
+	{% endfor %}
+</nav>

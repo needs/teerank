@@ -21,9 +21,9 @@ All gametypes
 			{% for game_type in game_types %}
 			<tr>
 				<td>{{ game_type['rank'] }}</td>
-				<td><a href="{{ url_for('route_players', gametype=game_type['name']) }}">{{ game_type['name'] }}</a></td>
-				<td><a href="{{ url_for('route_players', gametype=game_type['name']) }}">{{ game_type['players'] }}</a></td>
-				<td><a href="{{ url_for('route_clans', gametype=game_type['name']) }}">{{ game_type['clans'] }}</a></td>
+				<td><a href="{{ url_for('routes.players', gametype=game_type['name']) }}">{{ game_type['name'] }}</a></td>
+				<td><a href="{{ url_for('routes.players', gametype=game_type['name']) }}">{{ game_type['players'] }}</a></td>
+				<td><a href="{{ url_for('routes.clans', gametype=game_type['name']) }}">{{ game_type['clans'] }}</a></td>
 				<td><a href="{{ url_for('route_servers', gametype=game_type['name']) }}">{{ game_type['servers'] }}</a></td>
 				<td><a href="{{ url_for('route_maps', gametype=game_type['name']) }}">{{ game_type['maps'] }}</a></td>
 			</tr>

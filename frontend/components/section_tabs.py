@@ -1,5 +1,5 @@
 """
-Section tab component.
+Section tabs component.
 """
 
 from gql import gql

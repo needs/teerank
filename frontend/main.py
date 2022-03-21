@@ -11,6 +11,7 @@ from gql import gql
 
 import frontend.components.paginator
 import frontend.components.section_tabs
+import frontend.components.top_tabs
 from frontend.database import graphql
 import frontend.routes
 
@@ -20,12 +21,6 @@ import frontend.routes
 
 app = Flask(__name__)
 app.register_blueprint(frontend.routes.blueprint)
-
-main_game_types = (
-    'CTF',
-    'DM',
-    'TDM'
-)
 
 _GQL_GET_PLAYER = gql(
     """
@@ -60,11 +55,15 @@ def route_player():
 
     return render_template(
         'player.html',
-        tab = {
-            'type': 'custom'
-        },
-        player=player,
-        main_game_types=main_game_types
+        top_tabs = frontend.components.top_tabs.init({
+            'type': 'custom',
+            'links': [{
+                'name': 'Player'
+            }, {
+                'name': name
+            }]
+        }),
+        player = player,
     )
 
 
@@ -127,13 +126,17 @@ def route_clan():
 
     return render_template(
         'clan.html',
-        tab = {
-            'type': 'custom'
-        },
+        top_tabs = frontend.components.top_tabs.init({
+            'type': 'custom',
+            'links': [{
+                'name': 'Player'
+            }, {
+                'name': name
+            }]
+        }),
         paginator = paginator,
-        clan=clan,
+        clan = clan,
         players = clan['players'],
-        main_game_types=main_game_types
     )
 
 
@@ -177,19 +180,18 @@ def route_servers():
 
     return render_template(
         'servers.html',
-        tab = {
+        top_tabs = frontend.components.top_tabs.init({
             'type': 'gametype',
             'gametype': game_type,
             'map': map_name
-        },
+        }),
 
         section_tabs = section_tabs,
         paginator = paginator,
 
-        game_type=game_type,
-        map_name=map_name,
+        game_type = game_type,
+        map_name = map_name,
         servers = servers,
-        main_game_types=main_game_types
     )
 
 
@@ -245,11 +247,15 @@ def route_server():
 
     return render_template(
         'server.html',
-        tab = {
-            'type': 'custom'
-        },
+        top_tabs = frontend.components.top_tabs.init({
+            'type': 'custom',
+            'links': [{
+                'name': 'Server'
+            }, {
+                'name': address
+            }]
+        }),
         server = server,
-        main_game_types=main_game_types
     )
 
 
@@ -267,13 +273,12 @@ def route_gametypes():
 
     return render_template(
         'gametypes.html',
-        tab = {
-            'type': 'gametypes_list'
-        },
-        game_type=None,
-        map_name=None,
-        game_types=['CTF'],
-        main_game_types=main_game_types
+        top_tabs = frontend.components.top_tabs.init({
+            'type': '...'
+        }),
+        game_type = None,
+        map_name = None,
+        game_types = ['CTF'],
     )
 
 
@@ -285,10 +290,9 @@ def route_about():
 
     return render_template(
         'about.html',
-        tab = {
+        top_tabs = frontend.components.top_tabs.init({
             'type': 'about'
-        },
-        main_game_types=main_game_types
+        })
     )
 
 
@@ -329,11 +333,13 @@ def route_status():
 
     return render_template(
         'status.html',
-        tab = {
-            'type': 'custom'
-        },
-        master_servers = master_servers,
-        main_game_types=main_game_types
+        top_tabs = frontend.components.top_tabs.init({
+            'type': 'custom',
+            'links': [{
+                'name': 'Status'
+            }]
+        }),
+        master_servers = master_servers
     )
 
 
@@ -485,15 +491,18 @@ def search(template_name, section_tabs_active, operation_name, query_name):
     return render_template(
         template_name,
 
-        tab = {
-            'type': 'custom'
-        },
+        top_tabs = frontend.components.top_tabs.init({
+            'type': 'custom',
+            'links': [{
+                'name': 'Search'
+            }, {
+                'name': query
+            }]
+        }),
 
         section_tabs = section_tabs,
         query = query,
         results = results,
-
-        main_game_types = main_game_types
     )
 
 

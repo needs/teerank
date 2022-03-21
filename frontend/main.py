@@ -4,26 +4,14 @@ Launch frontend application.
 
 import datetime
 import re
-import logging
 
 from flask import Flask, render_template, url_for
 from flask import request, abort
-from gql import gql, Client as gql_connect
-
-from gql.transport.aiohttp import AIOHTTPTransport, log as aiohttp_logger
+from gql import gql
 
 import frontend.components.paginator
-
-#
-# Graphql
-#
-
-graphql = gql_connect(
-    transport=AIOHTTPTransport(url='http://dgraph-alpha:8080/graphql'),
-)
-
-# By default gql is very verbose, limit logs to only warnings and above.
-aiohttp_logger.setLevel(logging.WARNING)
+import frontend.components.section_tab
+from frontend.database import graphql
 
 #
 # Flask
@@ -36,61 +24,6 @@ main_game_types = (
     'DM',
     'TDM'
 )
-
-_GQL_QUERY_COUNTS = gql(
-    """
-    query {
-        aggregatePlayer {
-            count
-        }
-        aggregateClan {
-            count
-        }
-        aggregateGameServer {
-            count
-        }
-    }
-    """
-)
-
-def _section_tab(active: str, counts = None, urls = None) -> dict:
-    """
-    Build a section tabs with the proper values.
-    """
-
-    if counts is None:
-        results = dict(graphql.execute(_GQL_QUERY_COUNTS))
-
-        counts = {
-            'players': results['aggregatePlayer']['count'],
-            'clans': results['aggregateClan']['count'],
-            'servers': results['aggregateGameServer']['count']
-        }
-
-    if urls is None:
-        urls = {
-            'players': url_for('route_players'),
-            'clans': url_for('route_clans'),
-            'servers': url_for('route_servers')
-        }
-
-    return {
-        'active': active,
-
-        'players': {
-            'url': urls['players'],
-            'count': counts['players']
-        },
-        'clans': {
-            'url': urls['clans'],
-            'count': counts['clans']
-        },
-        'servers': {
-            'url': urls['servers'],
-            'count': counts['servers']
-        }
-    }
-
 
 _GQL_QUERY_PLAYERS = gql(
     """
@@ -114,7 +47,7 @@ def route_players():
     game_type = request.args.get('gametype', default='CTF', type = str)
     map_name = request.args.get('map', default=None, type = str)
 
-    section_tab = _section_tab('players')
+    section_tab = frontend.components.section_tab.init('players')
     paginator = frontend.components.paginator.init(section_tab['players']['count'])
 
     players = dict(graphql.execute(
@@ -207,7 +140,7 @@ def route_clans():
     game_type = request.args.get('gametype', default='CTF', type = str)
     map_name = request.args.get('map', default=None, type = str)
 
-    section_tab = _section_tab('clans')
+    section_tab = frontend.components.section_tab.init('clans')
     paginator = frontend.components.paginator.init(section_tab['clans']['count'])
 
     clans = dict(graphql.execute(
@@ -332,7 +265,7 @@ def route_servers():
     game_type = request.args.get('gametype', default='CTF', type = str)
     map_name = request.args.get('map', default=None, type = str)
 
-    section_tab = _section_tab('servers')
+    section_tab = frontend.components.section_tab.init('servers')
     paginator = frontend.components.paginator.init(section_tab['servers']['count'])
 
     servers = dict(graphql.execute(
@@ -649,7 +582,7 @@ def search(template_name, section_tab_active, operation_name, query_name):
         if count > MAX_SEARCH_RESULTS:
             counts[key] = f'{MAX_SEARCH_RESULTS}+'
 
-    section_tab = _section_tab(
+    section_tab = frontend.components.section_tab.init(
         section_tab_active, counts, urls
     )
 

@@ -43,7 +43,7 @@ def make_rankable(old, new):
 
 
 @pytest.fixture(name='old')
-def fixture_old(_redis):
+def fixture_old():
     """
     Create a game server state.
     """
@@ -64,7 +64,7 @@ def fixture_old(_redis):
 
 
 @pytest.fixture(name='new')
-def fixture_new(_redis):
+def fixture_new():
     """
     Create a game server state identical to old state.
     """

@@ -36,7 +36,7 @@ def get(address: str) -> dict:
 
 
 @pytest.fixture(name='address')
-def fixture_address(_graphql):
+def fixture_address():
     """
     Create a dummy master server and return its address.
     """
@@ -53,7 +53,7 @@ def test_create(address):
     assert get(address) is not None
 
 
-def test_all_addresses_empty(_graphql):
+def test_all_addresses_empty():
     """
     Test behavior of all_addresses with an empty database.
     """

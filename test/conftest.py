@@ -19,9 +19,13 @@ backend.database.graphql_init('dgraph-alpha-test', '8080')
 backend.database.redis_init('redis-test', '6379')
 
 
-@pytest.fixture(name='_graphql')
-def fixture_graphql():
+@pytest.fixture(autouse=True)
+def fixture_reset_databases(_redis):
     """
-    Empty graphql before each test.
+    Empty databases before each test.
     """
+
+    # Note: the redis database is automatically reseted thanks to the _redis
+    # fixture.
+
     backend.database.graphql_drop_all_data()

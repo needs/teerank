@@ -24,7 +24,7 @@ def test_player_elo(_redis):
         assert get_elo('player1', combination[0], combination[1]) == 900
 
 
-def test_player_unescaped_name(_graphql):
+def test_player_unescaped_name():
     """
     Some strange string can confuse Dgraph parser.  Make sure Dgraph accept the
     request.
@@ -38,7 +38,7 @@ def test_player_unescaped_name(_graphql):
     upsert(player)
 
 
-def test_player_add(_graphql):
+def test_player_add():
     """
     Test that upsert add a player when the player does not exist.
     """
@@ -53,7 +53,7 @@ def test_player_add(_graphql):
     assert get(player['name']) == player
 
 
-def test_player_upsert(_graphql):
+def test_player_upsert():
     """
     Test that updating a player that already exist works.
     """
@@ -75,7 +75,7 @@ def test_player_upsert(_graphql):
     assert get(player['name']) == player
 
 
-def test_player_get_clan(_graphql):
+def test_player_get_clan():
     """
     Test get_clan()
     """

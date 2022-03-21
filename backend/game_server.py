@@ -373,5 +373,6 @@ class GameServer(Server):
             # Set clans playersCount.
             #
 
-            for clan, count in backend.database.clan.compute_player_count(list(unique_clans)).items():
+            clans_player_count = backend.database.clan.compute_player_count(list(unique_clans))
+            for clan, count in clans_player_count.items():
                 backend.database.clan.set_player_count(clan, count)

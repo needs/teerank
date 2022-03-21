@@ -116,5 +116,3 @@ def init(count: int) -> dict:
         'offset': (page - 1) * PAGE_SIZE,
         'links': links
     }
-
-

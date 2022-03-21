@@ -59,5 +59,3 @@ def init(active: str, counts = None, urls = None) -> dict:
             'count': counts['servers']
         }
     }
-
-

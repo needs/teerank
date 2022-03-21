@@ -13,4 +13,5 @@ blueprint = Blueprint('routes', __name__)
 #
 # pylint: disable=wrong-import-position
 
-from .players import *
+from .players import route_players
+from .clans import route_clans

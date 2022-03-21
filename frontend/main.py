@@ -12,6 +12,8 @@ from gql import gql, Client as gql_connect
 
 from gql.transport.aiohttp import AIOHTTPTransport, log as aiohttp_logger
 
+import frontend.components.paginator
+
 #
 # Graphql
 #
@@ -90,119 +92,6 @@ def _section_tab(active: str, counts = None, urls = None) -> dict:
     }
 
 
-def clamp(minval, maxval, val):
-    """Clamp val between minval and maxval."""
-    return max(minval, min(maxval, val))
-
-PAGE_SIZE = 100
-PAGE_SPREAD = 2
-
-def _paginator(count: int) -> dict:
-    """
-    Build paginator links.
-    """
-
-    links = []
-
-    # URL settings for the page links.
-
-    endpoint = request.endpoint
-    args = request.args.copy()
-
-    try:
-        page = int(args.pop('page'))
-    except KeyError:
-        page = 1
-    except ValueError:
-        page = 1
-
-    last_page = int((count - 1) / PAGE_SIZE) + 1
-    page = clamp(1, last_page, page)
-
-    # Add the "Previous" button.
-
-    links.append({
-        'type': 'button',
-        'name': 'Previous',
-        'class': 'previous',
-        'href': url_for(endpoint, page=page-1, **args) if page > 1 else None
-    })
-
-    # Add the first page.
-
-    if page > PAGE_SPREAD + 1:
-        links.append({
-            'type': 'page',
-            'page': 1,
-            'href': url_for(endpoint, page=1, **args)
-        })
-
-    # Notice any missing pages between the fist page and the start of the page spread.
-
-    if page > PAGE_SPREAD + 2:
-        links.append({
-            'type': '...'
-        })
-
-    # Start page spread.
-
-    for i in range(page-PAGE_SPREAD, page):
-        if i > 0:
-            links.append({
-                'type': 'page',
-                'page': i,
-                'href': url_for(endpoint, page=i, **args)
-            })
-
-    # Add the current page.
-
-    links.append({
-        'type': 'current',
-        'page': page
-    })
-
-    # End page spread.
-
-    for i in range(page + 1, page + PAGE_SPREAD + 1):
-        if i <= last_page:
-            links.append({
-                'type': 'page',
-                'page': i,
-                'href': url_for(endpoint, page=i, **args)
-            })
-
-    # Notice any missing pages between the end of the page spread and the last page.
-
-    if page < last_page - PAGE_SPREAD - 1:
-        links.append({
-            'type': '...'
-        })
-
-    # Add the last page.
-
-    if page < last_page - PAGE_SPREAD:
-        links.append({
-            'type': 'page',
-            'page': last_page,
-            'href': url_for(endpoint, page=last_page, **args)
-        })
-
-    # Add the "Next" button.
-
-    links.append({
-        'type': 'button',
-        'name': 'Next',
-        'class': 'next',
-        'href': url_for(endpoint, page=page+1, **args) if page < last_page else None
-    })
-
-    return {
-        'first': PAGE_SIZE,
-        'offset': (page - 1) * PAGE_SIZE,
-        'links': links
-    }
-
-
 _GQL_QUERY_PLAYERS = gql(
     """
     query($first: Int!, $offset: Int!) {
@@ -226,7 +115,7 @@ def route_players():
     map_name = request.args.get('map', default=None, type = str)
 
     section_tab = _section_tab('players')
-    paginator = _paginator(section_tab['players']['count'])
+    paginator = frontend.components.paginator.init(section_tab['players']['count'])
 
     players = dict(graphql.execute(
         _GQL_QUERY_PLAYERS,
@@ -319,7 +208,7 @@ def route_clans():
     map_name = request.args.get('map', default=None, type = str)
 
     section_tab = _section_tab('clans')
-    paginator = _paginator(section_tab['clans']['count'])
+    paginator = frontend.components.paginator.init(section_tab['clans']['count'])
 
     clans = dict(graphql.execute(
         _GQL_QUERY_CLANS,
@@ -389,7 +278,7 @@ def route_clan():
         }
     ))['getClan'].get('playersCount', 0)
 
-    paginator = _paginator(players_count)
+    paginator = frontend.components.paginator.init(players_count)
 
     clan = dict(graphql.execute(
         _GQL_GET_CLAN,
@@ -444,7 +333,7 @@ def route_servers():
     map_name = request.args.get('map', default=None, type = str)
 
     section_tab = _section_tab('servers')
-    paginator = _paginator(section_tab['servers']['count'])
+    paginator = frontend.components.paginator.init(section_tab['servers']['count'])
 
     servers = dict(graphql.execute(
         _GQL_QUERY_SERVERS,

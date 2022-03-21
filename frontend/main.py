@@ -10,7 +10,7 @@ from flask import request, abort
 from gql import gql
 
 import frontend.components.paginator
-import frontend.components.section_tab
+import frontend.components.section_tabs
 from frontend.database import graphql
 
 #
@@ -47,8 +47,8 @@ def route_players():
     game_type = request.args.get('gametype', default='CTF', type = str)
     map_name = request.args.get('map', default=None, type = str)
 
-    section_tab = frontend.components.section_tab.init('players')
-    paginator = frontend.components.paginator.init(section_tab['players']['count'])
+    section_tabs = frontend.components.section_tabs.init('players')
+    paginator = frontend.components.paginator.init(section_tabs['players']['count'])
 
     players = dict(graphql.execute(
         _GQL_QUERY_PLAYERS,
@@ -69,7 +69,7 @@ def route_players():
             'map': map_name
         },
 
-        section_tab = section_tab,
+        section_tabs = section_tabs,
         paginator = paginator,
 
         game_type=game_type,
@@ -140,8 +140,8 @@ def route_clans():
     game_type = request.args.get('gametype', default='CTF', type = str)
     map_name = request.args.get('map', default=None, type = str)
 
-    section_tab = frontend.components.section_tab.init('clans')
-    paginator = frontend.components.paginator.init(section_tab['clans']['count'])
+    section_tabs = frontend.components.section_tabs.init('clans')
+    paginator = frontend.components.paginator.init(section_tabs['clans']['count'])
 
     clans = dict(graphql.execute(
         _GQL_QUERY_CLANS,
@@ -162,7 +162,7 @@ def route_clans():
             'map': map_name
         },
 
-        section_tab = section_tab,
+        section_tabs = section_tabs,
         paginator = paginator,
 
         game_type=game_type,
@@ -265,8 +265,8 @@ def route_servers():
     game_type = request.args.get('gametype', default='CTF', type = str)
     map_name = request.args.get('map', default=None, type = str)
 
-    section_tab = frontend.components.section_tab.init('servers')
-    paginator = frontend.components.paginator.init(section_tab['servers']['count'])
+    section_tabs = frontend.components.section_tabs.init('servers')
+    paginator = frontend.components.paginator.init(section_tabs['servers']['count'])
 
     servers = dict(graphql.execute(
         _GQL_QUERY_SERVERS,
@@ -287,7 +287,7 @@ def route_servers():
             'map': map_name
         },
 
-        section_tab = section_tab,
+        section_tabs = section_tabs,
         paginator = paginator,
 
         game_type=game_type,
@@ -506,7 +506,7 @@ _GQL_SEARCH = gql(
     """
 )
 
-def search(template_name, section_tab_active, operation_name, query_name):
+def search(template_name, section_tabs_active, operation_name, query_name):
     """
     Search for the given category.
     """
@@ -582,8 +582,8 @@ def search(template_name, section_tab_active, operation_name, query_name):
         if count > MAX_SEARCH_RESULTS:
             counts[key] = f'{MAX_SEARCH_RESULTS}+'
 
-    section_tab = frontend.components.section_tab.init(
-        section_tab_active, counts, urls
+    section_tabs = frontend.components.section_tabs.init(
+        section_tabs_active, counts, urls
     )
 
     return render_template(
@@ -593,7 +593,7 @@ def search(template_name, section_tab_active, operation_name, query_name):
             'type': 'custom'
         },
 
-        section_tab = section_tab,
+        section_tabs = section_tabs,
         query = query,
         results = results,
 

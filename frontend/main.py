@@ -129,7 +129,7 @@ def route_clan():
         top_tabs = frontend.components.top_tabs.init({
             'type': 'custom',
             'links': [{
-                'name': 'Player'
+                'name': 'Clan'
             }, {
                 'name': name
             }]

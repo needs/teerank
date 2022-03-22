@@ -2,12 +2,12 @@ services:
   # Hide redis database logs because they don't provides useful development
   # information.
 
-  redis-test:
+  redis:
     image: "redis:6"
     logging:
       driver: none
 
-  dgraph-zero-test:
+  dgraph-zero:
     image: "dgraph/dgraph:latest"
     logging:
       driver: none
@@ -15,19 +15,19 @@ services:
       - 5080
       - 6080
     restart: on-failure
-    command: dgraph zero --my=dgraph-zero-test:5080
+    command: dgraph zero --my=dgraph-zero:5080
 
-  dgraph-alpha-test:
+  dgraph-alpha:
     image: dgraph/dgraph:latest
     logging:
       driver: none
     depends_on:
-      - dgraph-zero-test
+      - dgraph-zero
     expose:
       - 8080
       - 9080
     restart: on-failure
-    command: dgraph alpha --my=dgraph-alpha-test:7080 --zero=dgraph-zero-test:5080 --security "whitelist=172.16.0.0/12"
+    command: dgraph alpha --my=dgraph-alpha:7080 --zero=dgraph-zero:5080 --security "whitelist=172.16.0.0/12"
 
   # The test container uses pytest-watch to run tests as soon as a file changes.
   # Bind host folders to the container so that pytest-watch can work properly.
@@ -37,9 +37,8 @@ services:
       context: .
       dockerfile: test/Dockerfile
     depends_on:
-      - dgraph-alpha-test
-      - redis-test
+      - dgraph-alpha
+      - redis
     volumes:
       - ./frontend:/usr/src/app/frontend:ro
-      - ./backend:/usr/src/app/backend:ro
       - ./test:/usr/src/app/test:ro

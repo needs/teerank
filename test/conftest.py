@@ -9,15 +9,15 @@ import backend.database
 import frontend.app
 
 redis_instance = pytest_redis.factories.redis_noproc(
-    host='redis-test'
+    host='redis'
 )
 
 _redis = pytest_redis.factories.redisdb(
     'redis_instance'
 )
 
-backend.database.graphql_init('dgraph-alpha-test', '8080')
-backend.database.redis_init('redis-test', '6379')
+backend.database.graphql_init('dgraph-alpha', '8080')
+backend.database.redis_init('redis', '6379')
 
 
 @pytest.fixture(autouse=True)

@@ -14,7 +14,7 @@
 		{% for server in servers %}
 		<tr>
 			<td>{{ server['rank'] }}</td>
-			<td><a href="{{ url_for('route_server', address=server['address']) }}">{{ server['name'] }}</a></td>
+			<td><a href="{{ url_for('routes.server', address=server['address']) }}">{{ server['name'] }}</a></td>
 			<td>{{ server['gameType'] }}</td>
 			<td>{{ server['map'] }}</td>
 			<td>{{ server['numClients'] }} / {{ server['maxClients'] }}</td>

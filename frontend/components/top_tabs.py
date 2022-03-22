@@ -55,7 +55,7 @@ def init(tab: dict) -> dict:
         'active': tab['type'] == '...',
         'links': [{
             'name': '...',
-            'url': None if tab['type'] == '...' else url_for('route_gametypes')
+            'url': None if tab['type'] == '...' else url_for('routes.gametypes')
         }]
     })
 

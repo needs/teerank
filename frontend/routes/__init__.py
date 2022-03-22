@@ -22,3 +22,4 @@ from .server import route_server
 from .about import route_about
 from .status import route_status
 from .search import route_players_search, route_clans_search, route_servers_search
+from .gametypes import route_gametypes

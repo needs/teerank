@@ -1,5 +1,5 @@
 """
-Implement /player.
+Implement /search.
 """
 
 import re

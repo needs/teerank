@@ -1,5 +1,5 @@
 """
-Implement /player.
+Implement /server.
 """
 
 from gql import gql

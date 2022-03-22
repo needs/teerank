@@ -19,3 +19,4 @@ from .servers import route_servers
 from .player import route_player
 from .clan import route_clan
 from .server import route_server
+from .about import route_about

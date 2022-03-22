@@ -22,51 +22,6 @@ import frontend.routes
 app = Flask(__name__)
 app.register_blueprint(frontend.routes.blueprint)
 
-_GQL_GET_PLAYER = gql(
-    """
-    query ($name: String!) {
-        getPlayer(name: $name) {
-            name
-            clan {
-                name
-            }
-        }
-    }
-    """
-)
-
-@app.route("/player")
-def route_player():
-    """
-    Show a single player.
-    """
-
-    name = request.args.get('name', default=None, type=str)
-
-    player = dict(graphql.execute(
-        _GQL_GET_PLAYER,
-        variable_values = {
-            'name': name,
-        }
-    ))['getPlayer']
-
-    if not player:
-        abort(404)
-
-    return render_template(
-        'player.html',
-        top_tabs = frontend.components.top_tabs.init({
-            'type': 'custom',
-            'links': [{
-                'name': 'Player'
-            }, {
-                'name': name
-            }]
-        }),
-        player = player,
-    )
-
-
 _GQL_GET_CLAN = gql(
     """
     query($name: String!, $first: Int!, $offset: Int!) {

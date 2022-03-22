@@ -5,11 +5,10 @@ Implement /status.
 import datetime
 
 from gql import gql
-from flask import request, render_template
+from flask import render_template
 from frontend.database import graphql
 
 import frontend.components.top_tabs
-from frontend.routes import blueprint
 
 _GQL_QUERY_MASTER_SERVERS = gql(
     """
@@ -25,7 +24,6 @@ _GQL_QUERY_MASTER_SERVERS = gql(
     """
 )
 
-@blueprint.route('/status', endpoint='status')
 def route_status():
     """
     Render the status page.
@@ -56,5 +54,3 @@ def route_status():
         }),
         master_servers = master_servers
     )
-
-

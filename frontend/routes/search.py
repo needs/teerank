@@ -11,7 +11,6 @@ from frontend.database import graphql
 import frontend.components.paginator
 import frontend.components.section_tabs
 import frontend.components.top_tabs
-from frontend.routes import blueprint
 
 MAX_SEARCH_RESULTS = 100
 
@@ -142,9 +141,9 @@ def search(template_name, section_tabs_active, operation_name, query_name):
     # Build the page.
 
     urls = {
-        'players': url_for('routes.players-search', q = query),
-        'clans': url_for('routes.clans-search', q = query),
-        'servers': url_for('routes.servers-search', q = query)
+        'players': url_for('players-search', q = query),
+        'clans': url_for('clans-search', q = query),
+        'servers': url_for('servers-search', q = query)
     }
 
     # If the number of results exceed the maximum number of results, add a small
@@ -176,7 +175,6 @@ def search(template_name, section_tabs_active, operation_name, query_name):
     )
 
 
-@blueprint.route('/players/search', endpoint='players-search')
 def route_players_search():
     """
     List of players matching the search query.
@@ -185,7 +183,6 @@ def route_players_search():
     return search('search_players.html', 'players', 'searchPlayers', 'queryPlayer')
 
 
-@blueprint.route('/clans/search', endpoint='clans-search')
 def route_clans_search():
     """
     List of clans matching the search query.
@@ -194,7 +191,6 @@ def route_clans_search():
     return search('search_clans.html', 'clans', 'searchClans', 'queryClan')
 
 
-@blueprint.route('/servers/search', endpoint='servers-search')
 def route_servers_search():
     """
     List of servers matching the search query.

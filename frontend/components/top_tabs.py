@@ -24,7 +24,7 @@ def init(tab: dict) -> dict:
                     'name': gametype,
                 }, {
                     'name': tab['map'] if tab['map'] else 'All maps',
-                    'url': url_for('routes.maps', gametype=gametype)
+                    'url': url_for('maps', gametype=gametype)
                 }]
             })
         else:
@@ -32,7 +32,7 @@ def init(tab: dict) -> dict:
                 'active': False,
                 'links': [{
                     'name': gametype,
-                    'url': url_for('routes.players', gametype=gametype)
+                    'url': url_for('players', gametype=gametype)
                 }]
             })
 
@@ -45,7 +45,7 @@ def init(tab: dict) -> dict:
                 'name': tab['gametype'],
             }, {
                 'name': tab['map'],
-                'url': url_for('routes.maps', gametype=gametype)
+                'url': url_for('maps', gametype=gametype)
             }]
         })
 
@@ -55,7 +55,7 @@ def init(tab: dict) -> dict:
         'active': tab['type'] == '...',
         'links': [{
             'name': '...',
-            'url': None if tab['type'] == '...' else url_for('routes.gametypes')
+            'url': None if tab['type'] == '...' else url_for('gametypes')
         }]
     })
 
@@ -73,7 +73,7 @@ def init(tab: dict) -> dict:
         'active': tab['type'] == 'about',
         'links': [{
             'name': 'About',
-            'url': None if tab['type'] == 'about' else url_for('routes.about')
+            'url': None if tab['type'] == 'about' else url_for('about')
         }]
     })
 

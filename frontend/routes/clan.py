@@ -8,7 +8,6 @@ from frontend.database import graphql
 
 import frontend.components.paginator
 import frontend.components.top_tabs
-from frontend.routes import blueprint
 
 _GQL_GET_CLAN = gql(
     """
@@ -34,7 +33,6 @@ _GQL_GET_CLAN_PLAYERS_COUNT = gql(
     """
 )
 
-@blueprint.route('/clan', endpoint='clan')
 def route_clan():
     """
     Show a single clan.

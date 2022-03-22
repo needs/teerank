@@ -14,14 +14,14 @@
 			<section>
 				{% if section_tab is defined %}
 					{% if section_tab['active'] == 'clans' %}
-						<form action="{{ url_for('routes.clans-search') }}" id="searchform">
+						<form action="{{ url_for('clans-search') }}" id="searchform">
 					{% elif section_tab['active'] == 'servers' %}
-						<form action="{{ url_for('routes.servers-search') }}" id="searchform">
+						<form action="{{ url_for('servers-search') }}" id="searchform">
 					{% else %}
-						<form action="{{ url_for('routes.players-search') }}" id="searchform">
+						<form action="{{ url_for('players-search') }}" id="searchform">
 					{% endif %}
 				{% else %}
-					<form action="{{ url_for('routes.players-search') }}" id="searchform">
+					<form action="{{ url_for('players-search') }}" id="searchform">
 				{% endif %}
 					<input name="q" type="text" placeholder="Search" {% if query %}value="{{ query }}"{% endif %}>
 					<input type="submit" value="">
@@ -58,10 +58,10 @@
 				 	<a href="https://github.com/needs/teerank/tree/HEAD">(stable)</a>
 				</li>
 				<li>
-					<a href="{{ url_for('routes.status') }}">Status</a>
+					<a href="{{ url_for('status') }}">Status</a>
 				</li>
 				<li>
-					<a href="{{ url_for('routes.about') }}">About</a>
+					<a href="{{ url_for('about') }}">About</a>
 				</li>
 			</ul>
 		</footer>

@@ -14,7 +14,7 @@ COPY frontend frontend
 
 EXPOSE 8080
 
-CMD [ "waitress-serve", "frontend.main:app" ]
+CMD [ "waitress-serve", "frontend.app:create_app" ]
 
 # The development target launch the flask server instead of a production server.
 # The flask server reloads the server when source file changes.  Of course for
@@ -23,7 +23,7 @@ CMD [ "waitress-serve", "frontend.main:app" ]
 
 FROM production AS development
 
-ENV FLASK_APP "frontend.main:app"
+ENV FLASK_APP "frontend.app:create_app"
 ENV FLASK_ENV "development"
 
 CMD [ "flask", "run", "--host", "0.0.0.0" ]

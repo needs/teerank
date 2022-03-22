@@ -7,7 +7,6 @@ from flask import request, render_template, abort
 from frontend.database import graphql
 
 import frontend.components.top_tabs
-from frontend.routes import blueprint
 
 _GQL_GET_SERVER = gql(
     """
@@ -40,7 +39,6 @@ _GQL_GET_SERVER = gql(
     """
 )
 
-@blueprint.route('/server', endpoint='server')
 def route_server():
     """
     Show a single server.

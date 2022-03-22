@@ -38,9 +38,9 @@ def init(active: str, counts = None, urls = None) -> dict:
 
     if urls is None:
         urls = {
-            'players': url_for('routes.players'),
-            'clans': url_for('routes.clans'),
-            'servers': url_for('routes.servers')
+            'players': url_for('players'),
+            'clans': url_for('clans'),
+            'servers': url_for('servers')
         }
 
     return {

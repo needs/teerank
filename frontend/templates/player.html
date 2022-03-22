@@ -9,7 +9,7 @@
 		<img src="{{ url_for('static', filename='images/player.png') }}" alt="Tee">
 		<div>
 			<h1 id="player_name">{{ player['name'] }}</h1>
-			<p id="player_clan"><a href="{{ url_for('routes.clan', name=player['clan']['name']) }}">{{ player['clan']['name'] }}</a></p>
+			<p id="player_clan"><a href="{{ url_for('clan', name=player['clan']['name']) }}">{{ player['clan']['name'] }}</a></p>
 		</div>
 		<div>
 			<p id="player_rank">#1 (2521 ELO)</p>

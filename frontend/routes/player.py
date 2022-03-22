@@ -7,7 +7,6 @@ from flask import request, render_template, abort
 from frontend.database import graphql
 
 import frontend.components.top_tabs
-from frontend.routes import blueprint
 
 _GQL_GET_PLAYER = gql(
     """
@@ -22,7 +21,6 @@ _GQL_GET_PLAYER = gql(
     """
 )
 
-@blueprint.route('/player', endpoint='player')
 def route_player():
     """
     Show a single player.

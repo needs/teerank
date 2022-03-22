@@ -9,7 +9,6 @@ from frontend.database import graphql
 import frontend.components.paginator
 import frontend.components.section_tabs
 import frontend.components.top_tabs
-from frontend.routes import blueprint
 
 _GQL_QUERY_SERVERS = gql(
     """
@@ -26,7 +25,6 @@ _GQL_QUERY_SERVERS = gql(
     """
 )
 
-@blueprint.route('/servers', endpoint='servers')
 def route_servers():
     """
     List of maps for a given game type.

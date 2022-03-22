@@ -9,7 +9,6 @@ from frontend.database import graphql
 import frontend.components.paginator
 import frontend.components.section_tabs
 import frontend.components.top_tabs
-from frontend.routes import blueprint
 
 _GQL_QUERY_PLAYERS = gql(
     """
@@ -24,7 +23,6 @@ _GQL_QUERY_PLAYERS = gql(
     """
 )
 
-@blueprint.route('/players', endpoint='players')
 def route_players():
     """
     List players for a specific game type and map.

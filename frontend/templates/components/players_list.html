@@ -18,8 +18,8 @@
 		{% for player in players %}
 		<tr>
 			<td>{{ player['rank'] }}</td>
-			<td><a href="{{ url_for('routes.player', name=player['name']) }}">{{ player['name'] }}</a></td>
-			<td><a href="{{ url_for('routes.clan', name=player['clan']['name']) }}">{{ player['clan']['name'] }}</a></td>
+			<td><a href="{{ url_for('player', name=player['name']) }}">{{ player['name'] }}</a></td>
+			<td><a href="{{ url_for('clan', name=player['clan']['name']) }}">{{ player['clan']['name'] }}</a></td>
 			<td>{{ 1 }}</td>
 			<td><span class="years" title="19/08/2018 22h21">1 year</span></td>
 		</tr>

@@ -17,3 +17,4 @@ from .players import route_players
 from .clans import route_clans
 from .servers import route_servers
 from .player import route_player
+from .clan import route_clan

@@ -51,7 +51,7 @@
 				<td><a href="{{ url_for('routes.player', name=client['player']['name']) }}">{{ client['player']['name'] }}</a></td>
 				<td>
 					{% if client['clan'] %}
-					<a href="{{ url_for('route_clan', name=client['clan']['name']) }}">{{ client['clan']['name'] }}</a>
+					<a href="{{ url_for('routes.clan', name=client['clan']['name']) }}">{{ client['clan']['name'] }}</a>
 					{% endif %}
 				</td>
 				<td>{{ client['score'] }}</td>

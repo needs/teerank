@@ -10,10 +10,10 @@ lastest stable version at teerank.io.
 $ docker-compose up --build
 
 # Run tests loop
-$ docker-compose -f docker-compose-test.yml up --build
+$ docker-compose -f docker-compose-test.yml -p teerank-dev up --build
 
 # Development server at localhost:80
-$ docker-compose -f docker-compose-development.yml up --build
+$ docker-compose -f docker-compose-development.yml -p teerank-test up --build
 ```
 
 I usually launch tests and the development server on two different shells.

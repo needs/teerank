@@ -2,7 +2,7 @@
 Test /about.
 """
 
-def test_about(client):
+def test_route_about(client):
     """
     Test /about.
     """

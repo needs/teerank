@@ -4,7 +4,7 @@ Test /status.
 
 import backend.database.master_server
 
-def test_status(client):
+def test_route_status(client):
     """
     Test /status.
     """

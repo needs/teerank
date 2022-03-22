@@ -15,3 +15,4 @@ blueprint = Blueprint('routes', __name__)
 
 from .players import route_players
 from .clans import route_clans
+from .servers import route_servers

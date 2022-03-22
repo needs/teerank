@@ -4,15 +4,6 @@
 {{ game_type }} - Clans
 {% endblock %}
 
-{% block tab %}
-<a>{{ name }}</a>
-{% if map_name is none %}
-	<a href="{{ url_for('route_maps', gametype=name) }}">All maps</a>
-{% else %}
-	<a href="{{ url_for('route_maps', gametype=name) }}">{{ map_name }}</a>
-{% endif %}
-{% endblock %}
-
 {% block content %}
 	{% include "components/section_tabs.html" %}
 

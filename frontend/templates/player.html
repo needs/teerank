@@ -4,10 +4,6 @@
 {{ player['name'] }} - Player
 {% endblock %}
 
-{% block tab %}
-<a>Player</a><a>{{ player['name'] }}</a>
-{% endblock %}
-
 {% block content %}
 	<header id="player_header">
 		<img src="{{ url_for('static', filename='images/player.png') }}" alt="Tee">

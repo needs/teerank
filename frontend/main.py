@@ -18,9 +18,3 @@ import frontend.routes
 
 app = Flask(__name__)
 app.register_blueprint(frontend.routes.blueprint)
-
-@app.route('/maps')
-def route_maps():
-    """
-    List of maps for a given game type.
-    """

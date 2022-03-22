@@ -24,7 +24,7 @@ def init(tab: dict) -> dict:
                     'name': gametype,
                 }, {
                     'name': tab['map'] if tab['map'] else 'All maps',
-                    'url': url_for('route_maps', gametype=gametype)
+                    'url': url_for('routes.maps', gametype=gametype)
                 }]
             })
         else:
@@ -45,7 +45,7 @@ def init(tab: dict) -> dict:
                 'name': tab['gametype'],
             }, {
                 'name': tab['map'],
-                'url': url_for('route_maps', gametype=gametype)
+                'url': url_for('routes.maps', gametype=gametype)
             }]
         })
 

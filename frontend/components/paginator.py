@@ -9,8 +9,22 @@ def _clamp(minval, maxval, val):
     """Clamp val between minval and maxval."""
     return max(minval, min(maxval, val))
 
+
 PAGE_SIZE = 100
 PAGE_SPREAD = 2
+
+def info() -> tuple[int, int]:
+    """
+    Return the number of items to query as well as the offset.
+    """
+
+    try:
+        page = int(request.args.get('page', 1))
+    except ValueError:
+        page = 1
+
+    return PAGE_SIZE, (page - 1) * PAGE_SIZE
+
 
 def init(count: int) -> dict:
     """

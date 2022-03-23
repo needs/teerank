@@ -5,7 +5,7 @@ Paginator component.
 from flask import request, url_for
 
 
-def clamp(minval, maxval, val):
+def _clamp(minval, maxval, val):
     """Clamp val between minval and maxval."""
     return max(minval, min(maxval, val))
 
@@ -32,7 +32,7 @@ def init(count: int) -> dict:
         page = 1
 
     last_page = int((count - 1) / PAGE_SIZE) + 1
-    page = clamp(1, last_page, page)
+    page = _clamp(1, last_page, page)
 
     # Add the "Previous" button.
 

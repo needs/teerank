@@ -23,11 +23,15 @@ _GQL_GET_CLAN = gql(
     """
 )
 
+# Using an aggregate instead of playersCount make this query work even when
+# playersCount is out of sync.
 _GQL_GET_CLAN_PLAYERS_COUNT = gql(
     """
     query ($name: String!) {
         getClan(name: $name) {
-            playersCount
+            playersAggregate {
+                count
+            }
         }
     }
     """
@@ -45,8 +49,12 @@ def route_clan():
         variable_values = {
             'name': name
         }
-    ))['getClan'].get('playersCount', 0)
+    ))['getClan']
 
+    if not players_count:
+        abort(404)
+
+    players_count = int(players_count['playersAggregate']['count'])
     paginator = frontend.components.paginator.init(players_count)
 
     clan = dict(graphql.execute(

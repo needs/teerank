@@ -4,6 +4,15 @@ Test /$path/search.
 
 import pytest
 import backend.database.clan
+from frontend.routes.search import MAX_SEARCH_RESULTS
+
+def unique_id(prefix: str) -> str:
+    """Return a unique id with the given prefix."""
+    unique_id.id += 1
+    return f'{prefix}{unique_id.id}'
+
+unique_id.id = 0
+
 
 def create_player():
     """
@@ -11,7 +20,7 @@ def create_player():
     """
 
     player = {
-        'name': 'test-player'
+        'name': unique_id('test-player-')
     }
 
     backend.database.player.upsert([player])
@@ -24,7 +33,7 @@ def create_clan():
     """
 
     clan = {
-        'name': 'test-clan'
+        'name': unique_id('test-clan-')
     }
 
     backend.database.clan.upsert([clan])
@@ -37,8 +46,8 @@ def create_server():
     """
 
     game_server = {
-        'address': 'foo:8000',
-        'name': 'test-server',
+        'address': unique_id('foo:'),
+        'name': unique_id('test-server-'),
 
         'gameType': 'CTF',
         'map': 'ctf1',
@@ -147,3 +156,43 @@ def test_route_search_case_insensitive(client, path, create):
 
     assert response.status_code == 200
     assert string.encode() in response.data
+
+
+def test_route_search_many(client, path, create):
+    """
+    Test /$path/search when the number of results exceed MAX_SEARCH_RESULTS.
+    """
+
+    for _ in range(MAX_SEARCH_RESULTS + 1):
+        create()
+
+    response = client.get(f'/{path}/search?q=test')
+
+    assert response.status_code == 200
+    assert f'{MAX_SEARCH_RESULTS}+'.encode() in response.data
+
+
+def test_route_search_empty(client, path, create):
+    """
+    Test /$path/search when the query is empty.
+    """
+
+    create()
+
+    response = client.get(f'/{path}/search?q=')
+
+    assert response.status_code == 200
+    assert f'No {path} found.'.encode() in response.data
+
+
+def test_route_search_no_query(client, path, create):
+    """
+    Test /$path/search when there is no query.
+    """
+
+    create()
+
+    response = client.get(f'/{path}/search')
+
+    assert response.status_code == 200
+    assert f'No {path} found.'.encode() in response.data

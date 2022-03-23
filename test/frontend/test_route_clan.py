@@ -15,7 +15,7 @@ def test_route_clan(client):
     }
 
     player = {
-        'name': 'player-name',
+        'name': 'test-player',
         'clan': backend.database.clan.ref(clan['name'])
     }
 

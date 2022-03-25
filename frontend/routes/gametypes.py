@@ -55,6 +55,9 @@ def route_gametypes():
     for i, gametype in enumerate(gametypes):
         gametype['rank'] = paginator['offset'] + i + 1
 
+        if not gametype['maps']:
+            gametype['maps'] = [{'playerInfosAggregate': {'count': 0}}]
+
     return render_template(
         'gametypes.html',
 

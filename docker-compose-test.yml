@@ -42,4 +42,5 @@ services:
       - redis
     volumes:
       - ./frontend:/usr/src/app/frontend:ro
+      - ./backend:/usr/src/app/backend:ro
       - ./test:/usr/src/app/test:ro

@@ -12,10 +12,10 @@
 				<img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
 			</a>
 			<section>
-				{% if section_tab is defined %}
-					{% if section_tab['active'] == 'clans' %}
+				{% if section_tabs is defined %}
+					{% if section_tabs['active'] == 'clans' %}
 						<form action="{{ url_for('clans-search') }}" id="searchform">
-					{% elif section_tab['active'] == 'servers' %}
+					{% elif section_tabs['active'] == 'servers' %}
 						<form action="{{ url_for('servers-search') }}" id="searchform">
 					{% else %}
 						<form action="{{ url_for('players-search') }}" id="searchform">

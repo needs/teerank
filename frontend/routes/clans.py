@@ -26,7 +26,7 @@ def route_clans():
     List of maps for a given game type.
     """
 
-    game_type = request.args.get('gametype', default='CTF', type = str)
+    game_type = request.args.get('gametype', default=None, type = str)
     map_name = request.args.get('map', default=None, type = str)
 
     section_tabs = frontend.components.section_tabs.init('clans')

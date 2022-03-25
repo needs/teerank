@@ -4,76 +4,75 @@ Top tabs component.
 
 from flask import url_for
 
-def init(tab: dict) -> dict:
+def init(active_tab: dict) -> dict:
     """
     Build a section tabs with the proper values.
     """
 
-    gametypes = ['CTF', 'DM', 'TDM']
+    gametypes = [None, 'CTF', 'DM', 'TDM']
 
     # Main gametypes tabs
 
     left = []
     right = []
 
+    def gametype_tab(gametype: str):
+        """Return a new gametype tab."""
+        tab = {
+            'class': '',
+            'links': [{
+                'name': gametype if gametype is not None else 'Global',
+                'url': url_for('players', gametype=gametype)
+            }]
+        }
+
+        if active_tab['type'] == 'gametype' and active_tab['gametype'] == gametype:
+            tab['class'] += 'active '
+            tab['links'].append({
+                'name': active_tab['map'] if active_tab['map'] is not None else 'All maps',
+                'url': url_for('maps', gametype=gametype)
+            })
+
+        if gametype is None:
+            tab['class'] += 'global '
+
+        return tab
+
+
     for gametype in gametypes:
-        if tab['type'] == 'gametype' and tab['gametype'] == gametype:
-            left.append({
-                'active': True,
-                'links': [{
-                    'name': gametype,
-                }, {
-                    'name': tab['map'] if tab['map'] else 'All maps',
-                    'url': url_for('maps', gametype=gametype)
-                }]
-            })
-        else:
-            left.append({
-                'active': False,
-                'links': [{
-                    'name': gametype,
-                    'url': url_for('players', gametype=gametype)
-                }]
-            })
+        left.append(gametype_tab(gametype))
 
     # Non-main gametype tab.
 
-    if tab['type'] == 'gametype' and tab['gametype'] not in gametypes:
-        left.append({
-            'active': True,
-            'links': [{
-                'name': tab['gametype'],
-            }, {
-                'name': tab['map'],
-                'url': url_for('maps', gametype=gametype)
-            }]
-        })
+
+    if active_tab['type'] == 'gametype' and active_tab['gametype'] not in gametypes:
+        left.append(gametype_tab(active_tab['gametype']))
 
     # "..." tab.
 
     left.append({
-        'active': tab['type'] == '...',
+        'class': 'active' if active_tab['type'] == '...' else '',
         'links': [{
             'name': '...',
-            'url': None if tab['type'] == '...' else url_for('gametypes')
+            'url': url_for('gametypes')
         }]
     })
 
     # Any custom tab.
 
-    if tab['type'] == 'custom':
+    if active_tab['type'] == 'custom':
         right.append({
-            'active': True,
-            'links': tab['links']
+            'class': 'active',
+            'links': active_tab['links']
         })
 
     # "About" tab.
 
     right.append({
-        'active': tab['type'] == 'about',
+        'class': 'active' if active_tab['type'] == 'about' else '',
         'links': [{
             'name': 'About',
-            'url': None if tab['type'] == 'about' else url_for('about')
+            'url': url_for('about')
         }]
     })
 

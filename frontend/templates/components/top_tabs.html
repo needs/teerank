@@ -2,8 +2,8 @@
 	{% for list in top_tabs %}
 		<ul>
 			{% for tab in list %}
-				{% if tab['active'] %}
-					<li class="active">
+				{% if tab['class'] %}
+					<li class="{{ tab['class'] }}">
 				{% else %}
 					<li>
 				{% endif %}

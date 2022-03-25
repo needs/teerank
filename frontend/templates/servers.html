@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-{{ game_type }} - Servers
+{% if game_type is none %}Global{% else %}{{ game_type }}{% endif %} - Servers
 {% endblock %}
 
 {% block content %}

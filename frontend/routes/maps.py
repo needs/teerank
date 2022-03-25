@@ -33,7 +33,7 @@ def route_maps():
     List of maps for a given game type.
     """
 
-    gametype = request.args.get('gametype', default='CTF', type = str)
+    gametype = request.args.get('gametype', default=None, type = str)
 
     first, offset = frontend.components.paginator.info()
 

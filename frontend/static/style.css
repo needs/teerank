@@ -185,6 +185,14 @@ body > main {
 	background: white;
 }
 
+#toptabs li.global > a:first-child {
+	padding-left: 45px;
+	background-image: url("images/earth.png");
+	background-position: top 7px left 15px;
+	background-size: 20px 20px;
+	background-repeat: no-repeat no-repeat;
+}
+
 #toptabs a, #bottabs a {
 	padding: 7px 1em 7px 1em;
 	color: #666;

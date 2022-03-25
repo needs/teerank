@@ -13,6 +13,13 @@ _GQL_QUERY_GAMETYPES = gql(
     query($first: Int!, $offset: Int!) {
         queryGameType(first: $first, offset: $offset) {
             name
+
+            maps(filter: { name: null }) {
+                playerInfosAggregate {
+                    count
+                }
+            }
+
             mapsAggregate {
                 count
             }

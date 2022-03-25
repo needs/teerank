@@ -3,11 +3,12 @@ Implement rank() function.
 """
 
 import logging
-from itertools import combinations, product
+from itertools import combinations
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-import backend.database.player
+import backend.database.player_info
+
 
 def _elo_delta(score1: int, elo1: int, score2: int, elo2: int) -> int:
     """
@@ -36,7 +37,7 @@ class _Player:
     new: dict
     score: int = field(init=False)
     delta: float = field(init=False)
-    elo: float = field(init=False)
+    info: dict = field(init=False)
 
     def __post_init__(self):
         self.name = self.old['player']['name']
@@ -101,24 +102,33 @@ def rank(old: dict, new: dict) -> bool:
     #
     # We do this for each combination of game type and map name.
 
-    for game_type, map_name in product((new['gameType'], None), (new['map'], None)):
+    gametype_id = backend.database.gametype.get(new['gameType'])['id']
+
+    for map_name in (new['map'], None):
+
+        map_id = backend.database.map.get(gametype_id, map_name)['id']
 
         for player in players:
-            player.elo = backend.database.player.get_elo(player.name, game_type, map_name)
+            player.info = backend.database.player_info.get(map_id, player.name)
             player.delta = 0
 
         for player1, player2 in combinations(players, 2):
-            delta = _elo_delta(player1.score, player1.elo, player2.score, player2.elo)
+            delta = _elo_delta(
+                player1.score,
+                player1.info['score'],
+                player2.score,
+                player2.info['score']
+            )
             player1.delta += delta
             player2.delta -= delta
 
         for player in players:
-            new_elo = player.elo + player.delta / (len(players) - 1)
-            backend.database.player.set_elo(player.name, game_type, map_name, new_elo)
+            player.info['score'] += player.delta / (len(players) - 1)
+            backend.database.player_info.update(player.info)
 
             logging.info(
-                'Gametype: %s: map %s: player %s: new_elo: %d -> %d',
-                game_type, map_name, player.name, player.elo, new_elo
+                'Gametype: %s: map %s: player %s: new_score: %d',
+                new['gameType'], new['map'], player.name, player.info['score']
             )
 
     return True

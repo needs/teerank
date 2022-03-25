@@ -2,27 +2,8 @@
 Test player.py
 """
 
-from backend.database.player import get_elo, set_elo, upsert, get, get_clan
 import backend.database.clan
-
-
-def test_player_elo(_redis):
-    """
-    Test ELO load and save.
-    """
-
-    combinations = (
-        (None, None),
-        ('CTF', None),
-        ('CTF', 'ctf1'),
-        (None, 'ctf1')
-    )
-
-    for combination in combinations:
-        assert get_elo('player1', combination[0], combination[1]) == 1500
-        set_elo('player1', combination[0], combination[1], 900)
-        assert get_elo('player1', combination[0], combination[1]) == 900
-
+from backend.database.player import upsert, get, get_clan
 
 def test_player_unescaped_name():
     """

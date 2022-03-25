@@ -6,10 +6,22 @@ import pytest
 
 from backend.game_server import GameServerType
 from backend.rank import rank
-from backend.database.player import get_elo
 
+import backend.database.player_info
 import backend.database.player
+import backend.database.clan
 import backend.database.game_server
+import backend.database.map
+import backend.database.gametype
+
+
+def get_score(map_id, player_name: str) -> int:
+    """
+    Return score for the given player.
+    """
+
+    return backend.database.player_info.get(map_id, player_name)['score']
+
 
 def add_client(game_server, name, score, ingame=True):
     """
@@ -43,7 +55,7 @@ def make_rankable(old, new):
 
 
 @pytest.fixture(name='old')
-def fixture_old():
+def fixture_old(gametype, map_):
     """
     Create a game server state.
     """
@@ -52,8 +64,8 @@ def fixture_old():
         'address': '0.0.0.0:8300',
         'version': '0.0.1',
         'name': 'old',
-        'map': 'ctf1',
-        'gameType': 'CTF',
+        'map': map_['name'],
+        'gameType': gametype['name'],
         'numPlayers': 0,
         'maxPlayers': 16,
         'numClients': 0,
@@ -64,7 +76,7 @@ def fixture_old():
 
 
 @pytest.fixture(name='new')
-def fixture_new():
+def fixture_new(gametype, map_):
     """
     Create a game server state identical to old state.
     """
@@ -73,8 +85,8 @@ def fixture_new():
         'address': '0.0.0.0:8300',
         'version': '0.0.1',
         'name': 'old',
-        'map': 'ctf1',
-        'gameType': 'CTF',
+        'map': map_['name'],
+        'gameType': gametype['name'],
         'numPlayers': 0,
         'maxPlayers': 16,
         'numClients': 0,
@@ -84,7 +96,7 @@ def fixture_new():
     }
 
 
-def test_rank_player1_win(old, new):
+def test_rank_player1_win(old, new, map_):
     """
     Test rank() when player1 wins.
     """
@@ -97,11 +109,11 @@ def test_rank_player1_win(old, new):
 
     assert rank(old, new)
 
-    assert get_elo('player1', None, None) == 1512.5
-    assert get_elo('player2', None, None) == 1487.5
+    assert get_score(map_['id'], 'player1') == 12.5
+    assert get_score(map_['id'], 'player2') == -12.5
 
 
-def test_rank_draw(old, new):
+def test_rank_draw(old, new, map_):
     """
     Test rank() when both players have the same score delta.
     """
@@ -114,11 +126,11 @@ def test_rank_draw(old, new):
 
     assert rank(old, new)
 
-    assert get_elo('player1', None, None) == 1500
-    assert get_elo('player2', None, None) == 1500
+    assert get_score(map_['id'], 'player1') == 0
+    assert get_score(map_['id'], 'player2') == 0
 
 
-def test_rank_player2_win(old, new):
+def test_rank_player2_win(old, new, map_):
     """
     Test rank() when player2 wins.
     """
@@ -131,8 +143,8 @@ def test_rank_player2_win(old, new):
 
     assert rank(old, new)
 
-    assert get_elo('player1', None, None) == 1487.5
-    assert get_elo('player2', None, None) == 1512.5
+    assert get_score(map_['id'], 'player1') == -12.5
+    assert get_score(map_['id'], 'player2') == 12.5
 
 
 def test_rank_no_old(new):
@@ -151,6 +163,7 @@ def test_rank_gametype_not_supported(old, new):
     make_rankable(old, new)
 
     new['gameType'] = old['gameType'] = 'BAD_GAMETYPE'
+
     assert not rank(old, new)
 
 
@@ -162,6 +175,7 @@ def test_rank_gametype_changed(old, new):
     make_rankable(old, new)
 
     new['gameType'] = old['gameType'] + 'a'
+
     assert not rank(old, new)
 
 
@@ -173,6 +187,7 @@ def test_rank_map_changed(old, new):
     make_rankable(old, new)
 
     new['map'] = old['map'] + 'a'
+
     assert not rank(old, new)
 
 

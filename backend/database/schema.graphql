@@ -1,6 +1,7 @@
 type Player {
 	name: String! @id @search(by: [hash, regexp])
 	clan: Clan
+	playerInfos: [PlayerInfo] @hasInverse(field: player)
 }
 
 type Clan {
@@ -41,4 +42,24 @@ type GameServer {
 
 	clients: [Client] @hasInverse(field: gameServer)
 	masterServers: [MasterServer] @hasInverse(field: gameServers)
+}
+
+type PlayerInfo {
+	id: ID!
+	player: Player
+	map: Map
+	score: Float
+}
+
+type Map {
+	id: ID!
+	name: String @search(by: [hash])
+	gameType: GameType
+	playerInfos: [PlayerInfo] @hasInverse(field: map)
+}
+
+type GameType {
+	id: ID!
+	name: String @search(by: [hash])
+	maps: [Map] @hasInverse(field: gameType)
 }

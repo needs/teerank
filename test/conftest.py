@@ -5,8 +5,11 @@ Common fixtures for tests.
 import pytest_redis
 import pytest
 
-import backend.database
 import frontend.app
+import backend.database
+import backend.database.gametype
+import backend.database.map
+
 
 redis_instance = pytest_redis.factories.redis_noproc(
     host='redis'
@@ -54,3 +57,21 @@ def fixture_client(app):
     """
 
     return app.test_client()
+
+
+@pytest.fixture(name='gametype')
+def fixture_gametype():
+    """
+    Create a new gametype and return it.
+    """
+
+    return backend.database.gametype.get('CTF')
+
+
+@pytest.fixture(name='map_')
+def fixture_map(gametype):
+    """
+    Create a new map and return it.
+    """
+
+    return backend.database.map.get(gametype['id'], 'ctf1')

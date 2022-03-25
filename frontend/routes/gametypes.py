@@ -20,12 +20,12 @@ _GQL_QUERY_GAMETYPES = gql(
                 }
             }
 
-            mapsAggregate {
+            mapsAggregate(filter: { has: name }) {
                 count
             }
         }
 
-        aggregateGameType {
+        aggregateGameType(filter: { has: name }) {
             count
         }
     }

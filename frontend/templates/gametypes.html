@@ -5,6 +5,7 @@ All gametypes
 {% endblock %}
 
 {% block content %}
+	{% if gametypes %}
 	<table class="gametypelist">
 		<thead>
 			<tr>
@@ -18,16 +19,19 @@ All gametypes
 		</thead>
 
 		<tbody>
-			{% for game_type in game_types %}
+			{% for gametype in gametypes %}
 			<tr>
-				<td>{{ game_type['rank'] }}</td>
-				<td><a href="{{ url_for('players', gametype=game_type['name']) }}">{{ game_type['name'] }}</a></td>
-				<td><a href="{{ url_for('players', gametype=game_type['name']) }}">{{ game_type['players'] }}</a></td>
-				<td><a href="{{ url_for('clans', gametype=game_type['name']) }}">{{ game_type['clans'] }}</a></td>
-				<td><a href="{{ url_for('servers', gametype=game_type['name']) }}">{{ game_type['servers'] }}</a></td>
-				<td><a href="{{ url_for('maps', gametype=game_type['name']) }}">{{ game_type['maps'] }}</a></td>
+				<td>{{ gametype['rank'] }}</td>
+				<td><a href="{{ url_for('players', gametype=gametype['name']) }}">{{ gametype['name'] }}</a></td>
+				<td><a href="{{ url_for('players', gametype=gametype['name']) }}">{{ gametype['players'] }}</a></td>
+				<td><a href="{{ url_for('clans', gametype=gametype['name']) }}">{{ gametype['clans'] }}</a></td>
+				<td><a href="{{ url_for('servers', gametype=gametype['name']) }}">{{ gametype['servers'] }}</a></td>
+				<td><a href="{{ url_for('maps', gametype=gametype['name']) }}">{{ gametype['mapsAggregate']['count'] }}</a></td>
 			</tr>
 			{% endfor %}
 		</tbody>
 	</table>
+	{% else %}
+	<p>No gametypes found.</p>
+	{% endif %}
 {% endblock %}

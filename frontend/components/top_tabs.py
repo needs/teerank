@@ -29,9 +29,13 @@ def init(active_tab: dict) -> dict:
         if active_tab['type'] == 'gametype' and active_tab['gametype'] == gametype:
             tab['class'] += 'active '
             tab['links'].append({
-                'name': active_tab['map'] if active_tab['map'] is not None else 'All maps',
+                'name': active_tab['map'],
                 'url': url_for('maps', gametype=gametype)
             })
+
+            if active_tab['map'] is None:
+                tab['links'][1]['name'] = 'All maps'
+                tab['class'] += 'allmaps '
 
         if gametype is None:
             tab['class'] += 'global '

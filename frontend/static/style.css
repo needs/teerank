@@ -436,8 +436,8 @@ tr.spectator td img {
 .maplist th, .maplist td {
 	text-align: center;
 }
-.maplist th:nth-child(1),
-.maplist td:nth-child(1) {
+.maplist th:nth-child(2),
+.maplist td:nth-child(2) {
 	text-align: left;
 	width: 100%;
 }

@@ -3,8 +3,12 @@ Test /$path/search.
 """
 
 import pytest
-import backend.database.clan
 from frontend.routes.search import MAX_SEARCH_RESULTS
+
+import backend.database.clan
+import backend.database.gametype
+import backend.database.map
+
 
 def unique_id(prefix: str) -> str:
     """Return a unique id with the given prefix."""
@@ -45,12 +49,14 @@ def create_server():
     Create and return a new server.
     """
 
+    gametype = backend.database.gametype.get('CTF')
+    map_ = backend.database.map.get(gametype['id'], 'ctf1')
+
     game_server = {
         'address': unique_id('foo:'),
         'name': unique_id('test-server-'),
 
-        'gameType': 'CTF',
-        'map': 'ctf1',
+        'map': backend.database.map.ref(map_['id']),
 
         'numPlayers': 1,
         'maxPlayers': 16,

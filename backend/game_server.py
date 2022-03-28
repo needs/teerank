@@ -11,6 +11,8 @@ from backend.server import Server
 
 import backend.database.clan
 import backend.database.player
+import backend.database.gametype
+import backend.database.map
 
 
 class GameServerType(IntEnum):
@@ -115,6 +117,7 @@ class GameServer(Server):
         self.state = self._state_new
         self._state_new = None
 
+        self.add_references(self.state)
         self.process_state(self.state)
         backend.database.game_server.upsert(self.state)
 
@@ -190,12 +193,11 @@ class GameServer(Server):
 
         while packet.unpack_remaining() >= 5:
             state['clients'].append({
-                'player': backend.database.player.ref(packet.unpack()),
-                'clan': backend.database.clan.ref(packet.unpack()),
+                'player': packet.unpack(),
+                'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int()),
-                'gameServer': backend.database.game_server.ref(self.address)
             })
 
         return state
@@ -229,12 +231,11 @@ class GameServer(Server):
 
         while packet.unpack_remaining() >= 5:
             state['clients'].append({
-                'player': backend.database.player.ref(packet.unpack()),
-                'clan': backend.database.clan.ref(packet.unpack()),
+                'player': packet.unpack(),
+                'clan': packet.unpack(),
                 'country': packet.unpack_int(),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int()),
-                'gameServer': backend.database.game_server.ref(self.address)
             })
 
         return state
@@ -267,12 +268,11 @@ class GameServer(Server):
 
         while packet.unpack_remaining() >= 6:
             state['clients'].append({
-                'player': backend.database.player.ref(packet.unpack()),
-                'clan': backend.database.clan.ref(packet.unpack()),
+                'player': packet.unpack(),
+                'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int()),
-                'gameServer': backend.database.game_server.ref(self.address)
             })
             packet.unpack() # Reserved
 
@@ -295,16 +295,33 @@ class GameServer(Server):
 
         while packet.unpack_remaining() >= 6:
             state['clients'].append({
-                'player': backend.database.player.ref(packet.unpack()),
-                'clan': backend.database.clan.ref(packet.unpack()),
+                'player': packet.unpack(),
+                'clan': packet.unpack(),
                 'country': packet.unpack_int(-1),
                 'score': packet.unpack_int(),
                 'ingame': bool(packet.unpack_int()),
-                'gameServer': backend.database.game_server.ref(self.address)
             })
             packet.unpack() # Reserved
 
         return state
+
+
+    @staticmethod
+    def add_references(state: dict) -> dict:
+        """
+        Add references to the given state to entries in the database.
+        """
+
+        for client in state['clients']:
+            client['player'] = backend.database.player.ref(client['player'])
+            client['clan'] = backend.database.clan.ref(client['clan'])
+            client['gameServer'] = backend.database.game_server.ref(state['address'])
+
+        gametype = backend.database.gametype.get(state['gameType'])
+        map_ = backend.database.map.get(gametype['id'], state['map'])
+
+        state['map'] = backend.database.map.ref(map_['id'])
+        del state['gameType']
 
 
     @staticmethod

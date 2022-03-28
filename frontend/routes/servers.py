@@ -26,8 +26,12 @@ def route_servers():
             queryGameServer(first: $first, offset: $offset, order: {desc: numClients}) {
                 address
                 name
-                map
-                gameType
+                map {
+                    name
+                    gameType {
+                        name
+                    }
+                }
                 numClients
                 maxClients
             }

@@ -4,8 +4,9 @@ Test /server.
 
 import backend.database.player
 import backend.database.game_server
+import backend.database.map
 
-def test_route_server(client):
+def test_route_server(client, map_):
     """
     Test /server.
     """
@@ -18,8 +19,7 @@ def test_route_server(client):
         'address': 'foo:8000',
         'name': 'test-server',
 
-        'gameType': 'CTF',
-        'map': 'ctf1',
+        'map': backend.database.map.ref(map_['id']),
 
         'numPlayers': 1,
         'maxPlayers': 16,

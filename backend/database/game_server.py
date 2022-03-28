@@ -43,8 +43,13 @@ def get(address: str, clients_order=None) -> dict:
                 type
                 version
                 name
-                map
-                gameType
+
+                map {
+                    name
+                    gameType {
+                        name
+                    }
+                }
 
                 numPlayers
                 maxPlayers

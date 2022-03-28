@@ -3,8 +3,9 @@ Test /servers.
 """
 
 import backend.database.game_server
+import backend.database.map
 
-def test_route_servers(client):
+def test_route_servers(client, map_, gametype):
     """
     Test /servers.
     """
@@ -13,8 +14,7 @@ def test_route_servers(client):
         'address': 'foo:8000',
         'name': 'test-server',
 
-        'gameType': 'CTF',
-        'map': 'ctf1',
+        'map': backend.database.map.ref(map_['id']),
 
         'numPlayers': 1,
         'maxPlayers': 16,
@@ -28,8 +28,8 @@ def test_route_servers(client):
 
     assert response.status_code == 200
     assert game_server['name'].encode() in response.data
-    assert game_server['gameType'].encode() in response.data
-    assert game_server['map'].encode() in response.data
+    assert map_['name'].encode() in response.data
+    assert gametype['name'].encode() in response.data
 
 
 def test_route_servers_no_servers(client):

@@ -20,8 +20,12 @@ def route_server():
                 address
 
                 name
-                map
-                gameType
+                map {
+                    name
+                    gameType {
+                        name
+                    }
+                }
 
                 numPlayers
                 maxPlayers

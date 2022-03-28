@@ -13,8 +13,8 @@
 		<section id="serverinfo">
 			<h2>{{ server['name'] }}</h2>
 			<ul>
-				<li>{{ server['gameType'] }}</li>
-				<li>{{ server['map'] }}</li>
+				<li>{{ server['map']['gameType']['name'] }}</li>
+				<li>{{ server['map']['name'] }}</li>
 				<li>{{ server['numClients'] }} / {{ server['maxClients'] }}</li>
 
 				{% if server['numPlayers'] > 0 %}

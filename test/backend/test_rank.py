@@ -55,7 +55,7 @@ def make_rankable(old, new):
 
 
 @pytest.fixture(name='old')
-def fixture_old(gametype, map_):
+def fixture_old(map_):
     """
     Create a game server state.
     """
@@ -64,8 +64,7 @@ def fixture_old(gametype, map_):
         'address': '0.0.0.0:8300',
         'version': '0.0.1',
         'name': 'old',
-        'map': map_['name'],
-        'gameType': gametype['name'],
+        'map': backend.database.map.ref(map_['id']),
         'numPlayers': 0,
         'maxPlayers': 16,
         'numClients': 0,
@@ -76,7 +75,7 @@ def fixture_old(gametype, map_):
 
 
 @pytest.fixture(name='new')
-def fixture_new(gametype, map_):
+def fixture_new(map_):
     """
     Create a game server state identical to old state.
     """
@@ -85,8 +84,7 @@ def fixture_new(gametype, map_):
         'address': '0.0.0.0:8300',
         'version': '0.0.1',
         'name': 'old',
-        'map': map_['name'],
-        'gameType': gametype['name'],
+        'map': backend.database.map.ref(map_['id']),
         'numPlayers': 0,
         'maxPlayers': 16,
         'numClients': 0,
@@ -94,6 +92,24 @@ def fixture_new(gametype, map_):
 
         'clients': []
     }
+
+
+@pytest.fixture(name='gametype_not_supported')
+def fixture_gametype_not_supported():
+    """
+    Create a new gametype that is not supported and return it.
+    """
+
+    return backend.database.gametype.get('BAD-GAMETYPE')
+
+
+@pytest.fixture(name='map_not_supported')
+def fixture_map_not_supported(gametype_not_supported):
+    """
+    Create a new map that is not supported and return it.
+    """
+
+    return backend.database.map.get(gametype_not_supported['id'], 'ctf1')
 
 
 def test_rank_player1_win(old, new, map_):
@@ -155,38 +171,26 @@ def test_rank_no_old(new):
     assert not rank({}, new)
 
 
-def test_rank_gametype_not_supported(old, new):
+def test_rank_not_supported(old, new, map_not_supported):
     """
     Make sure rank() fails when gametype is not supported.
     """
 
     make_rankable(old, new)
 
-    new['gameType'] = old['gameType'] = 'BAD_GAMETYPE'
+    new['map'] = old['map'] = backend.database.map.ref(map_not_supported['id'])
 
     assert not rank(old, new)
 
 
-def test_rank_gametype_changed(old, new):
+def test_rank_changed(old, new, map_not_supported):
     """
-    Make sure rank() fails when gametypes are different.
-    """
-
-    make_rankable(old, new)
-
-    new['gameType'] = old['gameType'] + 'a'
-
-    assert not rank(old, new)
-
-
-def test_rank_map_changed(old, new):
-    """
-    Make sure rank() fails when maps are different.
+    Make sure rank() fails when map/gametype are different.
     """
 
     make_rankable(old, new)
 
-    new['map'] = old['map'] + 'a'
+    new['map'] = backend.database.map.ref(map_not_supported['id'])
 
     assert not rank(old, new)
 

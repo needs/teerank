@@ -115,8 +115,12 @@ def search(template_name, section_tabs_active, operation_name, query_name):
                         ) {
                             address
                             name
-                            gameType
-                            map
+                            map {
+                                name
+                                gameType {
+                                    name
+                                }
+                            }
                             numClients
                             maxClients
                         }

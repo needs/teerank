@@ -49,17 +49,17 @@ def rank(old: dict, new: dict) -> bool:
     Rank players given the old and new server state.
     """
 
-    # Both old and new must be valid to be able to compare them.
-
-    if not old:
-        return False
-
     # If game type is not rankable, or game type changed, or map changed, then
     # it makes no sens to rank players.
 
-    if new['gameType'] not in ('CTF', 'DM', 'TDM') or \
-        old['gameType'] != new['gameType'] or \
-        old['map'] != new['map']:
+    if not old or not new or old['map']['id'] != new['map']['id']:
+        return False
+
+    # Make sure that gametype can be ranked.
+
+    gametype_name = backend.database.map.gametype_name(new['map']['id'])
+
+    if gametype_name not in ('CTF', 'DM', 'TDM'):
         return False
 
     # Create a list of all players that are ingame in both old and new state.
@@ -102,12 +102,9 @@ def rank(old: dict, new: dict) -> bool:
     #
     # We do this for each combination of game type and map name.
 
-    gametype_id = backend.database.gametype.get(new['gameType'])['id']
+    map_id_all = backend.database.map.id_all(new['map']['id'])
 
-    for map_name in (new['map'], None):
-
-        map_id = backend.database.map.get(gametype_id, map_name)['id']
-
+    for map_id in (new['map']['id'], map_id_all):
         for player in players:
             player.info = backend.database.player_info.get(map_id, player.name)
             player.delta = 0
@@ -128,7 +125,7 @@ def rank(old: dict, new: dict) -> bool:
 
             logging.info(
                 'Gametype: %s: map %s: player %s: new_score: %d',
-                new['gameType'], new['map'], player.name, player.info['score']
+                gametype_name, new['map']['id'], player.name, player.info['score']
             )
 
     return True

@@ -32,8 +32,8 @@ type GameServer {
 	type: Int
 	version: String
 	name: String @search(by: [hash, regexp])
-	map: String
-	gameType: String
+
+	map: Map
 
 	numPlayers: Int
 	maxPlayers: Int
@@ -56,6 +56,7 @@ type Map {
 	name: String @search(by: [hash])
 	gameType: GameType
 	playerInfos: [PlayerInfo] @hasInverse(field: map)
+	gameServers: [GameServer] @hasInverse(field: map)
 }
 
 type GameType {

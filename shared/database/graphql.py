@@ -57,6 +57,14 @@ def drop_all_data() -> None:
     requests.post(f'http://{_GRAPHQL_HOST}:{_GRAPHQL_PORT}/alter', data='{"drop_op": "DATA"}')
 
 
+def drop_all() -> None:
+    """
+    Drop all data stored in graphql.
+    """
+
+    requests.post(f'http://{_GRAPHQL_HOST}:{_GRAPHQL_PORT}/alter', data='{"drop_op": true}')
+
+
 class RawString(str):
     """
     This class is used by serialize_string() and unserialize_string().  When a

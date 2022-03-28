@@ -2,26 +2,13 @@
 Implement /players.
 """
 
-from gql import gql
 from flask import request, render_template
-from frontend.database import graphql
+from shared.database.graphql import graphql
 
 import frontend.components.paginator
 import frontend.components.section_tabs
 import frontend.components.top_tabs
 
-_GQL_QUERY_PLAYERS = gql(
-    """
-    query($first: Int!, $offset: Int!) {
-        queryPlayer(first: $first, offset: $offset) {
-            name
-            clan {
-                name
-            }
-        }
-    }
-    """
-)
 
 def route_players():
     """
@@ -34,13 +21,20 @@ def route_players():
     section_tabs = frontend.components.section_tabs.init('players')
     paginator = frontend.components.paginator.init(section_tabs['players']['count'])
 
-    players = dict(graphql.execute(
-        _GQL_QUERY_PLAYERS,
-        variable_values = {
+    players = graphql("""
+        query($first: Int!, $offset: Int!) {
+            queryPlayer(first: $first, offset: $offset) {
+                name
+                clan {
+                    name
+                }
+            }
+        }
+        """, {
             'offset': paginator['offset'],
             'first': paginator['first']
         }
-    ))['queryPlayer']
+    )['queryPlayer']
 
     for i, player in enumerate(players):
         player['rank'] = paginator['offset'] + i + 1

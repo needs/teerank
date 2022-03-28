@@ -2,24 +2,12 @@
 Implement /clans.
 """
 
-from gql import gql
 from flask import request, render_template
-from frontend.database import graphql
 
+from shared.database.graphql import graphql
 import frontend.components.paginator
 import frontend.components.section_tabs
 import frontend.components.top_tabs
-
-_GQL_QUERY_CLANS = gql(
-    """
-    query($first: Int!, $offset: Int!) {
-        queryClan(first: $first, offset: $offset, order: {desc: playersCount}) {
-            name
-            playersCount
-        }
-    }
-    """
-)
 
 def route_clans():
     """
@@ -32,13 +20,18 @@ def route_clans():
     section_tabs = frontend.components.section_tabs.init('clans')
     paginator = frontend.components.paginator.init(section_tabs['clans']['count'])
 
-    clans = dict(graphql.execute(
-        _GQL_QUERY_CLANS,
-        variable_values = {
+    clans = graphql("""
+        query($first: Int!, $offset: Int!) {
+            queryClan(first: $first, offset: $offset, order: {desc: playersCount}) {
+                name
+                playersCount
+            }
+        }
+        """, {
             'offset': paginator['offset'],
             'first': paginator['first']
         }
-    ))['queryClan']
+    )['queryClan']
 
     for i, clan in enumerate(clans):
         clan['rank'] = paginator['offset'] + i + 1

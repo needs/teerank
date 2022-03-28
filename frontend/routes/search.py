@@ -4,78 +4,14 @@ Implement /search.
 
 import re
 
-from gql import gql
 from flask import request, render_template, url_for
-from frontend.database import graphql
+from shared.database.graphql import graphql, serialize_string, RawString
 
 import frontend.components.paginator
 import frontend.components.section_tabs
 import frontend.components.top_tabs
 
 MAX_SEARCH_RESULTS = 100
-
-_GQL_SEARCH = gql(
-    """
-    query counts($regexp: String!) {
-        aggregatePlayer(filter: { name: { regexp: $regexp }}) {
-            count
-        }
-        aggregateClan(filter: { name: { regexp: $regexp }}) {
-            count
-        }
-        aggregateGameServer(filter: { name: { regexp: $regexp }}) {
-            count
-        }
-    }
-
-    query searchPlayers(
-        $regexp: String!,
-        $first: Int!
-    ) {
-        queryPlayer(
-            filter: { name: { regexp: $regexp }},
-            first: $first
-        ) {
-            name
-            clan {
-                name
-            }
-        }
-    }
-
-    query searchClans(
-        $regexp: String!, $
-        first: Int!
-    ) {
-        queryClan(
-            filter: { name: { regexp: $regexp }},
-            first: $first,
-            order: { desc: playersCount }
-        ) {
-            name
-            playersCount
-        }
-    }
-
-    query searchServers(
-        $regexp: String!,
-        $first: Int!
-    ) {
-        queryGameServer(
-            filter: { name: { regexp: $regexp }},
-            first: $first,
-            order: { desc: numClients }
-        ) {
-            address
-            name
-            gameType
-            map
-            numClients
-            maxClients
-        }
-    }
-    """
-)
 
 def search(template_name, section_tabs_active, operation_name, query_name):
     """
@@ -99,15 +35,24 @@ def search(template_name, section_tabs_active, operation_name, query_name):
     else:
         # Count the number of results for players, clans and servers.
 
-        query_escaped = re.escape(query)
+        query_escaped = re.escape(serialize_string(query))
 
-        counts_results = dict(graphql.execute(
-            _GQL_SEARCH,
-            operation_name = 'counts',
-            variable_values = {
-                'regexp': '/.*' + query_escaped + '.*/i'
+        counts_results = graphql("""
+            query($regexp: String!) {
+                aggregatePlayer(filter: { name: { regexp: $regexp }}) {
+                    count
+                }
+                aggregateClan(filter: { name: { regexp: $regexp }}) {
+                    count
+                }
+                aggregateGameServer(filter: { name: { regexp: $regexp }}) {
+                    count
+                }
             }
-        ))
+            """, {
+                'regexp': RawString('/.*' + query_escaped + '.*/i')
+            }
+        )
 
         counts = {
             'players': counts_results['aggregatePlayer']['count'],
@@ -129,14 +74,59 @@ def search(template_name, section_tabs_active, operation_name, query_name):
 
         for regexp in regexps:
             if len(results) < MAX_SEARCH_RESULTS:
-                results.extend(dict(graphql.execute(
-                    _GQL_SEARCH,
-                    operation_name = operation_name,
-                    variable_values = {
-                        'regexp': regexp,
-                        'first': MAX_SEARCH_RESULTS - len(results)
+                results.extend(graphql("""
+                    query searchPlayers(
+                        $regexp: String!,
+                        $first: Int!
+                    ) {
+                        queryPlayer(
+                            filter: { name: { regexp: $regexp }},
+                            first: $first
+                        ) {
+                            name
+                            clan {
+                                name
+                            }
+                        }
                     }
-                ))[query_name])
+
+                    query searchClans(
+                        $regexp: String!,
+                        $first: Int!
+                    ) {
+                        queryClan(
+                            filter: { name: { regexp: $regexp }},
+                            first: $first,
+                            order: { desc: playersCount }
+                        ) {
+                            name
+                            playersCount
+                        }
+                    }
+
+                    query searchServers(
+                        $regexp: String!,
+                        $first: Int!
+                    ) {
+                        queryGameServer(
+                            filter: { name: { regexp: $regexp }},
+                            first: $first,
+                            order: { desc: numClients }
+                        ) {
+                            address
+                            name
+                            gameType
+                            map
+                            numClients
+                            maxClients
+                        }
+                    }
+                    """, {
+                        'regexp': RawString(regexp),
+                        'first': MAX_SEARCH_RESULTS - len(results)
+                    },
+                    operation_name
+                )[query_name])
 
     # Build the page.
 

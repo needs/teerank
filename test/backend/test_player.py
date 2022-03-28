@@ -5,19 +5,6 @@ Test player.py
 import backend.database.clan
 from backend.database.player import upsert, get, get_clan
 
-def test_player_unescaped_name():
-    """
-    Some strange string can confuse Dgraph parser.  Make sure Dgraph accept the
-    request.
-    """
-
-    player = {
-        'name': r'\U000e0021',
-        'clan': backend.database.clan.ref(None)
-    }
-
-    upsert(player)
-
 
 def test_player_add():
     """

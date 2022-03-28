@@ -8,9 +8,14 @@ WORKDIR /usr/src/app
 ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app"
 
 COPY backend/requirements.txt backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
+COPY shared/requirements.txt shared/requirements.txt
+
+RUN pip install --no-cache-dir \
+	-r backend/requirements.txt \
+	-r shared/requirements.txt
 
 COPY backend backend
+COPY shared shared
 
 EXPOSE 8311/udp
 

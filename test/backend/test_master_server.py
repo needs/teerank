@@ -3,36 +3,29 @@ Test master_server.py
 """
 
 import pytest
-from gql import gql
-from backend.database import graphql
+from shared.database.graphql import graphql
 
 from backend.database.master_server import create, all_addresses, up, down, DEFAULT_ADDRESSES
-
-_GQL_GET = gql(
-    """
-    query($address: String!) {
-        getMasterServer(address: $address) {
-            address,
-            downSince,
-            gameServers {
-                address
-            }
-        }
-    }
-    """
-)
 
 def get(address: str) -> dict:
     """
     Get the master server (if any) with the specified address.
     """
 
-    return dict(graphql().execute(
-        _GQL_GET,
-        variable_values = {
+    return graphql("""
+        query($address: String!) {
+            getMasterServer(address: $address) {
+                address,
+                downSince,
+                gameServers {
+                    address
+                }
+            }
+        }
+        """, {
             'address': address
         }
-    ))['getMasterServer']
+    )['getMasterServer']
 
 
 @pytest.fixture(name='address')

@@ -2,31 +2,10 @@
 Implement /maps.
 """
 
-from gql import gql
 from flask import render_template, request, abort
 
-from frontend.database import graphql
+from shared.database.graphql import graphql
 import frontend.components.top_tabs
-
-_GQL_QUERY_MAPS = gql(
-    """
-    query($gametype: String, $first: Int!, $offset: Int!) {
-        queryGameType(filter: { name: { eq: $gametype }}) {
-            maps(first: $first, offset: $offset, filter: { has: name }) {
-                name
-
-                playerInfosAggregate {
-                    count
-                }
-            }
-
-            mapsAggregate(filter: { has: name }) {
-                count
-            }
-        }
-    }
-    """
-)
 
 def route_maps():
     """
@@ -37,14 +16,28 @@ def route_maps():
 
     first, offset = frontend.components.paginator.info()
 
-    query = dict(graphql.execute(
-        _GQL_QUERY_MAPS,
-        variable_values = {
+    query = graphql("""
+        query($gametype: String, $first: Int!, $offset: Int!) {
+            queryGameType(filter: { name: { eq: $gametype }}) {
+                maps(first: $first, offset: $offset, filter: { has: name }) {
+                    name
+
+                    playerInfosAggregate {
+                        count
+                    }
+                }
+
+                mapsAggregate(filter: { has: name }) {
+                    count
+                }
+            }
+        }
+        """, {
             'gametype': gametype,
             'offset': offset,
             'first': first
         }
-    ))
+    )
 
     if not query['queryGameType']:
         abort(404)

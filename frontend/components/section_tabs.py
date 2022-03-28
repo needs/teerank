@@ -2,25 +2,8 @@
 Section tabs component.
 """
 
-from gql import gql
 from flask import url_for
-from frontend.database import graphql
-
-_GQL_QUERY_COUNTS = gql(
-    """
-    query {
-        aggregatePlayer {
-            count
-        }
-        aggregateClan {
-            count
-        }
-        aggregateGameServer {
-            count
-        }
-    }
-    """
-)
+from shared.database.graphql import graphql
 
 def init(active: str, counts = None, urls = None) -> dict:
     """
@@ -28,7 +11,20 @@ def init(active: str, counts = None, urls = None) -> dict:
     """
 
     if counts is None:
-        results = dict(graphql.execute(_GQL_QUERY_COUNTS))
+        results = graphql("""
+            query {
+                aggregatePlayer {
+                    count
+                }
+                aggregateClan {
+                    count
+                }
+                aggregateGameServer {
+                    count
+                }
+            }
+            """
+        )
 
         counts = {
             'players': results['aggregatePlayer']['count'],

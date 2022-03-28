@@ -4,6 +4,8 @@ Main flask application.
 
 from flask import Flask
 
+import shared.database.graphql
+
 from frontend.routes.players import route_players
 from frontend.routes.clans import route_clans
 from frontend.routes.servers import route_servers
@@ -15,6 +17,9 @@ from frontend.routes.server import route_server
 from frontend.routes.about import route_about
 from frontend.routes.status import route_status
 from frontend.routes.search import route_players_search, route_clans_search, route_servers_search
+
+shared.database.graphql.init('dgraph-alpha', '8080')
+
 
 def create_app():
     """

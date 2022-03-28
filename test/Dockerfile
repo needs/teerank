@@ -9,11 +9,13 @@ ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app"
 
 COPY backend/requirements.txt backend/requirements.txt
 COPY frontend/requirements.txt frontend/requirements.txt
+COPY shared/requirements.txt shared/requirements.txt
 COPY test/requirements.txt test/requirements.txt
 
 RUN pip install --no-cache-dir \
 	-r backend/requirements.txt \
 	-r frontend/requirements.txt \
+	-r shared/requirements.txt \
 	-r test/requirements.txt
 
 COPY backend backend

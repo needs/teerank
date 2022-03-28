@@ -2,28 +2,13 @@
 Implement /servers.
 """
 
-from gql import gql
 from flask import request, render_template
-from frontend.database import graphql
+from shared.database.graphql import graphql
 
 import frontend.components.paginator
 import frontend.components.section_tabs
 import frontend.components.top_tabs
 
-_GQL_QUERY_SERVERS = gql(
-    """
-    query($first: Int!, $offset: Int!) {
-        queryGameServer(first: $first, offset: $offset, order: {desc: numClients}) {
-            address
-            name
-            map
-            gameType
-            numClients
-            maxClients
-        }
-    }
-    """
-)
 
 def route_servers():
     """
@@ -36,13 +21,22 @@ def route_servers():
     section_tabs = frontend.components.section_tabs.init('servers')
     paginator = frontend.components.paginator.init(section_tabs['servers']['count'])
 
-    servers = dict(graphql.execute(
-        _GQL_QUERY_SERVERS,
-        variable_values = {
+    servers = graphql("""
+        query($first: Int!, $offset: Int!) {
+            queryGameServer(first: $first, offset: $offset, order: {desc: numClients}) {
+                address
+                name
+                map
+                gameType
+                numClients
+                maxClients
+            }
+        }
+        """, {
             'offset': paginator['offset'],
             'first': paginator['first']
         }
-    ))['queryGameServer']
+    )['queryGameServer']
 
     for i, server in enumerate(servers):
         server['rank'] = paginator['offset'] + i + 1

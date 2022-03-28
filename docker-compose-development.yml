@@ -42,6 +42,7 @@ services:
       - dgraph-alpha
     volumes:
       - ./frontend:/usr/src/app/frontend:ro
+      - ./shared:/usr/src/app/shared:ro
     ports:
       - "80:5000"
 
@@ -58,5 +59,6 @@ services:
       - dgraph-alpha
     volumes:
       - ./backend:/usr/src/app/backend:ro
+      - ./shared:/usr/src/app/shared:ro
     ports:
       - "8311:8311/udp"

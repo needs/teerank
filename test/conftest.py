@@ -6,7 +6,8 @@ import pytest_redis
 import pytest
 
 import frontend.app
-import backend.database
+import shared.database.graphql
+import shared.database.redis
 import backend.database.gametype
 import backend.database.map
 
@@ -19,8 +20,8 @@ _redis = pytest_redis.factories.redisdb(
     'redis_instance'
 )
 
-backend.database.graphql_init('dgraph-alpha', '8080')
-backend.database.redis_init('redis', '6379')
+shared.database.graphql.init('dgraph-alpha', '8080', True)
+shared.database.redis.init('redis', '6379')
 
 
 @pytest.fixture(autouse=True)
@@ -32,7 +33,7 @@ def fixture_reset_databases(_redis):
     # Note: the redis database is automatically reseted thanks to the _redis
     # fixture.
 
-    backend.database.graphql_drop_all_data()
+    shared.database.graphql.drop_all_data()
 
 
 @pytest.fixture(name='app', scope='session')

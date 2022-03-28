@@ -2,8 +2,7 @@
 Helpers for game server.
 """
 
-from gql import gql
-from backend.database import graphql
+from shared.database.graphql import graphql
 
 
 def ref(address):
@@ -11,62 +10,22 @@ def ref(address):
     return { 'address': address } if address else None
 
 
-_GQL_QUERY_SERVERS = gql(
-    """
-    query {
-        queryGameServer {
-            address
-        }
-    }
-    """
-)
-
 def all_addresses() -> list[str]:
     """
     Get the list of all game servers addresses.
     """
 
-    servers = dict(graphql().execute(
-        _GQL_QUERY_SERVERS
-    ))['queryGameServer']
+    servers = graphql("""
+        query {
+            queryGameServer {
+                address
+            }
+        }
+        """
+    )['queryGameServer']
 
     return [server['address'] for server in servers]
 
-
-_GQL_GET_SERVER = gql(
-    """
-    query ($address: String!, $clientsOrder: ClientOrder!) {
-        getGameServer(address: $address) {
-            address
-
-            type
-            version
-            name
-            map
-            gameType
-
-            numPlayers
-            maxPlayers
-            numClients
-            maxClients
-
-            clients(order: $clientsOrder) {
-                id
-                player {
-                    name
-                }
-                clan {
-                    name
-                }
-
-                country
-                score
-                ingame
-            }
-        }
-    }
-    """
-)
 
 def get(address: str, clients_order=None) -> dict:
     """
@@ -76,37 +35,45 @@ def get(address: str, clients_order=None) -> dict:
     if clients_order is None:
         clients_order = {'desc': 'score'}
 
-    server = dict(graphql().execute(
-        _GQL_GET_SERVER,
-        variable_values = {
+    server = graphql("""
+        query ($address: String!, $clientsOrder: ClientOrder!) {
+            getGameServer(address: $address) {
+                address
+
+                type
+                version
+                name
+                map
+                gameType
+
+                numPlayers
+                maxPlayers
+                numClients
+                maxClients
+
+                clients(order: $clientsOrder) {
+                    id
+                    player {
+                        name
+                    }
+                    clan {
+                        name
+                    }
+
+                    country
+                    score
+                    ingame
+                }
+            }
+        }
+        """, {
             'address': address,
             'clientsOrder': clients_order
         }
-    ))['getGameServer']
+    )['getGameServer']
 
     return server if server else {}
 
-
-_GQL_SET_SERVER = gql(
-    """
-    query queryClients($address: String!) {
-        getGameServer(address: $address) {
-            clients {
-                id
-            }
-        }
-    }
-
-    mutation setServer($server: AddGameServerInput!, $clientsToRemove: [ID!]) {
-        addGameServer(input: [$server], upsert: true) {
-            numUids
-        }
-        deleteClient(filter: {id: $clientsToRemove}) {
-            numUids
-        }
-    }
-    """
-)
 
 def upsert(server: dict) -> None:
     """
@@ -116,23 +83,34 @@ def upsert(server: dict) -> None:
     # An upsert mutation adds clients to the existing clients list.  Therefor we
     # need to remove old clients, and for that we need to get their IDs.
 
-    clients_to_remove = dict(graphql().execute(
-        _GQL_SET_SERVER,
-        operation_name = 'queryClients',
-        variable_values = {
+    clients_to_remove = graphql("""
+        query($address: String!) {
+            getGameServer(address: $address) {
+                clients {
+                    id
+                }
+            }
+        }
+        """, {
             'address': server['address']
         }
-    ))['getGameServer']
+    )['getGameServer']
 
     if not clients_to_remove:
         clients_to_remove = []
     else:
         clients_to_remove = [client['id'] for client in clients_to_remove['clients']]
 
-    graphql().execute(
-        _GQL_SET_SERVER,
-        operation_name = 'setServer',
-        variable_values = {
+    graphql("""
+        mutation($server: AddGameServerInput!, $clientsToRemove: [ID!]) {
+            addGameServer(input: [$server], upsert: true) {
+                numUids
+            }
+            deleteClient(filter: {id: $clientsToRemove}) {
+                numUids
+            }
+        }
+        """, {
             'server': server,
             'clientsToRemove': clients_to_remove
         }

@@ -8,9 +8,14 @@ WORKDIR /usr/src/app
 ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app"
 
 COPY frontend/requirements.txt frontend/requirements.txt
-RUN pip install --no-cache-dir -r frontend/requirements.txt
+COPY shared/requirements.txt shared/requirements.txt
+
+RUN pip install --no-cache-dir \
+	-r frontend/requirements.txt \
+	-r shared/requirements.txt
 
 COPY frontend frontend
+COPY shared shared
 
 EXPOSE 8080
 

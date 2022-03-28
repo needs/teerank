@@ -2,32 +2,11 @@
 Implement /clan.
 """
 
-from gql import gql
 from flask import request, render_template, abort
-from frontend.database import graphql
 
+from shared.database.graphql import graphql
 import frontend.components.paginator
 import frontend.components.top_tabs
-
-# Using an aggregate instead of playersCount make this query work even when
-# playersCount is out of sync.
-_GQL_GET_CLAN = gql(
-    """
-    query($name: String!, $first: Int!, $offset: Int!) {
-        getClan(name: $name) {
-            name
-
-            playersAggregate {
-                count
-            }
-
-            players(first: $first, offset: $offset) {
-                name
-            }
-        }
-    }
-    """
-)
 
 def route_clan():
     """
@@ -38,14 +17,29 @@ def route_clan():
 
     first, offset = frontend.components.paginator.info()
 
-    clan = dict(graphql.execute(
-        _GQL_GET_CLAN,
-        variable_values = {
+    # Couting players directly instead of relying upon clan->playersCount make
+    # this query work even when clan->playersCount is not set.
+
+    clan = graphql("""
+        query($name: String!, $first: Int!, $offset: Int!) {
+            getClan(name: $name) {
+                name
+
+                playersAggregate {
+                    count
+                }
+
+                players(first: $first, offset: $offset) {
+                    name
+                }
+            }
+        }
+        """, {
             'name': name,
             'first': first,
             'offset': offset
         }
-    ))['getClan']
+    )['getClan']
 
     if not clan:
         abort(404)

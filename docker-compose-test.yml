@@ -43,4 +43,5 @@ services:
     volumes:
       - ./frontend:/usr/src/app/frontend:ro
       - ./backend:/usr/src/app/backend:ro
+      - ./shared:/usr/src/app/shared:ro
       - ./test:/usr/src/app/test:ro

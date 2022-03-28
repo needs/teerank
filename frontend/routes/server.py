@@ -2,42 +2,10 @@
 Implement /server.
 """
 
-from gql import gql
 from flask import request, render_template, abort
-from frontend.database import graphql
+from shared.database.graphql import graphql
 
 import frontend.components.top_tabs
-
-_GQL_GET_SERVER = gql(
-    """
-    query ($address: String!, $clientsOrder: ClientOrder!) {
-        getGameServer(address: $address) {
-            address
-
-            name
-            map
-            gameType
-
-            numPlayers
-            maxPlayers
-            numClients
-            maxClients
-
-            clients(order: $clientsOrder) {
-                player {
-                    name
-                }
-                clan {
-                    name
-                }
-
-                score
-                ingame
-            }
-        }
-    }
-    """
-)
 
 def route_server():
     """
@@ -46,13 +14,38 @@ def route_server():
 
     address = request.args.get('address', default="", type=str)
 
-    server = dict(graphql.execute(
-        _GQL_GET_SERVER,
-        variable_values = {
+    server = graphql("""
+        query ($address: String!, $clientsOrder: ClientOrder!) {
+            getGameServer(address: $address) {
+                address
+
+                name
+                map
+                gameType
+
+                numPlayers
+                maxPlayers
+                numClients
+                maxClients
+
+                clients(order: $clientsOrder) {
+                    player {
+                        name
+                    }
+                    clan {
+                        name
+                    }
+
+                    score
+                    ingame
+                }
+            }
+        }
+        """, {
             'address': address,
             'clientsOrder': {'desc': 'score'}
         }
-    ))['getGameServer']
+    )['getGameServer']
 
     if not server:
         abort(404)

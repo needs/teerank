@@ -4,34 +4,28 @@ Implement /status.
 
 import datetime
 
-from gql import gql
 from flask import render_template
-from frontend.database import graphql
+from shared.database.graphql import graphql
 
 import frontend.components.top_tabs
-
-_GQL_QUERY_MASTER_SERVERS = gql(
-    """
-    query {
-        queryMasterServer {
-            address
-            downSince
-            gameServersAggregate {
-                count
-            }
-        }
-    }
-    """
-)
 
 def route_status():
     """
     Render the status page.
     """
 
-    master_servers = dict(graphql.execute(
-        _GQL_QUERY_MASTER_SERVERS
-    ))['queryMasterServer']
+    master_servers = graphql("""
+        query {
+            queryMasterServer {
+                address
+                downSince
+                gameServersAggregate {
+                    count
+                }
+            }
+        }
+        """
+    )['queryMasterServer']
 
     for master_server in master_servers:
         if master_server['downSince']:

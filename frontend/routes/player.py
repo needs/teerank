@@ -2,24 +2,11 @@
 Implement /player.
 """
 
-from gql import gql
 from flask import request, render_template, abort
-from frontend.database import graphql
 
+from shared.database.graphql import graphql
 import frontend.components.top_tabs
 
-_GQL_GET_PLAYER = gql(
-    """
-    query ($name: String!) {
-        getPlayer(name: $name) {
-            name
-            clan {
-                name
-            }
-        }
-    }
-    """
-)
 
 def route_player():
     """
@@ -28,12 +15,19 @@ def route_player():
 
     name = request.args.get('name', default=None, type=str)
 
-    player = dict(graphql.execute(
-        _GQL_GET_PLAYER,
-        variable_values = {
+    player = graphql("""
+        query ($name: String!) {
+            getPlayer(name: $name) {
+                name
+                clan {
+                    name
+                }
+            }
+        }
+        """, {
             'name': name,
         }
-    ))['getPlayer']
+    )['getPlayer']
 
     if not player:
         abort(404)

@@ -1,3 +1,0 @@
-gql[aiohttp]
-requests
-redis

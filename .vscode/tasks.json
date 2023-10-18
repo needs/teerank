@@ -1,0 +1,101 @@
+{
+  "version": "2.0.0",
+  "presentation": {
+    "echo": false,
+    "reveal": "silent",
+    "focus": false,
+    "panel": "dedicated",
+  },
+  "inputs": [
+    {
+      "id": "terminateFrontend",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "Frontend"
+    },
+    {
+      "id": "terminatePoller",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "Poller"
+    },
+    {
+      "id": "terminateDocker",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "Docker"
+    },
+  ],
+  "tasks": [
+    {
+      "label": "Launch local dev",
+      "dependsOn": [
+        "Terminate Serve",
+        "Npm install",
+        "Start Serve"
+      ],
+      "dependsOrder": "sequence",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Terminate Serve",
+      "dependsOn": [
+        "Terminate Frontend",
+        "Terminate Poller",
+        "Terminate Docker"
+      ],
+    },
+    {
+      "label": "Terminate Frontend",
+      "type": "process",
+      "command": "echo ${input:terminateFrontend}",
+    },
+    {
+      "label": "Terminate Poller",
+      "type": "process",
+      "command": "echo ${input:terminatePoller}",
+    },
+    {
+      "label": "Terminate Docker",
+      "type": "process",
+      "command": "echo ${input:terminateDocker}",
+    },
+    {
+      "label": "Npm install",
+      "type": "shell",
+      "command": "npm install",
+      "presentation": {
+        "close": true
+      }
+    },
+    {
+      "label": "Start Serve",
+      "dependsOn": [
+        "Docker",
+        "Frontend",
+        "Poller",
+      ],
+    },
+    {
+      "label": "Docker",
+      "type": "shell",
+      "command": "docker compose up",
+      "isBackground": true,
+    },
+    {
+      "label": "Frontend",
+      "type": "shell",
+      "command": "npx nx serve frontend",
+      "isBackground": true,
+    },
+    {
+      "label": "Poller",
+      "type": "shell",
+      "command": "npx nx serve poller",
+      "isBackground": true,
+    },
+  ]
+}

@@ -13,12 +13,12 @@ model MasterServer {
   updatedAt DateTime @updatedAt
   address   String
   port      Int
-  Server    Server[]
+  gameServers    GameServer[]
 
   @@unique([address, port])
 }
 
-model Server {
+model GameServer {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

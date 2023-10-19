@@ -38,6 +38,7 @@ async function pollMasterServers() {
   const masterServers = await prisma.masterServer.findMany();
 
   for (const masterServer of masterServers) {
+    console.log(`Polling ${masterServer.address}:${masterServer.port}`)
     const ip = await lookup(masterServer.address);
 
     socket4.send(PACKET_GETLIST, masterServer.port, ip.address, (err) => {
@@ -53,17 +54,17 @@ async function pollMasterServers() {
 
     if (receivedPacket !== undefined) {
       for (const packet of receivedPacket.packets) {
-      const masterPacket = unpackMasterPacket(packet);
+        const masterPacket = unpackMasterPacket(packet);
 
-      await prisma.server.createMany({
-        data: masterPacket.servers.map(server => ({
-          ip: server.ip,
-          port: server.port,
-          masterServerId: masterServer.id,
-        })),
-        skipDuplicates: true,
-      });
-    }
+        await prisma.gameServer.createMany({
+          data: masterPacket.servers.map(server => ({
+            ip: server.ip,
+            port: server.port,
+            masterServerId: masterServer.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
     }
   }
 }

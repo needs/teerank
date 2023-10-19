@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MasterServer {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  address   String
+  port      Int
+  Server    Server[]
+
+  @@unique([address, port])
+}
+
+model Server {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ip        String
+  port      Int
+
+  masterServer   MasterServer @relation(fields: [masterServerId], references: [id])
+  masterServerId Int
+
+  @@unique([ip, port])
+}

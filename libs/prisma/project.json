@@ -18,7 +18,7 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["libs/prisma/**/*.ts", "libs/prisma/package.json"]
+        "lintFilePatterns": ["libs/prisma/**/*.ts"]
       }
     },
     "test": {

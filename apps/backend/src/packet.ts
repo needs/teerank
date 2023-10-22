@@ -1,7 +1,7 @@
 export type Packet = {
   data: Buffer;
   offset: number;
-}
+};
 
 export function packetFromBuffer(buffer: Buffer): Packet {
   return {
@@ -34,14 +34,14 @@ export enum ServerHeader {
 }
 
 export function headerBuffer(header: string): Buffer {
-  const headerBytes = header.split('').map(char => char.charCodeAt(0));
+  const headerBytes = header.split('').map((char) => char.charCodeAt(0));
   return Buffer.from([0xff, 0xff, 0xff, 0xff, ...headerBytes]);
 }
 
-const SERVER_HEADER_VANILLA = headerBuffer("inf3");
-const SERVER_HEADER_LEGACY64 = headerBuffer("dtsf");
-const SERVER_HEADER_EXTENDED = headerBuffer("iext");
-const SERVER_HEADER_EXTENDED_MORE = headerBuffer("iex+");
+const SERVER_HEADER_VANILLA = headerBuffer('inf3');
+const SERVER_HEADER_LEGACY64 = headerBuffer('dtsf');
+const SERVER_HEADER_EXTENDED = headerBuffer('iext');
+const SERVER_HEADER_EXTENDED_MORE = headerBuffer('iex+');
 
 export function unpackServerHeader(packet: Packet): ServerHeader {
   unpackBytes(packet, 6);
@@ -64,7 +64,7 @@ export enum MasterHeader {
   Vanilla,
 }
 
-const MASTER_HEADER_VANILLA = headerBuffer("lis2");
+const MASTER_HEADER_VANILLA = headerBuffer('lis2');
 
 export function unpackMasterHeader(packet: Packet): MasterHeader {
   unpackBytes(packet, 6);

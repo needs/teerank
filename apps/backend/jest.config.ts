@@ -1,11 +1,11 @@
 /* eslint-disable */
 export default {
-  displayName: 'poller',
+  displayName: 'backend',
   preset: '../../jest.preset.js',
   testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/apps/poller',
+  coverageDirectory: '../../coverage/apps/backend',
 };

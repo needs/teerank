@@ -14,10 +14,10 @@
       "args": "Frontend"
     },
     {
-      "id": "terminatePoller",
+      "id": "terminateBackend",
       "type": "command",
       "command": "workbench.action.tasks.terminate",
-      "args": "Poller"
+      "args": "Backend"
     },
     {
       "id": "terminateDocker",
@@ -44,7 +44,7 @@
       "label": "Terminate Serve",
       "dependsOn": [
         "Terminate Frontend",
-        "Terminate Poller",
+        "Terminate Backend",
         "Terminate Docker"
       ],
     },
@@ -54,9 +54,9 @@
       "command": "echo ${input:terminateFrontend}",
     },
     {
-      "label": "Terminate Poller",
+      "label": "Terminate Backend",
       "type": "process",
-      "command": "echo ${input:terminatePoller}",
+      "command": "echo ${input:terminateBackend}",
     },
     {
       "label": "Terminate Docker",
@@ -76,7 +76,7 @@
       "dependsOn": [
         "Docker",
         "Frontend",
-        "Poller",
+        "Backend",
       ],
     },
     {
@@ -92,9 +92,9 @@
       "isBackground": true,
     },
     {
-      "label": "Poller",
+      "label": "Backend",
       "type": "shell",
-      "command": "npx nx serve poller",
+      "command": "npx nx serve backend",
       "isBackground": true,
     },
   ]

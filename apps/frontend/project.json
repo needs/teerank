@@ -62,6 +62,10 @@
       "options": {
         "lintFilePatterns": ["apps/frontend/**/*.{ts,tsx,js,jsx}"]
       }
+    },
+    "docker-build": {
+      "dependsOn": ["build"],
+      "command": "docker build -f apps/frontend/Dockerfile . -t frontend"
     }
   },
   "tags": []

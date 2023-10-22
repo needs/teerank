@@ -14,8 +14,8 @@ This project is a reboot of teerank.com.  The former was written in C and used
 SQLite.  While good, this technologies are arguably not the best tools in the
 box for making a ranking system.
 
-This project instead relies on Typescript, NextJS, postgres, redis.  Performance
-is not really a concern so Typescript is a good language to use, as it improves
+This project instead relies on Typescript, NextJS, mysql, redis.  Performance is
+not really a concern so Typescript is a good language to use, as it improves
 developement speed and is accessible to more people.  Redis is handy because it
 provides a way to sort our players directly while SQLite doesn't.
 

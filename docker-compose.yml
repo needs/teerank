@@ -1,12 +1,11 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:latest
+  mysql:
+    image: mysql:latest
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_DATABASE: teerank
     ports:
-      - "5432:5432"
+      - "3306:3306"
     restart: always

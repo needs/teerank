@@ -1,32 +1,7 @@
-import { RemoteInfo, createSocket } from "dgram";
-import { Packet, packetFromBuffer } from "./packet";
 import { prisma } from "./prisma";
 import { lookup } from "dns/promises";
 import { unpackMasterPacket } from "./packets/master";
-
-function ipAndPortToString(ip: string, port: number) {
-  return `${ip} | ${port}`;
-}
-
-const packetsByIpAndPort: Record<
-  string,
-  { packets: Packet[]; remoteInfo: RemoteInfo }
-> = {};
-
-const socket4 = createSocket({ type: 'udp4' });
-
-socket4.on('message', (message, remoteInfo) => {
-  const ipAndPort = ipAndPortToString(remoteInfo.address, remoteInfo.port);
-  const packet = packetFromBuffer(message);
-
-  const receivedPacket = packetsByIpAndPort[ipAndPort];
-
-  if (receivedPacket === undefined) {
-    packetsByIpAndPort[ipAndPort] = { packets: [packet], remoteInfo };
-  } else {
-    receivedPacket.packets.push(packet);
-  }
-});
+import { destroySockets, getReceivedPackets, sendData, setupSockets } from "./socket";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -49,25 +24,22 @@ const PACKET_GETLIST = Buffer.from([
 ]);
 
 export async function pollMasterServers() {
+  const sockets = setupSockets();
+
   const masterServers = await prisma.masterServer.findMany();
 
   for (const masterServer of masterServers) {
     console.log(`Polling ${masterServer.address}:${masterServer.port}`);
     const ip = await lookup(masterServer.address);
 
-    socket4.send(PACKET_GETLIST, masterServer.port, ip.address, (err) => {
-      if (err) {
-        console.error(err);
-      }
-    });
+    sendData(sockets, PACKET_GETLIST, ip.address, masterServer.port);
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    const ipAndPort = ipAndPortToString(ip.address, masterServer.port);
-    const receivedPacket = packetsByIpAndPort[ipAndPort];
+    const receivedPackets = getReceivedPackets(sockets, ip.address, masterServer.port);
 
-    if (receivedPacket !== undefined) {
-      for (const packet of receivedPacket.packets) {
+    if (receivedPackets !== undefined) {
+      for (const packet of receivedPackets.packets) {
         const masterPacket = unpackMasterPacket(packet);
 
         await prisma.gameServer.createMany({
@@ -81,4 +53,6 @@ export async function pollMasterServers() {
       }
     }
   }
+
+  destroySockets(sockets);
 }

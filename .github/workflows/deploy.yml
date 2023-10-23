@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Deploy
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -87,12 +87,12 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy frontend
+      - name: Deploy backend
         uses: azure/container-apps-deploy-action@v1
         with:
           resourceGroup: teerank.io
-          containerAppName: frontend
-          imageToDeploy: registry.hub.docker.com/s0laster/teerank.io-frontend:latest
+          containerAppName: backend
+          imageToDeploy: registry.hub.docker.com/s0laster/teerank.io-backend:latest
           registryUrl: registry.hub.docker.com
           registryUsername: ${{ secrets.DOCKER_USERNAME }}
           registryPassword: ${{ secrets.DOCKER_PASSWORD }}

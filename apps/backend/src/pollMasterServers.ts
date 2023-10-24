@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { lookup } from "dns/promises";
-import { unpackMasterPacket } from "./packets/master";
+import { unpackMasterPackets } from "./packets/masterServerInfo";
 import { destroySockets, getReceivedPackets, sendData, setupSockets } from "./socket";
 
 function stringToCharCode(str: string) {
@@ -39,10 +39,10 @@ export async function pollMasterServers() {
     const receivedPackets = getReceivedPackets(sockets, ip.address, masterServer.port);
 
     if (receivedPackets !== undefined) {
-      const gameServers = receivedPackets.packets.flatMap((packet) => unpackMasterPacket(packet).servers);
+      const masterServerInfo = unpackMasterPackets(receivedPackets.packets)
 
       const gameServersCreated = await prisma.gameServer.createMany({
-        data: gameServers.map(({ ip, port }) => ({
+        data: masterServerInfo.gameServers.map(({ ip, port }) => ({
           ip,
           port,
           masterServerId: masterServer.id,

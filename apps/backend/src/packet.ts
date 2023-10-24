@@ -26,6 +26,24 @@ export function unpackBytes(packet: Packet, length: number): Buffer {
   return bytes;
 }
 
+export function unpackString(packet: Packet): string {
+  for (let offset = packet.offset; offset < packet.data.length; offset += 1) {
+    if (packet.data[offset] === 0) {
+      return packet.data.subarray(packet.offset, offset).toString();
+    }
+  }
+
+  throw new Error('Invalid string');
+}
+
+export function unpackInt(packet: Packet): number {
+  return parseInt(unpackString(packet), 10);
+}
+
+export function unpackBool(packet: Packet): boolean {
+  return parseInt(unpackString(packet), 10) !== 0;
+}
+
 export enum ServerHeader {
   Vanilla,
   Legacy64,

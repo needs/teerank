@@ -14,12 +14,6 @@ export function packetIsConsumed(packet: Packet): boolean {
   return packet.offset >= packet.data.length;
 }
 
-function unpackByte(packet: Packet): number {
-  const byte = packet.data[packet.offset];
-  packet.offset += 1;
-  return byte;
-}
-
 export function unpackBytes(packet: Packet, length: number): Buffer {
   const bytes = packet.data.subarray(packet.offset, packet.offset + length);
   packet.offset += length;
@@ -27,9 +21,13 @@ export function unpackBytes(packet: Packet, length: number): Buffer {
 }
 
 export function unpackString(packet: Packet): string {
-  for (let offset = packet.offset; offset < packet.data.length; offset += 1) {
-    if (packet.data[offset] === 0) {
-      return packet.data.subarray(packet.offset, offset).toString();
+  const startingOffset = packet.offset;
+
+  for (; packet.offset < packet.data.length; packet.offset += 1) {
+    if (packet.data[packet.offset] === 0) {
+      const data = packet.data.subarray(startingOffset, packet.offset).toString();
+      packet.offset += 1;
+      return data;
     }
   }
 

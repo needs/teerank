@@ -44,7 +44,13 @@ function unpackMasterVanillaContent(packet: Packet): MasterServerPacketInfo {
       masterPacket.gameServers.push({
         ip: Array.from(bytes.subarray(0, 16))
           .map((byte) => byte.toString(16).padStart(2, '0'))
-          .join(':'),
+          .reduce((acc, byte, index, array) => {
+            if (index % 2 === 1) {
+              return [...acc, `${array[index - 1]}${byte}`];
+            } else {
+              return acc;
+            }
+          }, [] as string[]).join(":"),
         port: bytes[16] * 256 + bytes[17],
       });
     }

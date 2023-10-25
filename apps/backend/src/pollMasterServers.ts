@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { lookup } from "dns/promises";
 import { unpackMasterPackets } from "./packets/masterServerInfo";
 import { destroySockets, getReceivedPackets, sendData, setupSockets } from "./socket";
+import { wait } from "./utils";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -34,7 +35,7 @@ export async function pollMasterServers() {
 
     sendData(sockets, PACKET_GETLIST, ip.address, masterServer.port);
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await wait(2000);
 
     const receivedPackets = getReceivedPackets(sockets, ip.address, masterServer.port);
 

@@ -23,11 +23,58 @@ model GameServer {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  ip        String
-  port      Int
+
+  ip   String
+  port Int
 
   masterServer   MasterServer @relation(fields: [masterServerId], references: [id])
   masterServerId Int
 
+  snapshots GameServerSnapshot[]
+
   @@unique([ip, port])
+}
+
+model Player {
+  name      String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gameServerClients GameServerClient[]
+}
+
+model GameServerClient {
+  id Int @id @default(autoincrement())
+
+  snapshot   GameServerSnapshot @relation(fields: [snapshotId], references: [id])
+  snapshotId Int
+
+  player     Player @relation(fields: [name], references: [name])
+  name String
+
+  clan    String
+  score   Int
+  country String
+  inGame  Boolean
+}
+
+model GameServerSnapshot {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  version  String
+  name     String
+  map      String
+  gameType String
+
+  numPlayers Int
+  maxPlayers Int
+
+  numClients Int
+  maxClients Int
+
+  clients GameServerClient[]
+
+  gameServer   GameServer @relation(fields: [gameServerId], references: [id])
+  gameServerId Int
 }

@@ -55,6 +55,49 @@ export async function pollGameServers() {
     if (receivedPackets !== undefined) {
       try {
         const gameServerInfo = unpackGameServerInfoPackets(receivedPackets.packets)
+
+        prisma.$transaction(async (prisma) => {
+          await Promise.all(gameServerInfo.clients.map(async (client) => {
+            await prisma.player.upsert({
+              where: {
+                name: client.name,
+              },
+              create: {
+                name: client.name,
+              },
+              update: {
+              },
+            });
+          }));
+
+          await prisma.gameServerSnapshot.create({
+            data: {
+              gameServer: {
+                connect: {
+                  id: gameServer.id,
+                },
+              },
+              version: gameServerInfo.version,
+              name: gameServerInfo.name,
+              map: gameServerInfo.map,
+              gameType: gameServerInfo.gameType,
+              numPlayers: gameServerInfo.numPlayers,
+              maxPlayers: gameServerInfo.maxPlayers,
+              numClients: gameServerInfo.numClients,
+              maxClients: gameServerInfo.maxClients,
+              clients: {
+                create: gameServerInfo.clients.map((client) => ({
+                  name: client.name,
+                  clan: client.clan,
+                  country: client.country,
+                  score: client.score,
+                  inGame: client.inGame,
+                })),
+              },
+            },
+          });
+        });
+
         console.log(`${gameServer.ip}:${gameServer.port}: ${JSON.stringify(gameServerInfo, undefined, 2)}`)
       } catch (e) {
         console.warn(`${gameServer.ip}:${gameServer.port}: ${e.message}`)

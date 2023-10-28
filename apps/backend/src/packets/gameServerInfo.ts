@@ -15,7 +15,7 @@ export type GameServerInfoPacket = {
   clients: {
     name: string;
     clan: string;
-    country: string;
+    country: number;
     score: number;
     inGame: boolean;
   }[];
@@ -72,7 +72,7 @@ function unpackGameServerInfoVanilla(packet: Packet, gameServerInfoPacket: GameS
   while (!packetIsConsumed(packet)) {
     const name = unpackString(packet);
     const clan = unpackString(packet);
-    const country = unpackString(packet);
+    const country = unpackInt(packet);
     const score = unpackInt(packet);
     const inGame = unpackBool(packet);
 
@@ -107,7 +107,7 @@ function unpackGameServerInfoLegacy64(packet: Packet, gameServerInfoPacket: Game
   while (!packetIsConsumed(packet)) {
     const name = unpackString(packet);
     const clan = unpackString(packet);
-    const country = unpackString(packet);
+    const country = unpackInt(packet);
     const score = unpackInt(packet);
     const inGame = unpackBool(packet);
 
@@ -146,7 +146,7 @@ function unpackGameServerInfoExtended(packet: Packet, gameServerInfoPacket: Game
   while (!packetIsConsumed(packet)) {
     const name = unpackString(packet);
     const clan = unpackString(packet);
-    const country = unpackString(packet);
+    const country = unpackInt(packet);
     const score = unpackInt(packet);
     const inGame = unpackBool(packet);
     unpackString(packet); // reserved
@@ -168,7 +168,7 @@ function unpackGameServerInfoExtendedMore(packet: Packet, gameServerInfoPacket: 
   while (!packetIsConsumed(packet)) {
     const name = unpackString(packet);
     const clan = unpackString(packet);
-    const country = unpackString(packet);
+    const country = unpackInt(packet);
     const score = unpackInt(packet);
     const inGame = unpackBool(packet);
     unpackString(packet); // reserved

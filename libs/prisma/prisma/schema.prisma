@@ -54,7 +54,7 @@ model GameServerClient {
 
   clan    String
   score   Int
-  country String
+  country Int
   inGame  Boolean
 }
 

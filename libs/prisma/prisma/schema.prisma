@@ -40,7 +40,45 @@ model Player {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  elos PlayerElo[]
+
   gameServerClients GameServerClient[]
+}
+
+model GameType {
+  name      String   @id
+  createdAt DateTime @default(now())
+  map       Map[]
+}
+
+model Map {
+  id       Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+
+  gameType     GameType @relation(fields: [gameTypeName], references: [name])
+  gameTypeName String
+
+  snapshots  GameServerSnapshot[]
+  playerElos PlayerElo[]
+
+  @@unique([name, gameTypeName])
+}
+
+model PlayerElo {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  player Player @relation(fields: [playerName], references: [name])
+  playerName   String
+
+  map     Map    @relation(fields: [mapId], references: [id])
+  mapId   Int
+
+  elo Int
+
+  @@unique([playerName, mapId])
 }
 
 model GameServerClient {
@@ -49,8 +87,8 @@ model GameServerClient {
   snapshot   GameServerSnapshot @relation(fields: [snapshotId], references: [id])
   snapshotId Int
 
-  player     Player @relation(fields: [name], references: [name])
-  name String
+  player Player @relation(fields: [playerName], references: [name])
+  playerName   String
 
   clan    String
   score   Int
@@ -62,10 +100,10 @@ model GameServerSnapshot {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 
-  version  String
-  name     String
-  map      String
-  gameType String
+  version String
+  name    String
+  map     Map    @relation(fields: [mapId], references: [id])
+  mapId Int
 
   numPlayers Int
   maxPlayers Int

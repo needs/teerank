@@ -56,46 +56,64 @@ export async function pollGameServers() {
       try {
         const gameServerInfo = unpackGameServerInfoPackets(receivedPackets.packets)
 
-        prisma.$transaction(async (prisma) => {
-          await Promise.all(gameServerInfo.clients.map(async (client) => {
-            await prisma.player.upsert({
-              where: {
-                name: client.name,
-              },
-              create: {
-                name: client.name,
-              },
-              update: {
-              },
-            });
-          }));
-
-          await prisma.gameServerSnapshot.create({
-            data: {
-              gameServer: {
-                connect: {
-                  id: gameServer.id,
-                },
-              },
-              version: gameServerInfo.version,
-              name: gameServerInfo.name,
-              map: gameServerInfo.map,
-              gameType: gameServerInfo.gameType,
-              numPlayers: gameServerInfo.numPlayers,
-              maxPlayers: gameServerInfo.maxPlayers,
-              numClients: gameServerInfo.numClients,
-              maxClients: gameServerInfo.maxClients,
-              clients: {
-                create: gameServerInfo.clients.map((client) => ({
-                  name: client.name,
-                  clan: client.clan,
-                  country: client.country,
-                  score: client.score,
-                  inGame: client.inGame,
-                })),
+        await prisma.gameServerSnapshot.create({
+          data: {
+            gameServer: {
+              connect: {
+                id: gameServer.id,
               },
             },
-          });
+
+            version: gameServerInfo.version,
+            name: gameServerInfo.name,
+
+            map: {
+              connectOrCreate: {
+                where: {
+                  name_gameTypeName: {
+                    name: gameServerInfo.map,
+                    gameTypeName: gameServerInfo.gameType,
+                  },
+                },
+                create: {
+                  name: gameServerInfo.map,
+                  gameType: {
+                    connectOrCreate: {
+                      where: {
+                        name: gameServerInfo.gameType,
+                      },
+                      create: {
+                        name: gameServerInfo.gameType,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            numPlayers: gameServerInfo.numPlayers,
+            maxPlayers: gameServerInfo.maxPlayers,
+            numClients: gameServerInfo.numClients,
+            maxClients: gameServerInfo.maxClients,
+
+            clients: {
+              create: gameServerInfo.clients.map((client) => ({
+                player: {
+                  connectOrCreate: {
+                    where: {
+                      name: client.name,
+                    },
+                    create: {
+                      name: client.name,
+                    }
+                  },
+                },
+                clan: client.clan,
+                country: client.country,
+                score: client.score,
+                inGame: client.inGame,
+              })),
+            },
+          },
         });
 
         console.log(`${gameServer.ip}:${gameServer.port}: ${JSON.stringify(gameServerInfo, undefined, 2)}`)

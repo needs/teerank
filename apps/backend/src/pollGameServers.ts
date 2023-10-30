@@ -43,8 +43,6 @@ export async function pollGameServers() {
   await Promise.all(gameServers.map(async (gameServer, index) => {
     await wait(index * 100);
 
-    console.log(`${gameServer.ip}:${gameServer.port}: Polling`);
-
     sendData(sockets, PACKET_GETINFO, gameServer.ip, gameServer.port);
     sendData(sockets, PACKET_GETINFO64, gameServer.ip, gameServer.port);
 
@@ -116,7 +114,7 @@ export async function pollGameServers() {
           },
         });
 
-        console.log(`${gameServer.ip}:${gameServer.port}: ${JSON.stringify(gameServerInfo, undefined, 2)}`)
+        console.log(`${gameServer.ip}:${gameServer.port}: Polled (${gameServerInfo.gameType} ${gameServerInfo.map} ${gameServerInfo.numClients}/${gameServerInfo.maxClients})`)
       } catch (e) {
         console.warn(`${gameServer.ip}:${gameServer.port}: ${e.message}`)
       }

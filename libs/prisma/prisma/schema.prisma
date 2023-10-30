@@ -40,45 +40,51 @@ model Player {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  elos PlayerElo[]
+  ratings PlayerRating[]
 
   gameServerClients GameServerClient[]
 }
 
+enum RankMethod {
+  ELO
+}
+
 model GameType {
-  name      String   @id
-  createdAt DateTime @default(now())
-  map       Map[]
+  name       String      @id
+  createdAt  DateTime    @default(now())
+  map        Map[]
+  rankMethod RankMethod?
 }
 
 model Map {
-  id       Int      @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   name      String
   createdAt DateTime @default(now())
 
   gameType     GameType @relation(fields: [gameTypeName], references: [name])
   gameTypeName String
 
-  snapshots  GameServerSnapshot[]
-  playerElos PlayerElo[]
+  snapshots     GameServerSnapshot[]
+  playerRatings PlayerRating[]
 
   @@unique([name, gameTypeName])
 }
 
-model PlayerElo {
+model PlayerRating {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  player Player @relation(fields: [playerName], references: [name])
-  playerName   String
+  player     Player @relation(fields: [playerName], references: [name])
+  playerName String
 
-  map     Map    @relation(fields: [mapId], references: [id])
-  mapId   Int
+  map   Map @relation(fields: [mapId], references: [id])
+  mapId Int
 
-  elo Int
+  rating Float
 
   @@unique([playerName, mapId])
+  @@map("PlayerRatings")
 }
 
 model GameServerClient {
@@ -87,8 +93,8 @@ model GameServerClient {
   snapshot   GameServerSnapshot @relation(fields: [snapshotId], references: [id])
   snapshotId Int
 
-  player Player @relation(fields: [playerName], references: [name])
-  playerName   String
+  player     Player @relation(fields: [playerName], references: [name])
+  playerName String
 
   clan    String
   score   Int
@@ -97,13 +103,14 @@ model GameServerClient {
 }
 
 model GameServerSnapshot {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  rankedAt  DateTime?
 
   version String
   name    String
   map     Map    @relation(fields: [mapId], references: [id])
-  mapId Int
+  mapId   Int
 
   numPlayers Int
   maxPlayers Int

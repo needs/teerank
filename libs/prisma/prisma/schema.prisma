@@ -58,7 +58,7 @@ model GameType {
 
 model Map {
   id        Int      @id @default(autoincrement())
-  name      String
+  name      String?
   createdAt DateTime @default(now())
 
   gameType     GameType @relation(fields: [gameTypeName], references: [name])

@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 type GameServerSnapshotWithClients = Prisma.GameServerSnapshotGetPayload<{
   include: {
     clients: true;
+    map: true;
   }
 }>;
 
@@ -16,7 +17,30 @@ type RankablePlayer = {
 
 type RankablePlayers = RankablePlayer[];
 
-async function getRankablePlayers(snapshotStart: GameServerSnapshotWithClients, snapshotEnd: GameServerSnapshotWithClients): Promise<RankablePlayers> {
+async function getGameTypeMap(gameTypeName: string) {
+  return await prisma.map.upsert({
+    select: {
+      id: true,
+    },
+    create: {
+      gameType: {
+        connect: {
+          name: gameTypeName,
+        },
+      },
+      name: null,
+    },
+    update: {},
+    where: {
+      name_gameTypeName: {
+        gameTypeName: gameTypeName,
+        name: null,
+      },
+    },
+  });
+}
+
+async function getRankablePlayers(snapshotStart: GameServerSnapshotWithClients, snapshotEnd: GameServerSnapshotWithClients, useGameTypeRatings: boolean): Promise<RankablePlayers> {
   // Ranking on a different map or gametype doesn't make sense.
   if (snapshotStart.mapId !== snapshotEnd.mapId) {
     return undefined;
@@ -31,6 +55,8 @@ async function getRankablePlayers(snapshotStart: GameServerSnapshotWithClients, 
   // Get common players from both snapshots
   const rankablePlayers: RankablePlayers = [];
 
+  const map = useGameTypeRatings ? await getGameTypeMap(snapshotStart.map.gameTypeName) : snapshotStart.map;
+
   for (const clientStart of snapshotStart.clients) {
     const clientEnd = snapshotEnd.clients.find((clientEnd) =>
       clientEnd.playerName === clientStart.playerName
@@ -40,12 +66,12 @@ async function getRankablePlayers(snapshotStart: GameServerSnapshotWithClients, 
       const rating = await prisma.playerRating.upsert({
         where: {
           playerName_mapId: {
-            mapId: snapshotStart.mapId,
+            mapId: map.id,
             playerName: clientStart.playerName,
           },
         },
         create: {
-          mapId: snapshotStart.mapId,
+          mapId: map.id,
           rating: 0,
           playerName: clientStart.playerName,
         },
@@ -96,6 +122,31 @@ function computeEloDelta(rankablePlayerA: RankablePlayer, rankablePlayerB: Ranka
   return K * (W - p(rankablePlayerA.rating - rankablePlayerB.rating));
 }
 
+async function updateRatings(rankablePlayers: RankablePlayers) {
+  if (rankablePlayers !== undefined) {
+    for (const rankablePlayer of rankablePlayers) {
+      const deltas = rankablePlayers.reduce((sum, otherRankablePlayer) => {
+        if (rankablePlayer.playerName === otherRankablePlayer.playerName) {
+          return sum;
+        } else {
+          return sum + computeEloDelta(rankablePlayer, otherRankablePlayer)
+        }
+      }, 0);
+
+      const deltaAverage = deltas / (rankablePlayers.length - 1);
+
+      await prisma.playerRating.update({
+        where: {
+          id: rankablePlayer.ratingId,
+        },
+        data: {
+          rating: rankablePlayer.rating + deltaAverage,
+        }
+      });
+    }
+  }
+}
+
 export async function rankPlayers() {
   // 1. Get all unranked and rankable snapshots grouped by map with their players
   // 2. When there is more than one snapshot, rank the players for each snapshot
@@ -132,7 +183,7 @@ export async function rankPlayers() {
         },
         include: {
           clients: true,
-          map: true
+          map: true,
         },
       }
     },
@@ -148,30 +199,11 @@ export async function rankPlayers() {
       const snapshotStart = snapshots[index];
       const snapshotEnd = snapshots[index + 1];
 
-      const rankablePlayers = await getRankablePlayers(snapshotStart, snapshotEnd);
+      const rankablePlayersMap = await getRankablePlayers(snapshotStart, snapshotEnd, false);
+      await updateRatings(rankablePlayersMap);
 
-      if (rankablePlayers !== undefined) {
-        for (const rankablePlayer of rankablePlayers) {
-          const deltas = rankablePlayers.reduce((sum, otherRankablePlayer) => {
-            if (rankablePlayer.playerName === otherRankablePlayer.playerName) {
-              return sum;
-            } else {
-              return sum + computeEloDelta(rankablePlayer, otherRankablePlayer)
-            }
-          }, 0);
-
-          const deltaAverage = deltas / (rankablePlayers.length - 1);
-
-          await prisma.playerRating.update({
-            where: {
-              id: rankablePlayer.ratingId,
-            },
-            data: {
-              rating: rankablePlayer.rating + deltaAverage,
-            }
-          });
-        }
-      }
+      const rankablePlayersGameType = await getRankablePlayers(snapshotStart, snapshotEnd, false);
+      await updateRatings(rankablePlayersGameType);
 
       await prisma.gameServerSnapshot.update({
         where: {

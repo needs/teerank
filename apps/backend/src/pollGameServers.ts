@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { destroySockets, getReceivedPackets, sendData, setupSockets } from "./socket";
 import { unpackGameServerInfoPackets } from "./packets/gameServerInfo";
 import { wait } from "./utils";
+import { differenceInMinutes } from "date-fns";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -40,7 +41,22 @@ export async function pollGameServers() {
 
   const gameServers = await prisma.gameServer.findMany();
 
-  await Promise.all(gameServers.map(async (gameServer, index) => {
+  await Promise.all(gameServers.filter((gameServer) => {
+    if (gameServer.offlineSince !== null) {
+      const offlineSince = new Date(gameServer.offlineSince);
+      const now = new Date();
+
+      const maxMinutes = 24 * 60;
+      const offlineSinceMinutes = Math.min(maxMinutes, differenceInMinutes(now, offlineSince));
+
+      // The longer offline, the less odds to poll, range from 0.95 to 0.05
+      const odds = 0.05 + 0.9 * (offlineSinceMinutes / maxMinutes);
+
+      return Math.random() < odds;
+    } else {
+      return true;
+    }
+  }).map(async (gameServer, index) => {
     await wait(index * 100);
 
     sendData(sockets, PACKET_GETINFO, gameServer.ip, gameServer.port);
@@ -114,11 +130,30 @@ export async function pollGameServers() {
           },
         });
 
+        await prisma.gameServer.update({
+          where: {
+            id: gameServer.id,
+          },
+          data: {
+            offlineSince: null,
+          },
+        });
+
         console.log(`${gameServer.ip}:${gameServer.port}: Polled (${gameServerInfo.gameType} ${gameServerInfo.map} ${gameServerInfo.numClients}/${gameServerInfo.maxClients})`)
       } catch (e) {
         console.warn(`${gameServer.ip}:${gameServer.port}: ${e.message}`)
       }
     } else {
+      if (gameServer.offlineSince === null) {
+        await prisma.gameServer.update({
+          where: {
+            id: gameServer.id,
+          },
+          data: {
+            offlineSince: new Date(),
+          },
+        });
+      }
       console.log(`${gameServer.ip}:${gameServer.port}: No response`);
     }
   }))

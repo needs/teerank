@@ -1,0 +1,18 @@
+# fly.toml app configuration file generated for teerankio-frontend on 2023-10-31T17:02:43+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "teerankio-frontend"
+primary_region = "cdg"
+
+[build]
+  image = "registry.hub.docker.com/s0laster/teerank.io-frontend"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]

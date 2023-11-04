@@ -6,9 +6,6 @@
 app = "teerankio-frontend"
 primary_region = "cdg"
 
-[build]
-  image = "registry.hub.docker.com/s0laster/teerank.io-frontend"
-
 [http_service]
   internal_port = 3000
   force_https = true

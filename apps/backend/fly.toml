@@ -6,5 +6,5 @@
 app = "teerankio-backend"
 primary_region = "cdg"
 
-[build]
-  image = "registry.hub.docker.com/s0laster/teerank.io-backend"
+[deploy]
+  strategy = "rolling"

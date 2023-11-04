@@ -34,6 +34,7 @@ model GameServer {
   snapshots GameServerSnapshot[]
 
   @@unique([ip, port])
+  @@index([masterServerId])
 }
 
 model Player {
@@ -69,6 +70,7 @@ model Map {
   playerRatings PlayerRating[]
 
   @@unique([name, gameTypeName])
+  @@index([gameTypeName])
 }
 
 model PlayerRating {
@@ -86,6 +88,8 @@ model PlayerRating {
 
   @@unique([playerName, mapId])
   @@map("PlayerRatings")
+  @@index([mapId])
+  @@index([playerName])
 }
 
 model GameServerClient {
@@ -101,6 +105,9 @@ model GameServerClient {
   score   Int
   country Int
   inGame  Boolean
+
+  @@index([snapshotId])
+  @@index([playerName])
 }
 
 model GameServerSnapshot {
@@ -123,4 +130,7 @@ model GameServerSnapshot {
 
   gameServer   GameServer @relation(fields: [gameServerId], references: [id])
   gameServerId Int
+
+  @@index([gameServerId])
+  @@index([mapId])
 }

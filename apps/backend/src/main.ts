@@ -2,9 +2,12 @@ import { addDefaultMasterServers } from './addDefaultMasterServers';
 import { pollGameServers } from './pollGameServers';
 import { pollMasterServers } from './pollMasterServers';
 import { rankPlayers } from './rankPlayers';
+import { removeBadIps } from './removeBadIps';
 import { updateGameTypesRankMethod } from './updateGameTypesRankMethod';
 
 async function main() {
+  await removeBadIps();
+
   await addDefaultMasterServers();
   await updateGameTypesRankMethod();
 

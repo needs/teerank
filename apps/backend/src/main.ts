@@ -4,6 +4,7 @@ import { pollMasterServers } from './pollMasterServers';
 import { rankPlayers } from './rankPlayers';
 import { removeBadIps } from './removeBadIps';
 import { updateGameTypesRankMethod } from './updateGameTypesRankMethod';
+import "newrelic";
 
 async function main() {
   await removeBadIps();

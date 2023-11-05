@@ -43,8 +43,9 @@
   },
   "dependencies": {
     "@prisma/client": "^5.1.1",
+    "@sentry/node": "^7.77.0",
+    "@sentry/profiling-node": "^1.2.6",
     "date-fns": "^2.30.0",
-    "newrelic": "^11.5.0",
     "next": "13.4.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",

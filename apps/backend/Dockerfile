@@ -24,4 +24,4 @@ RUN npm --omit=dev -f install
 COPY libs/prisma/prisma/schema.prisma prisma/schema.prisma
 RUN npx prisma generate
 
-CMD [ "node", "-r", "newrelic", "." ]
+CMD [ "node", "." ]

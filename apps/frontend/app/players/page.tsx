@@ -51,16 +51,36 @@ export default async function Index({
     skip: (validatedSearchParam.page - 1) * 100,
   });
 
-  console.log("ratings", ratings);
-  console.log("mapConditional", mapConditional);
-  console.log("gametypeConditional", gametypeConditional);
+  const urlQuery = {
+    gametype: validatedSearchParam.gametype ?? 'CTF',
+    map: validatedSearchParam.map,
+  };
+
+  console.log('ratings', ratings);
+  console.log('mapConditional', mapConditional);
+  console.log('gametypeConditional', gametypeConditional);
 
   return (
     <div className="flex flex-col gap-4 py-8">
       <Tabs>
-        <Tab label="Players" count={590000} isActive={true} />
-        <Tab label="Maps" count={60000} isActive={false} />
-        <Tab label="Servers" count={1200} isActive={false} />
+        <Tab
+          label="Players"
+          count={590000}
+          isActive={true}
+          href={{ pathname: '/players', query: urlQuery }}
+        />
+        <Tab
+          label="Maps"
+          count={60000}
+          isActive={false}
+          href={{ pathname: '/maps', query: urlQuery }}
+        />
+        <Tab
+          label="Servers"
+          count={1200}
+          isActive={false}
+          href={{ pathname: '/servers', query: urlQuery }}
+        />
       </Tabs>
 
       <List

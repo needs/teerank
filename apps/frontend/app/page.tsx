@@ -5,9 +5,9 @@ export default async function Index() {
   return (
     <div className="flex flex-col gap-4 py-8">
       <Tabs>
-        <Tab label="Players" count={590000} isActive={true} />
-        <Tab label="Clans" count={60000} isActive={false} />
-        <Tab label="Servers" count={1200} isActive={false} />
+        <Tab label="Players" count={590000} isActive={true} href={{ pathname: "/players" }}/>
+        <Tab label="Clans" count={60000} isActive={false} href={{ pathname: "/clans" }}/>
+        <Tab label="Servers" count={1200} isActive={false} href={{ pathname: "/servers" }}/>
       </Tabs>
 
       <List

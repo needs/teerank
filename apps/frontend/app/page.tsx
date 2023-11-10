@@ -6,7 +6,7 @@ export default async function Index() {
     <div className="flex flex-col gap-4 py-8">
       <Tabs>
         <Tab label="Players" count={590000} isActive={true} />
-        <Tab label="Maps" count={60000} isActive={false} />
+        <Tab label="Clans" count={60000} isActive={false} />
         <Tab label="Servers" count={1200} isActive={false} />
       </Tabs>
 

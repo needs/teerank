@@ -3,6 +3,11 @@ import { Tab, Tabs } from '../components/Tabs';
 import prisma from '../utils/prisma';
 import { z } from 'zod';
 
+export const metadata = {
+  title: 'Players',
+  description: 'List of ranked players',
+};
+
 const searchParamSchema = z
   .object({
     gametype: z.string().optional(),

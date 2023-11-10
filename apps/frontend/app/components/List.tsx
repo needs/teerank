@@ -14,11 +14,14 @@ export function List({
 }) {
   const templateColumns = columns
     .map((column) => (column.expand ? '1fr' : 'auto'))
-    .join('_');
+    .join(' ');
 
   return (
     <main
-      className={`grid grid-cols-[${templateColumns}] px-16 gap-x-8 gap-y-2`}
+      className={`grid px-16 gap-x-8 gap-y-2`}
+      style={{
+        gridTemplateColumns: templateColumns,
+      }}
     >
       {columns.map((column) => (
         <span key={column.title} className="text-[#970] text-xl font-bold py-1">

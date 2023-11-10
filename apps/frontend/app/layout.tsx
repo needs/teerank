@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import './global.css';
 import Link from 'next/link';
-import { HeaderTabs } from './components/HeaderTabs';
+import { HeaderTabs } from '../components/HeaderTabs';
 
 export const metadata = {
   title: 'Welcome to frontend',

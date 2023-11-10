@@ -1,6 +1,6 @@
-import { List, ListCell } from '../components/List';
-import { Tab, Tabs } from '../components/Tabs';
-import prisma from '../utils/prisma';
+import { List, ListCell } from '../../components/List';
+import { Tab, Tabs } from '../../components/Tabs';
+import prisma from '../../utils/prisma';
 import { z } from 'zod';
 
 export const metadata = {

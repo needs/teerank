@@ -1,5 +1,5 @@
-import { List, ListCell } from "./components/List";
-import { Tab, Tabs } from "./components/Tabs";
+import { List, ListCell } from "../components/List";
+import { Tab, Tabs } from "../components/Tabs";
 
 export default async function Index() {
   return (

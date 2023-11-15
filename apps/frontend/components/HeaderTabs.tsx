@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { twMerge } from 'tailwind-merge';
 import { UrlObject } from 'url';
 
@@ -42,8 +42,9 @@ function HeaderTabSeparator() {
 
 function HeaderTabGameType({ gameType }: { gameType: string }) {
   const searchParams = useSearchParams();
+  const params = useParams();
 
-  const queryGameType = searchParams.get('gametype');
+  const queryGameType = decodeURIComponent(params['gameType'])
   const queryMap = searchParams.get('map');
 
   const isActive = queryGameType === gameType;
@@ -51,7 +52,7 @@ function HeaderTabGameType({ gameType }: { gameType: string }) {
   return (
     <HeaderTab
       label={gameType}
-      url={{ pathname: '/players', query: { gametype: gameType } }}
+      url={{ pathname: `/gametype/${encodeURIComponent(gameType)}`}}
       isActive={isActive}
       sublabel={isActive && queryMap !== null ? queryMap : undefined}
       sublabelPlaceholder={isActive ? 'All maps' : undefined}

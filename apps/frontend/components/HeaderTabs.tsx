@@ -63,12 +63,14 @@ function HeaderTabGameType({ gameType }: { gameType: string }) {
 function HeaderTabPage({
   label,
   pathname,
+  extraPathnames
 }: {
   label: string;
   pathname: string;
+  extraPathnames?: string[];
 }) {
   const urlPathname = usePathname();
-  const isActive = pathname === urlPathname;
+  const isActive = pathname === urlPathname || extraPathnames !== undefined && extraPathnames.includes(urlPathname);
 
   return <HeaderTab label={label} url={{ pathname }} isActive={isActive} />;
 }
@@ -76,7 +78,7 @@ function HeaderTabPage({
 export function HeaderTabs() {
   return (
     <header className="flex flex-row gap-2 -mt-1.5 px-8">
-      <HeaderTabPage label="Home" pathname="/" />
+      <HeaderTabPage label="Home" pathname="/" extraPathnames={["/clans", "/servers"]}/>
       <HeaderTabGameType gameType="CTF" />
       <HeaderTabGameType gameType="DM" />
       <HeaderTabPage label="..." pathname="/gametypes" />

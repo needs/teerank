@@ -26,7 +26,7 @@ export default async function Index({
     include: {
       snapshots: {
         orderBy: {
-          createdAt: 'asc',
+          createdAt: 'desc',
         },
         take: 1,
         include: {

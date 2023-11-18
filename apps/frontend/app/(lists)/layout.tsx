@@ -6,13 +6,15 @@ export default async function Index({
 }: {
   children: React.ReactNode;
 }) {
-  const playersCount = await prisma.player.count();
-  const clansCount = 1;
-  const serversCount = await prisma.gameServer.count();
+  const counts = await Promise.all([
+    await prisma.player.count(),
+    new Promise<number>((resolve) => resolve(1)),
+    await prisma.gameServer.count(),
+  ]);
 
   return (
     <div className="flex flex-col gap-4 py-8">
-      <LayoutTabs playersCount={playersCount} clansCount={clansCount} serversCount={serversCount} />
+      <LayoutTabs playersCount={counts[0]} clansCount={counts[1]} serversCount={counts[2]} />
 
       {children}
     </div>

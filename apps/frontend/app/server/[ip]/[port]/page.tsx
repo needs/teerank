@@ -27,43 +27,43 @@ export default async function Index({
 }) {
   const parsedParams = paramsSchema.parse(params);
 
-  const snapshot = await prisma.gameServerSnapshot.findFirst({
+  const gameServer = await prisma.gameServer.findUnique({
     where: {
-      gameServer: {
+      ip_port: {
         ip: parsedParams.ip,
         port: parsedParams.port,
       },
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
     include: {
-      clients: true,
-      gameServer: true,
-      map: true,
+      lastSnapshot: {
+        include: {
+        clients: true,
+        map: true,
+        }
+      },
     },
   });
 
-  if (snapshot === null) {
+  if (gameServer === null || gameServer.lastSnapshot === null) {
     return notFound();
   }
 
   return (
     <main className="flex flex-col gap-8 py-12">
-      <header className="flex flex-row justify-between px-20">
-        <section className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold">{snapshot.name}</h1>
+      <header className="flex flex-row px-20 gap-8">
+        <section className="flex flex-col gap-2 grow">
+          <h1 className="text-2xl font-bold">{gameServer.lastSnapshot.name}</h1>
           <div className="flex flex-row divide-x">
             <span className="pr-4">
               <Link
                 className="hover:underline"
                 href={{
                   pathname: `/gametype/${encodeURIComponent(
-                    snapshot.map.gameTypeName
+                    gameServer.lastSnapshot.map.gameTypeName
                   )}`,
                 }}
               >
-                {snapshot.map.gameTypeName}
+                {gameServer.lastSnapshot.map.gameTypeName}
               </Link>
             </span>
             <span className="px-4">
@@ -71,26 +71,26 @@ export default async function Index({
                 className="hover:underline"
                 href={{
                   pathname: `/gametype/${encodeURIComponent(
-                    snapshot.map.gameTypeName
+                    gameServer.lastSnapshot.map.gameTypeName
                   )}`,
                   query: {
-                    map: snapshot.map.name,
+                    map: gameServer.lastSnapshot.map.name,
                   },
                 }}
               >
-                {snapshot.map.name}
+                {gameServer.lastSnapshot.map.name}
               </Link>
             </span>
-            <span className="px-4">{`${snapshot.numClients} / ${snapshot.maxClients} clients`}</span>
-            <span className="px-4">{`${snapshot.numPlayers} players`}</span>
+            <span className="px-4">{`${gameServer.lastSnapshot.numClients} / ${gameServer.lastSnapshot.maxClients} clients`}</span>
+            <span className="px-4">{`${gameServer.lastSnapshot.numPlayers} players`}</span>
           </div>
         </section>
-        <section className="flex flex-col divide-y border rounded-md justify-stretch items-stretch overflow-hidden">
+        <section className="flex flex-col divide-y border rounded-md overflow-hidde self-start">
           <h2 className="py-1.5 px-4 bg-gradient-to-b from-[#ffffff] to-[#eaeaea] text-center">
             Server address
           </h2>
           <span className="py-1.5 px-4 text-sm">
-            {ipAndPort(snapshot.gameServer.ip, snapshot.gameServer.port)}
+            {ipAndPort(gameServer.ip, gameServer.port)}
           </span>
         </section>
       </header>
@@ -115,7 +115,7 @@ export default async function Index({
           },
         ]}
       >
-        {snapshot.clients.map((client, index) => (
+        {gameServer.lastSnapshot.clients.map((client, index) => (
           <>
             <ListCell alignRight label={`${index + 1}`} />
             <ListCell

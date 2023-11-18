@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { twMerge } from 'tailwind-merge';
 
 type Column = {
   title: string;
@@ -53,7 +54,9 @@ export function ListCell({
   alignRight?: boolean;
 }) {
   return (
-    <span className={alignRight ? 'text-right' : ''}>
+    <span
+      className={twMerge('truncate', alignRight && 'text-right')}
+    >
       {href !== undefined ? (
         <Link href={href} className="hover:underline">
           {label}

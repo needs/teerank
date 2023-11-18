@@ -6,6 +6,7 @@ import { twMerge } from 'tailwind-merge';
 import { UrlObject } from 'url';
 import { paramsSchema as paramsSchemaGameType } from '../app/gametype/[gameType]/schema';
 import { paramsSchema as paramsSchemaServer } from '../app/server/[ip]/[port]/schema';
+import { paramsSchema as paramsSchemaPlayer } from '../app/player/[playerName]/schema';
 
 function HeaderTab({
   label,
@@ -84,7 +85,11 @@ export function HeaderTabs() {
 
   const params = useParams();
 
-  const parsedParams = paramsSchemaGameType.merge(paramsSchemaServer).partial().parse(params);
+  const parsedParams = paramsSchemaGameType
+    .merge(paramsSchemaServer)
+    .merge(paramsSchemaPlayer)
+    .partial()
+    .parse(params);
 
   return (
     <header className="flex flex-row gap-2 -mt-1.5 px-8">
@@ -93,19 +98,32 @@ export function HeaderTabs() {
         pathname="/"
         extraPathnames={['/clans', '/servers']}
       />
+
       {defaultGameTypes.map((gameType) => (
         <HeaderTabGameType key={gameType} gameType={gameType} />
       ))}
+
       {parsedParams.gameType !== undefined &&
         !defaultGameTypes.includes(parsedParams.gameType) && (
           <HeaderTabGameType gameType={parsedParams.gameType} />
         )}
+
       <HeaderTabPage label="..." pathname="/gametypes" />
       <HeaderTabSeparator />
-      {parsedParams.ip !== undefined && parsedParams.port !== undefined &&
-        (
-          <HeaderTabPage label="Server" pathname={`/server/${parsedParams.ip}/${parsedParams.port}`} />
-        )}
+
+      {parsedParams.ip !== undefined && parsedParams.port !== undefined && (
+        <HeaderTabPage
+          label="Server"
+          pathname={`/server/${parsedParams.ip}/${parsedParams.port}`}
+        />
+      )}
+
+      {parsedParams.playerName !== undefined && (
+        <HeaderTabPage
+          label="Player"
+          pathname={`/player/${encodeURIComponent(parsedParams.playerName)}`}
+        />
+      )}
 
       <HeaderTabPage label="About" pathname="/about" />
     </header>

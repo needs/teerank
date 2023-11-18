@@ -8,7 +8,7 @@ import Link from 'next/link';
 
 export const metadata = {
   title: 'Server',
-  description: 'A teerank server',
+  description: 'A Teeworlds server',
 };
 
 function ipAndPort(ip: string, port: number) {
@@ -44,7 +44,7 @@ export default async function Index({
     },
   });
 
-  if (!snapshot) {
+  if (snapshot === null) {
     return notFound();
   }
 
@@ -120,7 +120,7 @@ export default async function Index({
             <ListCell alignRight label={`${index + 1}`} />
             <ListCell
               label={client.playerName}
-              href={{ pathname: `/player/${client.playerName}` }}
+              href={{ pathname: `/player/${encodeURIComponent(client.playerName)}` }}
             />
             <ListCell label={client.clan} />
             <ListCell alignRight label={client.score.toString()} />

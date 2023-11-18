@@ -35,7 +35,7 @@ export default async function Index({
     >
         <>
           <ListCell alignRight label={`${1}`} />
-          <ListCell label={"Test player"} href={`/player/${"Test"}`} />
+          <ListCell label={"Test player"} href={{ pathname: `/player/${"Test"}`}} />
           <ListCell label={'5 hours'} />
           <ListCell alignRight label="363 days ago" />
         </>

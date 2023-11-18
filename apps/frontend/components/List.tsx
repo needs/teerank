@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
+import { Url, UrlObject } from 'url';
 
 type Column = {
   title: string;
@@ -14,7 +15,7 @@ export function List({
   columns: Column[];
 }) {
   const gridTemplateColumns = columns
-    .map((column) => (column.expand ? '1fr' : 'auto'))
+    .map((column) => (column.expand ? '1fr' : 'fit-content(15%)'))
     .join(' ');
 
   const gridColumn = `span ${columns.length} / span ${columns.length}`;
@@ -50,13 +51,11 @@ export function ListCell({
   alignRight,
 }: {
   label: string;
-  href?: string;
+  href?: UrlObject;
   alignRight?: boolean;
 }) {
   return (
-    <span
-      className={twMerge('truncate', alignRight && 'text-right')}
-    >
+    <span className={twMerge('truncate', alignRight && 'text-right')}>
       {href !== undefined ? (
         <Link href={href} className="hover:underline">
           {label}

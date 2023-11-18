@@ -46,7 +46,7 @@ export default async function Index({
       {players.map((player, index) => (
         <>
           <ListCell alignRight label={`${index + 1}`} />
-          <ListCell label={player.name} href={`/player/${player.name}`} />
+          <ListCell label={player.name} href={{ pathname: `/player/${player.name}`}} />
           <ListCell label={''} />
           <ListCell alignRight label="1 hour ago" />
         </>

@@ -52,11 +52,11 @@ export default async function Index({
         },
         {
           title: 'Game Type',
-          expand: true,
+          expand: false,
         },
         {
           title: 'Map',
-          expand: true,
+          expand: false,
         },
         {
           title: 'Players',
@@ -70,15 +70,22 @@ export default async function Index({
           <ListCell label={gameServer.snapshots[0].name} />
           <ListCell
             label={gameServer.snapshots[0].map.gameTypeName}
-            href={`/gametype/${encodeURIComponent(
-              gameServer.snapshots[0].map.gameTypeName
-            )}`}
+            href={{
+              pathname: `/gametype/${encodeURIComponent(
+                gameServer.snapshots[0].map.gameTypeName
+              )}`,
+            }}
           />
           <ListCell
             label={gameServer.snapshots[0].map.name ?? ''}
-            href={`/gametype/${encodeURIComponent(
-              gameServer.snapshots[0].map.gameTypeName
-            )}`}
+            href={{
+              pathname: `/gametype/${encodeURIComponent(
+                gameServer.snapshots[0].map.gameTypeName
+              )}`,
+              query: {
+                map: gameServer.snapshots[0].map.name,
+              },
+            }}
           />
           <ListCell
             alignRight

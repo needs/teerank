@@ -73,7 +73,7 @@ export default async function Index({
           <ListCell alignRight label={`${index + 1}`} />
           <ListCell
             label={rating.player.name}
-            href={`/players/${rating.player.name}`}
+            href={{ pathname: `/players/${rating.player.name}`}}
           />
           <ListCell label={''} />
           <ListCell

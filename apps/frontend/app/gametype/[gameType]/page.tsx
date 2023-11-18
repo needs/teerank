@@ -14,10 +14,10 @@ export default async function Index({
   params: { gameType: string };
   searchParams: { [key: string]: string | string[] | undefined };
 })   {
-  const validatedSearchParam = searchParamsSchema.parse(searchParams);
+  const parsedSearchParams = searchParamsSchema.parse(searchParams);
 
   const mapConditional = {
-    name: { equals: validatedSearchParam.map ?? null },
+    name: { equals: parsedSearchParams.map ?? null },
   };
 
   const gameType = decodeURIComponent(params.gameType);
@@ -40,7 +40,7 @@ export default async function Index({
       player: true,
     },
     take: 100,
-    skip: (validatedSearchParam.page - 1) * 100,
+    skip: (parsedSearchParams.page - 1) * 100,
   });
 
   return (

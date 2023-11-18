@@ -12,14 +12,14 @@ export default async function Index({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const validatedSearchParam = searchParamSchema.parse(searchParams);
+  const parsedSearchParams = searchParamSchema.parse(searchParams);
 
   const players = await prisma.player.findMany({
     orderBy: {
       createdAt: 'desc',
     },
     take: 100,
-    skip: (validatedSearchParam.page - 1) * 100,
+    skip: (parsedSearchParams.page - 1) * 100,
   });
 
   return (

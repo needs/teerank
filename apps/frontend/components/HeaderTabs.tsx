@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { twMerge } from 'tailwind-merge';
 import { UrlObject } from 'url';
+import { paramsSchema } from '../app/gametype/[gameType]/schema';
 
 function HeaderTab({
   label,
@@ -44,7 +45,7 @@ function HeaderTabGameType({ gameType }: { gameType: string }) {
   const searchParams = useSearchParams();
   const params = useParams();
 
-  const queryGameType = decodeURIComponent(params['gameType'])
+  const queryGameType = decodeURIComponent(params['gameType']);
   const queryMap = searchParams.get('map');
 
   const isActive = queryGameType === gameType;
@@ -52,7 +53,7 @@ function HeaderTabGameType({ gameType }: { gameType: string }) {
   return (
     <HeaderTab
       label={gameType}
-      url={{ pathname: `/gametype/${encodeURIComponent(gameType)}`}}
+      url={{ pathname: `/gametype/${encodeURIComponent(gameType)}` }}
       isActive={isActive}
       sublabel={isActive && queryMap !== null ? queryMap : undefined}
       sublabelPlaceholder={isActive ? 'All maps' : undefined}
@@ -63,24 +64,41 @@ function HeaderTabGameType({ gameType }: { gameType: string }) {
 function HeaderTabPage({
   label,
   pathname,
-  extraPathnames
+  extraPathnames,
 }: {
   label: string;
   pathname: string;
   extraPathnames?: string[];
 }) {
   const urlPathname = usePathname();
-  const isActive = pathname === urlPathname || extraPathnames !== undefined && extraPathnames.includes(urlPathname);
+  const isActive =
+    pathname === urlPathname ||
+    (extraPathnames !== undefined && extraPathnames.includes(urlPathname));
 
   return <HeaderTab label={label} url={{ pathname }} isActive={isActive} />;
 }
 
 export function HeaderTabs() {
+  const defaultGameTypes = ['CTF', 'DM'];
+
+  const params = useParams();
+
+  const parsedParams = paramsSchema.partial().parse(params);
+
   return (
     <header className="flex flex-row gap-2 -mt-1.5 px-8">
-      <HeaderTabPage label="Home" pathname="/" extraPathnames={["/clans", "/servers"]}/>
-      <HeaderTabGameType gameType="CTF" />
-      <HeaderTabGameType gameType="DM" />
+      <HeaderTabPage
+        label="Home"
+        pathname="/"
+        extraPathnames={['/clans', '/servers']}
+      />
+      {defaultGameTypes.map((gameType) => (
+        <HeaderTabGameType key={gameType} gameType={gameType} />
+      ))}
+      {parsedParams.gameType !== undefined &&
+        !defaultGameTypes.includes(parsedParams.gameType) && (
+          <HeaderTabGameType gameType={parsedParams.gameType} />
+        )}
       <HeaderTabPage label="..." pathname="/gametypes" />
       <HeaderTabSeparator />
       <HeaderTabPage label="About" pathname="/about" />

@@ -12,7 +12,7 @@ export default async function Index({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const validatedSearchParam = searchParamSchema.parse(searchParams);
+  const parsedSearchParams = searchParamSchema.parse(searchParams);
 
   const gameServers = await prisma.gameServer.findMany({
     where: {
@@ -36,7 +36,7 @@ export default async function Index({
       },
     },
     take: 100,
-    skip: (validatedSearchParam.page - 1) * 100,
+    skip: (parsedSearchParams.page - 1) * 100,
   });
 
   return (

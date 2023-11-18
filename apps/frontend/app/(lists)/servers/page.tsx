@@ -67,7 +67,9 @@ export default async function Index({
       {gameServers.map((gameServer, index) => (
         <>
           <ListCell alignRight label={`${index + 1}`} />
-          <ListCell label={gameServer.snapshots[0].name} />
+          <ListCell label={gameServer.snapshots[0].name} href={{
+            pathname: `/server/${encodeURIComponent(gameServer.ip)}/${encodeURIComponent(gameServer.port)}`,
+          }}/>
           <ListCell
             label={gameServer.snapshots[0].map.gameTypeName}
             href={{

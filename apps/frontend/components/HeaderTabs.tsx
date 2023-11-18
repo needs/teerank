@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { twMerge } from 'tailwind-merge';
 import { UrlObject } from 'url';
-import { paramsSchema } from '../app/gametype/[gameType]/schema';
+import { paramsSchema as paramsSchemaGameType } from '../app/gametype/[gameType]/schema';
+import { paramsSchema as paramsSchemaServer } from '../app/server/[ip]/[port]/schema';
 
 function HeaderTab({
   label,
@@ -83,7 +84,7 @@ export function HeaderTabs() {
 
   const params = useParams();
 
-  const parsedParams = paramsSchema.partial().parse(params);
+  const parsedParams = paramsSchemaGameType.merge(paramsSchemaServer).partial().parse(params);
 
   return (
     <header className="flex flex-row gap-2 -mt-1.5 px-8">
@@ -101,6 +102,11 @@ export function HeaderTabs() {
         )}
       <HeaderTabPage label="..." pathname="/gametypes" />
       <HeaderTabSeparator />
+      {parsedParams.ip !== undefined && parsedParams.port !== undefined &&
+        (
+          <HeaderTabPage label="Server" pathname={`/server/${parsedParams.ip}/${parsedParams.port}`} />
+        )}
+
       <HeaderTabPage label="About" pathname="/about" />
     </header>
   );

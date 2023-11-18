@@ -12,15 +12,17 @@ export function List({
   children: React.ReactNode;
   columns: Column[];
 }) {
-  const templateColumns = columns
+  const gridTemplateColumns = columns
     .map((column) => (column.expand ? '1fr' : 'auto'))
     .join(' ');
+
+  const gridColumn = `span ${columns.length} / span ${columns.length}`;
 
   return (
     <main
       className={`grid px-16 gap-x-8 gap-y-2`}
       style={{
-        gridTemplateColumns: templateColumns,
+        gridTemplateColumns,
       }}
     >
       {columns.map((column) => (
@@ -29,15 +31,36 @@ export function List({
         </span>
       ))}
 
-      <span className="col-span-5 border-b"></span>
+      <span
+        className="border-b"
+        style={{
+          gridColumn,
+        }}
+      />
 
       {children}
     </main>
   );
 }
 
-export function ListCell({ label, href, alignRight }: { label: string; href?: string, alignRight?: boolean }) {
+export function ListCell({
+  label,
+  href,
+  alignRight,
+}: {
+  label: string;
+  href?: string;
+  alignRight?: boolean;
+}) {
   return (
-    <span className={alignRight ? "text-right" : ""}>{href !== undefined ? <Link href={href} className='hover:underline'>{label}</Link> : label}</span>
+    <span className={alignRight ? 'text-right' : ''}>
+      {href !== undefined ? (
+        <Link href={href} className="hover:underline">
+          {label}
+        </Link>
+      ) : (
+        label
+      )}
+    </span>
   );
 }

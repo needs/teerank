@@ -9,12 +9,12 @@ export const metadata = {
 
 export default async function Index({
   params,
-  searchParam,
+  searchParams,
 }: {
   params: { gameType: string };
-  searchParam: { [key: string]: string | string[] | undefined };
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const validatedSearchParam = searchParamsSchema.parse(searchParam);
+  const validatedSearchParam = searchParamsSchema.parse(searchParams);
 
   const mapConditional = {
     name: { equals: validatedSearchParam.map ?? null },

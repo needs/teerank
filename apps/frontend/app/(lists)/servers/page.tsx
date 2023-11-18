@@ -16,19 +16,17 @@ export default async function Index({
 
   const gameServers = await prisma.gameServer.findMany({
     where: {
-      snapshots: {
-        some: {},
+      lastSnapshot: {
+        isNot: null,
       },
     },
     orderBy: {
-      createdAt: 'desc',
+      lastSnapshot: {
+        numClients: 'desc',
+      }
     },
     include: {
-      snapshots: {
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 1,
+      lastSnapshot: {
         include: {
           clients: true,
           map: true,
@@ -64,34 +62,39 @@ export default async function Index({
         },
       ]}
     >
-      {gameServers.map((gameServer, index) => (
+      {gameServers.map((gameServer, index) => gameServer.lastSnapshot !== null && (
         <>
           <ListCell alignRight label={`${index + 1}`} />
-          <ListCell label={gameServer.snapshots[0].name} href={{
-            pathname: `/server/${encodeURIComponent(gameServer.ip)}/${encodeURIComponent(gameServer.port)}`,
-          }}/>
           <ListCell
-            label={gameServer.snapshots[0].map.gameTypeName}
+            label={gameServer.lastSnapshot.name}
             href={{
-              pathname: `/gametype/${encodeURIComponent(
-                gameServer.snapshots[0].map.gameTypeName
-              )}`,
+              pathname: `/server/${encodeURIComponent(
+                gameServer.ip
+              )}/${encodeURIComponent(gameServer.port)}`,
             }}
           />
           <ListCell
-            label={gameServer.snapshots[0].map.name ?? ''}
+            label={gameServer.lastSnapshot.map.gameTypeName}
             href={{
               pathname: `/gametype/${encodeURIComponent(
-                gameServer.snapshots[0].map.gameTypeName
-              )}`,
+                gameServer.lastSnapshot.map.gameTypeName
+              )}/servers`,
+            }}
+          />
+          <ListCell
+            label={gameServer.lastSnapshot.map.name ?? ''}
+            href={{
+              pathname: `/gametype/${encodeURIComponent(
+                gameServer.lastSnapshot.map.gameTypeName
+              )}/servers`,
               query: {
-                map: gameServer.snapshots[0].map.name,
+                map: gameServer.lastSnapshot.map.name,
               },
             }}
           />
           <ListCell
             alignRight
-            label={`${gameServer.snapshots[0].numClients} / ${gameServer.snapshots[0].maxClients}`}
+            label={`${gameServer.lastSnapshot.numClients} / ${gameServer.lastSnapshot.maxClients}`}
           />
         </>
       ))}

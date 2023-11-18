@@ -31,10 +31,14 @@ model GameServer {
   masterServer   MasterServer @relation(fields: [masterServerId], references: [id])
   masterServerId Int
 
-  snapshots GameServerSnapshot[]
+  snapshots GameServerSnapshot[] @relation(name: "GameServerSnapshotGameServerId")
+
+  lastSnapshot   GameServerSnapshot? @relation(fields: [lastSnapshotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lastSnapshotId Int? @unique
 
   @@unique([ip, port])
   @@index([masterServerId])
+  @@index([lastSnapshotId])
 }
 
 model Player {
@@ -87,9 +91,9 @@ model PlayerRating {
   rating Float
 
   @@unique([playerName, mapId])
-  @@map("PlayerRatings")
   @@index([mapId])
   @@index([playerName])
+  @@map("PlayerRatings")
 }
 
 model GameServerClient {
@@ -128,8 +132,10 @@ model GameServerSnapshot {
 
   clients GameServerClient[]
 
-  gameServer   GameServer @relation(fields: [gameServerId], references: [id])
+  gameServerLast   GameServer?
+
   gameServerId Int
+  gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id])
 
   @@index([gameServerId])
   @@index([mapId])

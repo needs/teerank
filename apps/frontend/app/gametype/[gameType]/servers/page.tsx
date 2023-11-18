@@ -16,9 +16,12 @@ export default async function Index({
 }) {
   const parsedSearchParams = searchParamsSchema.parse(searchParams);
 
-  const mapConditional = {
-    name: { equals: parsedSearchParams.map ?? null },
-  };
+  const mapConditional =
+    parsedSearchParams.map === undefined
+      ? {}
+      : {
+          name: { equals: parsedSearchParams.map },
+        };
 
   const gameType = decodeURIComponent(params.gameType);
 
@@ -26,18 +29,33 @@ export default async function Index({
     gameTypeName: { equals: gameType },
   };
 
-  const ratings = await prisma.playerRating.findMany({
+  const gameServers = await prisma.gameServer.findMany({
     where: {
-      map: {
-        ...mapConditional,
-        ...gameTypeConditional,
+      AND: [
+        { lastSnapshot: { isNot: null } },
+        {
+          lastSnapshot: { map: { ...mapConditional, ...gameTypeConditional } },
+        },
+      ],
+    },
+    orderBy: [
+      {
+        lastSnapshot: {
+          numClients: 'desc',
+        },
       },
-    },
-    orderBy: {
-      rating: 'desc',
-    },
+      {
+        lastSnapshot: {
+          maxClients: 'desc',
+        },
+      },
+    ],
     include: {
-      player: true,
+      lastSnapshot: {
+        include: {
+          map: true,
+        },
+      },
     },
     take: 100,
     skip: (parsedSearchParams.page - 1) * 100,
@@ -55,36 +73,58 @@ export default async function Index({
           expand: true,
         },
         {
-          title: 'Clan',
-          expand: true,
-        },
-        {
-          title: 'Elo',
+          title: 'Game Type',
           expand: false,
         },
         {
-          title: 'Last Seen',
+          title: 'Map',
+          expand: false,
+        },
+        {
+          title: 'Players',
           expand: false,
         },
       ]}
     >
-      {ratings.map((rating, index) => (
-        <>
-          <ListCell alignRight label={`${index + 1}`} />
-          <ListCell
-            label={rating.player.name}
-            href={{ pathname: `/players/${rating.player.name}`}}
-          />
-          <ListCell label={''} />
-          <ListCell
-            alignRight
-            label={`${Intl.NumberFormat('en-US', {
-              maximumFractionDigits: 0,
-            }).format(rating.rating)}`}
-          />
-          <ListCell alignRight label="1 hour ago" />
-        </>
-      ))}
+      {gameServers.map(
+        (gameServer, index) =>
+          gameServer.lastSnapshot !== null && (
+            <>
+              <ListCell alignRight label={`${index + 1}`} />
+              <ListCell
+                label={gameServer.lastSnapshot.name}
+                href={{
+                  pathname: `/server/${encodeURIComponent(
+                    gameServer.ip
+                  )}/${encodeURIComponent(gameServer.port)}`,
+                }}
+              />
+              <ListCell
+                label={gameServer.lastSnapshot.map.gameTypeName}
+                href={{
+                  pathname: `/gametype/${encodeURIComponent(
+                    gameServer.lastSnapshot.map.gameTypeName
+                  )}/servers`,
+                }}
+              />
+              <ListCell
+                label={gameServer.lastSnapshot.map.name ?? ''}
+                href={{
+                  pathname: `/gametype/${encodeURIComponent(
+                    gameServer.lastSnapshot.map.gameTypeName
+                  )}/servers`,
+                  query: {
+                    map: gameServer.lastSnapshot.map.name,
+                  },
+                }}
+              />
+              <ListCell
+                alignRight
+                label={`${gameServer.lastSnapshot.numClients} / ${gameServer.lastSnapshot.maxClients}`}
+              />
+            </>
+          )
+      )}
     </List>
   );
 }

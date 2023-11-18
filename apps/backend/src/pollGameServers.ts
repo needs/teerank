@@ -78,6 +78,12 @@ export async function pollGameServers() {
               },
             },
 
+            gameServerLast: {
+              connect: {
+                id: gameServer.id,
+              },
+            },
+
             version: gameServerInfo.version,
             name: gameServerInfo.name,
 

@@ -34,7 +34,7 @@ model GameServer {
   snapshots GameServerSnapshot[] @relation(name: "GameServerSnapshotGameServerId")
 
   lastSnapshot   GameServerSnapshot? @relation(fields: [lastSnapshotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  lastSnapshotId Int? @unique
+  lastSnapshotId Int?                @unique
 
   @@unique([ip, port])
   @@index([masterServerId])
@@ -46,7 +46,7 @@ model Player {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ratings PlayerRating[]
+  playerInfos PlayerInfo[]
 
   gameServerClients GameServerClient[]
 }
@@ -70,14 +70,14 @@ model Map {
   gameType     GameType @relation(fields: [gameTypeName], references: [name])
   gameTypeName String
 
-  snapshots     GameServerSnapshot[]
-  playerRatings PlayerRating[]
+  snapshots   GameServerSnapshot[]
+  playerInfos PlayerInfo[]
 
   @@unique([name, gameTypeName])
   @@index([gameTypeName])
 }
 
-model PlayerRating {
+model PlayerInfo {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -88,12 +88,12 @@ model PlayerRating {
   map   Map @relation(fields: [mapId], references: [id])
   mapId Int
 
-  rating Float
+  rating   Float?
+  playTime Int    @default(0)
 
   @@unique([playerName, mapId])
   @@index([mapId])
   @@index([playerName])
-  @@map("PlayerRatings")
 }
 
 model GameServerClient {
@@ -115,9 +115,10 @@ model GameServerClient {
 }
 
 model GameServerSnapshot {
-  id        Int       @id @default(autoincrement())
-  createdAt DateTime  @default(now())
-  rankedAt  DateTime?
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  rankedAt    DateTime?
+  playTimedAt DateTime?
 
   version String
   name    String
@@ -132,7 +133,7 @@ model GameServerSnapshot {
 
   clients GameServerClient[]
 
-  gameServerLast   GameServer?
+  gameServerLast GameServer?
 
   gameServerId Int
   gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id])

@@ -26,16 +26,21 @@ export default async function Index({
     gameTypeName: { equals: gameType },
   };
 
-  const ratings = await prisma.playerRating.findMany({
+  const playerInfos = await prisma.playerInfo.findMany({
     where: {
       map: {
         ...mapConditional,
         ...gameTypeConditional,
       },
     },
-    orderBy: {
-      rating: 'desc',
-    },
+    orderBy: [
+      {
+        rating: 'desc',
+      },
+      {
+        playTime: 'desc',
+      },
+    ],
     include: {
       player: true,
     },
@@ -68,19 +73,23 @@ export default async function Index({
         },
       ]}
     >
-      {ratings.map((rating, index) => (
+      {playerInfos.map((playerInfo, index) => (
         <>
           <ListCell alignRight label={`${index + 1}`} />
           <ListCell
-            label={rating.player.name}
-            href={{ pathname: `/players/${rating.player.name}`}}
+            label={playerInfo.player.name}
+            href={{ pathname: `/players/${playerInfo.player.name}`}}
           />
           <ListCell label={''} />
           <ListCell
             alignRight
-            label={`${Intl.NumberFormat('en-US', {
-              maximumFractionDigits: 0,
-            }).format(rating.rating)}`}
+            label={
+              playerInfo.rating === null
+                ? ''
+                : `${Intl.NumberFormat('en-US', {
+                    maximumFractionDigits: 0,
+                  }).format(playerInfo.rating)}`
+            }
           />
           <ListCell alignRight label="1 hour ago" />
         </>

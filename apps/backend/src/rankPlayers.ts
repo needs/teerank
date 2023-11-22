@@ -63,7 +63,7 @@ async function getRankablePlayers(snapshotStart: GameServerSnapshotWithClients, 
     )
 
     if (clientEnd !== undefined && clientStart.inGame && clientEnd.inGame) {
-      const rating = await prisma.playerRating.upsert({
+      const playerInfo = await prisma.playerInfo.upsert({
         where: {
           playerName_mapId: {
             mapId: map.id,
@@ -81,8 +81,8 @@ async function getRankablePlayers(snapshotStart: GameServerSnapshotWithClients, 
       rankablePlayers.push({
         playerName: clientStart.playerName,
         scoreDiff: clientEnd.score - clientStart.score,
-        rating: rating.rating,
-        ratingId: rating.id
+        rating: playerInfo.rating,
+        ratingId: playerInfo.id
       });
     }
   }
@@ -135,7 +135,7 @@ async function updateRatings(rankablePlayers: RankablePlayers) {
 
       const deltaAverage = deltas / (rankablePlayers.length - 1);
 
-      await prisma.playerRating.update({
+      await prisma.playerInfo.update({
         where: {
           id: rankablePlayer.ratingId,
         },

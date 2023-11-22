@@ -7,6 +7,7 @@ import { updateGameTypesRankMethod } from './updateGameTypesRankMethod';
 import { prisma } from "./prisma";
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
+import { playTimePlayers } from './playTimePlayers';
 
 if (process.env.NODE_ENV === 'production') {
   Sentry.init({
@@ -36,9 +37,10 @@ async function main() {
   const callback = async () => {
     if (!isRunning) {
       isRunning = true;
-      await pollMasterServers();
-      await pollGameServers();
-      await rankPlayers();
+      //await pollMasterServers();
+      //await pollGameServers();
+      //await rankPlayers();
+      await playTimePlayers();
       isRunning = false;
     } else {
       console.warn('Skipping poll because it is already running');

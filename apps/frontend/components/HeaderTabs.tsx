@@ -16,13 +16,57 @@ function HeaderTab({
   isActive,
   sublabel,
   sublabelPlaceholder,
+  sublabelHref,
+  labelHref,
 }: {
   label: string;
   url: UrlObject;
   isActive: boolean;
   sublabel?: string;
   sublabelPlaceholder?: string;
+  sublabelHref?: UrlObject;
+  labelHref?: UrlObject;
 }) {
+  const sublabelComponent = () => {
+    if (sublabel === undefined) {
+      if (sublabelPlaceholder !== undefined) {
+        if (sublabelHref !== undefined) {
+          return (
+            <Link className="px-4 italic hover:underline" href={sublabelHref}>
+              {sublabelPlaceholder}
+            </Link>
+          );
+        } else {
+          return <span className="px-4 italic">{sublabelPlaceholder}</span>;
+        }
+      }
+    } else {
+      if (sublabelHref !== undefined) {
+        return (
+          <Link className="px-4 hover:underline" href={sublabelHref}>
+            {sublabel}
+          </Link>
+        );
+      } else {
+        return <span className="px-4">{sublabel}</span>;
+      }
+    }
+
+    return null;
+  };
+
+  const labelComponent = () => {
+    if (labelHref !== undefined) {
+      return (
+        <Link href={labelHref} className="px-4 hover:underline">
+          {label}
+        </Link>
+      );
+    } else {
+      return <span className="px-4">{label}</span>;
+    }
+  };
+
   const content = (
     <div
       className={twMerge(
@@ -30,11 +74,8 @@ function HeaderTab({
         isActive ? 'bg-white' : 'bg-gradient-to-b from-[#ffffff] to-[#cccccc]'
       )}
     >
-      <span className="px-4">{label}</span>
-      {sublabel !== undefined && <span className="px-4">{sublabel}</span>}
-      {sublabel === undefined && sublabelPlaceholder !== undefined && (
-        <span className="px-4 italic">{sublabelPlaceholder}</span>
-      )}
+      {labelComponent()}
+      {sublabelComponent()}
     </div>
   );
 
@@ -66,6 +107,14 @@ function HeaderTabGameType({ gameTypeName }: { gameTypeName: string }) {
           : undefined
       }
       sublabelPlaceholder={isActive ? 'All maps' : undefined}
+      labelHref={
+        !isActive
+          ? undefined
+          : { pathname: `/gametype/${encodeURIComponent(gameTypeName)}` }
+      }
+      sublabelHref={{
+        pathname: `/gametype/${encodeURIComponent(gameTypeName)}/maps`,
+      }}
     />
   );
 }

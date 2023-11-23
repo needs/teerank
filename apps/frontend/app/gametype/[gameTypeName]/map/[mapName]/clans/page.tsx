@@ -21,7 +21,7 @@ export default async function Index({
   const clansInfos = await prisma.clanInfo.findMany({
     select: {
       clan: {
-        include: {
+        select: {
           _count: {
             select: {
               players: true,

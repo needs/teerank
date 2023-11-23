@@ -1,54 +1,68 @@
-import { List, ListCell } from '@teerank/frontend/components/List';
 import prisma from '@teerank/frontend/utils/prisma';
-import { searchParamSchema } from '../(lists)/schema';
+import { paramsSchema, searchParamsSchema } from '../schema';
+import { PlayerList } from '@teerank/frontend/components/PlayerList';
+import { notFound } from 'next/navigation';
+import { List, ListCell } from '@teerank/frontend/components/List';
 import { formatInteger } from '@teerank/frontend/utils/format';
 
 export const metadata = {
-  title: 'Gametypes',
-  description: 'List of all gametypes',
+  title: 'Maps',
+  description: 'List of gametype maps',
 };
 
 export default async function Index({
+  params,
   searchParams,
 }: {
+  params: { [key: string]: string };
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const { page } = searchParamSchema.parse(searchParams);
+  const { page } = searchParamsSchema.parse(searchParams);
+  const { gameTypeName } = paramsSchema.parse(params);
 
-  const gameTypes = await prisma.gameType.findMany({
+  const maps = await prisma.map.findMany({
     select: {
       name: true,
+      gameTypeName: true,
       _count: {
         select: {
           playerInfos: true,
-          map: true,
           clanInfos: true,
-        },
-      },
-      map: {
-        select: {
-          _count: {
-            select: {
-              snapshots: {
-                where: {
-                  gameServerLast: {
-                    isNot: null,
-                  },
-                },
+          snapshots: {
+            where: {
+              gameServerLast: {
+                isNot: null,
               },
             },
           },
         },
       },
     },
-    orderBy: {
-      playerInfos: {
-        _count: 'desc',
+    where: {
+      gameType: {
+        name: { equals: gameTypeName },
       },
     },
+    orderBy: [
+      {
+        playerInfos: {
+          _count: 'desc',
+        },
+      },
+    ],
     take: 100,
     skip: (page - 1) * 100,
   });
+
+  const gameType = await prisma.gameType.findUnique({
+    where: {
+      name: gameTypeName,
+    },
+  });
+
+  if (gameType === null) {
+    return notFound();
+  }
 
   return (
     <div className="py-8">
@@ -74,56 +88,47 @@ export default async function Index({
             title: 'Servers',
             expand: false,
           },
-          {
-            title: 'Maps',
-            expand: false,
-          },
         ]}
       >
-        {gameTypes.map((gameType, index) => (
+        {maps.map((map, index) => (
           <>
             <ListCell
               alignRight
               label={formatInteger((page - 1) * 100 + index + 1)}
             />
             <ListCell
-              label={gameType.name}
-              href={{
-                pathname: `/gametype/${encodeURIComponent(gameType.name)}`,
-              }}
-            />
-            <ListCell
-              alignRight
-              label={formatInteger(gameType._count.playerInfos)}
-              href={{
-                pathname: `/gametype/${encodeURIComponent(gameType.name)}`,
-              }}
-            />
-            <ListCell
-              alignRight
-              label={formatInteger(gameType._count.clanInfos)}
+              label={map.name}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
-                  gameType.name
-                )}/clans`,
+                  map.gameTypeName
+                )}/map/${encodeURIComponent(map.name)}`,
               }}
             />
             <ListCell
               alignRight
-              label={formatInteger(
-                gameType.map.reduce((sum, map) => sum + map._count.snapshots, 0)
-              )}
+              label={formatInteger(map._count.playerInfos)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
-                  gameType.name
-                )}/servers`,
+                  map.gameTypeName
+                )}/map/${encodeURIComponent(map.name)}`,
               }}
             />
             <ListCell
               alignRight
-              label={formatInteger(gameType._count.map)}
+              label={formatInteger(map._count.clanInfos)}
               href={{
-                pathname: `/gametype/${encodeURIComponent(gameType.name)}/maps`,
+                pathname: `/gametype/${encodeURIComponent(
+                  map.gameTypeName
+                )}/map/${encodeURIComponent(map.name)}/clans`,
+              }}
+            />
+            <ListCell
+              alignRight
+              label={formatInteger(map._count.snapshots)}
+              href={{
+                pathname: `/gametype/${encodeURIComponent(
+                  map.gameTypeName
+                )}/map/${encodeURIComponent(map.name)}/servers`,
               }}
             />
           </>

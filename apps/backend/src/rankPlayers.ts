@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
+import { removeDuplicatedClients } from "./utils";
 
 type GameServerSnapshotWithClients = Prisma.GameServerSnapshotGetPayload<{
   include: {
@@ -17,27 +18,47 @@ type RankablePlayer = {
 
 type RankablePlayers = RankablePlayer[];
 
-async function getGameTypeMap(gameTypeName: string) {
-  return await prisma.map.upsert({
-    select: {
-      id: true,
-    },
-    create: {
-      gameType: {
-        connect: {
-          name: gameTypeName,
+type MapOrGameType = {
+  type: 'map';
+  mapId: number;
+} | {
+  type: 'gameType';
+  gameTypeName: string;
+}
+
+async function getPlayerInfo(playerName: string, mapOrGameType: MapOrGameType) {
+  switch (mapOrGameType.type) {
+    case "map":
+      return await prisma.playerInfo.upsert({
+        where: {
+          playerName_mapId: {
+            mapId: mapOrGameType.mapId,
+            playerName: playerName,
+          },
         },
-      },
-      name: null,
-    },
-    update: {},
-    where: {
-      name_gameTypeName: {
-        gameTypeName: gameTypeName,
-        name: null,
-      },
-    },
-  });
+        create: {
+          mapId: mapOrGameType.mapId,
+          playerName: playerName,
+          rating: 0,
+        },
+        update: {},
+      });
+    case "gameType":
+      return await prisma.playerInfo.upsert({
+        where: {
+          playerName_gameTypeName: {
+            gameTypeName: mapOrGameType.gameTypeName,
+            playerName: playerName,
+          },
+        },
+        create: {
+          gameTypeName: mapOrGameType.gameTypeName,
+          playerName: playerName,
+          rating: 0,
+        },
+        update: {},
+      });
+  }
 }
 
 async function getRankablePlayers(snapshotStart: GameServerSnapshotWithClients, snapshotEnd: GameServerSnapshotWithClients, useGameTypeRatings: boolean): Promise<RankablePlayers> {
@@ -55,28 +76,19 @@ async function getRankablePlayers(snapshotStart: GameServerSnapshotWithClients, 
   // Get common players from both snapshots
   const rankablePlayers: RankablePlayers = [];
 
-  const map = useGameTypeRatings ? await getGameTypeMap(snapshotStart.map.gameTypeName) : snapshotStart.map;
+  const clients = removeDuplicatedClients(snapshotStart.clients);
 
-  for (const clientStart of snapshotStart.clients) {
+  for (const clientStart of clients) {
     const clientEnd = snapshotEnd.clients.find((clientEnd) =>
       clientEnd.playerName === clientStart.playerName
     )
 
     if (clientEnd !== undefined && clientStart.inGame && clientEnd.inGame) {
-      const playerInfo = await prisma.playerInfo.upsert({
-        where: {
-          playerName_mapId: {
-            mapId: map.id,
-            playerName: clientStart.playerName,
-          },
-        },
-        create: {
-          mapId: map.id,
-          rating: 0,
-          playerName: clientStart.playerName,
-        },
-        update: {},
-      })
+      const playerInfo = await getPlayerInfo(clientStart.playerName, {
+        type: useGameTypeRatings ? 'gameType' : 'map',
+        mapId: snapshotStart.mapId,
+        gameTypeName: snapshotStart.map.gameTypeName,
+      });
 
       rankablePlayers.push({
         playerName: clientStart.playerName,
@@ -140,7 +152,9 @@ async function updateRatings(rankablePlayers: RankablePlayers) {
           id: rankablePlayer.ratingId,
         },
         data: {
-          rating: rankablePlayer.rating + deltaAverage,
+          rating: {
+            increment: deltaAverage,
+          }
         }
       });
     }
@@ -202,7 +216,7 @@ export async function rankPlayers() {
       const rankablePlayersMap = await getRankablePlayers(snapshotStart, snapshotEnd, false);
       await updateRatings(rankablePlayersMap);
 
-      const rankablePlayersGameType = await getRankablePlayers(snapshotStart, snapshotEnd, false);
+      const rankablePlayersGameType = await getRankablePlayers(snapshotStart, snapshotEnd, true);
       await updateRatings(rankablePlayersGameType);
 
       await prisma.gameServerSnapshot.update({

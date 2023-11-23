@@ -1,6 +1,8 @@
 import { List, ListCell } from '@teerank/frontend/components/List';
 import prisma from '@teerank/frontend/utils/prisma';
 import { searchParamsSchema } from './schema';
+import { formatDuration, secondsInHour, secondsToHours } from 'date-fns';
+import { formatPlayTime } from '@teerank/frontend/utils/format';
 
 export const metadata = {
   title: 'Players',
@@ -15,24 +17,23 @@ export default async function Index({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const parsedSearchParams = searchParamsSchema.parse(searchParams);
-
-  const mapConditional = {
-    name: { equals: parsedSearchParams.map ?? null },
-  };
-
   const gameType = decodeURIComponent(params.gameType);
 
-  const gameTypeConditional = {
-    gameTypeName: { equals: gameType },
-  };
+  const where =
+    parsedSearchParams.map === undefined
+      ? {
+          gameType: {
+            name: { equals: gameType },
+          },
+        }
+      : {
+          map: {
+            name: { equals: parsedSearchParams.map },
+          },
+        };
 
   const playerInfos = await prisma.playerInfo.findMany({
-    where: {
-      map: {
-        ...mapConditional,
-        ...gameTypeConditional,
-      },
-    },
+    where,
     orderBy: [
       {
         rating: 'desc',
@@ -68,7 +69,7 @@ export default async function Index({
           expand: false,
         },
         {
-          title: 'Last Seen',
+          title: 'Play Time',
           expand: false,
         },
       ]}
@@ -93,7 +94,12 @@ export default async function Index({
                   }).format(playerInfo.rating)}`
             }
           />
-          <ListCell alignRight label="1 hour ago" />
+          <ListCell
+            alignRight
+            label={
+              formatPlayTime(playerInfo.playTime)
+            }
+          />
         </>
       ))}
     </List>

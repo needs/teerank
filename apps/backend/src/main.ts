@@ -7,7 +7,7 @@ import { updateGameTypesRankMethod } from './updateGameTypesRankMethod';
 import { prisma } from "./prisma";
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
-import { playTimePlayers } from './playTimePlayers';
+import { playTimePlayers, resetPlayTime } from './playTimePlayers';
 
 if (process.env.NODE_ENV === 'production') {
   Sentry.init({
@@ -37,6 +37,7 @@ async function main() {
   const callback = async () => {
     if (!isRunning) {
       isRunning = true;
+      await resetPlayTime();
       //await pollMasterServers();
       //await pollGameServers();
       //await rankPlayers();

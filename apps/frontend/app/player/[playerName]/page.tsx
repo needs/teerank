@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { isIP, isIPv6 } from 'net';
 import Link from 'next/link';
 import Image from 'next/image';
+import { formatPlayTime } from '@teerank/frontend/utils/format';
 
 export const metadata = {
   title: 'Player',
@@ -47,7 +48,7 @@ export default async function Index({
           </span>
         </section>
         <aside className="flex flex-col gap-2 text-right">
-          <p><b>Playtime</b>: 1045h</p>
+          <p><b>Playtime</b>: {formatPlayTime(player.playTime)}</p>
           <p>7 hours ago</p>
         </aside>
       </header>

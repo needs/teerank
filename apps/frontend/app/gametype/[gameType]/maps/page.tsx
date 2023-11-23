@@ -15,24 +15,23 @@ export default async function Index({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const parsedSearchParams = searchParamsSchema.parse(searchParams);
-
-  const mapConditional = {
-    name: { equals: parsedSearchParams.map ?? null },
-  };
-
   const gameType = decodeURIComponent(params.gameType);
 
-  const gameTypeConditional = {
-    gameTypeName: { equals: gameType },
-  };
+  const where =
+    parsedSearchParams.map === undefined
+      ? {
+          gameType: {
+            name: { equals: gameType },
+          },
+        }
+      : {
+          map: {
+            name: { equals: parsedSearchParams.map },
+          },
+        };
 
   const playerInfos = await prisma.playerInfo.findMany({
-    where: {
-      map: {
-        ...mapConditional,
-        ...gameTypeConditional,
-      },
-    },
+    where,
     orderBy: [
       {
         rating: 'desc',
@@ -78,7 +77,7 @@ export default async function Index({
           <ListCell alignRight label={`${index + 1}`} />
           <ListCell
             label={playerInfo.player.name}
-            href={{ pathname: `/players/${playerInfo.player.name}`}}
+            href={{ pathname: `/players/${playerInfo.player.name}` }}
           />
           <ListCell label={''} />
           <ListCell

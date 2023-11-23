@@ -46,6 +46,8 @@ model Player {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  playTime Int @default(0)
+
   playerInfos PlayerInfo[]
 
   gameServerClients GameServerClient[]
@@ -56,15 +58,16 @@ enum RankMethod {
 }
 
 model GameType {
-  name       String      @id
-  createdAt  DateTime    @default(now())
-  map        Map[]
-  rankMethod RankMethod?
+  name        String       @id
+  createdAt   DateTime     @default(now())
+  map         Map[]
+  rankMethod  RankMethod?
+  playerInfos PlayerInfo[]
 }
 
 model Map {
   id        Int      @id @default(autoincrement())
-  name      String?
+  name      String
   createdAt DateTime @default(now())
 
   gameType     GameType @relation(fields: [gameTypeName], references: [name])
@@ -85,15 +88,20 @@ model PlayerInfo {
   player     Player @relation(fields: [playerName], references: [name])
   playerName String
 
-  map   Map @relation(fields: [mapId], references: [id])
-  mapId Int
+  map   Map? @relation(fields: [mapId], references: [id])
+  mapId Int?
 
   rating   Float?
   playTime Int    @default(0)
 
+  gameType     GameType? @relation(fields: [gameTypeName], references: [name])
+  gameTypeName String?
+
   @@unique([playerName, mapId])
+  @@unique([playerName, gameTypeName])
   @@index([mapId])
   @@index([playerName])
+  @@index([gameTypeName])
 }
 
 model GameServerClient {

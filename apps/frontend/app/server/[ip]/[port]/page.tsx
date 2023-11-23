@@ -37,9 +37,13 @@ export default async function Index({
     include: {
       lastSnapshot: {
         include: {
-        clients: true,
-        map: true,
-        }
+          clients: {
+            orderBy: {
+              score: 'desc',
+            }
+          },
+          map: true,
+        },
       },
     },
   });
@@ -120,7 +124,9 @@ export default async function Index({
             <ListCell alignRight label={`${index + 1}`} />
             <ListCell
               label={client.playerName}
-              href={{ pathname: `/player/${encodeURIComponent(client.playerName)}` }}
+              href={{
+                pathname: `/player/${encodeURIComponent(client.playerName)}`,
+              }}
             />
             <ListCell label={client.clan} />
             <ListCell alignRight label={client.score.toString()} />

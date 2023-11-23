@@ -31,16 +31,16 @@ async function main() {
 
   await addDefaultMasterServers();
   await updateGameTypesRankMethod();
+  await resetPlayTime();
 
   let isRunning = false;
 
   const callback = async () => {
     if (!isRunning) {
       isRunning = true;
-      await resetPlayTime();
-      //await pollMasterServers();
-      //await pollGameServers();
-      //await rankPlayers();
+      await pollMasterServers();
+      await pollGameServers();
+      await rankPlayers();
       await playTimePlayers();
       isRunning = false;
     } else {

@@ -4,8 +4,15 @@ import { Tab, Tabs } from '@teerank/frontend/components/Tabs';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { paramsSchema, searchParamsSchema } from './schema';
 import { useSearchParamsObject } from '@teerank/frontend/utils/hooks';
+import { prisma } from '@teerank/prisma';
 
-export function LayoutTabs() {
+export function LayoutTabs({
+  playerCount,
+  serverCount,
+}: {
+  playerCount: number;
+  serverCount: number;
+}) {
   const searchParams = useSearchParamsObject();
   const pathname = usePathname();
   const params = useParams();
@@ -20,7 +27,7 @@ export function LayoutTabs() {
     <Tabs>
       <Tab
         label="Players"
-        count={590000}
+        count={playerCount}
         isActive={pathname === urlPathname}
         href={{
           pathname: urlPathname,
@@ -35,7 +42,7 @@ export function LayoutTabs() {
       />
       <Tab
         label="Servers"
-        count={1200}
+        count={serverCount}
         isActive={pathname === `${urlPathname}/servers`}
         href={{ pathname: `${urlPathname}/servers`, query: urlQuery }}
       />

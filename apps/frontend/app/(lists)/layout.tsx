@@ -14,7 +14,7 @@ export default async function Index({
 
   return (
     <div className="flex flex-col gap-4 py-8">
-      <LayoutTabs playersCount={counts[0]} clansCount={counts[1]} serversCount={counts[2]} />
+      <LayoutTabs playerCount={counts[0]} clanCount={counts[1]} serverCount={counts[2]} />
 
       {children}
     </div>

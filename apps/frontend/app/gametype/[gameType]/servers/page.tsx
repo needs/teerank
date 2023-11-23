@@ -15,6 +15,7 @@ export default async function Index({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const parsedSearchParams = searchParamsSchema.parse(searchParams);
+  const gameType = decodeURIComponent(params.gameType);
 
   const mapConditional =
     parsedSearchParams.map === undefined
@@ -22,8 +23,6 @@ export default async function Index({
       : {
           name: { equals: parsedSearchParams.map },
         };
-
-  const gameType = decodeURIComponent(params.gameType);
 
   const gameTypeConditional = {
     gameTypeName: { equals: gameType },

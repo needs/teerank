@@ -4,11 +4,11 @@ import { Tab, Tabs } from '@teerank/frontend/components/Tabs';
 import { usePathname } from 'next/navigation';
 
 export function LayoutTabs({
-  playersCount, clansCount, serversCount,
+  playerCount, clanCount, serverCount,
 }: {
-  playersCount: number;
-  clansCount: number;
-  serversCount: number;
+  playerCount: number;
+  clanCount: number;
+  serverCount: number;
 }) {
   const pathname = usePathname();
 
@@ -16,7 +16,7 @@ export function LayoutTabs({
     <Tabs>
       <Tab
         label="Players"
-        count={playersCount}
+        count={playerCount}
         isActive={pathname === '/'}
         href={{
           pathname: '/',
@@ -24,13 +24,13 @@ export function LayoutTabs({
       />
       <Tab
         label="Clans"
-        count={clansCount}
+        count={clanCount}
         isActive={pathname === '/clans'}
         href={{ pathname: '/clans' }}
       />
       <Tab
         label="Servers"
-        count={serversCount}
+        count={serverCount}
         isActive={pathname === '/servers'}
         href={{ pathname: '/servers' }}
       />

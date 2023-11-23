@@ -53,13 +53,13 @@ export async function playTimePlayers() {
 
       clients.forEach((client) => {
         const mapKey = `${snapshotStart.mapId} ${toBase64(client.playerName)}`;
-        playTimeMap.set(mapKey, playTimeMap.get(mapKey) ?? 0 + deltaPlayTime);
+        playTimeMap.set(mapKey, (playTimeMap.get(mapKey) ?? 0) + deltaPlayTime);
 
         const gameTypeKey = `${toBase64(snapshotStart.map.gameTypeName)} ${toBase64(client.playerName)}`;
-        playTimeGameType.set(gameTypeKey, playTimeGameType.get(gameTypeKey) ?? 0 + deltaPlayTime);
+        playTimeGameType.set(gameTypeKey, (playTimeGameType.get(gameTypeKey) ?? 0) + deltaPlayTime);
 
         const playerKey = toBase64(client.playerName);
-        playTimePlayer.set(playerKey, playTimePlayer.get(playerKey) ?? 0 + deltaPlayTime);
+        playTimePlayer.set(playerKey, (playTimePlayer.get(playerKey) ?? 0) + deltaPlayTime);
       });
 
       snapshotIds.push(snapshotStart.id);

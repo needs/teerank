@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, usePathname, useSearchParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { twMerge } from 'tailwind-merge';
 import { UrlObject } from 'url';
 import { paramsSchema as paramsSchemaMap } from '../app/gametype/[gameTypeName]/map/[mapName]/schema';
@@ -91,7 +91,7 @@ export function HeaderTabs() {
 
   const params = useParams();
 
-  const { ip, port, gameTypeName, mapName, playerName } = paramsSchemaGameType
+  const { ip, port, gameTypeName, playerName } = paramsSchemaGameType
     .merge(paramsSchemaServer)
     .merge(paramsSchemaPlayer)
     .merge(paramsSchemaMap)

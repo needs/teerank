@@ -31,10 +31,18 @@ export async function playTimePlayers() {
     },
   });
 
-  // For performances, keep playtime in memory to upsert only once
-  const playTimeMap = new Map<string, number>();
-  const playTimeGameType = new Map<string, number>();
-  const playTimePlayer = new Map<string, number>();
+  // For performances, keep playtime in memory to upsert in bulk.
+
+  const playerPlayTimeMap = new Map<string, number>();
+  const playerPlayTimeGameType = new Map<string, number>();
+  const playerPlayTime = new Map<string, number>();
+
+  const clanPlayTimeMap = new Map<string, number>();
+  const clanPlayTimeGameType = new Map<string, number>();
+  const clanPlayTime = new Map<string, number>();
+
+  const playerClan = new Map<string, { date: Date, clanName: string | null }>();
+
   const snapshotIds = new Array<number>();
 
   console.log(`Play timing ${gameServers.length} game servers and ${gameServers.reduce((sum, gameServer) => sum + gameServer.snapshots.length, 0)} snapshots`);
@@ -52,14 +60,33 @@ export async function playTimePlayers() {
       const clients = removeDuplicatedClients(snapshotStart.clients);
 
       clients.forEach((client) => {
-        const mapKey = `${snapshotStart.mapId} ${toBase64(client.playerName)}`;
-        playTimeMap.set(mapKey, (playTimeMap.get(mapKey) ?? 0) + deltaPlayTime);
+        const playerMapKey = `${snapshotStart.mapId}:${toBase64(client.playerName)}`;
+        playerPlayTimeMap.set(playerMapKey, (playerPlayTimeMap.get(playerMapKey) ?? 0) + deltaPlayTime);
 
-        const gameTypeKey = `${toBase64(snapshotStart.map.gameTypeName)} ${toBase64(client.playerName)}`;
-        playTimeGameType.set(gameTypeKey, (playTimeGameType.get(gameTypeKey) ?? 0) + deltaPlayTime);
+        const playerGameTypeKey = `${toBase64(snapshotStart.map.gameTypeName)}:${toBase64(client.playerName)}`;
+        playerPlayTimeGameType.set(playerGameTypeKey, (playerPlayTimeGameType.get(playerGameTypeKey) ?? 0) + deltaPlayTime);
 
         const playerKey = toBase64(client.playerName);
-        playTimePlayer.set(playerKey, (playTimePlayer.get(playerKey) ?? 0) + deltaPlayTime);
+        playerPlayTime.set(playerKey, (playerPlayTime.get(playerKey) ?? 0) + deltaPlayTime);
+
+        if (client.clanName !== null) {
+          const clanMapKey = `${snapshotStart.mapId}:${toBase64(client.clanName)}`;
+          clanPlayTimeMap.set(clanMapKey, (playerPlayTimeMap.get(clanMapKey) ?? 0) + deltaPlayTime);
+
+          const clanGameTypeKey = `${toBase64(snapshotStart.map.gameTypeName)}:${toBase64(client.clanName)}`;
+          clanPlayTimeGameType.set(clanGameTypeKey, (playerPlayTimeGameType.get(clanGameTypeKey) ?? 0) + deltaPlayTime);
+
+          const clanKey = toBase64(client.clanName);
+          clanPlayTime.set(clanKey, (playerPlayTime.get(clanKey) ?? 0) + deltaPlayTime);
+        }
+
+        const currentClan = playerClan.get(playerKey);
+        if (currentClan === undefined || currentClan.date < snapshotStart.createdAt) {
+          playerClan.set(playerKey, {
+            date: snapshotStart.createdAt,
+            clanName: client.clanName === "" ? null : client.clanName,
+          });
+        }
       });
 
       snapshotIds.push(snapshotStart.id);
@@ -69,10 +96,10 @@ export async function playTimePlayers() {
   // Since a lot of entries can be updated at once, upserting one by one is too slow.
   // Instead, all existing entries are fetched, deleted and reinserted all at once.
 
-  console.time(`Upserting ${playTimeMap.size} map play times`);
+  console.time(`Upserting ${playerPlayTimeMap.size} player map play times`);
 
-  await prisma.$transaction(Array.from(playTimeMap.entries()).map(([key, value]) => {
-    const [mapIdEncoded, playerNameEncoded] = key.split(' ');
+  await prisma.$transaction(Array.from(playerPlayTimeMap.entries()).map(([key, value]) => {
+    const [mapIdEncoded, playerNameEncoded] = key.split(':');
     const mapId = Number(mapIdEncoded);
     const playerName = fromBase64(playerNameEncoded);
 
@@ -96,11 +123,11 @@ export async function playTimePlayers() {
     });
   }));
 
-  console.timeEnd(`Upserting ${playTimeMap.size} map play times`);
-  console.time(`Upserting ${playTimeGameType.size} game type play times`);
+  console.timeEnd(`Upserting ${playerPlayTimeMap.size} player map play times`);
+  console.time(`Upserting ${playerPlayTimeGameType.size} player game type play times`);
 
-  await prisma.$transaction(Array.from(playTimeGameType.entries()).map(([key, value]) => {
-    const [gameTypeNameEncoded, playerNameEncoded] = key.split(' ');
+  await prisma.$transaction(Array.from(playerPlayTimeGameType.entries()).map(([key, value]) => {
+    const [gameTypeNameEncoded, playerNameEncoded] = key.split(':');
     const gameTypeName = fromBase64(gameTypeNameEncoded);
     const playerName = fromBase64(playerNameEncoded);
 
@@ -124,10 +151,10 @@ export async function playTimePlayers() {
     });
   }));
 
-  console.timeEnd(`Upserting ${playTimeGameType.size} game type play times`);
-  console.time(`Upserting ${playTimePlayer.size} player play times`);
+  console.timeEnd(`Upserting ${playerPlayTimeGameType.size} player game type play times`);
+  console.time(`Upserting ${playerPlayTime.size} player play times`);
 
-  await prisma.$transaction(Array.from(playTimePlayer.entries()).map(([key, value]) => {
+  await prisma.$transaction(Array.from(playerPlayTime.entries()).map(([key, value]) => {
     const playerName = fromBase64(key);
 
     return prisma.player.update({
@@ -142,7 +169,109 @@ export async function playTimePlayers() {
     });
   }));
 
-  console.timeEnd(`Upserting ${playTimePlayer.size} player play times`);
+  console.timeEnd(`Upserting ${playerPlayTime.size} player play times`);
+  console.time(`Upserting ${clanPlayTimeMap.size} clan map play times`);
+
+  await prisma.$transaction(Array.from(clanPlayTimeMap.entries()).map(([key, value]) => {
+    const [mapIdEncoded, clanNameEncoded] = key.split(':');
+    const mapId = Number(mapIdEncoded);
+    const clanName = fromBase64(clanNameEncoded);
+
+    return prisma.clanInfo.upsert({
+      where: {
+        clanName_mapId: {
+          mapId,
+          clanName,
+        },
+      },
+      update: {
+        playTime: {
+          increment: value,
+        },
+      },
+      create: {
+        mapId,
+        clanName,
+        playTime: value,
+      },
+    });
+  }));
+
+  console.timeEnd(`Upserting ${clanPlayTimeMap.size} clan map play times`);
+  console.time(`Upserting ${clanPlayTimeGameType.size} clan game type play times`);
+
+  await prisma.$transaction(Array.from(clanPlayTimeGameType.entries()).map(([key, value]) => {
+    const [gameTypeNameEncoded, clanNameEncoded] = key.split(':');
+    const gameTypeName = fromBase64(gameTypeNameEncoded);
+    const clanName = fromBase64(clanNameEncoded);
+
+    return prisma.clanInfo.upsert({
+      where: {
+        clanName_gameTypeName: {
+          gameTypeName,
+          clanName,
+        },
+      },
+      update: {
+        playTime: {
+          increment: value,
+        },
+      },
+      create: {
+        gameTypeName,
+        clanName,
+        playTime: value,
+      },
+    });
+  }));
+
+  console.timeEnd(`Upserting ${clanPlayTimeGameType.size} clan game type play times`);
+  console.time(`Upserting ${clanPlayTime.size} clan play times`);
+
+  await prisma.$transaction(Array.from(clanPlayTime.entries()).map(([key, value]) => {
+    const clanName = fromBase64(key);
+
+    return prisma.clan.update({
+      where: {
+        name: clanName,
+      },
+      data: {
+        playTime: {
+          increment: value,
+        },
+      },
+    });
+  }));
+
+  console.timeEnd(`Upserting ${clanPlayTime.size} clan play times`);
+  console.time(`Updating ${playerClan.size} player clans`);
+
+  await prisma.$transaction(Array.from(playerClan.entries()).map(([key, value]) => {
+    const playerName = fromBase64(key);
+    const clanName = value.clanName === "" ? undefined : value.clanName;
+
+    return prisma.player.update({
+      where: {
+        name: playerName,
+      },
+      data: {
+        clan: clanName === null ? {
+          disconnect: true
+        } : {
+          connectOrCreate: {
+            where: {
+              name: clanName,
+            },
+            create: {
+              name: clanName,
+            },
+          },
+        },
+      },
+    });
+  }));
+
+  console.timeEnd(`Updating ${playerClan.size} player clans`);
   console.time(`Marking ${snapshotIds.length} snapshots as play timed`);
 
   await prisma.gameServerSnapshot.updateMany({

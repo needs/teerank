@@ -127,7 +127,16 @@ export async function pollGameServers() {
                     }
                   },
                 },
-                clan: client.clan,
+                clan: client.clan === "" ? undefined : {
+                  connectOrCreate: {
+                    where: {
+                      name: client.clan,
+                    },
+                    create: {
+                      name: client.clan,
+                    }
+                  }
+                },
                 country: client.country,
                 score: client.score,
                 inGame: client.inGame,

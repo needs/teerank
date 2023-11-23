@@ -19,6 +19,14 @@ export default async function Index({
     },
   });
 
+  const clanCount = await prisma.clanInfo.count({
+    where: {
+      gameType: {
+        name: { equals: gameTypeName },
+      },
+    },
+  });
+
   const serverCount = await prisma.gameServer.count({
     where: {
       AND: [
@@ -36,7 +44,7 @@ export default async function Index({
 
   return (
     <div className="flex flex-col gap-4 py-8">
-      <LayoutTabs gameTypeName={gameTypeName} playerCount={playerCount} serverCount={serverCount} />
+      <LayoutTabs gameTypeName={gameTypeName} playerCount={playerCount} clanCount={clanCount} serverCount={serverCount} />
 
       {children}
     </div>

@@ -1,6 +1,6 @@
-import { List, ListCell } from '@teerank/frontend/components/List';
 import prisma from '@teerank/frontend/utils/prisma';
 import { searchParamSchema } from '../schema';
+import { ClanList } from '@teerank/frontend/components/ClanList';
 
 export const metadata = {
   title: 'Clans',
@@ -12,33 +12,37 @@ export default async function Index({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
+  const { page } = searchParamSchema.parse(searchParams);
+
+  const clans = await prisma.clan.findMany({
+    select: {
+      name: true,
+      playTime: true,
+      _count: {
+        select: {
+          players: true,
+        },
+      },
+    },
+    orderBy: [{
+      playTime: 'desc',
+    }, {
+      players: {
+        _count: 'desc',
+      }
+    }],
+    take: 100,
+    skip: (page - 1) * 100,
+  });
+
   return (
-    <List
-      columns={[
-        {
-          title: '',
-          expand: false,
-        },
-        {
-          title: 'Name',
-          expand: true,
-        },
-        {
-          title: 'Playtime',
-          expand: true,
-        },
-        {
-          title: 'Joined at',
-          expand: false,
-        },
-      ]}
-    >
-        <>
-          <ListCell alignRight label={`${1}`} />
-          <ListCell label={"Test player"} href={{ pathname: `/player/${"Test"}`}} />
-          <ListCell label={'5 hours'} />
-          <ListCell alignRight label="363 days ago" />
-        </>
-    </List>
+    <ClanList
+      clans={clans.map((clan, index) => ({
+        rank: (page - 1) * 100 + index + 1,
+        name: clan.name,
+        playerCount: clan._count.players,
+        playTime: clan.playTime,
+      }))}
+    />
   );
 }

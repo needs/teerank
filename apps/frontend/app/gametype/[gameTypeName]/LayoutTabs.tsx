@@ -7,11 +7,13 @@ export function LayoutTabs({
   gameTypeName,
   mapName,
   playerCount,
+  clanCount,
   serverCount,
 }: {
   gameTypeName: string;
   mapName?: string;
   playerCount: number;
+  clanCount: number;
   serverCount: number;
 }) {
   const pathname = usePathname();
@@ -31,10 +33,10 @@ export function LayoutTabs({
         }}
       />
       <Tab
-        label="Maps"
-        count={60000}
-        isActive={pathname === `${urlPathname}/maps`}
-        href={{ pathname: `${urlPathname}/maps` }}
+        label="Clans"
+        count={clanCount}
+        isActive={pathname === `${urlPathname}/clans`}
+        href={{ pathname: `${urlPathname}/clans` }}
       />
       <Tab
         label="Servers"

@@ -46,11 +46,16 @@ model Player {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  clan     Clan?   @relation(fields: [clanName], references: [name])
+  clanName String?
+
   playTime Int @default(0)
 
   playerInfos PlayerInfo[]
 
   gameServerClients GameServerClient[]
+
+  @@index([clanName])
 }
 
 enum RankMethod {
@@ -63,6 +68,7 @@ model GameType {
   map         Map[]
   rankMethod  RankMethod?
   playerInfos PlayerInfo[]
+  clanInfos   ClanInfo[]
 }
 
 model Map {
@@ -75,6 +81,7 @@ model Map {
 
   snapshots   GameServerSnapshot[]
   playerInfos PlayerInfo[]
+  clanInfos   ClanInfo[]
 
   @@unique([name, gameTypeName])
   @@index([gameTypeName])
@@ -113,13 +120,16 @@ model GameServerClient {
   player     Player @relation(fields: [playerName], references: [name])
   playerName String
 
-  clan    String
-  score   Int
-  country Int
-  inGame  Boolean
+  clan     Clan?   @relation(fields: [clanName], references: [name])
+  clanName String?
+
+  score    Int
+  country  Int
+  inGame   Boolean
 
   @@index([snapshotId])
   @@index([playerName])
+  @@index([clanName])
 }
 
 model GameServerSnapshot {
@@ -148,4 +158,42 @@ model GameServerSnapshot {
 
   @@index([gameServerId])
   @@index([mapId])
+}
+
+model ClanInfo {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clan     Clan   @relation(fields: [clanName], references: [name])
+  clanName String
+
+  map   Map? @relation(fields: [mapId], references: [id])
+  mapId Int?
+
+  playTime Int @default(0)
+
+  gameType     GameType? @relation(fields: [gameTypeName], references: [name])
+  gameTypeName String?
+
+  @@unique([clanName, mapId])
+  @@unique([clanName, gameTypeName])
+  @@index([mapId])
+  @@index([clanName])
+  @@index([gameTypeName])
+}
+
+model Clan {
+  name String @id
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  playTime Int      @default(0)
+  players  Player[]
+
+  clanInfos ClanInfo[]
+  clients   GameServerClient[]
+
+  @@index([name])
 }

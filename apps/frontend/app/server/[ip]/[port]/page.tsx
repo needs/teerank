@@ -125,7 +125,12 @@ export default async function Index({
                 pathname: `/player/${encodeURIComponent(client.playerName)}`,
               }}
             />
-            <ListCell label={client.clan} />
+            <ListCell
+              label={client.clanName ?? ''}
+              href={client.clanName === null ? undefined : {
+                pathname: `/clan/${encodeURIComponent(client.clanName)}`,
+              }}
+            />
             <ListCell alignRight label={client.score.toString()} />
           </>
         ))}

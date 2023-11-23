@@ -8,7 +8,7 @@ export default async function Index({
 }) {
   const counts = await Promise.all([
     await prisma.player.count(),
-    new Promise<number>((resolve) => resolve(1)),
+    await prisma.clan.count(),
     await prisma.gameServer.count(),
   ]);
 

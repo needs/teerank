@@ -25,6 +25,21 @@ export default async function Index({
           clanInfos: true,
         },
       },
+      map: {
+        select: {
+          _count: {
+            select: {
+              snapshots: {
+                where: {
+                  gameServerLast: {
+                    isNot: null,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     orderBy: {
       playerInfos: {
@@ -56,6 +71,10 @@ export default async function Index({
             expand: false,
           },
           {
+            title: 'Servers',
+            expand: false,
+          },
+          {
             title: 'Maps',
             expand: false,
           },
@@ -73,8 +92,20 @@ export default async function Index({
                 pathname: `/gametype/${encodeURIComponent(gametype.name)}`,
               }}
             />
-            <ListCell alignRight label={formatInteger(gametype._count.playerInfos)} />
-            <ListCell alignRight label={formatInteger(gametype._count.clanInfos)} />
+            <ListCell
+              alignRight
+              label={formatInteger(gametype._count.playerInfos)}
+            />
+            <ListCell
+              alignRight
+              label={formatInteger(gametype._count.clanInfos)}
+            />
+            <ListCell
+              alignRight
+              label={formatInteger(
+                gametype.map.reduce((sum, map) => sum + map._count.snapshots, 0)
+              )}
+            />
             <ListCell alignRight label={formatInteger(gametype._count.map)} />
           </>
         ))}

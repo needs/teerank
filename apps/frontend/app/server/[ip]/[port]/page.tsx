@@ -40,7 +40,7 @@ export default async function Index({
           clients: {
             orderBy: {
               score: 'desc',
-            }
+            },
           },
           map: true,
         },
@@ -76,10 +76,7 @@ export default async function Index({
                 href={{
                   pathname: `/gametype/${encodeURIComponent(
                     gameServer.lastSnapshot.map.gameTypeName
-                  )}`,
-                  query: {
-                    map: gameServer.lastSnapshot.map.name,
-                  },
+                  )}/map/${gameServer.lastSnapshot.map.name}`,
                 }}
               >
                 {gameServer.lastSnapshot.map.name}

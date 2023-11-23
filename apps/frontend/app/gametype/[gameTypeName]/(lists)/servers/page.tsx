@@ -1,36 +1,51 @@
-import { List, ListCell } from '@teerank/frontend/components/List';
 import prisma from '@teerank/frontend/utils/prisma';
-import { searchParamSchema } from '../schema';
-import { ComponentProps } from 'react';
+import { paramsSchema, searchParamsSchema } from '../../schema';
 import { ServerList } from '@teerank/frontend/components/ServerList';
+import { ComponentProps } from 'react';
 
 export const metadata = {
   title: 'Servers',
-  description: 'List of all servers',
+  description: 'List of ranked servers',
 };
 
 export default async function Index({
+  params,
   searchParams,
 }: {
+  params: { [key: string]: string };
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const { page } = searchParamSchema.parse(searchParams);
+  const { page } = searchParamsSchema.parse(searchParams);
+  const { gameTypeName } = paramsSchema.parse(params);
 
   const gameServers = await prisma.gameServer.findMany({
     where: {
-      lastSnapshot: {
-        isNot: null,
+      AND: [
+        { lastSnapshot: { isNot: null } },
+        {
+          lastSnapshot: {
+            map: {
+              gameTypeName: { equals: gameTypeName },
+            },
+          },
+        },
+      ],
+    },
+    orderBy: [
+      {
+        lastSnapshot: {
+          numClients: 'desc',
+        },
       },
-    },
-    orderBy: {
-      lastSnapshot: {
-        numClients: 'desc',
-      }
-    },
+      {
+        lastSnapshot: {
+          maxClients: 'desc',
+        },
+      },
+    ],
     include: {
       lastSnapshot: {
         include: {
-          clients: true,
           map: true,
         },
       },

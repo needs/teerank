@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import { twMerge } from 'tailwind-merge';
 import { UrlObject } from 'url';
-import { paramsSchema as paramsSchemaGameType } from '../app/gametype/[gameType]/schema';
+import { paramsSchema as paramsSchemaMap } from '../app/gametype/[gameTypeName]/map/[mapName]/schema';
+import { paramsSchema as paramsSchemaGameType } from '../app/gametype/[gameTypeName]/schema';
 import { paramsSchema as paramsSchemaServer } from '../app/server/[ip]/[port]/schema';
 import { paramsSchema as paramsSchemaPlayer } from '../app/player/[playerName]/schema';
 
@@ -43,21 +44,26 @@ function HeaderTabSeparator() {
   return <div className="grow" />;
 }
 
-function HeaderTabGameType({ gameType }: { gameType: string }) {
-  const searchParams = useSearchParams();
+function HeaderTabGameType({ gameTypeName }: { gameTypeName: string }) {
   const params = useParams();
 
-  const queryGameType = decodeURIComponent(params['gameType']);
-  const queryMap = searchParams.get('map');
+  const parsedParams = paramsSchemaGameType
+    .merge(paramsSchemaMap)
+    .partial()
+    .parse(params);
 
-  const isActive = queryGameType === gameType;
+  const isActive = parsedParams.gameTypeName === gameTypeName;
 
   return (
     <HeaderTab
-      label={gameType}
-      url={{ pathname: `/gametype/${encodeURIComponent(gameType)}` }}
+      label={gameTypeName}
+      url={{ pathname: `/gametype/${encodeURIComponent(gameTypeName)}` }}
       isActive={isActive}
-      sublabel={isActive && queryMap !== null ? queryMap : undefined}
+      sublabel={
+        isActive && parsedParams.mapName !== undefined
+          ? parsedParams.mapName
+          : undefined
+      }
       sublabelPlaceholder={isActive ? 'All maps' : undefined}
     />
   );
@@ -85,9 +91,10 @@ export function HeaderTabs() {
 
   const params = useParams();
 
-  const parsedParams = paramsSchemaGameType
+  const { ip, port, gameTypeName, mapName, playerName } = paramsSchemaGameType
     .merge(paramsSchemaServer)
     .merge(paramsSchemaPlayer)
+    .merge(paramsSchemaMap)
     .partial()
     .parse(params);
 
@@ -100,28 +107,25 @@ export function HeaderTabs() {
       />
 
       {defaultGameTypes.map((gameType) => (
-        <HeaderTabGameType key={gameType} gameType={gameType} />
+        <HeaderTabGameType key={gameType} gameTypeName={gameType} />
       ))}
 
-      {parsedParams.gameType !== undefined &&
-        !defaultGameTypes.includes(parsedParams.gameType) && (
-          <HeaderTabGameType gameType={parsedParams.gameType} />
+      {gameTypeName !== undefined &&
+        !defaultGameTypes.includes(gameTypeName) && (
+          <HeaderTabGameType gameTypeName={gameTypeName} />
         )}
 
       <HeaderTabPage label="..." pathname="/gametypes" />
       <HeaderTabSeparator />
 
-      {parsedParams.ip !== undefined && parsedParams.port !== undefined && (
-        <HeaderTabPage
-          label="Server"
-          pathname={`/server/${parsedParams.ip}/${parsedParams.port}`}
-        />
+      {ip !== undefined && port !== undefined && (
+        <HeaderTabPage label="Server" pathname={`/server/${ip}/${port}`} />
       )}
 
-      {parsedParams.playerName !== undefined && (
+      {playerName !== undefined && (
         <HeaderTabPage
           label="Player"
-          pathname={`/player/${encodeURIComponent(parsedParams.playerName)}`}
+          pathname={`/player/${encodeURIComponent(playerName)}`}
         />
       )}
 

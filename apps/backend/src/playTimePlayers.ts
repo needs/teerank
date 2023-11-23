@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { differenceInSeconds } from "date-fns";
-import { removeDuplicatedClients } from "./utils";
+import { fromBase64, removeDuplicatedClients, toBase64 } from "./utils";
 
 export async function playTimePlayers() {
   // 1. Get all snapshots not yet play timed, grouped by servers
@@ -31,12 +31,17 @@ export async function playTimePlayers() {
     },
   });
 
+  // For performances, keep playtime in memory to upsert only once
+  const playTimeMap = new Map<string, number>();
+  const playTimeGameType = new Map<string, number>();
+  const playTimePlayer = new Map<string, number>();
+  const snapshotIds = new Array<number>();
+
   console.log(`Play timing ${gameServers.length} game servers and ${gameServers.reduce((sum, gameServer) => sum + gameServer.snapshots.length, 0)} snapshots`);
+  console.time(`Play timed ${gameServers.length} game servers`);
 
-  for (const [index, gameServer] of gameServers.entries()) {
+  for (const gameServer of gameServers) {
     const snapshots = gameServer.snapshots.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-    console.log(`(${index + 1} / ${gameServers.length}) Play timing ${snapshots.length} snapshots`)
 
     for (let index = 0; index < snapshots.length - 1; index++) {
       const snapshotStart = snapshots[index];
@@ -46,65 +51,113 @@ export async function playTimePlayers() {
       const deltaPlayTime = deltaSecond > 10 * 60 ? 5 * 60 : deltaSecond;
       const clients = removeDuplicatedClients(snapshotStart.clients);
 
-      await Promise.all(clients.map((client) => {
-        return Promise.all([prisma.playerInfo.upsert({
-          where: {
-            playerName_mapId: {
-              mapId: snapshotStart.mapId,
-              playerName: client.playerName,
-            },
-          },
-          create: {
-            mapId: snapshotStart.mapId,
-            playerName: client.playerName,
-            playTime: deltaPlayTime,
-          },
-          update: {
-            playTime: {
-              increment: deltaPlayTime,
-            },
-          },
-        }), prisma.playerInfo.upsert({
-          where: {
-            playerName_gameTypeName: {
-              gameTypeName: snapshotStart.map.gameTypeName,
-              playerName: client.playerName,
-            },
-          },
-          create: {
-            gameTypeName: snapshotStart.map.gameTypeName,
-            playerName: client.playerName,
-            playTime: deltaPlayTime,
-          },
-          update: {
-            playTime: {
-              increment: deltaPlayTime,
-            },
-          },
-        }), prisma.player.update({
-          where: {
-            name: client.playerName,
-          },
-          data: {
-            playTime: {
-              increment: deltaPlayTime,
-            },
-          },
-        })]);
-      }));
+      clients.forEach((client) => {
+        const mapKey = `${snapshotStart.mapId} ${toBase64(client.playerName)}`;
+        playTimeMap.set(mapKey, playTimeMap.get(mapKey) ?? 0 + deltaPlayTime);
 
-      await prisma.gameServerSnapshot.update({
-        where: {
-          id: snapshotStart.id,
-        },
-        data: {
-          playTimedAt: new Date(),
-        }
+        const gameTypeKey = `${toBase64(snapshotStart.map.gameTypeName)} ${toBase64(client.playerName)}`;
+        playTimeGameType.set(gameTypeKey, playTimeGameType.get(gameTypeKey) ?? 0 + deltaPlayTime);
+
+        const playerKey = toBase64(client.playerName);
+        playTimePlayer.set(playerKey, playTimePlayer.get(playerKey) ?? 0 + deltaPlayTime);
       });
+
+      snapshotIds.push(snapshotStart.id);
     }
   }
 
-  console.log(`Play timed ${gameServers.length} game servers`);
+  // Since a lot of entries can be updated at once, upserting one by one is too slow.
+  // Instead, all existing entries are fetched, deleted and reinserted all at once.
+
+  console.time(`Upserting ${playTimeMap.size} map play times`);
+
+  await prisma.$transaction(Array.from(playTimeMap.entries()).map(([key, value]) => {
+    const [mapIdEncoded, playerNameEncoded] = key.split(' ');
+    const mapId = Number(mapIdEncoded);
+    const playerName = fromBase64(playerNameEncoded);
+
+    return prisma.playerInfo.upsert({
+      where: {
+        playerName_mapId: {
+          mapId,
+          playerName,
+        },
+      },
+      update: {
+        playTime: {
+          increment: value,
+        },
+      },
+      create: {
+        mapId,
+        playerName,
+        playTime: value,
+      },
+    });
+  }));
+
+  console.timeEnd(`Upserting ${playTimeMap.size} map play times`);
+  console.time(`Upserting ${playTimeGameType.size} game type play times`);
+
+  await prisma.$transaction(Array.from(playTimeGameType.entries()).map(([key, value]) => {
+    const [gameTypeNameEncoded, playerNameEncoded] = key.split(' ');
+    const gameTypeName = fromBase64(gameTypeNameEncoded);
+    const playerName = fromBase64(playerNameEncoded);
+
+    return prisma.playerInfo.upsert({
+      where: {
+        playerName_gameTypeName: {
+          gameTypeName,
+          playerName
+        },
+      },
+      update: {
+        playTime: {
+          increment: value,
+        },
+      },
+      create: {
+        gameTypeName,
+        playerName,
+        playTime: value,
+      },
+    });
+  }));
+
+  console.timeEnd(`Upserting ${playTimeGameType.size} game type play times`);
+  console.time(`Upserting ${playTimePlayer.size} player play times`);
+
+  await prisma.$transaction(Array.from(playTimePlayer.entries()).map(([key, value]) => {
+    const playerName = fromBase64(key);
+
+    return prisma.player.update({
+      where: {
+        name: playerName,
+      },
+      data: {
+        playTime: {
+          increment: value,
+        },
+      },
+    });
+  }));
+
+  console.timeEnd(`Upserting ${playTimePlayer.size} player play times`);
+  console.time(`Marking ${snapshotIds.length} snapshots as play timed`);
+
+  await prisma.gameServerSnapshot.updateMany({
+    where: {
+      id: {
+        in: snapshotIds,
+      }
+    },
+    data: {
+      playTimedAt: new Date(),
+    }
+  });
+
+  console.timeEnd(`Marking ${snapshotIds.length} snapshots as play timed`);
+  console.timeEnd(`Play timed ${gameServers.length} game servers`);
 }
 
 export async function resetPlayTime() {

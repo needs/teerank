@@ -8,6 +8,7 @@ import { paramsSchema as paramsSchemaMap } from '../app/gametype/[gameTypeName]/
 import { paramsSchema as paramsSchemaGameType } from '../app/gametype/[gameTypeName]/schema';
 import { paramsSchema as paramsSchemaServer } from '../app/server/[ip]/[port]/schema';
 import { paramsSchema as paramsSchemaPlayer } from '../app/player/[playerName]/schema';
+import { paramsSchema as paramsSchemaClan } from '../app/clan/[clanName]/schema';
 
 function HeaderTab({
   label,
@@ -91,10 +92,11 @@ export function HeaderTabs() {
 
   const params = useParams();
 
-  const { ip, port, gameTypeName, playerName } = paramsSchemaGameType
+  const { ip, port, gameTypeName, playerName, clanName } = paramsSchemaGameType
     .merge(paramsSchemaServer)
     .merge(paramsSchemaPlayer)
     .merge(paramsSchemaMap)
+    .merge(paramsSchemaClan)
     .partial()
     .parse(params);
 
@@ -126,6 +128,13 @@ export function HeaderTabs() {
         <HeaderTabPage
           label="Player"
           pathname={`/player/${encodeURIComponent(playerName)}`}
+        />
+      )}
+
+      {clanName !== undefined && (
+        <HeaderTabPage
+          label="Clan"
+          pathname={`/clan/${encodeURIComponent(clanName)}`}
         />
       )}
 

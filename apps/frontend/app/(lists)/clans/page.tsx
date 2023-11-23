@@ -24,13 +24,16 @@ export default async function Index({
         },
       },
     },
-    orderBy: [{
-      playTime: 'desc',
-    }, {
-      players: {
-        _count: 'desc',
-      }
-    }],
+    orderBy: [
+      {
+        playTime: 'desc',
+      },
+      {
+        players: {
+          _count: 'desc',
+        },
+      },
+    ],
     take: 100,
     skip: (page - 1) * 100,
   });

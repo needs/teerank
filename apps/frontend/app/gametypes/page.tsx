@@ -1,6 +1,7 @@
 import { List, ListCell } from '@teerank/frontend/components/List';
 import prisma from '@teerank/frontend/utils/prisma';
 import { searchParamSchema } from '../(lists)/schema';
+import { formatInteger } from '@teerank/frontend/utils/format';
 
 export const metadata = {
   title: 'Gametypes',
@@ -12,20 +13,26 @@ export default async function Index({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const parsedSearchParams = searchParamSchema.parse(searchParams);
+  const { page } = searchParamSchema.parse(searchParams);
 
-  const maps = await prisma.map.groupBy({
-    by: ['gameTypeName'],
-    orderBy: {
+  const gametypes = await prisma.gameType.findMany({
+    select: {
+      name: true,
       _count: {
-        gameTypeName: 'desc',
+        select: {
+          playerInfos: true,
+          map: true,
+          clanInfos: true,
+        },
       },
     },
-    _count: {
-      gameTypeName: true,
+    orderBy: {
+      playerInfos: {
+        _count: 'desc',
+      },
     },
     take: 100,
-    skip: (parsedSearchParams.page - 1) * 100,
+    skip: (page - 1) * 100,
   });
 
   return (
@@ -41,21 +48,34 @@ export default async function Index({
             expand: true,
           },
           {
+            title: 'Players',
+            expand: false,
+          },
+          {
+            title: 'Clans',
+            expand: false,
+          },
+          {
             title: 'Maps',
             expand: false,
           },
         ]}
       >
-        {maps.map((map, index) => (
+        {gametypes.map((gametype, index) => (
           <>
-            <ListCell alignRight label={`${index + 1}`} />
             <ListCell
-              label={map.gameTypeName}
+              alignRight
+              label={formatInteger((page - 1) * 100 + index + 1)}
+            />
+            <ListCell
+              label={gametype.name}
               href={{
-                pathname: `/gametype/${encodeURIComponent(map.gameTypeName)}`,
+                pathname: `/gametype/${encodeURIComponent(gametype.name)}`,
               }}
             />
-            <ListCell label={map._count.gameTypeName.toString()} />
+            <ListCell alignRight label={formatInteger(gametype._count.playerInfos)} />
+            <ListCell alignRight label={formatInteger(gametype._count.clanInfos)} />
+            <ListCell alignRight label={formatInteger(gametype._count.map)} />
           </>
         ))}
       </List>

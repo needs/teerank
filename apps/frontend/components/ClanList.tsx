@@ -1,5 +1,5 @@
 import { List, ListCell } from '@teerank/frontend/components/List';
-import { formatPlayTime } from '@teerank/frontend/utils/format';
+import { formatInteger, formatPlayTime } from '@teerank/frontend/utils/format';
 
 export function ClanList({
   clans,
@@ -34,25 +34,15 @@ export function ClanList({
     <List columns={columns}>
       {clans.map((clan) => (
         <>
-          <ListCell alignRight label={`${clan.rank}`} />
+          <ListCell alignRight label={formatInteger(clan.rank)} />
           <ListCell
             label={clan.name}
             href={{
               pathname: `/clan/${encodeURIComponent(clan.name)}`,
             }}
           />
-          <ListCell
-            alignRight
-            label={
-              Intl.NumberFormat('en-US').format(clan.playerCount)
-            }
-          />
-          <ListCell
-            alignRight
-            label={
-              formatPlayTime(clan.playTime)
-            }
-          />
+          <ListCell alignRight label={formatInteger(clan.playerCount)} />
+          <ListCell alignRight label={formatPlayTime(clan.playTime)} />
         </>
       ))}
     </List>

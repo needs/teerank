@@ -1,5 +1,6 @@
 import { List, ListCell } from '@teerank/frontend/components/List';
-import { formatPlayTime } from '@teerank/frontend/utils/format';
+import { formatPlayTime, formatInteger } from '@teerank/frontend/utils/format';
+import { format } from 'path';
 
 export function PlayerList({
   players,
@@ -45,7 +46,7 @@ export function PlayerList({
     <List columns={columns}>
       {players.map((player) => (
         <>
-          <ListCell alignRight label={`${player.rank}`} />
+          <ListCell alignRight label={formatInteger(player.rank)} />
           <ListCell
             label={player.name}
             href={{
@@ -54,26 +55,23 @@ export function PlayerList({
           />
           <ListCell
             label={player.clan ?? ''}
-            href={player.clan === undefined ? undefined : {
-              pathname: `/clan/${encodeURIComponent(player.clan)}`,
-            }}
-          />
-          {!hideRating && <ListCell
-            alignRight
-            label={
-              player.rating === undefined
-                ? ''
-                : `${Intl.NumberFormat('en-US', {
-                    maximumFractionDigits: 0,
-                  }).format(player.rating)}`
-            }
-          />}
-          <ListCell
-            alignRight
-            label={
-              formatPlayTime(player.playTime)
+            href={
+              player.clan === undefined
+                ? undefined
+                : {
+                    pathname: `/clan/${encodeURIComponent(player.clan)}`,
+                  }
             }
           />
+          {!hideRating && (
+            <ListCell
+              alignRight
+              label={
+                player.rating === undefined ? '' : formatInteger(player.rating)
+              }
+            />
+          )}
+          <ListCell alignRight label={formatPlayTime(player.playTime)} />
         </>
       ))}
     </List>

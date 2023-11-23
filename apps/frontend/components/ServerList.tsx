@@ -1,4 +1,5 @@
 import { List, ListCell } from '@teerank/frontend/components/List';
+import { formatInteger } from '../utils/format';
 
 export function ServerList({
   servers,
@@ -41,7 +42,7 @@ export function ServerList({
     >
       {servers.map((server) => (
         <>
-          <ListCell alignRight label={`${server.rank}`} />
+          <ListCell alignRight label={formatInteger(server.rank)} />
           <ListCell
             label={server.name}
             href={{
@@ -68,7 +69,9 @@ export function ServerList({
           />
           <ListCell
             alignRight
-            label={`${server.numClients} / ${server.maxClients}`}
+            label={`${formatInteger(server.numClients)} / ${formatInteger(
+              server.maxClients
+            )}`}
           />
         </>
       ))}

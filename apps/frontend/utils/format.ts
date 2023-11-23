@@ -13,3 +13,9 @@ export function formatPlayTime(playTime: number) {
 
   return `${hoursFormatted}h${minutesFormatted}`;
 }
+
+export function formatInteger(number: number) {
+  return Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 0,
+  }).format(number);
+}

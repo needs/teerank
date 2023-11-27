@@ -18,6 +18,7 @@ export default async function Index({
     select: {
       name: true,
       playTime: true,
+      clanName: true,
     },
     orderBy: {
       playTime: 'desc',
@@ -35,7 +36,7 @@ export default async function Index({
       players={players.map((player, index) => ({
         rank: (page - 1) * 100 + index + 1,
         name: player.name,
-        clan: undefined,
+        clan: player.clanName ?? undefined,
         rating: undefined,
         playTime: player.playTime,
       }))}

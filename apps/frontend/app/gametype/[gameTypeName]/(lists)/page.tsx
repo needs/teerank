@@ -31,6 +31,11 @@ export default async function Index({
           rating: true,
           playTime: true,
           playerName: true,
+          player: {
+            select: {
+              clanName: true,
+            },
+          },
         },
         orderBy: [
           {
@@ -42,7 +47,7 @@ export default async function Index({
         ],
         take: 100,
         skip: (page - 1) * 100,
-      }
+      },
     },
     where: {
       name: gameTypeName,
@@ -60,7 +65,7 @@ export default async function Index({
       players={gameType.playerInfos.map((playerInfo, index) => ({
         rank: (page - 1) * 100 + index + 1,
         name: playerInfo.playerName,
-        clan: undefined,
+        clan: playerInfo.player.clanName ?? undefined,
         rating: playerInfo.rating ?? undefined,
         playTime: playerInfo.playTime,
       }))}

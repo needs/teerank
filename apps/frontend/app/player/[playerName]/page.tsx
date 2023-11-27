@@ -4,7 +4,9 @@ import { z } from 'zod';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { formatPlayTime } from '@teerank/frontend/utils/format';
+import { formatInteger, formatPlayTime } from '@teerank/frontend/utils/format';
+import { List, ListCell } from '@teerank/frontend/components/List';
+import { searchParamPageSchema } from '@teerank/frontend/utils/page';
 
 export const metadata = {
   title: 'Player',
@@ -13,12 +15,44 @@ export const metadata = {
 
 export default async function Index({
   params,
+  searchParams,
 }: {
   params: z.infer<typeof paramsSchema>;
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const parsedParams = paramsSchema.parse(params);
+  const { page } = searchParamPageSchema.parse(searchParams);
 
   const player = await prisma.player.findUnique({
+    select: {
+      name: true,
+      clanName: true,
+      playTime: true,
+
+      _count: {
+        select: {
+          playerInfos: {
+            where: {
+              gameType: {
+                isNot: null,
+              },
+            },
+          },
+        },
+      },
+
+      playerInfos: {
+        select: {
+          gameTypeName: true,
+          playTime: true,
+        },
+        where: {
+          gameType: {
+            isNot: null,
+          },
+        },
+      },
+    },
     where: {
       name: parsedParams.playerName,
     },
@@ -54,6 +88,41 @@ export default async function Index({
           <p>7 hours ago</p>
         </aside>
       </header>
+      <List
+        columns={[
+          {
+            title: '',
+            expand: false,
+          },
+          {
+            title: 'Game type',
+            expand: true,
+          },
+          {
+            title: 'Play Time',
+            expand: false,
+          },
+        ]}
+        pageCount={1}
+      >
+        {player.playerInfos.map((playerInfo, index) => (
+          <>
+            <ListCell
+              alignRight
+              label={formatInteger((page - 1) * 100 + index + 1)}
+            />
+            <ListCell
+              label={playerInfo.gameTypeName ?? ''}
+              href={{
+                pathname: `/gametype/${encodeURIComponent(
+                  playerInfo.gameTypeName ?? ''
+                )}`,
+              }}
+            />
+            <ListCell alignRight label={formatPlayTime(playerInfo.playTime)} />
+          </>
+        ))}
+      </List>
     </main>
   );
 }

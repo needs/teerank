@@ -3,6 +3,7 @@ import { formatInteger } from '../utils/format';
 
 export function ServerList({
   servers,
+  serverCount,
 }: {
   servers: {
     rank: number;
@@ -14,9 +15,11 @@ export function ServerList({
     numClients: number;
     maxClients: number;
   }[];
+  serverCount: number;
 }) {
   return (
     <List
+    pageCount={Math.ceil(serverCount / 100)}
       columns={[
         {
           title: '',

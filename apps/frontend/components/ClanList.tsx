@@ -3,6 +3,7 @@ import { formatInteger, formatPlayTime } from '@teerank/frontend/utils/format';
 
 export function ClanList({
   clans,
+  clanCount,
 }: {
   clans: {
     rank: number;
@@ -10,6 +11,7 @@ export function ClanList({
     playerCount: number;
     playTime: number;
   }[];
+  clanCount: number;
 }) {
   const columns = [
     {
@@ -31,7 +33,7 @@ export function ClanList({
   ];
 
   return (
-    <List columns={columns}>
+    <List columns={columns} pageCount={Math.ceil(clanCount / 100)}>
       {clans.map((clan) => (
         <>
           <ListCell alignRight label={formatInteger(clan.rank)} />

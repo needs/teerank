@@ -18,56 +18,61 @@ export default async function Index({
   const { page } = searchParamsSchema.parse(searchParams);
   const { gameTypeName, mapName } = paramsSchema.parse(params);
 
-  const clansInfos = await prisma.clanInfo.findMany({
+  const map = await prisma.map.findUnique({
     select: {
-      clan: {
+      _count: {
         select: {
-          _count: {
+          clanInfos: true,
+        }
+      },
+      clanInfos: {
+        select: {
+          clan: {
             select: {
-              players: true,
+              _count: {
+                select: {
+                  players: true,
+                },
+              },
             },
           },
+          clanName: true,
+          playTime: true,
         },
-      },
-      playTime: true,
-    },
-    where: {
-      map: {
-        name: { equals: mapName },
-        gameTypeName: { equals: gameTypeName }
-      },
-    },
-    orderBy: [
-      {
-        playTime: 'desc',
-      },
-      {
-        clan: {
-          players: {
-            _count: 'desc',
+        orderBy: [
+          {
+            playTime: 'desc',
           },
-        },
+          {
+            clan: {
+              players: {
+                _count: 'desc',
+              },
+            },
+          },
+        ],
+        take: 100,
+        skip: (page - 1) * 100,
       },
-    ],
-    take: 100,
-    skip: (page - 1) * 100,
-  });
-
-  const gameType = await prisma.gameType.findUnique({
+    },
     where: {
-      name: gameTypeName,
+      name_gameTypeName: {
+        name: mapName,
+        gameTypeName: gameTypeName,
+      },
     },
   });
 
-  if (gameType === null) {
+  if (map === null) {
     return notFound();
   }
 
   return (
     <ClanList
-      clans={clansInfos.map((clanInfo, index) => ({
+      clanCount={map._count.clanInfos}
+      clans={map.clanInfos.map((clanInfo, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: clanInfo.clan.name,
+        name: clanInfo.clanName,
         playerCount: clanInfo.clan._count.players,
         playTime: clanInfo.playTime,
       }))}

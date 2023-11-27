@@ -25,7 +25,7 @@ export default async function Index({
     orderBy: {
       lastSnapshot: {
         numClients: 'desc',
-      }
+      },
     },
     include: {
       lastSnapshot: {
@@ -38,6 +38,8 @@ export default async function Index({
     take: 100,
     skip: (page - 1) * 100,
   });
+
+  const gameServerCount = await prisma.gameServer.count();
 
   const servers = gameServers.reduce<
     ComponentProps<typeof ServerList>['servers']
@@ -58,5 +60,5 @@ export default async function Index({
     return arr;
   }, []);
 
-  return <ServerList servers={servers} />;
+  return <ServerList serverCount={gameServerCount} servers={servers} />;
 }

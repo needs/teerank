@@ -20,6 +20,16 @@ export default async function Index({
   const { page } = searchParamsSchema.parse(searchParams);
   const { gameTypeName } = paramsSchema.parse(params);
 
+  const gameType = await prisma.gameType.findUnique({
+    where: {
+      name: gameTypeName,
+    },
+  });
+
+  if (gameType === null) {
+    return notFound();
+  }
+
   const maps = await prisma.map.findMany({
     select: {
       name: true,
@@ -54,15 +64,13 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
-  const gameType = await prisma.gameType.findUnique({
+  const mapCount = await prisma.map.count({
     where: {
-      name: gameTypeName,
+      gameType: {
+        name: { equals: gameTypeName },
+      },
     },
   });
-
-  if (gameType === null) {
-    return notFound();
-  }
 
   return (
     <div className="py-8">
@@ -89,6 +97,7 @@ export default async function Index({
             expand: false,
           },
         ]}
+        pageCount={Math.ceil(mapCount / 100)}
       >
         {maps.map((map, index) => (
           <>

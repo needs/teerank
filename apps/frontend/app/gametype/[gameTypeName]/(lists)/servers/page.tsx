@@ -1,7 +1,6 @@
 import prisma from '@teerank/frontend/utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../../schema';
 import { ServerList } from '@teerank/frontend/components/ServerList';
-import { ComponentProps } from 'react';
 
 export const metadata = {
   title: 'Servers',
@@ -18,60 +17,72 @@ export default async function Index({
   const { page } = searchParamsSchema.parse(searchParams);
   const { gameTypeName } = paramsSchema.parse(params);
 
-  const gameServers = await prisma.gameServer.findMany({
-    where: {
-      AND: [
-        { lastSnapshot: { isNot: null } },
-        {
-          lastSnapshot: {
-            map: {
-              gameTypeName: { equals: gameTypeName },
-            },
-          },
+  const snapshots = await prisma.gameServerSnapshot.findMany({
+    select: {
+      name: true,
+      numClients: true,
+      maxClients: true,
+      map: {
+        select: {
+          name: true,
+          gameTypeName: true,
         },
-      ],
+      },
+      gameServerLast: {
+        select: {
+          ip: true,
+          port: true,
+        },
+      },
+    },
+    where: {
+      gameServerLast: {
+        isNot: null,
+      },
+      map: {
+        gameTypeName: {
+          equals: gameTypeName,
+        },
+      },
     },
     orderBy: [
       {
-        lastSnapshot: {
-          numClients: 'desc',
-        },
+        numClients: 'desc',
       },
       {
-        lastSnapshot: {
-          maxClients: 'desc',
-        },
+        maxClients: 'desc',
       },
     ],
-    include: {
-      lastSnapshot: {
-        include: {
-          map: true,
-        },
-      },
-    },
     take: 100,
     skip: (page - 1) * 100,
   });
 
-  const servers = gameServers.reduce<
-    ComponentProps<typeof ServerList>['servers']
-  >((arr, gameServer) => {
-    if (gameServer.lastSnapshot !== null) {
-      arr.push({
-        rank: (page - 1) * 100 + arr.length + 1,
-        name: gameServer.lastSnapshot!.name,
-        gameTypeName: gameServer.lastSnapshot!.map.gameTypeName,
-        mapName: gameServer.lastSnapshot!.map.name ?? '',
-        numClients: gameServer.lastSnapshot!.numClients,
-        maxClients: gameServer.lastSnapshot!.maxClients,
-        ip: gameServer.ip,
-        port: gameServer.port,
-      });
-    }
+  const serverCount = await prisma.gameServerSnapshot.count({
+    where: {
+      gameServerLast: {
+        isNot: null,
+      },
+      map: {
+        gameTypeName: {
+          equals: gameTypeName,
+        },
+      },
+    },
+  });
 
-    return arr;
-  }, []);
-
-  return <ServerList servers={servers} />;
+  return (
+    <ServerList
+      serverCount={serverCount}
+      servers={snapshots.map((snapshot, index) => ({
+        rank: (page - 1) * 100 + index + 1,
+        name: snapshot.name,
+        gameTypeName: snapshot.map.gameTypeName,
+        mapName: snapshot.map.name ?? '',
+        numClients: snapshot.numClients,
+        maxClients: snapshot.maxClients,
+        ip: snapshot.gameServerLast!.ip,
+        port: snapshot.gameServerLast!.port,
+      }))}
+    />
+  );
 }

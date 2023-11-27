@@ -18,15 +18,26 @@ export default async function Index({
   const { clanName } = paramsSchema.parse(params);
 
   const clan = await prisma.clan.findUnique({
-    where: {
-      name: clanName,
-    },
-    include: {
+    select: {
+      name: true,
+      playTime: true,
+      _count: {
+        select: {
+          players: true,
+        },
+      },
       players: {
+        select: {
+          name: true,
+          playTime: true,
+        },
         orderBy: {
           playTime: 'desc',
         },
       },
+    },
+    where: {
+      name: clanName,
     },
   });
 
@@ -45,16 +56,25 @@ export default async function Index({
           <p>
             <b>Total Playtime</b>: {formatPlayTime(clan.playTime)}
           </p>
-          <p><i>Player Playtime</i>: {formatPlayTime(clan.players.reduce((acc, player) => acc + player.playTime, 0))}</p>
+          <p>
+            <i>Player Playtime</i>:{' '}
+            {formatPlayTime(
+              clan.players.reduce((acc, player) => acc + player.playTime, 0)
+            )}
+          </p>
         </aside>
       </header>
 
-      <PlayerList hideRating={true} players={clan.players.map((player, index) => ({
-        rank: index + 1,
-        name: player.name,
-        clan: clan.name,
-        playTime: player.playTime,
-      }))} />
+      <PlayerList
+        playerCount={clan._count.players}
+        hideRating={true}
+        players={clan.players.map((player, index) => ({
+          rank: index + 1,
+          name: player.name,
+          clan: clanName,
+          playTime: player.playTime,
+        }))}
+      />
     </main>
   );
 }

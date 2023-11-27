@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { notFound } from 'next/navigation';
 import { isIP, isIPv6 } from 'net';
 import Link from 'next/link';
+import { searchParamPageSchema } from '@teerank/frontend/utils/page';
 
 export const metadata = {
   title: 'Server',
@@ -22,10 +23,13 @@ function ipAndPort(ip: string, port: number) {
 
 export default async function Index({
   params,
+  searchParams,
 }: {
   params: z.infer<typeof paramsSchema>;
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const parsedParams = paramsSchema.parse(params);
+  const { page } = searchParamPageSchema.parse(searchParams);
 
   const gameServer = await prisma.gameServer.findUnique({
     where: {
@@ -40,6 +44,13 @@ export default async function Index({
           clients: {
             orderBy: {
               score: 'desc',
+            },
+            skip: (page - 1) * 100,
+            take: 100,
+          },
+          _count: {
+            select: {
+              clients: true,
             },
           },
           map: true,
@@ -97,6 +108,7 @@ export default async function Index({
       </header>
 
       <List
+        pageCount={Math.ceil(gameServer.lastSnapshot._count.clients / 100)}
         columns={[
           {
             title: '',
@@ -127,9 +139,13 @@ export default async function Index({
             />
             <ListCell
               label={client.clanName ?? ''}
-              href={client.clanName === null ? undefined : {
-                pathname: `/clan/${encodeURIComponent(client.clanName)}`,
-              }}
+              href={
+                client.clanName === null
+                  ? undefined
+                  : {
+                      pathname: `/clan/${encodeURIComponent(client.clanName)}`,
+                    }
+              }
             />
             <ListCell alignRight label={client.score.toString()} />
           </>

@@ -38,8 +38,11 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
+  const clanCount = await prisma.clan.count();
+
   return (
     <ClanList
+      clanCount={clanCount}
       clans={clans.map((clan, index) => ({
         rank: (page - 1) * 100 + index + 1,
         name: clan.name,

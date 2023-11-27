@@ -1,4 +1,3 @@
-import { List, ListCell } from '@teerank/frontend/components/List';
 import prisma from '@teerank/frontend/utils/prisma';
 import { searchParamSchema } from './schema';
 import { PlayerList } from '@teerank/frontend/components/PlayerList';
@@ -16,6 +15,10 @@ export default async function Index({
   const { page } = searchParamSchema.parse(searchParams);
 
   const players = await prisma.player.findMany({
+    select: {
+      name: true,
+      playTime: true,
+    },
     orderBy: {
       playTime: 'desc',
     },
@@ -23,8 +26,11 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
+  const playerCount = await prisma.player.count();
+
   return (
     <PlayerList
+      playerCount={playerCount}
       hideRating={true}
       players={players.map((player, index) => ({
         rank: (page - 1) * 100 + index + 1,

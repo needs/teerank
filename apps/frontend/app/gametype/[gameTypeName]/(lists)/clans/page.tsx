@@ -19,43 +19,45 @@ export default async function Index({
   const { page } = searchParamsSchema.parse(searchParams);
   const { gameTypeName } = paramsSchema.parse(params);
 
-  const clansInfos = await prisma.clanInfo.findMany({
-    select: {
-      clan: {
-        include: {
-          _count: {
-            select: {
-              players: true,
-            },
-          },
-        },
-      },
-      playTime: true,
-    },
-    where: {
-      gameType: {
-        name: { equals: gameTypeName },
-      },
-    },
-    orderBy: [
-      {
-        playTime: 'desc',
-      },
-      {
-        clan: {
-          players: {
-            _count: 'desc',
-          },
-        },
-      },
-    ],
-    take: 100,
-    skip: (page - 1) * 100,
-  });
-
   const gameType = await prisma.gameType.findUnique({
     where: {
       name: gameTypeName,
+    },
+    select: {
+      _count: {
+        select: {
+          clanInfos: true,
+        },
+      },
+      clanInfos: {
+        select: {
+          clan: {
+            select: {
+              _count: {
+                select: {
+                  players: true,
+                },
+              },
+            },
+          },
+          clanName: true,
+          playTime: true,
+        },
+        orderBy: [
+          {
+            playTime: 'desc',
+          },
+          {
+            clan: {
+              players: {
+                _count: 'desc',
+              },
+            },
+          },
+        ],
+        take: 100,
+        skip: (page - 1) * 100,
+      },
     },
   });
 
@@ -65,9 +67,10 @@ export default async function Index({
 
   return (
     <ClanList
-      clans={clansInfos.map((clanInfo, index) => ({
+      clanCount={gameType._count.clanInfos}
+      clans={gameType.clanInfos.map((clanInfo, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: clanInfo.clan.name,
+        name: clanInfo.clanName,
         playerCount: clanInfo.clan._count.players,
         playTime: clanInfo.playTime,
       }))}

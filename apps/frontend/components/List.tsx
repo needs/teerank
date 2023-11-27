@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
 import { Url, UrlObject } from 'url';
+import { Pagination } from './Pagination';
 
 type Column = {
   title: string;
@@ -10,9 +11,11 @@ type Column = {
 export function List({
   children,
   columns,
+  pageCount,
 }: {
   children: React.ReactNode;
   columns: Column[];
+  pageCount: number;
 }) {
   const gridTemplateColumns = columns
     .map((column) => (column.expand ? '1fr' : 'fit-content(15%)'))
@@ -41,6 +44,15 @@ export function List({
       />
 
       {children}
+
+      <footer
+        className="pt-2"
+        style={{
+          gridColumn,
+        }}
+      >
+        <Pagination pageCount={pageCount} />
+      </footer>
     </main>
   );
 }

@@ -18,28 +18,32 @@ export default async function Index({
   const { page } = searchParamsSchema.parse(searchParams);
   const { gameTypeName } = paramsSchema.parse(params);
 
-  const playerInfos = await prisma.playerInfo.findMany({
-    where: {
-      gameType: {
-        name: { equals: gameTypeName },
-      },
-    },
-    orderBy: [
-      {
-        rating: 'desc',
-      },
-      {
-        playTime: 'desc',
-      },
-    ],
-    include: {
-      player: true,
-    },
-    take: 100,
-    skip: (page - 1) * 100,
-  });
-
   const gameType = await prisma.gameType.findUnique({
+    select: {
+      rankMethod: true,
+      _count: {
+        select: {
+          playerInfos: true,
+        },
+      },
+      playerInfos: {
+        select: {
+          rating: true,
+          playTime: true,
+          playerName: true,
+        },
+        orderBy: [
+          {
+            rating: 'desc',
+          },
+          {
+            playTime: 'desc',
+          },
+        ],
+        take: 100,
+        skip: (page - 1) * 100,
+      }
+    },
     where: {
       name: gameTypeName,
     },
@@ -51,10 +55,11 @@ export default async function Index({
 
   return (
     <PlayerList
+      playerCount={gameType._count.playerInfos}
       hideRating={gameType.rankMethod === null}
-      players={playerInfos.map((playerInfo, index) => ({
+      players={gameType.playerInfos.map((playerInfo, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: playerInfo.player.name,
+        name: playerInfo.playerName,
         clan: undefined,
         rating: playerInfo.rating ?? undefined,
         playTime: playerInfo.playTime,

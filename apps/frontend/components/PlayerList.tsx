@@ -1,10 +1,10 @@
 import { List, ListCell } from '@teerank/frontend/components/List';
 import { formatPlayTime, formatInteger } from '@teerank/frontend/utils/format';
-import { format } from 'path';
 
 export function PlayerList({
   players,
   hideRating,
+  playerCount,
 }: {
   players: {
     rank: number;
@@ -14,6 +14,7 @@ export function PlayerList({
     playTime: number;
   }[];
   hideRating?: boolean;
+  playerCount: number;
 }) {
   const columns = [
     {
@@ -43,7 +44,7 @@ export function PlayerList({
   }
 
   return (
-    <List columns={columns}>
+    <List columns={columns} pageCount={Math.ceil(playerCount / 100)}>
       {players.map((player) => (
         <>
           <ListCell alignRight label={formatInteger(player.rank)} />

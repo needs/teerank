@@ -31,7 +31,6 @@ async function main() {
 
   await addDefaultMasterServers();
   await updateGameTypesRankMethod();
-  await resetPlayTime();
 
   let isRunning = false;
 

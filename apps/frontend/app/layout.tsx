@@ -3,6 +3,8 @@ import './global.css';
 import Link from 'next/link';
 import { HeaderTabs } from '../components/HeaderTabs';
 import prisma from '../utils/prisma';
+import { useRouter } from 'next/navigation';
+import { SearchForm } from '../components/SearchForm';
 
 export const metadata = {
   title: 'Welcome to Teerank',
@@ -36,8 +38,11 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[url('/background.png')] bg-repeat-x bg-left-top flex flex-col items-center m-0 bg-[#9EB5D6] text-[#666]">
-        <header className="max-w-5xl w-full flex flex-row py-4">
-          <Image src="/logo.png" alt="Logo" width={483} height={98} />
+        <header className="max-w-5xl w-full flex flex-row py-4 justify-between">
+          <Link href="/">
+            <Image src="/logo.png" alt="Logo" width={483} height={98} />
+          </Link>
+          <SearchForm />
         </header>
 
         <main className="max-w-5xl w-full rounded-xl bg-[#e7e5be] shadow-sm">

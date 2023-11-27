@@ -11,7 +11,7 @@ export function ClanList({
     playerCount: number;
     playTime: number;
   }[];
-  clanCount: number;
+  clanCount?: number;
 }) {
   const columns = [
     {
@@ -33,7 +33,12 @@ export function ClanList({
   ];
 
   return (
-    <List columns={columns} pageCount={Math.ceil(clanCount / 100)}>
+    <List
+      columns={columns}
+      pageCount={
+        clanCount === undefined ? undefined : Math.ceil(clanCount / 100)
+      }
+    >
       {clans.map((clan) => (
         <>
           <ListCell alignRight label={formatInteger(clan.rank)} />

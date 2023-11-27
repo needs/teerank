@@ -14,7 +14,7 @@ export function PlayerList({
     playTime: number;
   }[];
   hideRating?: boolean;
-  playerCount: number;
+  playerCount?: number;
 }) {
   const columns = [
     {
@@ -44,7 +44,12 @@ export function PlayerList({
   }
 
   return (
-    <List columns={columns} pageCount={Math.ceil(playerCount / 100)}>
+    <List
+      columns={columns}
+      pageCount={
+        playerCount === undefined ? undefined : Math.ceil(playerCount / 100)
+      }
+    >
       {players.map((player) => (
         <>
           <ListCell alignRight label={formatInteger(player.rank)} />

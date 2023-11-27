@@ -142,6 +142,7 @@ export function HeaderTabs({
   defaultGameTypes: string[];
 }) {
   const params = useParams();
+  const pathname = usePathname();
 
   const { ip, port, gameTypeName, playerName, clanName } = paramsSchemaGameType
     .merge(paramsSchemaServer)
@@ -186,6 +187,14 @@ export function HeaderTabs({
         <HeaderTabPage
           label="Clan"
           pathname={`/clan/${encodeURIComponent(clanName)}`}
+        />
+      )}
+
+      {['/search', '/search/clans', '/search/servers'].includes(pathname) && (
+        <HeaderTabPage
+          label="Search"
+          pathname="/search"
+          extraPathnames={['/search/clans', '/search/servers']}
         />
       )}
 

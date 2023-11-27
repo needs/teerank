@@ -15,11 +15,13 @@ export function ServerList({
     numClients: number;
     maxClients: number;
   }[];
-  serverCount: number;
+  serverCount?: number;
 }) {
   return (
     <List
-    pageCount={Math.ceil(serverCount / 100)}
+      pageCount={
+        serverCount === undefined ? undefined : Math.ceil(serverCount / 100)
+      }
       columns={[
         {
           title: '',

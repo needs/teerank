@@ -15,7 +15,7 @@ export function List({
 }: {
   children: React.ReactNode;
   columns: Column[];
-  pageCount: number;
+  pageCount?: number;
 }) {
   const gridTemplateColumns = columns
     .map((column) => (column.expand ? '1fr' : 'fit-content(15%)'))
@@ -51,7 +51,7 @@ export function List({
           gridColumn,
         }}
       >
-        <Pagination pageCount={pageCount} />
+        {pageCount !== undefined && <Pagination pageCount={pageCount} />}
       </footer>
     </main>
   );

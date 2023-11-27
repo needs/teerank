@@ -6,10 +6,10 @@ export default async function Index({
 }: {
   children: React.ReactNode;
 }) {
-  const counts = await Promise.all([
-    await prisma.player.count(),
-    await prisma.clan.count(),
-    await prisma.gameServer.count(),
+  const counts = await prisma.$transaction([
+    prisma.player.count(),
+    prisma.clan.count(),
+    prisma.gameServer.count(),
   ]);
 
   return (

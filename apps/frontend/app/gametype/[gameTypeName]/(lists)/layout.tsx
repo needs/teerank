@@ -11,40 +11,45 @@ export default async function Index({
 }) {
   const { gameTypeName } = paramsSchema.parse(params);
 
-  const playerCount = await prisma.playerInfo.count({
-    where: {
-      gameType: {
-        name: { equals: gameTypeName },
+  const counts = await prisma.$transaction([
+    prisma.playerInfo.count({
+      where: {
+        gameType: {
+          name: { equals: gameTypeName },
+        },
       },
-    },
-  });
-
-  const clanCount = await prisma.clanInfo.count({
-    where: {
-      gameType: {
-        name: { equals: gameTypeName },
+    }),
+    prisma.clanInfo.count({
+      where: {
+        gameType: {
+          name: { equals: gameTypeName },
+        },
       },
-    },
-  });
-
-  const serverCount = await prisma.gameServer.count({
-    where: {
-      AND: [
-        { lastSnapshot: { isNot: null } },
-        {
-          lastSnapshot: {
-            map: {
-              gameTypeName: { equals: gameTypeName },
+    }),
+    prisma.gameServer.count({
+      where: {
+        AND: [
+          { lastSnapshot: { isNot: null } },
+          {
+            lastSnapshot: {
+              map: {
+                gameTypeName: { equals: gameTypeName },
+              },
             },
           },
-        },
-      ],
-    },
-  });
+        ],
+      },
+    }),
+  ]);
 
   return (
     <div className="flex flex-col gap-4 py-8">
-      <LayoutTabs gameTypeName={gameTypeName} playerCount={playerCount} clanCount={clanCount} serverCount={serverCount} />
+      <LayoutTabs
+        gameTypeName={gameTypeName}
+        playerCount={counts[0]}
+        clanCount={counts[1]}
+        serverCount={counts[2]}
+      />
 
       {children}
     </div>

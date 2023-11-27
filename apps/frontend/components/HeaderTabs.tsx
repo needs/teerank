@@ -136,9 +136,11 @@ function HeaderTabPage({
   return <HeaderTab label={label} url={{ pathname }} isActive={isActive} />;
 }
 
-export function HeaderTabs() {
-  const defaultGameTypes = ['CTF', 'DM'];
-
+export function HeaderTabs({
+  defaultGameTypes,
+}: {
+  defaultGameTypes: string[];
+}) {
   const params = useParams();
 
   const { ip, port, gameTypeName, playerName, clanName } = paramsSchemaGameType

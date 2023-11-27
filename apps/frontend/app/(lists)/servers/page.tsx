@@ -39,7 +39,13 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
-  const gameServerCount = await prisma.gameServer.count();
+  const gameServerCount = await prisma.gameServer.count({
+    where: {
+      lastSnapshot: {
+        isNot: null,
+      },
+    },
+  });
 
   const servers = gameServers.reduce<
     ComponentProps<typeof ServerList>['servers']

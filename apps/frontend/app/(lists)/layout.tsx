@@ -9,7 +9,13 @@ export default async function Index({
   const counts = await prisma.$transaction([
     prisma.player.count(),
     prisma.clan.count(),
-    prisma.gameServer.count(),
+    prisma.gameServer.count({
+      where: {
+        lastSnapshot: {
+          isNot: null,
+        },
+      },
+    }),
   ]);
 
   return (

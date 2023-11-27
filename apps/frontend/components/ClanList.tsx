@@ -22,7 +22,7 @@ export function ClanList({
     },
     {
       title: 'Players',
-      expand: true,
+      expand: false,
     },
     {
       title: 'Play Time',

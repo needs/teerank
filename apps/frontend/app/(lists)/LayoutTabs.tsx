@@ -1,6 +1,6 @@
 'use client';
 
-import { Tab, Tabs } from '@teerank/frontend/components/Tabs';
+import { Tab, Tabs } from '../../components/Tabs';
 import { usePathname } from 'next/navigation';
 
 export function LayoutTabs({

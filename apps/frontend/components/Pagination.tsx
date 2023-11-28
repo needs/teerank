@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useSearchParamsObject } from '../utils/hooks';
 import { searchParamPageSchema } from '../utils/page';
 import { UrlObject } from 'url';

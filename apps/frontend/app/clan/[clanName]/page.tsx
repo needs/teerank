@@ -1,9 +1,9 @@
-import prisma from '@teerank/frontend/utils/prisma';
 import { paramsSchema } from './schema';
 import { z } from 'zod';
 import { notFound } from 'next/navigation';
-import { formatPlayTime } from '@teerank/frontend/utils/format';
-import { PlayerList } from '@teerank/frontend/components/PlayerList';
+import prisma from '../../../utils/prisma';
+import { PlayerList } from '../../../components/PlayerList';
+import { formatPlayTime } from '../../../utils/format';
 
 export const metadata = {
   title: 'Clan',

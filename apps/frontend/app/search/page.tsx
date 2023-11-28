@@ -1,9 +1,9 @@
-import prisma from '@teerank/frontend/utils/prisma';
 import { searchParamSchema } from './schema';
-import { PlayerList } from '@teerank/frontend/components/PlayerList';
 import { LayoutTabs } from './LayoutTabs';
 import uniqBy from 'lodash.uniqby';
 import { Error } from './SearchError';
+import { PlayerList } from '../../components/PlayerList';
+import prisma from '../../utils/prisma';
 
 export const metadata = {
   title: 'Search - Players',

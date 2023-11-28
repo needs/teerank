@@ -1,7 +1,8 @@
-import { List, ListCell } from '@teerank/frontend/components/List';
-import prisma from '@teerank/frontend/utils/prisma';
+import List from 'postcss/lib/list';
 import { searchParamSchema } from '../(lists)/schema';
-import { formatInteger } from '@teerank/frontend/utils/format';
+import { ListCell } from '../../components/List';
+import { formatInteger } from '../../utils/format';
+import prisma from '../../utils/prisma';
 
 export const metadata = {
   title: 'Gametypes',

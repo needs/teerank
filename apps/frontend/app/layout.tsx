@@ -3,7 +3,6 @@ import './global.css';
 import Link from 'next/link';
 import { HeaderTabs } from '../components/HeaderTabs';
 import prisma from '../utils/prisma';
-import { useRouter } from 'next/navigation';
 import { SearchForm } from '../components/SearchForm';
 
 export const metadata = {

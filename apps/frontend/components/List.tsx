@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
-import { Url, UrlObject } from 'url';
+import { UrlObject } from 'url';
 import { Pagination } from './Pagination';
 
 type Column = {

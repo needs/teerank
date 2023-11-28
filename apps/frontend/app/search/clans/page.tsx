@@ -1,9 +1,9 @@
-import prisma from '@teerank/frontend/utils/prisma';
 import { searchParamSchema } from '../schema';
 import { LayoutTabs } from '../LayoutTabs';
 import uniqBy from 'lodash.uniqby';
-import { ClanList } from '@teerank/frontend/components/ClanList';
 import { Error } from '../SearchError';
+import { ClanList } from '../../../components/ClanList';
+import prisma from '../../../utils/prisma';
 
 export const metadata = {
   title: 'Search - Clans',

@@ -1,7 +1,7 @@
-import prisma from '@teerank/frontend/utils/prisma';
+import { ClanList } from '../../../../../../components/ClanList';
+import prisma from '../../../../../../utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../schema';
 import { notFound } from 'next/navigation';
-import { ClanList } from '@teerank/frontend/components/ClanList';
 
 export const metadata = {
   title: 'Clans',

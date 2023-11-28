@@ -1,11 +1,12 @@
-import { List, ListCell } from '@teerank/frontend/components/List';
-import prisma from '@teerank/frontend/utils/prisma';
 import { paramsSchema } from './schema';
 import { z } from 'zod';
 import { notFound } from 'next/navigation';
-import { isIP, isIPv6 } from 'net';
+import { isIP } from 'net';
 import Link from 'next/link';
-import { searchParamPageSchema } from '@teerank/frontend/utils/page';
+import List from 'postcss/lib/list';
+import { ListCell } from '../../../../components/List';
+import { searchParamPageSchema } from '../../../../utils/page';
+import prisma from '../../../../utils/prisma';
 
 export const metadata = {
   title: 'Server',

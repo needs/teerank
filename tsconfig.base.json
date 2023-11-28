@@ -16,7 +16,6 @@
     "baseUrl": ".",
     "paths": {
       "@teerank/prisma": ["libs/prisma/src/index.ts"],
-      "@teerank/frontend/*": ["apps/frontend/*"]
     }
   },
   "exclude": ["node_modules", "tmp"]

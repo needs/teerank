@@ -1,6 +1,6 @@
-import { Tab, Tabs } from '@teerank/frontend/components/Tabs';
-import prisma from '@teerank/frontend/utils/prisma';
 import React from 'react';
+import { Tabs, Tab } from '../../components/Tabs';
+import prisma from '../../utils/prisma';
 
 export async function LayoutTabs({
   children,

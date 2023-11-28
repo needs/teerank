@@ -1,9 +1,9 @@
-import prisma from '@teerank/frontend/utils/prisma';
+import List from 'postcss/lib/list';
+import { ListCell } from '../../../../components/List';
+import { formatInteger } from '../../../../utils/format';
+import prisma from '../../../../utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../schema';
-import { PlayerList } from '@teerank/frontend/components/PlayerList';
 import { notFound } from 'next/navigation';
-import { List, ListCell } from '@teerank/frontend/components/List';
-import { formatInteger } from '@teerank/frontend/utils/format';
 
 export const metadata = {
   title: 'Maps',

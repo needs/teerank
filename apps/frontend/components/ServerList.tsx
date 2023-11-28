@@ -1,5 +1,5 @@
-import { List, ListCell } from '@teerank/frontend/components/List';
 import { formatInteger } from '../utils/format';
+import { List, ListCell } from './List';
 
 export function ServerList({
   servers,

@@ -1,5 +1,5 @@
-import { List, ListCell } from '@teerank/frontend/components/List';
-import { formatInteger, formatPlayTime } from '@teerank/frontend/utils/format';
+import { formatInteger, formatPlayTime } from "../utils/format";
+import { List, ListCell } from "./List";
 
 export function ClanList({
   clans,

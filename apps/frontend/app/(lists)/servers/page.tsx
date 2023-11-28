@@ -1,8 +1,7 @@
-import { List, ListCell } from '@teerank/frontend/components/List';
-import prisma from '@teerank/frontend/utils/prisma';
+import { ServerList } from '../../../components/ServerList';
+import prisma from '../../../utils/prisma';
 import { searchParamSchema } from '../schema';
 import { ComponentProps } from 'react';
-import { ServerList } from '@teerank/frontend/components/ServerList';
 
 export const metadata = {
   title: 'Servers',

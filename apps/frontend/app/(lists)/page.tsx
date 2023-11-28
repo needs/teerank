@@ -1,6 +1,6 @@
-import prisma from '@teerank/frontend/utils/prisma';
+import { PlayerList } from '../../components/PlayerList';
+import prisma from '../../utils/prisma';
 import { searchParamSchema } from './schema';
-import { PlayerList } from '@teerank/frontend/components/PlayerList';
 
 export const metadata = {
   title: 'Players',

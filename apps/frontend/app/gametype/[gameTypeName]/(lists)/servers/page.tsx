@@ -1,6 +1,6 @@
-import prisma from '@teerank/frontend/utils/prisma';
+import { ServerList } from '../../../../../components/ServerList';
+import prisma from '../../../../../utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../../schema';
-import { ServerList } from '@teerank/frontend/components/ServerList';
 
 export const metadata = {
   title: 'Servers',

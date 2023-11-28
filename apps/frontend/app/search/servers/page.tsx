@@ -1,9 +1,9 @@
-import prisma from '@teerank/frontend/utils/prisma';
 import { searchParamSchema } from '../schema';
 import { LayoutTabs } from '../LayoutTabs';
 import uniqBy from 'lodash.uniqby';
-import { ServerList } from '@teerank/frontend/components/ServerList';
 import { Error } from '../SearchError';
+import { ServerList } from '../../../components/ServerList';
+import prisma from '../../../utils/prisma';
 
 export const metadata = {
   title: 'Search - Servers',

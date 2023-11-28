@@ -1,5 +1,5 @@
-import prisma from '@teerank/frontend/utils/prisma';
-import { LayoutTabs } from '@teerank/frontend/app/gametype/[gameTypeName]/LayoutTabs';
+import prisma from '../../../../../utils/prisma';
+import { LayoutTabs } from '../../LayoutTabs';
 import { paramsSchema } from './schema';
 
 export default async function Index({

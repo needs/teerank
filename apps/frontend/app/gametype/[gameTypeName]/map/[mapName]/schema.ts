@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paramsSchema as gameTypeNameParamsSchema, searchParamsSchema as gameTypeNameSearchParamsSchema } from "@teerank/frontend/app/gametype/[gameTypeName]/schema";
+import { paramsSchema as gameTypeNameParamsSchema, searchParamsSchema as gameTypeNameSearchParamsSchema } from "../../../../gametype/[gameTypeName]/schema";
 
 export const paramsSchema = z.object({
   mapName: z.string().transform(decodeURIComponent),

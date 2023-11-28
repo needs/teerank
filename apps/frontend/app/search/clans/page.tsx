@@ -17,8 +17,8 @@ export default async function Index({
 }) {
   const { query } = searchParamSchema.parse(searchParams);
 
-  if (query.length < 3) {
-    return <Error message="Please enter at least 3 characters." />;
+  if (query.length < 2) {
+    return <Error message="Please enter at least 2 characters." />;
   }
 
   const matches = await prisma.$transaction([

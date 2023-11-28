@@ -42,4 +42,5 @@ Thumbs.db
 .next
 
 # Prod values
+.env
 .env.prod

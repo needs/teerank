@@ -26,6 +26,8 @@ jobs:
 
       - name: Build
         run: npx nx run-many -t build --parallel=3
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Test
         run: npx nx run-many -t test --parallel=3

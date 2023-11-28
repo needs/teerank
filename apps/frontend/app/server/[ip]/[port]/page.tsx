@@ -3,8 +3,7 @@ import { z } from 'zod';
 import { notFound } from 'next/navigation';
 import { isIP } from 'net';
 import Link from 'next/link';
-import List from 'postcss/lib/list';
-import { ListCell } from '../../../../components/List';
+import { List, ListCell } from '../../../../components/List';
 import { searchParamPageSchema } from '../../../../utils/page';
 import prisma from '../../../../utils/prisma';
 

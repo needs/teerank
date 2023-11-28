@@ -1,6 +1,5 @@
-import List from 'postcss/lib/list';
 import { searchParamSchema } from '../(lists)/schema';
-import { ListCell } from '../../components/List';
+import { List, ListCell } from '../../components/List';
 import { formatInteger } from '../../utils/format';
 import prisma from '../../utils/prisma';
 

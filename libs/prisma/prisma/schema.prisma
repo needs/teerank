@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider     = "mysql"
-  url          = env("DATABASE_URL")
-  relationMode = "prisma"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model MasterServer {
@@ -37,8 +36,6 @@ model GameServer {
   lastSnapshotId Int?                @unique
 
   @@unique([ip, port])
-  @@index([masterServerId])
-  @@index([lastSnapshotId])
 }
 
 model Player {
@@ -54,8 +51,6 @@ model Player {
   playerInfos PlayerInfo[]
 
   gameServerClients GameServerClient[]
-
-  @@index([clanName])
 }
 
 enum RankMethod {
@@ -84,7 +79,6 @@ model Map {
   clanInfos   ClanInfo[]
 
   @@unique([name, gameTypeName])
-  @@index([gameTypeName])
 }
 
 model PlayerInfo {
@@ -106,9 +100,6 @@ model PlayerInfo {
 
   @@unique([playerName, mapId])
   @@unique([playerName, gameTypeName])
-  @@index([mapId])
-  @@index([playerName])
-  @@index([gameTypeName])
 }
 
 model GameServerClient {
@@ -123,13 +114,9 @@ model GameServerClient {
   clan     Clan?   @relation(fields: [clanName], references: [name])
   clanName String?
 
-  score    Int
-  country  Int
-  inGame   Boolean
-
-  @@index([snapshotId])
-  @@index([playerName])
-  @@index([clanName])
+  score   Int
+  country Int
+  inGame  Boolean
 }
 
 model GameServerSnapshot {
@@ -155,9 +142,6 @@ model GameServerSnapshot {
 
   gameServerId Int
   gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id])
-
-  @@index([gameServerId])
-  @@index([mapId])
 }
 
 model ClanInfo {
@@ -178,9 +162,6 @@ model ClanInfo {
 
   @@unique([clanName, mapId])
   @@unique([clanName, gameTypeName])
-  @@index([mapId])
-  @@index([clanName])
-  @@index([gameTypeName])
 }
 
 model Clan {
@@ -194,6 +175,4 @@ model Clan {
 
   clanInfos ClanInfo[]
   clients   GameServerClient[]
-
-  @@index([name])
 }

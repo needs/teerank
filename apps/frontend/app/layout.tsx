@@ -22,6 +22,7 @@ export default async function RootLayout({
       _count: {
         select: {
           playerInfos: true,
+          map: true,
         },
       },
     },
@@ -31,6 +32,11 @@ export default async function RootLayout({
           _count: 'desc',
         },
       },
+      {
+        map: {
+          _count: 'desc',
+        },
+      }
     ],
     take: 2,
   });

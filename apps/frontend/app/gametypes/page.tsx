@@ -41,11 +41,18 @@ export default async function Index({
         },
       },
     },
-    orderBy: {
-      playerInfos: {
-        _count: 'desc',
+    orderBy: [
+      {
+        playerInfos: {
+          _count: 'desc',
+        },
       },
-    },
+      {
+        map: {
+          _count: 'desc',
+        },
+      },
+    ],
     take: 100,
     skip: (page - 1) * 100,
   });

@@ -17,7 +17,7 @@ if (process.env.NODE_ENV === 'production') {
       new ProfilingIntegration(),
       new Sentry.Integrations.Prisma({ client: prisma }),
       new Sentry.Integrations.Console(),
-      new Sentry.Integrations.Mysql(),
+      new Sentry.Integrations.Postgres(),
     ],
     // Performance Monitoring
     tracesSampleRate: 1.0,

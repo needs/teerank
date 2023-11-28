@@ -30,6 +30,11 @@ jobs:
       - name: Test
         run: npx nx run-many -t test --parallel=3
 
+      - name: Migrate database
+        run: npx nx run-many -t prisma-deploy --parallel=3
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy frontend
@@ -41,8 +46,3 @@ jobs:
         run: flyctl deploy --config apps/backend/fly.toml --dockerfile apps/backend/Dockerfile
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_BACKEND }}
-
-      - name: Migrate database
-        run: npx nx run-many -t prisma-deploy --parallel=3
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}

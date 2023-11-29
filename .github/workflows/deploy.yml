@@ -15,6 +15,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install miredo (IPv6)
+        run: |
+          sudo apt install -y miredo
+          sudo miredo
+          cat /etc/miredo.conf
+          sleep 1
+          ip addr
+          sleep 1
+          ip addr
+          sleep 1
+          ip addr
+
       - name: Install dependencies
         run: npm ci
 

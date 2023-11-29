@@ -26,6 +26,7 @@ export default async function Index({
       where: {
         name: {
           equals: query,
+          mode: 'insensitive',
         },
       },
       select: {
@@ -48,11 +49,13 @@ export default async function Index({
           {
             name: {
               startsWith: query,
+              mode: 'insensitive',
             },
           },
           {
             name: {
               endsWith: query,
+              mode: 'insensitive',
             },
           },
         ],
@@ -75,6 +78,7 @@ export default async function Index({
       where: {
         name: {
           contains: query,
+          mode: 'insensitive',
         },
       },
       select: {

@@ -16,6 +16,7 @@ export async function LayoutTabs({
       where: {
         name: {
           contains: query,
+          mode: 'insensitive',
         },
       },
     }),
@@ -23,6 +24,7 @@ export async function LayoutTabs({
       where: {
         name: {
           contains: query,
+          mode: 'insensitive',
         },
       },
     }),
@@ -31,6 +33,7 @@ export async function LayoutTabs({
         lastSnapshot: {
           name: {
             contains: query,
+            mode: 'insensitive',
           },
         },
       },

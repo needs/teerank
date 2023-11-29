@@ -23,6 +23,8 @@ jobs:
 
       - name: Prisma Generate
         run: npx nx run-many -t prisma-generate --parallel=3
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Build
         run: npx nx run-many -t build --parallel=3

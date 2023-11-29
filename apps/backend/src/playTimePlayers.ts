@@ -71,13 +71,13 @@ export async function playTimePlayers() {
 
         if (client.clanName !== null) {
           const clanMapKey = `${snapshotStart.mapId}:${toBase64(client.clanName)}`;
-          clanPlayTimeMap.set(clanMapKey, (playerPlayTimeMap.get(clanMapKey) ?? 0) + deltaPlayTime);
+          clanPlayTimeMap.set(clanMapKey, (clanPlayTimeMap.get(clanMapKey) ?? 0) + deltaPlayTime);
 
           const clanGameTypeKey = `${toBase64(snapshotStart.map.gameTypeName)}:${toBase64(client.clanName)}`;
-          clanPlayTimeGameType.set(clanGameTypeKey, (playerPlayTimeGameType.get(clanGameTypeKey) ?? 0) + deltaPlayTime);
+          clanPlayTimeGameType.set(clanGameTypeKey, (clanPlayTimeGameType.get(clanGameTypeKey) ?? 0) + deltaPlayTime);
 
           const clanKey = toBase64(client.clanName);
-          clanPlayTime.set(clanKey, (playerPlayTime.get(clanKey) ?? 0) + deltaPlayTime);
+          clanPlayTime.set(clanKey, (clanPlayTime.get(clanKey) ?? 0) + deltaPlayTime);
         }
 
         const currentClan = playerClan.get(playerKey);

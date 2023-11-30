@@ -1,6 +1,8 @@
-import { prisma } from "./prisma";
+import { TaskRunStatus } from "@prisma/client";
+import { prisma } from "../prisma";
+import { Task } from "../task";
 
-export async function addDefaultMasterServers() {
+export const addDefaultMasterServers: Task = async () => {
   await prisma.masterServer.createMany({
     data: [
       {
@@ -22,4 +24,6 @@ export async function addDefaultMasterServers() {
     ],
     skipDuplicates: true,
   })
+
+  return TaskRunStatus.COMPLETED;
 }

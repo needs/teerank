@@ -1,8 +1,10 @@
-import { prisma } from "./prisma";
-import { destroySockets, getReceivedPackets, sendData, setupSockets } from "./socket";
-import { unpackGameServerInfoPackets } from "./packets/gameServerInfo";
-import { wait } from "./utils";
+import { prisma } from "../prisma";
+import { destroySockets, getReceivedPackets, sendData, setupSockets } from "../socket";
+import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
+import { wait } from "../utils";
 import { differenceInMinutes } from "date-fns";
+import { Task } from "../task";
+import { TaskRunStatus } from "@prisma/client";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -36,7 +38,7 @@ const PACKET_GETINFO64 = Buffer.from([
   0
 ]);
 
-export async function pollGameServers() {
+export const pollGameServers: Task = async () => {
   const sockets = setupSockets();
 
   const gameServers = await prisma.gameServer.findMany();
@@ -174,4 +176,6 @@ export async function pollGameServers() {
   }))
 
   destroySockets(sockets);
+
+  return TaskRunStatus.INCOMPLETE;
 }

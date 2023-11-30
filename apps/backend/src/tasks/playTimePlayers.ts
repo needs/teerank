@@ -1,8 +1,10 @@
-import { prisma } from "./prisma";
+import { prisma } from "../prisma";
 import { differenceInSeconds } from "date-fns";
-import { fromBase64, removeDuplicatedClients, toBase64 } from "./utils";
+import { fromBase64, removeDuplicatedClients, toBase64 } from "../utils";
+import { TaskRunStatus } from "@prisma/client";
+import { Task } from "../task";
 
-export async function playTimePlayers() {
+export const playTimePlayers: Task = async () => {
   // 1. Get all snapshots not yet play timed, grouped by servers
   // 2. When there is more than one snapshot:
   //    - Calculate the time between the snapshots
@@ -287,38 +289,6 @@ export async function playTimePlayers() {
 
   console.timeEnd(`Marking ${snapshotIds.length} snapshots as play timed`);
   console.timeEnd(`Play timed ${gameServers.length} game servers`);
-}
 
-export async function resetPlayTime() {
-  await prisma.playerInfo.deleteMany({});
-  await prisma.gameServerSnapshot.updateMany({
-    where: {
-      playTimedAt: {
-        not: null,
-      },
-    },
-    data: {
-      playTimedAt: null,
-    },
-  });
-  await prisma.gameServerSnapshot.updateMany({
-    where: {
-      rankedAt: {
-        not: null,
-      },
-    },
-    data: {
-      rankedAt: null,
-    },
-  });
-  await prisma.player.updateMany({
-    where: {
-      playTime: {
-        not: 0,
-      },
-    },
-    data: {
-      playTime: 0,
-    },
-  });
+  return TaskRunStatus.INCOMPLETE;
 }

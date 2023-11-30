@@ -1,8 +1,10 @@
-import { prisma } from "./prisma";
+import { prisma } from "../prisma";
 import { lookup } from "dns/promises";
-import { unpackMasterPackets } from "./packets/masterServerInfo";
-import { destroySockets, getReceivedPackets, sendData, setupSockets } from "./socket";
-import { wait } from "./utils";
+import { unpackMasterPackets } from "../packets/masterServerInfo";
+import { destroySockets, getReceivedPackets, sendData, setupSockets } from "../socket";
+import { wait } from "../utils";
+import { Task } from "../task";
+import { TaskRunStatus } from "@prisma/client";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -24,7 +26,7 @@ const PACKET_GETLIST = Buffer.from([
   ...stringToCharCode('req2'),
 ]);
 
-export async function pollMasterServers() {
+export const pollMasterServers: Task = async () => {
   const sockets = setupSockets();
 
   const masterServers = await prisma.masterServer.findMany();
@@ -56,4 +58,6 @@ export async function pollMasterServers() {
   }
 
   destroySockets(sockets);
+
+  return TaskRunStatus.INCOMPLETE;
 }

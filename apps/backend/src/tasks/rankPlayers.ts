@@ -1,6 +1,6 @@
-import { Prisma } from "@prisma/client";
-import { prisma } from "./prisma";
-import { removeDuplicatedClients } from "./utils";
+import { Prisma, TaskRunStatus } from "@prisma/client";
+import { prisma } from "../prisma";
+import { removeDuplicatedClients } from "../utils";
 
 type GameServerSnapshotWithClients = Prisma.GameServerSnapshotGetPayload<{
   include: {
@@ -161,7 +161,7 @@ async function updateRatings(rankablePlayers: RankablePlayers) {
   }
 }
 
-export async function rankPlayers() {
+export const rankPlayers = async () => {
   // 1. Get all unranked and rankable snapshots grouped by map with their players
   // 2. When there is more than one snapshot, rank the players for each snapshot
   // 3. Mark all snapshots as ranked except the last one
@@ -229,4 +229,6 @@ export async function rankPlayers() {
       });
     }
   }
+
+  return TaskRunStatus.INCOMPLETE;
 }

@@ -176,3 +176,26 @@ model Clan {
   clanInfos ClanInfo[]
   clients   GameServerClient[]
 }
+
+model Task {
+  name        String    @id
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  runs TaskRun[]
+}
+
+enum TaskRunStatus {
+  INCOMPLETE
+  COMPLETED
+  FAILED
+}
+
+model TaskRun {
+  id         Int            @id @default(autoincrement())
+  task       Task           @relation(fields: [taskName], references: [name])
+  taskName   String
+  startedAt  DateTime       @default(now())
+  finishedAt DateTime?
+  status     TaskRunStatus?
+}

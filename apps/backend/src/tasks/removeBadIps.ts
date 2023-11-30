@@ -1,7 +1,9 @@
 import { isIP } from "net";
-import { prisma } from "./prisma";
+import { prisma } from "../prisma";
+import { Task } from "../task";
+import { TaskRunStatus } from "@prisma/client";
 
-export async function removeBadIps() {
+export const removeBadIps: Task = async () => {
   const gameServers = await prisma.gameServer.findMany();
 
   for (const gameServer of gameServers) {
@@ -15,4 +17,6 @@ export async function removeBadIps() {
       });
     }
   }
+
+  return TaskRunStatus.COMPLETED;
 }

@@ -1,13 +1,14 @@
-import { addDefaultMasterServers } from './addDefaultMasterServers';
-import { pollGameServers } from './pollGameServers';
-import { pollMasterServers } from './pollMasterServers';
-import { rankPlayers } from './rankPlayers';
-import { removeBadIps } from './removeBadIps';
-import { updateGameTypesRankMethod } from './updateGameTypesRankMethod';
+import { pollGameServers } from './tasks/pollGameServers';
+import { pollMasterServers } from './tasks/pollMasterServers';
+import { rankPlayers } from './tasks/rankPlayers';
 import { prisma } from "./prisma";
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
-import { playTimePlayers, resetPlayTime } from './playTimePlayers';
+import { playTimePlayers } from './tasks/playTimePlayers';
+import { runTasks } from './task';
+import { removeBadIps } from './tasks/removeBadIps';
+import { addDefaultGameTypes } from './tasks/addDefaultGameTypes';
+import { addDefaultMasterServers } from './tasks/addDefaultMasterServers';
 
 if (process.env.NODE_ENV === 'production') {
   Sentry.init({
@@ -27,23 +28,26 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 async function main() {
-  await removeBadIps();
+  const tasks = {
+    removeBadIps,
+    addDefaultGameTypes,
+    addDefaultMasterServers,
 
-  await addDefaultMasterServers();
-  await updateGameTypesRankMethod();
+    pollMasterServers,
+    pollGameServers,
+    rankPlayers,
+    playTimePlayers,
+  };
 
   let isRunning = false;
 
   const callback = async () => {
     if (!isRunning) {
       isRunning = true;
-      await pollMasterServers();
-      await pollGameServers();
-      await rankPlayers();
-      await playTimePlayers();
+      await runTasks(tasks);
       isRunning = false;
     } else {
-      console.warn('Skipping poll because it is already running');
+      console.warn('Skipping a new run because one is already in progress');
     }
   };
 

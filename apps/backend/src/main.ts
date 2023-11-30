@@ -27,7 +27,6 @@ if (process.env.NODE_ENV === 'production') {
     profilesSampleRate: 1.0,
   });
 }
-
 const tasks = {
   addDefaultGameTypes,
   addDefaultMasterServers,

@@ -198,6 +198,13 @@ export function HeaderTabs({
         />
       )}
 
+      {['/status'].includes(pathname) && (
+        <HeaderTabPage
+          label="Status"
+          pathname="/status"
+        />
+      )}
+
       <HeaderTabPage label="About" pathname="/about" />
     </header>
   );

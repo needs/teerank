@@ -4,7 +4,7 @@ import { fromBase64, removeDuplicatedClients, toBase64 } from "../utils";
 import { TaskRunStatus } from "@prisma/client";
 import { Task } from "../task";
 
-export const playTimePlayers: Task = async () => {
+export const updatePlayTimes: Task = async () => {
   // 1. Get all snapshots not yet play timed, grouped by servers
   // 2. When there is more than one snapshot:
   //    - Calculate the time between the snapshots

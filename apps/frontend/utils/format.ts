@@ -19,3 +19,7 @@ export function formatInteger(number: number) {
     maximumFractionDigits: 0,
   }).format(number);
 }
+
+export function formatCamelCase(text: string) {
+  return text.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+}

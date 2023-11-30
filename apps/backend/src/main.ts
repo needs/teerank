@@ -4,7 +4,7 @@ import { rankPlayers } from './tasks/rankPlayers';
 import { prisma } from "./prisma";
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
-import { playTimePlayers } from './tasks/computePlayTime';
+import { updatePlayTimes } from './tasks/updatePlayTime';
 import { markRunningTasksAsFailed, runTasks } from './task';
 import { removeBadIps } from './tasks/removeBadIps';
 import { addDefaultGameTypes } from './tasks/addDefaultGameTypes';
@@ -37,7 +37,7 @@ const tasks = {
   pollMasterServers,
   pollGameServers,
   rankPlayers,
-  playTimePlayers,
+  updatePlayTimes,
 };
 
 async function main() {

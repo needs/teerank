@@ -65,7 +65,7 @@ export default async function RootLayout({
             Teerank 1.0 (stable)
           </Link>
           <Link
-            href="/"
+            href="/status"
             className="[text-shadow:_1px_1px_1px_#383838] hover:underline"
           >
             Status

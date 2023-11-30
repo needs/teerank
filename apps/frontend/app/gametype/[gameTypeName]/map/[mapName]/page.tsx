@@ -43,7 +43,10 @@ export default async function Index({
         },
         orderBy: [
           {
-            rating: 'desc',
+            rating: {
+              sort: 'desc',
+              nulls: 'last',
+            }
           },
           {
             playTime: 'desc',

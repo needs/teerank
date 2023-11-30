@@ -50,9 +50,10 @@ export async function runTasks(tasks: Tasks) {
       },
     });
 
-    console.time(`Running ${taskName}`);
+    console.log(`Started ${taskName}`);
+    console.time(`Finished ${taskName}`);
     const status = await task();
-    console.timeEnd(`Running ${taskName}`);
+    console.timeEnd(`Finished ${taskName}`);
 
     await prisma.taskRun.update({
       where: {

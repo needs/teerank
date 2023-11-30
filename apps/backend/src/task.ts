@@ -4,6 +4,19 @@ import { prisma } from './prisma';
 export type Task = () => Promise<TaskRunStatus> | TaskRunStatus;
 export type Tasks = Record<string, Task>;
 
+export async function markRunningTasksAsFailed() {
+  await prisma.taskRun.updateMany({
+    where: {
+      status: null,
+      finishedAt: null,
+    },
+    data: {
+      status: TaskRunStatus.FAILED,
+      finishedAt: new Date(),
+    },
+  });
+}
+
 export async function runTasks(tasks: Tasks) {
   const completedTasks = await prisma.task.findMany({
     select: {

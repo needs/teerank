@@ -4,8 +4,8 @@ import { rankPlayers } from './tasks/rankPlayers';
 import { prisma } from "./prisma";
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
-import { playTimePlayers } from './tasks/playTimePlayers';
-import { runTasks } from './task';
+import { playTimePlayers } from './tasks/computePlayTime';
+import { markRunningTasksAsFailed, runTasks } from './task';
 import { removeBadIps } from './tasks/removeBadIps';
 import { addDefaultGameTypes } from './tasks/addDefaultGameTypes';
 import { addDefaultMasterServers } from './tasks/addDefaultMasterServers';
@@ -27,17 +27,20 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-async function main() {
-  const tasks = {
-    removeBadIps,
-    addDefaultGameTypes,
-    addDefaultMasterServers,
+const tasks = {
+  addDefaultGameTypes,
+  addDefaultMasterServers,
+  removeBadIps,
 
-    pollMasterServers,
-    pollGameServers,
-    rankPlayers,
-    playTimePlayers,
-  };
+  pollMasterServers,
+  pollGameServers,
+  rankPlayers,
+  playTimePlayers,
+};
+
+async function main() {
+  // Previous run might have crashed, so mark all running tasks as failed.
+  await markRunningTasksAsFailed();
 
   let isRunning = false;
 

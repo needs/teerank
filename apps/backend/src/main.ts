@@ -10,6 +10,7 @@ import { removeBadIps } from './tasks/removeBadIps';
 import { addDefaultGameTypes } from './tasks/addDefaultGameTypes';
 import { addDefaultMasterServers } from './tasks/addDefaultMasterServers';
 import { resetPlayTimes } from './tasks/resetPlayTimes';
+import { minutesToMilliseconds } from 'date-fns';
 
 if (process.env.NODE_ENV === 'production') {
   Sentry.init({
@@ -27,6 +28,7 @@ if (process.env.NODE_ENV === 'production') {
     profilesSampleRate: 1.0,
   });
 }
+
 const tasks = {
   addDefaultGameTypes,
   addDefaultMasterServers,
@@ -57,7 +59,7 @@ async function main() {
   };
 
   callback();
-  setInterval(callback, 1000 * 60 * 5);
+  setInterval(callback, minutesToMilliseconds(5));
 }
 
 main();

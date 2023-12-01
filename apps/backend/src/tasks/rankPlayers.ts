@@ -1,6 +1,7 @@
 import { Prisma, TaskRunStatus } from "@prisma/client";
 import { prisma } from "../prisma";
 import { removeDuplicatedClients } from "../utils";
+import { differenceInMinutes } from "date-fns";
 
 type GameServerSnapshotWithClients = Prisma.GameServerSnapshotGetPayload<{
   include: {
@@ -68,8 +69,7 @@ async function getRankablePlayers(snapshotStart: GameServerSnapshotWithClients, 
   }
 
   // More than 30 minutes between snapshots increase the oods to rank a different game.
-  const elapsedTime = snapshotEnd.createdAt.getTime() - snapshotStart.createdAt.getTime();
-  if (elapsedTime > 30 * 60 * 1000) {
+  if (differenceInMinutes(snapshotEnd.createdAt, snapshotStart.createdAt) > 30) {
     return undefined;
   }
 

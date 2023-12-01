@@ -51,6 +51,9 @@ export default async function Index({
             isNot: null,
           },
         },
+        orderBy: {
+          playTime: 'desc',
+        },
       },
     },
     where: {

@@ -44,16 +44,39 @@ export const pollMasterServers: Task = async () => {
     if (receivedPackets !== undefined) {
       const masterServerInfo = unpackMasterPackets(receivedPackets.packets)
 
-      const gameServersCreated = await prisma.gameServer.createMany({
-        data: masterServerInfo.gameServers.map(({ ip, port }) => ({
-          ip,
-          port,
-          masterServerId: masterServer.id,
-        })),
-        skipDuplicates: true,
+      const ids = await prisma.$transaction(
+        masterServerInfo.gameServers.map(({ ip, port }) =>
+          prisma.gameServer.upsert({
+            where: {
+              ip_port: {
+                ip,
+                port,
+              },
+            },
+            select: {
+              id: true,
+            },
+            update: {},
+            create: {
+              ip,
+              port,
+            },
+          })
+        )
+      );
+
+      await prisma.masterServer.update({
+        where: {
+          id: masterServer.id,
+        },
+        data: {
+          gameServers: {
+            set: ids,
+          },
+        },
       });
 
-      console.log(`Added ${gameServersCreated.count} game servers (${masterServer.address}:${masterServer.port})`)
+      console.log(`Added ${masterServerInfo.gameServers.length} game servers (${masterServer.address}:${masterServer.port})`)
     }
   }
 

@@ -27,8 +27,8 @@ model GameServer {
   ip   String
   port Int
 
-  masterServer   MasterServer @relation(fields: [masterServerId], references: [id])
-  masterServerId Int
+  masterServer   MasterServer? @relation(fields: [masterServerId], references: [id])
+  masterServerId Int?
 
   snapshots GameServerSnapshot[] @relation(name: "GameServerSnapshotGameServerId")
 

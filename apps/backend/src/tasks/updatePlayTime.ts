@@ -29,6 +29,10 @@ export const updatePlayTimes: Task = async () => {
           clients: true,
           map: true,
         },
+        take: 100,
+        orderBy: {
+          createdAt: 'asc',
+        },
       }
     },
   });

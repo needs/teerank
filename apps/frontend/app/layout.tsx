@@ -71,7 +71,7 @@ export default async function RootLayout({
             Status
           </Link>
           <Link
-            href="/"
+            href="/about"
             className="[text-shadow:_1px_1px_1px_#383838] hover:underline"
           >
             About

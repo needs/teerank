@@ -8,6 +8,8 @@ export const metadata = {
   description: 'Teerank status',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function Index() {
   const tasks = await prisma.task.findMany({
     select: {

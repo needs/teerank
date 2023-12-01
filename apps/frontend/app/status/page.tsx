@@ -51,11 +51,52 @@ export default async function Index() {
     },
   });
 
-  const unreferencedGameServersCount = await prisma.gameServer.count({
-    where: {
-      masterServer: null,
-    },
-  });
+  const [
+    unreferencedGameServersCount,
+    snapshotsCount,
+    rankableSnapshotsCount,
+    rankedSnapshotsCount,
+    playTimedSnapshotsCount,
+  ] = await prisma.$transaction([
+    prisma.gameServer.count({
+      where: {
+        masterServer: null,
+      },
+    }),
+    prisma.gameServerSnapshot.count(),
+    prisma.gameServerSnapshot.count({
+      where: {
+        map: {
+          gameType: {
+            rankMethod: {
+              not: null,
+            },
+          }
+        }
+      },
+    }),
+    prisma.gameServerSnapshot.count({
+      where: {
+        map: {
+          gameType: {
+            rankMethod: {
+              not: null,
+            },
+          }
+        },
+        rankedAt: {
+          not: null,
+        },
+      },
+    }),
+    prisma.gameServerSnapshot.count({
+      where: {
+        playTimedAt: {
+          not: null,
+        },
+      },
+    }),
+  ]);
 
   return (
     <main className="py-12 px-20 text-[#666] flex flex-col gap-4">
@@ -96,6 +137,27 @@ export default async function Index() {
             </div>
           );
         })}
+        <div className="flex flex-row items-center p-4 gap-4 text-sm text-[#aaa] text-center">
+          <span className='grow'>
+            {`${Intl.NumberFormat('en-US', {
+              maximumFractionDigits: 0,
+            }).format(snapshotsCount)} snapshots`}
+          </span>
+          <span className='grow'>
+            {`${Intl.NumberFormat('en-US', {
+              maximumFractionDigits: 1,
+            }).format(
+              rankedSnapshotsCount / rankableSnapshotsCount * 100.0
+            )}% ranked`}
+          </span>
+          <span className='grow'>
+            {`${Intl.NumberFormat('en-US', {
+              maximumFractionDigits: 1,
+            }).format(
+              playTimedSnapshotsCount / snapshotsCount * 100.0
+            )}% play timed`}
+          </span>
+        </div>
       </div>
       <h1 className="text-2xl font-bold clear-both">Teeworlds</h1>
       <div className="flex flex-col divide-y">

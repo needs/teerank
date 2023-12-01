@@ -1,8 +1,12 @@
-import Link from 'next/link';
 import prisma from '../../utils/prisma';
 import { TaskRunStatus } from '@prisma/client';
-import { formatDistance, formatDistanceToNow, subDays } from 'date-fns';
+import { formatDistanceToNow, subDays } from 'date-fns';
 import { formatCamelCase } from '../../utils/format';
+
+export const metadata = {
+  title: 'Status',
+  description: 'Teerank status',
+};
 
 export default async function Index() {
   const tasks = await prisma.task.findMany({

@@ -1,6 +1,6 @@
 import { prisma } from '../prisma';
 import { clearDatabase } from '../../testSetup';
-import { rankPlayers } from './rankPlayers';
+import { rankPlayers } from '../tasks/rankPlayers';
 import { addHours } from 'date-fns';
 import { RankMethod } from '@prisma/client';
 
@@ -32,7 +32,7 @@ async function createSnapshot(scores: number[]) {
             gameType: {
               create: {
                 name: 'gameType',
-                rankMethod: RankMethod.TIME,
+                rankMethod: RankMethod.ELO,
               },
             },
           },
@@ -107,58 +107,114 @@ async function checkRatings(expectedRatings: number[]) {
   });
 
   expect(mapPlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual(expectedRatings);
-  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual([]);
+  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual(expectedRatings);
 }
 
-test('Positive and negative time', async () => {
-  await createSnapshot([10, -10]);
-  await rankPlayers();
-  await checkRatings([-10, -10]);
-});
-
-test('Time increase', async () => {
-  await createSnapshot([10]);
-  await createSnapshot([30]);
-  await rankPlayers();
-  await checkRatings([-10]);
-});
-
-test('Time decrease', async () => {
-  await createSnapshot([30]);
-  await createSnapshot([10]);
-  await rankPlayers();
-  await checkRatings([-10]);
-});
-
-test('Maximum time', async () => {
-  await createSnapshot([9999, -9999]);
+test('Only one snapshot', async () => {
+  await createSnapshot([100, 100]);
   await rankPlayers();
   await checkRatings([]);
 });
 
-test('Connecting player', async () => {
-  const snapshot = await createSnapshot([]);
+test('Different map', async () => {
+  const snapshot1 = await createSnapshot([100, 100]);
+  const snapshot2 = await createSnapshot([99, 101]);
 
   await prisma.gameServerSnapshot.update({
     where: {
-      id: snapshot.id,
+      id: snapshot2.id,
     },
     data: {
-      clients: {
+      map: {
         create: {
-          player: {
-            create: {
-              name: '(connecting)',
+          name: 'map2',
+          gameType: {
+            connect: {
+              name: 'gameType',
             },
           },
-          score: 10,
-          inGame: true,
-          country: 0,
         },
       },
     },
   });
 
   await rankPlayers();
+
   await checkRatings([]);
 });
+
+test('Different game type', async () => {
+  const snapshot1 = await createSnapshot([100, 100]);
+  const snapshot2 = await createSnapshot([99, 101]);
+
+  await prisma.gameServerSnapshot.update({
+    where: {
+      id: snapshot2.id,
+    },
+    data: {
+      map: {
+        create: {
+          name: 'map',
+          gameType: {
+            create: {
+              name: 'gameType2',
+              rankMethod: RankMethod.ELO,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  await rankPlayers();
+
+  await checkRatings([]);
+});
+
+test('Not enough players', async () => {
+  await createSnapshot([100]);
+  await createSnapshot([101]);
+
+  await rankPlayers();
+
+  await checkRatings([]);
+});
+
+test('Negative score average', async () => {
+  await createSnapshot([100, 100]);
+  await createSnapshot([98, 98]);
+
+  await rankPlayers();
+
+  await checkRatings([]);
+});
+
+test('Big time gap', async () => {
+  const snapshot1 = await createSnapshot([100, 100]);
+  const snapshot2 = await createSnapshot([99, 101]);
+
+  await prisma.gameServerSnapshot.update({
+    where: {
+      id: snapshot2.id,
+    },
+    data: {
+      createdAt: addHours(snapshot1.createdAt, 1),
+    },
+  });
+
+  await rankPlayers();
+
+  await checkRatings([]);
+});
+
+test('Two players', async () => {
+  await createSnapshot([100, 100]);
+  await createSnapshot([99, 101]);
+
+  await rankPlayers();
+
+  await checkRatings([-12.5, 12.5]);
+});
+
+// TODO: test rankPlayers
+// TODO: Setup test in CI and make sure DATABASE_URL is set correctly

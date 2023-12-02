@@ -67,7 +67,7 @@ export default async function Index({
 
       <PlayerList
         playerCount={clan._count.players}
-        hideRating={true}
+        rankMethod={null}
         players={clan.players.map((player, index) => ({
           rank: index + 1,
           name: player.name,

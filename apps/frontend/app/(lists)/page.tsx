@@ -32,7 +32,7 @@ export default async function Index({
   return (
     <PlayerList
       playerCount={playerCount}
-      hideRating={true}
+      rankMethod={null}
       players={players.map((player, index) => ({
         rank: (page - 1) * 100 + index + 1,
         name: player.name,

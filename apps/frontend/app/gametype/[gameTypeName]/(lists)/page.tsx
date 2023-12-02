@@ -1,3 +1,4 @@
+import { RankMethod } from '@prisma/client';
 import { PlayerList } from '../../../../components/PlayerList';
 import prisma from '../../../../utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../schema';
@@ -64,7 +65,7 @@ export default async function Index({
   return (
     <PlayerList
       playerCount={gameType._count.playerInfos}
-      hideRating={gameType.rankMethod === null}
+      rankMethod={gameType.rankMethod === RankMethod.TIME ? null : gameType.rankMethod}
       players={gameType.playerInfos.map((playerInfo, index) => ({
         rank: (page - 1) * 100 + index + 1,
         name: playerInfo.playerName,

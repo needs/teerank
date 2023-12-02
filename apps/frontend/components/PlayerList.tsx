@@ -1,9 +1,10 @@
+import { RankMethod } from "@prisma/client";
 import { formatInteger, formatPlayTime } from "../utils/format";
 import { List, ListCell } from "./List";
 
 export function PlayerList({
   players,
-  hideRating,
+  rankMethod,
   playerCount,
 }: {
   players: {
@@ -13,7 +14,7 @@ export function PlayerList({
     rating?: number;
     playTime: number;
   }[];
-  hideRating?: boolean;
+  rankMethod: RankMethod | null;
   playerCount?: number;
 }) {
   const columns = [
@@ -30,17 +31,21 @@ export function PlayerList({
       expand: true,
     },
     {
-      title: 'Elo',
-      expand: false,
-    },
-    {
       title: 'Play Time',
       expand: false,
     },
   ];
 
-  if (hideRating) {
-    columns.splice(3, 1);
+  if (rankMethod === RankMethod.ELO) {
+    columns.splice(3, 0, {
+      title: 'Elo',
+      expand: false,
+    });
+  } else if (rankMethod === RankMethod.TIME) {
+    columns.splice(3, 0, {
+      title: 'Time',
+      expand: false,
+    });
   }
 
   return (
@@ -69,11 +74,19 @@ export function PlayerList({
                   }
             }
           />
-          {!hideRating && (
+          {rankMethod === RankMethod.ELO && (
             <ListCell
               alignRight
               label={
                 player.rating === undefined ? '' : formatInteger(player.rating)
+              }
+            />
+          )}
+          {rankMethod === RankMethod.TIME && (
+            <ListCell
+              alignRight
+              label={
+                player.rating === undefined ? '' : formatPlayTime(-player.rating)
               }
             />
           )}

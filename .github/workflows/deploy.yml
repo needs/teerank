@@ -9,6 +9,16 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres-test
+          POSTGRES_PASSWORD: postgres-test
+          POSTGRES_DB: teerank-test
+        ports:
+          - 5433:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -35,7 +45,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Test
-        run: npx nx run-many -t test --parallel=3
+        run: npx nx run-many -t test --runInBand
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 

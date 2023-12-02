@@ -13,7 +13,7 @@ export default function Index() {
           Teeworlds
         </Link>
         . It aims to be simple and fast to use. You can find the{' '}
-          <Link
+        <Link
           href="https://github.com/needs/teerank"
           className="text-[#970] hover:underline"
         >
@@ -42,15 +42,16 @@ export default function Index() {
       <h1 className="text-2xl font-bold clear-both">Under the hood</h1>
 
       <p>
-        Teerank works by polling CTF servers every 5 minutes. Based on the score
-        difference between two polls, it compute your score using a custom{' '}
+        Teerank works by polling all servers every 5 minutes. For{' '}
         <Link
           href="https://en.wikipedia.org/wiki/Elo_rating_system"
           className="text-[#970] hover:underline"
         >
-          ELO rating system
+          Elo ranking
         </Link>
-        .
+        , Elo are updated using the score difference between two polls. For Time
+        ranking, the score is converted into a time. Play times are increased
+        based on the time between two polls.
       </p>
 
       <p>

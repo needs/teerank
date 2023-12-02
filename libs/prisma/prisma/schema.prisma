@@ -49,12 +49,12 @@ model Player {
   playTime Int @default(0)
 
   playerInfos PlayerInfo[]
-
   gameServerClients GameServerClient[]
 }
 
 enum RankMethod {
   ELO
+  TIME
 }
 
 model GameType {

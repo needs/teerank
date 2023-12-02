@@ -158,7 +158,7 @@ export const pollGameServers: Task = async () => {
 
         console.log(`${gameServer.ip}:${gameServer.port}: Polled (${gameServerInfo.gameType} ${gameServerInfo.map} ${gameServerInfo.numClients}/${gameServerInfo.maxClients})`)
       } catch (e) {
-        console.warn(`${gameServer.ip}:${gameServer.port}: ${e.message}`)
+        console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
       }
     } else {
       if (gameServer.offlineSince === null) {

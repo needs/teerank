@@ -82,9 +82,9 @@ export async function runTasks(tasks: Tasks) {
           completedAt: new Date(),
         },
       });
-      console.log(`Script ${taskName} finished and will not run again`);
+      console.log(`Task ${taskName} finished and will not run again`);
     } else {
-      console.log(`Script ${taskName} is scheduled to run again`);
+      console.log(`Task ${taskName} is scheduled to run again`);
     }
   }
 }

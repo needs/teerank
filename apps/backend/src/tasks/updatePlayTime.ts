@@ -55,11 +55,9 @@ export const updatePlayTimes: Task = async () => {
   console.time(`Play timed ${gameServers.length} game servers`);
 
   for (const gameServer of gameServers) {
-    const snapshots = gameServer.snapshots.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-    for (let index = 0; index < snapshots.length - 1; index++) {
-      const snapshotStart = snapshots[index];
-      const snapshotEnd = snapshots[index + 1];
+    for (let index = 0; index < gameServer.snapshots.length - 1; index++) {
+      const snapshotStart = gameServer.snapshots[index];
+      const snapshotEnd = gameServer.snapshots[index + 1];
 
       const deltaSecond = differenceInSeconds(snapshotEnd.createdAt, snapshotStart.createdAt);
       const deltaPlayTime = deltaSecond > 10 * 60 ? 5 * 60 : deltaSecond;
@@ -254,7 +252,7 @@ export const updatePlayTimes: Task = async () => {
 
   await prisma.$transaction(Array.from(playerClan.entries()).map(([key, value]) => {
     const playerName = fromBase64(key);
-    const clanName = value.clanName === "" ? undefined : value.clanName;
+    const clanName = value.clanName === "" ? null : value.clanName;
 
     return prisma.player.update({
       where: {

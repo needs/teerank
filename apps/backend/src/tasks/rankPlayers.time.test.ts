@@ -135,3 +135,30 @@ test('Maximum time', async () => {
   await rankPlayers();
   await checkRatings([]);
 });
+
+test('Connecting player', async () => {
+  const snapshot = await createSnapshot([]);
+
+  await prisma.gameServerSnapshot.update({
+    where: {
+      id: snapshot.id,
+    },
+    data: {
+      clients: {
+        create: {
+          player: {
+            create: {
+              name: '(connecting)',
+            },
+          },
+          score: 10,
+          inGame: true,
+          country: 0,
+        },
+      },
+    },
+  });
+
+  await rankPlayers();
+  await checkRatings([]);
+});

@@ -141,6 +141,12 @@ export const rankPlayers = async () => {
           id: true,
           createdAt: true,
           clients: {
+            where: {
+              playerName: {
+                // Don't rank connecting players because their score is meaningless.
+                not: "(connecting)",
+              }
+            },
             select: {
               playerName: true,
               score: true,

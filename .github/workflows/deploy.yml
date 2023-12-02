@@ -45,7 +45,11 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Test
-        run: npx nx run-many -t test --runInBand
+        run: |
+          npx nx run prisma:prisma-push
+          npx nx run-many -t test --runInBand
+        env:
+          DATABASE_URL: postgres://postgres-test:postgres-test@localhost:5433/teerank-test
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 

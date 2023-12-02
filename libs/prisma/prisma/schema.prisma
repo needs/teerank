@@ -181,6 +181,7 @@ model Task {
   name        String    @id
   createdAt   DateTime  @default(now())
   completedAt DateTime?
+  index       Int       @default(0)
 
   runs TaskRun[]
 }

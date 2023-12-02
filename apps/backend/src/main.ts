@@ -5,7 +5,7 @@ import { prisma } from "./prisma";
 import * as Sentry from "@sentry/node";
 import { ProfilingIntegration } from "@sentry/profiling-node";
 import { updatePlayTimes } from './tasks/updatePlayTime';
-import { markRunningTasksAsFailed, runTasks } from './task';
+import { runTasks, updateTasks } from './task';
 import { removeBadIps } from './tasks/removeBadIps';
 import { addDefaultGameTypes } from './tasks/addDefaultGameTypes';
 import { addDefaultMasterServers } from './tasks/addDefaultMasterServers';
@@ -38,13 +38,13 @@ const tasks = {
 
   pollMasterServers,
   pollGameServers,
-  rankPlayers,
   updatePlayTimes,
+  rankPlayers,
 };
 
 async function main() {
   // Previous run might have crashed, so mark all running tasks as failed.
-  await markRunningTasksAsFailed();
+  await updateTasks(tasks);
 
   let isRunning = false;
 

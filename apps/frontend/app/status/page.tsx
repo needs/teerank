@@ -36,9 +36,14 @@ export default async function Index() {
     where: {
       completedAt: null,
     },
-    orderBy: {
-      createdAt: 'asc',
-    },
+    orderBy: [
+      {
+        index: 'asc',
+      },
+      {
+        createdAt: 'asc',
+      },
+    ],
   });
 
   const masterServers = await prisma.masterServer.findMany({
@@ -77,8 +82,8 @@ export default async function Index() {
             rankMethod: {
               not: null,
             },
-          }
-        }
+          },
+        },
       },
     }),
     prisma.gameServerSnapshot.count({
@@ -88,7 +93,7 @@ export default async function Index() {
             rankMethod: {
               not: null,
             },
-          }
+          },
         },
         rankedAt: {
           not: null,
@@ -144,24 +149,24 @@ export default async function Index() {
           );
         })}
         <div className="flex flex-row items-center p-4 gap-4 text-sm text-[#aaa] text-center">
-          <span className='grow'>
+          <span className="grow">
             {`${Intl.NumberFormat('en-US', {
               maximumFractionDigits: 0,
             }).format(snapshotsCount)} snapshots`}
           </span>
-          <span className='grow'>
+          <span className="grow">
             {`${Intl.NumberFormat('en-US', {
               maximumFractionDigits: 1,
             }).format(
-              rankedSnapshotsCount / rankableSnapshotsCount * 100.0
-            )}% ranked`}
-          </span>
-          <span className='grow'>
-            {`${Intl.NumberFormat('en-US', {
-              maximumFractionDigits: 1,
-            }).format(
-              playTimedSnapshotsCount / snapshotsCount * 100.0
+              (playTimedSnapshotsCount / snapshotsCount) * 100.0
             )}% play timed`}
+          </span>
+          <span className="grow">
+            {`${Intl.NumberFormat('en-US', {
+              maximumFractionDigits: 1,
+            }).format(
+              (rankedSnapshotsCount / rankableSnapshotsCount) * 100.0
+            )}% ranked`}
           </span>
         </div>
       </div>

@@ -4,7 +4,33 @@ import { prisma } from './prisma';
 export type Task = () => Promise<TaskRunStatus> | TaskRunStatus;
 export type Tasks = Record<string, Task>;
 
-export async function markRunningTasksAsFailed() {
+export async function updateTasks(tasks: Tasks) {
+  await prisma.task.deleteMany({
+    where: {
+      name: {
+        notIn: Object.keys(tasks),
+      },
+    },
+  });
+
+  await prisma.$transaction(
+    Object.values(tasks).map((taskName, index) =>
+      prisma.task.upsert({
+        where: {
+          name: taskName.name,
+        },
+        update: {
+          name: taskName.name,
+          index,
+        },
+        create: {
+          name: taskName.name,
+          index,
+        },
+      })
+    )
+  );
+
   await prisma.taskRun.updateMany({
     where: {
       status: null,

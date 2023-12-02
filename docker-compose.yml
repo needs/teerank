@@ -9,3 +9,13 @@ services:
     ports:
       - "5432:5432"
     restart: always
+
+  postgres-test:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres-test
+      POSTGRES_PASSWORD: postgres-test
+      POSTGRES_DB: teerank-test
+    ports:
+      - "5433:5432"
+    restart: always

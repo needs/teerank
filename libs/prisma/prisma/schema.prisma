@@ -71,7 +71,7 @@ model Map {
   name      String
   createdAt DateTime @default(now())
 
-  gameType     GameType @relation(fields: [gameTypeName], references: [name])
+  gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String
 
   snapshots   GameServerSnapshot[]
@@ -86,16 +86,16 @@ model PlayerInfo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  player     Player @relation(fields: [playerName], references: [name])
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
   playerName String
 
-  map   Map? @relation(fields: [mapId], references: [id])
+  map   Map? @relation(fields: [mapId], references: [id], onDelete: Cascade)
   mapId Int?
 
   rating   Float?
   playTime Int    @default(0)
 
-  gameType     GameType? @relation(fields: [gameTypeName], references: [name])
+  gameType     GameType? @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String?
 
   @@unique([playerName, mapId])
@@ -105,13 +105,13 @@ model PlayerInfo {
 model GameServerClient {
   id Int @id @default(autoincrement())
 
-  snapshot   GameServerSnapshot @relation(fields: [snapshotId], references: [id])
+  snapshot   GameServerSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
   snapshotId Int
 
-  player     Player @relation(fields: [playerName], references: [name])
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
   playerName String
 
-  clan     Clan?   @relation(fields: [clanName], references: [name])
+  clan     Clan?   @relation(fields: [clanName], references: [name], onDelete: Cascade)
   clanName String?
 
   score   Int
@@ -127,7 +127,7 @@ model GameServerSnapshot {
 
   version String
   name    String
-  map     Map    @relation(fields: [mapId], references: [id])
+  map     Map    @relation(fields: [mapId], references: [id], onDelete: Cascade)
   mapId   Int
 
   numPlayers Int
@@ -141,7 +141,7 @@ model GameServerSnapshot {
   gameServerLast GameServer?
 
   gameServerId Int
-  gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id])
+  gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
 }
 
 model ClanInfo {
@@ -149,15 +149,15 @@ model ClanInfo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  clan     Clan   @relation(fields: [clanName], references: [name])
+  clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
   clanName String
 
-  map   Map? @relation(fields: [mapId], references: [id])
+  map   Map? @relation(fields: [mapId], references: [id], onDelete: Cascade)
   mapId Int?
 
   playTime Int @default(0)
 
-  gameType     GameType? @relation(fields: [gameTypeName], references: [name])
+  gameType     GameType? @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String?
 
   @@unique([clanName, mapId])
@@ -193,7 +193,7 @@ enum TaskRunStatus {
 
 model TaskRun {
   id         Int            @id @default(autoincrement())
-  task       Task           @relation(fields: [taskName], references: [name])
+  task       Task           @relation(fields: [taskName], references: [name], onDelete: Cascade)
   taskName   String
   startedAt  DateTime       @default(now())
   finishedAt DateTime?

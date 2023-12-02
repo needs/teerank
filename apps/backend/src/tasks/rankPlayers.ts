@@ -26,7 +26,7 @@ function getScoreDeltas(snapshotStart: GameServerSnapshotWithClients, snapshotEn
     return undefined;
   }
 
-  // More than 30 minutes between snapshots increase the oods to rank a different game.
+  // More than 30 minutes between snapshots increases odds to rank a different game.
   if (differenceInMinutes(snapshotEnd.createdAt, snapshotStart.createdAt) > 30) {
     return undefined;
   }
@@ -45,12 +45,12 @@ function getScoreDeltas(snapshotStart: GameServerSnapshotWithClients, snapshotEn
   }
 
   // At least two players are needed to rank.
-  if (Object.values(scoreDeltas).length < 2) {
+  if (scoreDeltas.size < 2) {
     return undefined;
   }
 
   // If average score is less than -1, then it's probably a new game.
-  const scoreAverage = Object.values(scoreDeltas).reduce((sum, scoreDelta) => sum + scoreDelta, 0) / Object.values(scoreDeltas).length;
+  const scoreAverage = [...scoreDeltas.values()].reduce((sum, scoreDelta) => sum + scoreDelta, 0) / scoreDeltas.size;
   if (scoreAverage < -1) {
     return undefined;
   }
@@ -84,22 +84,29 @@ function updateRatings(
   getRating: (playerName: string) => number | undefined,
   setRating: (playerName: string, rating: number) => void
 ) {
-  for (const [playerName, scoreDelta] of Object.entries(scoreDeltas)) {
-    const deltas = Object.entries(scoreDeltas).reduce((sum, [otherPlayerName, otherScoreDelta]) => {
-      if (playerName === otherPlayerName) {
-        return sum;
-      } else {
-        return sum + computeEloDelta(scoreDelta, getRating(playerName) ?? 0, otherScoreDelta, getRating(otherPlayerName) ?? 0);
-      }
-    }, 0);
+  for (const [playerName, scoreDelta] of scoreDeltas.entries()) {
+    let eloSum = 0;
 
-    const deltaAverage = deltas / (Object.values(scoreDeltas).length - 1);
-    setRating(playerName, getRating(playerName) ?? 0 + deltaAverage);
+    for (const [otherPlayerName, otherScoreDelta] of scoreDeltas.entries()) {
+      if (playerName !== otherPlayerName) {
+        eloSum += computeEloDelta(
+          scoreDelta,
+          getRating(playerName) ?? 0,
+          otherScoreDelta,
+          getRating(otherPlayerName) ?? 0
+        );
+      }
+    }
+
+    const eloAverage = eloSum / (scoreDeltas.size - 1);
+    setRating(playerName, (getRating(playerName) ?? 0) + eloAverage);
   }
 }
 
 export const rankPlayers = async () => {
-  console.time(`Loading snapshots`);
+  if (process.env.NODE_ENV !== 'test') {
+    console.time(`Loading snapshots`);
+  }
 
   const gameServers = await prisma.gameServer.findMany({
     where: {
@@ -160,8 +167,10 @@ export const rankPlayers = async () => {
     },
   });
 
-  console.timeEnd(`Loading snapshots`);
-  console.time(`Loading player infos by game type`);
+  if (process.env.NODE_ENV !== 'test') {
+    console.timeEnd(`Loading snapshots`);
+    console.time(`Loading player infos by game type`);
+  }
 
   const playerInfosByGameType = await prisma.$transaction(
     gameServers.flatMap((gameServer) =>
@@ -202,8 +211,10 @@ export const rankPlayers = async () => {
     }
   }
 
-  console.timeEnd(`Loading player infos by game type`);
-  console.time(`Loading player infos by map`);
+  if (process.env.NODE_ENV !== 'test') {
+    console.timeEnd(`Loading player infos by game type`);
+    console.time(`Loading player infos by map`);
+  }
 
   const playerInfosByMap = await prisma.$transaction(
     gameServers.flatMap((gameServer) =>
@@ -244,8 +255,10 @@ export const rankPlayers = async () => {
     }
   }
 
-  console.timeEnd(`Loading player infos by map`);
-  console.time(`Ranking snapshots`);
+  if (process.env.NODE_ENV !== 'test') {
+    console.timeEnd(`Loading player infos by map`);
+    console.time(`Ranking snapshots`);
+  }
 
   const rankedSnapshotIds: number[] = [];
 
@@ -261,16 +274,29 @@ export const rankPlayers = async () => {
           const scoreDeltas = getScoreDeltas(snapshotStart, snapshotEnd);
 
           if (scoreDeltas !== undefined) {
+            const newMapRatings = new Map<string, number>();
+
             updateRatings(
               scoreDeltas,
               (playerName) => getMapRating(snapshotStart.mapId, playerName),
-              (playerName, rating) => setMapRating(snapshotStart.mapId, playerName, rating)
+              (playerName, rating) => newMapRatings.set(mapKey(snapshotStart.mapId, playerName), rating)
             );
+
+            for (const [key, rating] of newMapRatings.entries()) {
+              ratingByMap.set(key, rating);
+            }
+
+            const newGameTypeRatings = new Map<string, number>();
+
             updateRatings(
               scoreDeltas,
               (playerName) => getGameTypeRating(snapshotStart.map.gameTypeName, playerName),
-              (playerName, rating) => setGameTypeRating(snapshotStart.map.gameTypeName, playerName, rating)
+              (playerName, rating) => newGameTypeRatings.set(gameTypeKey(snapshotStart.map.gameTypeName, playerName), rating)
             );
+
+            for (const [key, rating] of newGameTypeRatings.entries()) {
+              ratingByGameType.set(key, rating);
+            }
           }
 
           rankedSnapshotIds.push(snapshotStart.id);
@@ -292,11 +318,13 @@ export const rankPlayers = async () => {
     }
   }
 
-  console.timeEnd(`Ranking snapshots`);
-  console.time(`Saving ratings`);
+  if (process.env.NODE_ENV !== 'test') {
+    console.timeEnd(`Ranking snapshots`);
+    console.time(`Saving ratings`);
+  }
 
   await prisma.$transaction([
-    ...Object.entries(ratingByMap).map(([key, rating]) => {
+    ...[...ratingByMap.entries()].map(([key, rating]) => {
       const [mapIdEncoded, playerNameEncoded] = key.split(':');
       const mapId = Number(mapIdEncoded);
       const playerName = fromBase64(playerNameEncoded);
@@ -314,7 +342,7 @@ export const rankPlayers = async () => {
       });
     }),
 
-    ...Object.entries(ratingByGameType).map(([key, rating]) => {
+    ...[...ratingByGameType.entries()].map(([key, rating]) => {
       const [gameTypeNameEncoded, playerNameEncoded] = key.split(':');
       const gameTypeName = fromBase64(gameTypeNameEncoded);
       const playerName = fromBase64(playerNameEncoded);
@@ -344,7 +372,9 @@ export const rankPlayers = async () => {
     })
   ]);
 
-  console.timeEnd(`Saving ratings`);
+  if (process.env.NODE_ENV !== 'test') {
+    console.timeEnd(`Saving ratings`);
+  }
 
   return TaskRunStatus.INCOMPLETE;
 }

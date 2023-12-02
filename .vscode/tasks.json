@@ -32,6 +32,8 @@
       "dependsOn": [
         "Terminate Serve",
         "Npm install",
+        "Start docker",
+        "Setup databases",
         "Start Serve"
       ],
       "dependsOrder": "sequence",
@@ -72,18 +74,28 @@
       }
     },
     {
+      "label": "Start docker",
+      "type": "shell",
+      "command": "docker compose up --detach --wait",
+      "presentation": {
+        "close": true
+      }
+    },
+    {
+      "label": "Setup databases",
+      "type": "shell",
+      "command": "npx nx run prisma:prisma-push && DATABASE_URL=postgres://postgres-test:postgres-test@localhost:5433/teerank-test npx nx run prisma:prisma-push",
+      "presentation": {
+        "close": true
+      }
+    },
+    {
       "label": "Start Serve",
       "dependsOn": [
-        "Docker",
+        "Start docker",
         "Frontend",
         "Backend",
       ],
-    },
-    {
-      "label": "Docker",
-      "type": "shell",
-      "command": "docker compose up",
-      "isBackground": true,
     },
     {
       "label": "Frontend",

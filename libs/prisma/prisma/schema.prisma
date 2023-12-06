@@ -48,8 +48,9 @@ model Player {
 
   playTime Int @default(0)
 
-  playerInfos PlayerInfo[]
+  playerInfos       PlayerInfo[]
   gameServerClients GameServerClient[]
+  clanPlayerInfos   ClanPlayerInfo[]
 }
 
 enum RankMethod {
@@ -175,6 +176,23 @@ model Clan {
 
   clanInfos ClanInfo[]
   clients   GameServerClient[]
+
+  clanPlayerInfos ClanPlayerInfo[]
+}
+
+model ClanPlayerInfo {
+  clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
+  clanName String
+
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
+  playerName String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  playTime Int @default(0)
+
+  @@unique([clanName, playerName])
 }
 
 model Task {

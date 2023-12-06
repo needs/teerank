@@ -47,6 +47,8 @@ export const updatePlayTimes: Task = async () => {
   const clanPlayTimeGameType = new Map<string, number>();
   const clanPlayTime = new Map<string, number>();
 
+  const clanPlayerPlayTime = new Map<string, number>();
+
   const addPlayerPlayTimeMap = (mapId: number, playerName: string, deltaPlayTime: number) => {
     const key = `${mapId}:${toBase64(playerName)}`;
     playerPlayTimeMap.set(key, (playerPlayTimeMap.get(key) ?? 0) + deltaPlayTime);
@@ -75,6 +77,11 @@ export const updatePlayTimes: Task = async () => {
   const addClanPlayTime = (clanName: string, deltaPlayTime: number) => {
     const key = toBase64(clanName);
     clanPlayTime.set(key, (clanPlayTime.get(key) ?? 0) + deltaPlayTime);
+  }
+
+  const addClanPlayerPlayTime = (playerName: string, clanName: string, deltaPlayTime: number) => {
+    const key = `${toBase64(playerName)}:${toBase64(clanName)}`;
+    clanPlayerPlayTime.set(key, (clanPlayerPlayTime.get(key) ?? 0) + deltaPlayTime);
   }
 
   const playerClan = new Map<string, { date: Date, clanName: string | null }>();
@@ -115,6 +122,8 @@ export const updatePlayTimes: Task = async () => {
           addClanPlayTimeMap(snapshotStart.mapId, client.clanName, deltaPlayTime);
           addClanPlayTimeGameType(snapshotStart.map.gameTypeName, client.clanName, deltaPlayTime);
           addClanPlayTime(client.clanName, deltaPlayTime);
+
+          addClanPlayerPlayTime(client.playerName, client.clanName, deltaPlayTime);
         }
 
         setPlayerClan(client.playerName, client.clanName, snapshotStart.createdAt);
@@ -138,6 +147,8 @@ export const updatePlayTimes: Task = async () => {
           addClanPlayTimeMap(lastSnapshot.mapId, client.clanName, 0);
           addClanPlayTimeGameType(lastSnapshot.map.gameTypeName, client.clanName, 0);
           addClanPlayTime(client.clanName, 0);
+
+          addClanPlayerPlayTime(client.playerName, client.clanName, 0);
         }
 
         setPlayerClan(client.playerName, client.clanName, lastSnapshot.createdAt);
@@ -339,6 +350,36 @@ export const updatePlayTimes: Task = async () => {
 
   if (process.env.NODE_ENV !== 'test') {
     console.timeEnd(`Updating ${playerClan.size} player clans`);
+    console.time(`Updating ${clanPlayerPlayTime.size} clan player play times`);
+  }
+
+  await prisma.$transaction(Array.from(clanPlayerPlayTime.entries()).map(([key, value]) => {
+    const [playerNameEncoded, clanNameEncoded] = key.split(':');
+    const playerName = fromBase64(playerNameEncoded);
+    const clanName = fromBase64(clanNameEncoded);
+
+    return prisma.clanPlayerInfo.upsert({
+      where: {
+        clanName_playerName: {
+          clanName,
+          playerName,
+        },
+      },
+      update: {
+        playTime: {
+          increment: value,
+        },
+      },
+      create: {
+        clanName,
+        playerName,
+        playTime: value,
+      },
+    });
+  }));
+
+  if (process.env.NODE_ENV !== 'test') {
+    console.timeEnd(`Updating ${clanPlayerPlayTime.size} clan player play times`);
     console.time(`Marking ${snapshotIds.length} snapshots as play timed`);
   }
 

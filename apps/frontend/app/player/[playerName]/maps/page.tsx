@@ -1,13 +1,13 @@
 import { paramsSchema } from '../schema';
 import { z } from 'zod';
 import { notFound } from 'next/navigation';
-import prisma from '../../../../utils/prisma';
-import { GameTypeList } from '../../../../components/GameTypeList';
 import { searchParamPageSchema } from '../../../../utils/page';
+import prisma from '../../../../utils/prisma';
+import { MapList } from '../../../../components/MapList';
 
 export const metadata = {
-  title: 'Clan - Game types',
-  description: 'A Teeworlds clan',
+  title: 'Player - Maps',
+  description: 'A Teeworlds player',
 };
 
 export default async function Index({
@@ -17,16 +17,16 @@ export default async function Index({
   params: z.infer<typeof paramsSchema>;
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const { clanName } = paramsSchema.parse(params);
+  const { playerName } = paramsSchema.parse(params);
   const { page } = searchParamPageSchema.parse(searchParams);
 
-  const clan = await prisma.clan.findUnique({
+  const player = await prisma.player.findUnique({
     select: {
       _count: {
         select: {
-          clanInfos: {
+          playerInfos: {
             where: {
-              gameType: {
+              map: {
                 isNot: null,
               },
             },
@@ -34,13 +34,18 @@ export default async function Index({
         },
       },
 
-      clanInfos: {
+      playerInfos: {
         select: {
-          gameTypeName: true,
+          map: {
+            select: {
+              name: true,
+              gameTypeName: true,
+            },
+          },
           playTime: true,
         },
         where: {
-          gameType: {
+          map: {
             isNot: null,
           },
         },
@@ -50,21 +55,22 @@ export default async function Index({
       },
     },
     where: {
-      name: clanName,
+      name: playerName,
     },
   });
 
-  if (clan === null) {
+  if (player === null) {
     return notFound();
   }
 
   return (
-    <GameTypeList
-      gameTypeCount={clan._count.clanInfos}
-      gameTypes={clan.clanInfos.map((clanInfo, index) => ({
+    <MapList
+      mapCount={player._count.playerInfos}
+      maps={player.playerInfos.map((playerInfo, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: clanInfo.gameTypeName ?? '',
-        playTime: clanInfo.playTime,
+        name: playerInfo.map?.name ?? '',
+        gameTypeName: playerInfo.map?.gameTypeName ?? '',
+        playTime: playerInfo.playTime,
       }))}
     />
   );

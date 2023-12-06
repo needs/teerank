@@ -180,6 +180,10 @@ export function HeaderTabs({
         <HeaderTabPage
           label="Player"
           pathname={`/player/${encodeURIComponent(playerName)}`}
+          extraPathnames={[
+            `/player/${encodeURIComponent(playerName)}/maps`,
+            `/player/${encodeURIComponent(playerName)}/clans`,
+          ]}
         />
       )}
 
@@ -187,7 +191,10 @@ export function HeaderTabs({
         <HeaderTabPage
           label="Clan"
           pathname={`/clan/${encodeURIComponent(clanName)}`}
-          extraPathnames={[`/clan/${encodeURIComponent(clanName)}/gametypes`, `/clan/${encodeURIComponent(clanName)}/maps`]}
+          extraPathnames={[
+            `/clan/${encodeURIComponent(clanName)}/gametypes`,
+            `/clan/${encodeURIComponent(clanName)}/maps`,
+          ]}
         />
       )}
 
@@ -200,10 +207,7 @@ export function HeaderTabs({
       )}
 
       {['/status'].includes(pathname) && (
-        <HeaderTabPage
-          label="Status"
-          pathname="/status"
-        />
+        <HeaderTabPage label="Status" pathname="/status" />
       )}
 
       <HeaderTabPage label="About" pathname="/about" />

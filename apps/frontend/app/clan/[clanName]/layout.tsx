@@ -84,8 +84,8 @@ export default async function Index({
       <LayoutTabs
         clanName={clanName}
         playerCount={clan.players.length}
-        gameTypesCount={counts[0]}
-        mapsCount={counts[1]}
+        gameTypeCount={counts[0]}
+        mapCount={counts[1]}
       />
 
       {children}

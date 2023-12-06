@@ -6,7 +6,7 @@ import { searchParamPageSchema } from '../../../../utils/page';
 import { MapList } from '../../../../components/MapList';
 
 export const metadata = {
-  title: 'Clan',
+  title: 'Clan - Maps',
   description: 'A Teeworlds clan',
 };
 

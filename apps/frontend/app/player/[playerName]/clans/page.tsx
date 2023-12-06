@@ -1,12 +1,12 @@
-import { paramsSchema } from './schema';
+import { paramsSchema } from '../schema';
 import { z } from 'zod';
 import { notFound } from 'next/navigation';
-import { searchParamPageSchema } from '../../../utils/page';
-import prisma from '../../../utils/prisma';
-import { GameTypeList } from '../../../components/GameTypeList';
+import { searchParamPageSchema } from '../../../../utils/page';
+import prisma from '../../../../utils/prisma';
+import { ClanList } from '../../../../components/ClanList';
 
 export const metadata = {
-  title: 'Player',
+  title: 'Player - Clans',
   description: 'A Teeworlds player',
 };
 
@@ -24,25 +24,30 @@ export default async function Index({
     select: {
       _count: {
         select: {
-          playerInfos: {
+          clanPlayerInfos: {
             where: {
-              gameType: {
-                isNot: null,
-              },
+              playerName,
             },
           },
         },
       },
 
-      playerInfos: {
+      clanPlayerInfos: {
         select: {
-          gameTypeName: true,
+          clanName: true,
           playTime: true,
+          clan: {
+            select: {
+              _count: {
+                select: {
+                  players: true,
+                },
+              },
+            },
+          },
         },
         where: {
-          gameType: {
-            isNot: null,
-          },
+          playerName,
         },
         orderBy: {
           playTime: 'desc',
@@ -59,12 +64,13 @@ export default async function Index({
   }
 
   return (
-    <GameTypeList
-      gameTypeCount={player._count.playerInfos}
-      gameTypes={player.playerInfos.map((playerInfo, index) => ({
+    <ClanList
+      clanCount={player._count.clanPlayerInfos}
+      clans={player.clanPlayerInfos.map((clanPlayerInfo, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: playerInfo.gameTypeName ?? '',
-        playTime: playerInfo.playTime,
+        name: clanPlayerInfo.clanName,
+        playerCount: clanPlayerInfo.clan._count.players,
+        playTime: clanPlayerInfo.playTime,
       }))}
     />
   );

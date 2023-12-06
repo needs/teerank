@@ -4,12 +4,12 @@ import { Tab, Tabs } from '../../../components/Tabs';
 import { usePathname } from 'next/navigation';
 
 export function LayoutTabs({
-  clanName, playerCount, gameTypesCount, mapsCount,
+  clanName, playerCount, gameTypeCount, mapCount,
 }: {
   clanName: string;
   playerCount: number;
-  gameTypesCount: number;
-  mapsCount: number;
+  gameTypeCount: number;
+  mapCount: number;
 }) {
   const urlPathname = `/clan/${encodeURIComponent(clanName)}`;
   const pathname = usePathname();
@@ -26,13 +26,13 @@ export function LayoutTabs({
       />
       <Tab
         label="Game Types"
-        count={gameTypesCount}
+        count={gameTypeCount}
         isActive={pathname === `${urlPathname}/gametypes`}
         href={{ pathname: `${urlPathname}/gametypes` }}
       />
       <Tab
         label="Maps"
-        count={mapsCount}
+        count={mapCount}
         isActive={pathname === `${urlPathname}/maps`}
         href={{ pathname: `${urlPathname}/maps` }}
       />

@@ -57,12 +57,12 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
-  const gameTypesCount = await prisma.gameType.count();
+  const gameTypeCount = await prisma.gameType.count();
 
   return (
     <div className="py-8">
       <List
-        pageCount={Math.ceil(gameTypesCount / 100)}
+        pageCount={Math.ceil(gameTypeCount / 100)}
         columns={[
           {
             title: '',

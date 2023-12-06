@@ -1,6 +1,6 @@
 import { searchParamSchema } from '../(lists)/schema';
 import { List, ListCell } from '../../components/List';
-import { formatInteger } from '../../utils/format';
+import { capitalize, formatInteger } from '../../utils/format';
 import prisma from '../../utils/prisma';
 
 export const metadata = {
@@ -18,6 +18,7 @@ export default async function Index({
   const gameTypes = await prisma.gameType.findMany({
     select: {
       name: true,
+      rankMethod: true,
       _count: {
         select: {
           playerInfos: true,
@@ -73,6 +74,10 @@ export default async function Index({
             expand: true,
           },
           {
+            title: 'Ranking',
+            expand: false,
+          },
+          {
             title: 'Players',
             expand: false,
           },
@@ -101,6 +106,10 @@ export default async function Index({
               href={{
                 pathname: `/gametype/${encodeURIComponent(gameType.name)}`,
               }}
+            />
+            <ListCell
+              alignRight
+              label={capitalize(gameType.rankMethod ?? '')}
             />
             <ListCell
               alignRight

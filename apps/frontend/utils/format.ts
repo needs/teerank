@@ -47,3 +47,7 @@ export function formatInteger(number: number) {
 export function formatCamelCase(text: string) {
   return text.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
 }
+
+export function capitalize(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}

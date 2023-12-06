@@ -39,9 +39,9 @@ export function MapList({
         <>
           <ListCell alignRight label={formatInteger(map.rank)} />
           <ListCell
-            label={map.name}
+            label={map.gameTypeName}
             href={{
-              pathname: `/gametype/${encodeURIComponent(map.name)}`,
+              pathname: `/gametype/${encodeURIComponent(map.gameTypeName)}`,
             }}
           />
           <ListCell

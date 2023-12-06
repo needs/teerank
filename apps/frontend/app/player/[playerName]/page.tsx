@@ -3,10 +3,10 @@ import { z } from 'zod';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { List, ListCell } from '../../../components/List';
-import { formatPlayTime, formatInteger } from '../../../utils/format';
+import { formatPlayTime } from '../../../utils/format';
 import { searchParamPageSchema } from '../../../utils/page';
 import prisma from '../../../utils/prisma';
+import { GameTypeList } from '../../../components/GameTypeList';
 
 export const metadata = {
   title: 'Player',
@@ -91,41 +91,15 @@ export default async function Index({
           <p>7 hours ago</p>
         </aside>
       </header>
-      <List
-        columns={[
-          {
-            title: '',
-            expand: false,
-          },
-          {
-            title: 'Game type',
-            expand: true,
-          },
-          {
-            title: 'Play Time',
-            expand: false,
-          },
-        ]}
-        pageCount={1}
-      >
-        {player.playerInfos.map((playerInfo, index) => (
-          <>
-            <ListCell
-              alignRight
-              label={formatInteger((page - 1) * 100 + index + 1)}
-            />
-            <ListCell
-              label={playerInfo.gameTypeName ?? ''}
-              href={{
-                pathname: `/gametype/${encodeURIComponent(
-                  playerInfo.gameTypeName ?? ''
-                )}`,
-              }}
-            />
-            <ListCell alignRight label={formatPlayTime(playerInfo.playTime)} />
-          </>
-        ))}
-      </List>
+
+      <GameTypeList
+        gameTypeCount={player._count.playerInfos}
+        gameTypes={player.playerInfos.map((playerInfo, index) => ({
+          rank: (page - 1) * 100 + index + 1,
+          name: playerInfo.gameTypeName ?? '',
+          playTime: playerInfo.playTime,
+        }))}
+      />
     </main>
   );
 }

@@ -187,6 +187,7 @@ export function HeaderTabs({
         <HeaderTabPage
           label="Clan"
           pathname={`/clan/${encodeURIComponent(clanName)}`}
+          extraPathnames={[`/clan/${encodeURIComponent(clanName)}/gametypes`, `/clan/${encodeURIComponent(clanName)}/maps`]}
         />
       )}
 

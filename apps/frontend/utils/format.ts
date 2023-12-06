@@ -1,4 +1,4 @@
-import { intervalToDuration } from "date-fns";
+import { Duration, intervalToDuration } from "date-fns";
 
 export function formatPlayTime(playTime: number) {
   const duration = intervalToDuration({
@@ -35,6 +35,34 @@ export function formatPlayTime(playTime: number) {
     }).format(duration.seconds ?? 0);
 
     return `${secondsFormatted}s`;
+  }
+}
+
+export function formatDurationShort(duration: Duration) {
+  const format = (quantity: number, singular: string, plural: string) => {
+    const quantityFormatted = Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 0,
+    }).format(quantity);
+
+    if (quantity === 1) {
+      return `${quantityFormatted} ${singular}`;
+    } else {
+      return `${quantityFormatted} ${plural}`;
+    }
+  }
+
+  if ((duration.years ?? 0) > 0) {
+    return format(duration.years ?? 0, 'year', 'years');
+  } else if ((duration.months ?? 0) > 0) {
+    return format(duration.months ?? 0, 'month', 'months');
+  } else if ((duration.days ?? 0) > 0) {
+    return format(duration.days ?? 0, 'day', 'days');
+  } else if ((duration.hours ?? 0) > 0) {
+    return format(duration.hours ?? 0, 'hour', 'hours');
+  } else if ((duration.minutes ?? 0) > 0) {
+    return format(duration.minutes ?? 0, 'minute', 'minutes');
+  } else {
+    return format(duration.seconds ?? 0, 'second', 'seconds');
   }
 }
 

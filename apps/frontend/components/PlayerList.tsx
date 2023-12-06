@@ -1,11 +1,13 @@
-import { RankMethod } from "@prisma/client";
-import { formatInteger, formatPlayTime } from "../utils/format";
-import { List, ListCell } from "./List";
+import { RankMethod } from '@prisma/client';
+import { formatInteger, formatPlayTime } from '../utils/format';
+import { List, ListCell } from './List';
+import { LastSeen } from './LastSeen';
 
 export function PlayerList({
   players,
   rankMethod,
   playerCount,
+  showLastSeen,
 }: {
   players: {
     rank: number;
@@ -13,9 +15,17 @@ export function PlayerList({
     clan?: string;
     rating?: number;
     playTime: number;
+    lastSeen?: {
+      at: Date;
+      lastSnapshot: {
+        ip: string;
+        port: number;
+      } | null;
+    };
   }[];
   rankMethod: RankMethod | null;
   playerCount?: number;
+  showLastSeen?: boolean;
 }) {
   const columns = [
     {
@@ -44,6 +54,13 @@ export function PlayerList({
   } else if (rankMethod === RankMethod.TIME) {
     columns.splice(3, 0, {
       title: 'Time',
+      expand: false,
+    });
+  }
+
+  if (showLastSeen) {
+    columns.push({
+      title: 'Last Seen',
       expand: false,
     });
   }
@@ -86,11 +103,22 @@ export function PlayerList({
             <ListCell
               alignRight
               label={
-                player.rating === undefined ? '' : formatPlayTime(-player.rating)
+                player.rating === undefined
+                  ? ''
+                  : formatPlayTime(-player.rating)
               }
             />
           )}
           <ListCell alignRight label={formatPlayTime(player.playTime)} />
+          {showLastSeen && player.lastSeen !== undefined && (
+            <LastSeen
+              lastSeen={player.lastSeen.at}
+              lastSnapshot={player.lastSeen.lastSnapshot}
+            />
+          )}
+          {showLastSeen && player.lastSeen === undefined && (
+            <ListCell alignRight label={''} />
+          )}
         </>
       ))}
     </List>

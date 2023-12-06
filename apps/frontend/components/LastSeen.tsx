@@ -1,18 +1,24 @@
 import { formatDistanceToNow, intervalToDuration } from 'date-fns';
 import Link from 'next/link';
+import { twMerge } from 'tailwind-merge';
+import { formatDurationShort } from '../utils/format';
 
 export function LastSeen({
-  lastSeen,
-  currentServer,
+  lastSnapshot,
+  lastSeen
 }: {
+  lastSnapshot: {
+    ip: string;
+    port: number;
+  } | null;
+
   lastSeen: Date;
-  currentServer: { ip: string; port: number } | null;
 }) {
-  if (currentServer !== null) {
+  if (lastSnapshot !== null) {
     return (
       <Link
         href={{
-          pathname: `/server/${currentServer.ip}/${currentServer.port}`,
+          pathname: `/server/${lastSnapshot.ip}/${lastSnapshot.port}`,
         }}
         className="text-[#43a700] font-bold hover:underline"
       >
@@ -38,10 +44,8 @@ export function LastSeen({
     }
 
     return (
-      <span className={className}>
-        {formatDistanceToNow(new Date(lastSeen), {
-          addSuffix: true,
-        })}
+      <span className={twMerge('truncate', className)}>
+        {formatDurationShort(intervalToDuration({ start: lastSeen, end: new Date() }))}
       </span>
     );
   }

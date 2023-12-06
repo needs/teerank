@@ -124,7 +124,7 @@ export default async function Index({
           </p>
           {lastSnapshot !== null && (
             <LastSeen
-              currentServer={lastSnapshot.gameServerLast}
+              lastSnapshot={lastSnapshot.gameServerLast}
               lastSeen={lastSnapshot.createdAt}
             />
           )}

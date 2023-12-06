@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { formatPlayTime } from '../../../utils/format';
 import prisma from '../../../utils/prisma';
 import { LayoutTabs } from './LayoutTabs';
+import { LastSeen } from '../../../components/LastSeen';
 
 export default async function Index({
   params,
@@ -71,6 +72,29 @@ export default async function Index({
     }),
   ]);
 
+  const lastSnapshot = await prisma.gameServerSnapshot.findFirst({
+    select: {
+      createdAt: true,
+
+      gameServerLast: {
+        select: {
+          ip: true,
+          port: true,
+        },
+      },
+    },
+    where: {
+      clients: {
+        some: {
+          playerName,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
   if (player === null) {
     return notFound();
   }
@@ -98,7 +122,12 @@ export default async function Index({
           <p>
             <b>Playtime</b>: {formatPlayTime(player.playTime)}
           </p>
-          <p>7 hours ago</p>
+          {lastSnapshot !== null && (
+            <LastSeen
+              currentServer={lastSnapshot.gameServerLast}
+              lastSeen={lastSnapshot.createdAt}
+            />
+          )}
         </aside>
       </header>
 

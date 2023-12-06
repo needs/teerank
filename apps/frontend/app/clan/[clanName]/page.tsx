@@ -23,14 +23,19 @@ export default async function Index({
           players: true,
         },
       },
-      players: {
+      clanPlayerInfos: {
         select: {
-          name: true,
+          playerName: true,
           playTime: true,
+        },
+        where: {
+          player: {
+            clanName
+          }
         },
         orderBy: {
           playTime: 'desc',
-        },
+        }
       },
     },
     where: {
@@ -46,9 +51,9 @@ export default async function Index({
     <PlayerList
       playerCount={clan._count.players}
       rankMethod={null}
-      players={clan.players.map((player, index) => ({
+      players={clan.clanPlayerInfos.map((player, index) => ({
         rank: index + 1,
-        name: player.name,
+        name: player.playerName,
         clan: clanName,
         playTime: player.playTime,
       }))}

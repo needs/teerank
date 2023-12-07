@@ -1,12 +1,10 @@
-import { Prisma } from "@prisma/client";
-
 export async function wait(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 }
 
-export function removeDuplicatedClients(clients: Prisma.GameServerClientGetPayload<true>[]) {
+export function removeDuplicatedClients<T extends { playerName: string }>(clients: T[]) {
   return clients.filter((client, index, array) => {
     return array.findIndex((otherClient) => otherClient.playerName === client.playerName) === index;
   });

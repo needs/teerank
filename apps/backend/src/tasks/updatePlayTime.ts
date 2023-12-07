@@ -13,27 +13,41 @@ export const updatePlayTimes: Task = async () => {
   //    - Mark the snapshot as play timed
 
   const gameServers = await prisma.gameServer.findMany({
+    select: {
+      id: true,
+      snapshots: {
+        select: {
+          id: true,
+          createdAt: true,
+          mapId: true,
+          map: {
+            select: {
+              gameTypeName: true,
+            },
+          },
+          clients: {
+            select: {
+              playerName: true,
+              clanName: true,
+            },
+          },
+        },
+        where: {
+          playTimedAt: null,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+        take: 10,
+      },
+    },
+
     where: {
       snapshots: {
         some: {
           playTimedAt: null,
         }
       },
-    },
-    include: {
-      snapshots: {
-        where: {
-          playTimedAt: null,
-        },
-        include: {
-          clients: true,
-          map: true,
-        },
-        take: 10,
-        orderBy: {
-          createdAt: 'asc',
-        },
-      }
     },
   });
 

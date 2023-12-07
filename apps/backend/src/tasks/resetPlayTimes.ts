@@ -27,6 +27,24 @@ export const resetPlayTimes: Task = async () => {
     },
   });
 
+  await prisma.gameType.updateMany({
+    data: {
+      playTime: 0,
+    },
+  });
+
+  await prisma.map.updateMany({
+    data: {
+      playTime: 0,
+    },
+  });
+
+  await prisma.clanPlayerInfo.updateMany({
+    data: {
+      playTime: 0,
+    },
+  });
+
   await prisma.gameServerSnapshot.updateMany({
     data: {
       playTimedAt: null,

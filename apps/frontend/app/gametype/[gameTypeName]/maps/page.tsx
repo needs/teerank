@@ -1,5 +1,5 @@
 import { List, ListCell } from '../../../../components/List';
-import { formatInteger } from '../../../../utils/format';
+import { formatInteger, formatPlayTime } from '../../../../utils/format';
 import prisma from '../../../../utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../schema';
 import { notFound } from 'next/navigation';
@@ -33,6 +33,7 @@ export default async function Index({
     select: {
       name: true,
       gameTypeName: true,
+      playTime: true,
       _count: {
         select: {
           playerInfos: true,
@@ -95,6 +96,10 @@ export default async function Index({
             title: 'Servers',
             expand: false,
           },
+          {
+            title: 'Play Time',
+            expand: false,
+          },
         ]}
         pageCount={Math.ceil(mapCount / 100)}
       >
@@ -139,6 +144,7 @@ export default async function Index({
                 )}/map/${encodeURIComponent(map.name)}/servers`,
               }}
             />
+            <ListCell alignRight label={formatPlayTime(map.playTime)} />
           </>
         ))}
       </List>

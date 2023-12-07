@@ -1,6 +1,6 @@
 import { searchParamSchema } from '../(lists)/schema';
 import { List, ListCell } from '../../components/List';
-import { capitalize, formatInteger } from '../../utils/format';
+import { capitalize, formatInteger, formatPlayTime } from '../../utils/format';
 import prisma from '../../utils/prisma';
 
 export const metadata = {
@@ -19,6 +19,7 @@ export default async function Index({
     select: {
       name: true,
       rankMethod: true,
+      playTime: true,
       _count: {
         select: {
           playerInfos: true,
@@ -93,6 +94,10 @@ export default async function Index({
             title: 'Maps',
             expand: false,
           },
+          {
+            title: 'Play Time',
+            expand: false,
+          },
         ]}
       >
         {gameTypes.map((gameType, index) => (
@@ -145,6 +150,7 @@ export default async function Index({
                 pathname: `/gametype/${encodeURIComponent(gameType.name)}/maps`,
               }}
             />
+            <ListCell alignRight label={formatPlayTime(gameType.playTime)} />
           </>
         ))}
       </List>

@@ -155,8 +155,6 @@ export const pollGameServers: Task = async () => {
             offlineSince: null,
           },
         });
-
-        console.log(`${gameServer.ip}:${gameServer.port}: Polled (${gameServerInfo.gameType} ${gameServerInfo.map} ${gameServerInfo.numClients}/${gameServerInfo.maxClients})`)
       } catch (e) {
         console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
       }
@@ -171,7 +169,6 @@ export const pollGameServers: Task = async () => {
           },
         });
       }
-      console.log(`${gameServer.ip}:${gameServer.port}: No response`);
     }
   }))
 

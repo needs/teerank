@@ -91,7 +91,7 @@ async function createSnapshot(createdAt: Date, numPlayers: number, numClans: num
   });
 }
 
-async function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPlayTimes: number[], expectedClanPlayerPlayTimes: number[]) {
+async function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPlayTimes: number[], expectedClanPlayerPlayTimes: number[], gameTypeAndMapPlayTime: number) {
   const players = await prisma.player.findMany({
     select: {
       playTime: true,
@@ -175,6 +175,27 @@ async function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPla
     },
   });
 
+  const gameTypePlayTime = await prisma.gameType.findUniqueOrThrow({
+    where: {
+      name: 'gameType',
+    },
+    select: {
+      playTime: true,
+    },
+  });
+
+  const mapPlayTime = await prisma.map.findUniqueOrThrow({
+    where: {
+      name_gameTypeName: {
+        name: 'map',
+        gameTypeName: 'gameType',
+      },
+    },
+    select: {
+      playTime: true,
+    },
+  });
+
   expect(players.map(playerInfo => playerInfo.playTime)).toEqual(expectedPlayerPlayTimes);
   expect(mapPlayerInfos.map(playerInfo => playerInfo.playTime)).toEqual(expectedPlayerPlayTimes);
   expect(gameTypePlayerInfos.map(playerInfo => playerInfo.playTime)).toEqual(expectedPlayerPlayTimes);
@@ -184,12 +205,15 @@ async function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPla
   expect(gameTypeClanInfos.map(clanInfo => clanInfo.playTime)).toEqual(expectedClanPlayTimes);
 
   expect(clanPlayerInfos.map(clanPlayerInfo => clanPlayerInfo.playTime)).toEqual(expectedClanPlayerPlayTimes);
+
+  expect(gameTypePlayTime.playTime).toEqual(gameTypeAndMapPlayTime);
+  expect(mapPlayTime.playTime).toEqual(gameTypeAndMapPlayTime);
 }
 
 test('Single snapshot', async () => {
   await createSnapshot(new Date(), 1, 1);
   await updatePlayTimes();
-  await checkPlayTimes([0], [0], [0]);
+  await checkPlayTimes([0], [0], [0], 0);
 });
 
 test('One player, no clan', async () => {
@@ -197,7 +221,7 @@ test('One player, no clan', async () => {
   await createSnapshot(addMinutes(snapshot.createdAt, 5), 1, 0);
 
   await updatePlayTimes();
-  await checkPlayTimes([5 * 60], [], []);
+  await checkPlayTimes([5 * 60], [], [], 5 * 60);
 });
 
 test('One player, one clan', async () => {
@@ -205,7 +229,7 @@ test('One player, one clan', async () => {
   await createSnapshot(addMinutes(snapshot.createdAt, 5), 1, 1);
 
   await updatePlayTimes();
-  await checkPlayTimes([5 * 60], [5 * 60], [5 * 60]);
+  await checkPlayTimes([5 * 60], [5 * 60], [5 * 60], 5 * 60);
 });
 
 test('Two players, same clan', async () => {
@@ -213,7 +237,7 @@ test('Two players, same clan', async () => {
   await createSnapshot(addMinutes(snapshot.createdAt, 5), 2, 1);
 
   await updatePlayTimes();
-  await checkPlayTimes([5 * 60, 5 * 60], [2 * 5 * 60], [5 * 60, 5 * 60]);
+  await checkPlayTimes([5 * 60, 5 * 60], [2 * 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);
 });
 
 test('Two players, different clan', async () => {
@@ -221,5 +245,5 @@ test('Two players, different clan', async () => {
   await createSnapshot(addMinutes(snapshot.createdAt, 5), 2, 2);
 
   await updatePlayTimes();
-  await checkPlayTimes([5 * 60, 5 * 60], [5 * 60, 5 * 60], [5 * 60, 5 * 60]);
+  await checkPlayTimes([5 * 60, 5 * 60], [5 * 60, 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);
 });

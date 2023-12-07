@@ -49,6 +49,9 @@ export const updatePlayTimes: Task = async () => {
 
   const clanPlayerPlayTime = new Map<string, number>();
 
+  const gameTypePlayTime = new Map<string, number>();
+  const mapPlayTime = new Map<string, number>();
+
   const addPlayerPlayTimeMap = (mapId: number, playerName: string, deltaPlayTime: number) => {
     const key = `${mapId}:${toBase64(playerName)}`;
     playerPlayTimeMap.set(key, (playerPlayTimeMap.get(key) ?? 0) + deltaPlayTime);
@@ -84,6 +87,16 @@ export const updatePlayTimes: Task = async () => {
     clanPlayerPlayTime.set(key, (clanPlayerPlayTime.get(key) ?? 0) + deltaPlayTime);
   }
 
+  const addGameTypePlayTime = (gameTypeName: string, deltaPlayTime: number) => {
+    const key = toBase64(gameTypeName);
+    gameTypePlayTime.set(key, (gameTypePlayTime.get(key) ?? 0) + deltaPlayTime);
+  }
+
+  const addMapPlayTime = (mapId: number, deltaPlayTime: number) => {
+    const key = `${mapId}`;
+    mapPlayTime.set(key, (mapPlayTime.get(key) ?? 0) + deltaPlayTime);
+  }
+
   const playerClan = new Map<string, { date: Date, clanName: string | null }>();
 
   const setPlayerClan = (playerName: string, clanName: string | null, date: Date) => {
@@ -101,7 +114,6 @@ export const updatePlayTimes: Task = async () => {
 
   if (process.env.NODE_ENV !== 'test') {
     console.log(`Play timing ${gameServers.length} game servers and ${gameServers.reduce((sum, gameServer) => sum + gameServer.snapshots.length, 0)} snapshots`);
-    console.time(`Play timed ${gameServers.length} game servers`);
   }
 
   for (const gameServer of gameServers) {
@@ -129,6 +141,9 @@ export const updatePlayTimes: Task = async () => {
         setPlayerClan(client.playerName, client.clanName, snapshotStart.createdAt);
       }
 
+      addGameTypePlayTime(snapshotStart.map.gameTypeName, deltaPlayTime * clients.length);
+      addMapPlayTime(snapshotStart.mapId, deltaPlayTime * clients.length);
+
       snapshotIds.push(snapshotStart.id);
     }
 
@@ -150,6 +165,9 @@ export const updatePlayTimes: Task = async () => {
 
           addClanPlayerPlayTime(client.playerName, client.clanName, 0);
         }
+
+        // Game type and map play time are not updated for the last snapshot
+        // since both are already created.
 
         setPlayerClan(client.playerName, client.clanName, lastSnapshot.createdAt);
       }
@@ -380,6 +398,46 @@ export const updatePlayTimes: Task = async () => {
 
   if (process.env.NODE_ENV !== 'test') {
     console.timeEnd(`Updating ${clanPlayerPlayTime.size} clan player play times`);
+    console.time(`Updating ${gameTypePlayTime.size} game type play times`);
+  }
+
+  await prisma.$transaction(Array.from(gameTypePlayTime.entries()).map(([key, value]) => {
+    const gameTypeName = fromBase64(key);
+
+    return prisma.gameType.update({
+      where: {
+        name: gameTypeName,
+      },
+      data: {
+        playTime: {
+          increment: value,
+        },
+      },
+    });
+  }));
+
+  if (process.env.NODE_ENV !== 'test') {
+    console.timeEnd(`Updating ${gameTypePlayTime.size} game type play times`);
+    console.time(`Updating ${mapPlayTime.size} map play times`);
+  }
+
+  await prisma.$transaction(Array.from(mapPlayTime.entries()).map(([key, value]) => {
+    const mapId = Number(key);
+
+    return prisma.map.update({
+      where: {
+        id: mapId,
+      },
+      data: {
+        playTime: {
+          increment: value,
+        },
+      },
+    });
+  }));
+
+  if (process.env.NODE_ENV !== 'test') {
+    console.timeEnd(`Updating ${mapPlayTime.size} map play times`);
     console.time(`Marking ${snapshotIds.length} snapshots as play timed`);
   }
 
@@ -396,7 +454,6 @@ export const updatePlayTimes: Task = async () => {
 
   if (process.env.NODE_ENV !== 'test') {
     console.timeEnd(`Marking ${snapshotIds.length} snapshots as play timed`);
-    console.timeEnd(`Play timed ${gameServers.length} game servers`);
   }
 
   return TaskRunStatus.INCOMPLETE;

@@ -63,6 +63,7 @@ model GameType {
   createdAt   DateTime     @default(now())
   map         Map[]
   rankMethod  RankMethod?
+  playTime    Int          @default(0)
   playerInfos PlayerInfo[]
   clanInfos   ClanInfo[]
 }
@@ -71,6 +72,7 @@ model Map {
   id        Int      @id @default(autoincrement())
   name      String
   createdAt DateTime @default(now())
+  playTime  Int      @default(0)
 
   gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String

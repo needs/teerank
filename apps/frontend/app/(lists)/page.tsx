@@ -27,11 +27,10 @@ export default async function Index({
               createdAt: true,
               gameServerLast: {
                 select: {
-                  createdAt: true,
                   ip: true,
                   port: true,
-                }
-              }
+                },
+              },
             },
           },
         },
@@ -43,7 +42,7 @@ export default async function Index({
         },
 
         take: 1,
-      }
+      },
     },
     orderBy: {
       playTime: 'desc',
@@ -68,7 +67,7 @@ export default async function Index({
         lastSeen: {
           at: player.gameServerClients[0]?.snapshot.createdAt ?? new Date(),
           lastSnapshot: player.gameServerClients[0]?.snapshot.gameServerLast,
-        }
+        },
       }))}
     />
   );

@@ -52,6 +52,9 @@ model Player {
   gameServerClients GameServerClient[]
   clanPlayerInfos   ClanPlayerInfo[]
 
+  playerInfoMaps      PlayerInfoMap[]
+  playerInfoGameTypes PlayerInfoGameType[]
+
   @@index([playTime(sort: Desc)])
 }
 
@@ -69,6 +72,9 @@ model GameType {
   playerInfos PlayerInfo[]
   clanInfos   ClanInfo[]
 
+  playerInfoGameTypes PlayerInfoGameType[]
+  clanInfoGameTypes   ClanInfoGameType[]
+
   @@index([playTime(sort: Desc)])
 }
 
@@ -81,9 +87,11 @@ model Map {
   gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String
 
-  snapshots   GameServerSnapshot[]
-  playerInfos PlayerInfo[]
-  clanInfos   ClanInfo[]
+  snapshots      GameServerSnapshot[]
+  playerInfos    PlayerInfo[]
+  clanInfos      ClanInfo[]
+  playerInfoMaps PlayerInfoMap[]
+  clanInfoMaps   ClanInfoMap[]
 
   @@unique([name, gameTypeName])
   @@index([playTime(sort: Desc)])
@@ -111,6 +119,46 @@ model PlayerInfo {
   @@index([playTime(sort: Desc)])
 }
 
+model PlayerInfoGameType {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
+  playerName String
+
+  rating   Float?
+  playTime Int    @default(0)
+
+  gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
+  gameTypeName String
+
+  clients GameServerClient[]
+
+  @@unique([playerName, gameTypeName])
+  @@index([playTime(sort: Desc)])
+}
+
+model PlayerInfoMap {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
+  playerName String
+
+  rating   Float?
+  playTime Int    @default(0)
+
+  map   Map @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  mapId Int
+
+  clients GameServerClient[]
+
+  @@unique([playerName, mapId])
+  @@index([playTime(sort: Desc)])
+}
+
 model GameServerClient {
   id Int @id @default(autoincrement())
 
@@ -122,6 +170,16 @@ model GameServerClient {
 
   clan     Clan?   @relation(fields: [clanName], references: [name], onDelete: Cascade)
   clanName String?
+
+  playerInfoGameType   PlayerInfoGameType? @relation(fields: [playerInfoGameTypeId], references: [id], onDelete: Cascade)
+  playerInfoGameTypeId Int?
+  playerInfoMap        PlayerInfoMap?      @relation(fields: [playerInfoMapId], references: [id], onDelete: Cascade)
+  playerInfoMapId      Int?
+
+  clanInfoGameType   ClanInfoGameType? @relation(fields: [clanInfoGameTypeId], references: [id], onDelete: Cascade)
+  clanInfoGameTypeId Int?
+  clanInfoMap        ClanInfoMap?      @relation(fields: [clanInfoMapId], references: [id], onDelete: Cascade)
+  clanInfoMapId      Int?
 
   score   Int
   country Int
@@ -178,6 +236,44 @@ model ClanInfo {
   @@index([playTime(sort: Desc)])
 }
 
+model ClanInfoGameType {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
+  clanName String
+
+  playTime Int @default(0)
+
+  gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
+  gameTypeName String
+
+  clients GameServerClient[]
+
+  @@unique([clanName, gameTypeName])
+  @@index([playTime(sort: Desc)])
+}
+
+model ClanInfoMap {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
+  clanName String
+
+  playTime Int @default(0)
+
+  map   Map @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  mapId Int
+
+  clients GameServerClient[]
+
+  @@unique([clanName, mapId])
+  @@index([playTime(sort: Desc)])
+}
+
 model Clan {
   name String @id
 
@@ -191,6 +287,9 @@ model Clan {
   clients   GameServerClient[]
 
   clanPlayerInfos ClanPlayerInfo[]
+
+  clanInfoGameTypes ClanInfoGameType[]
+  clanInfoMaps      ClanInfoMap[]
 
   @@index([playTime(sort: Desc)])
 }

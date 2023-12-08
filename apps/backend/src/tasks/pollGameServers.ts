@@ -72,6 +72,32 @@ export const pollGameServers: Task = async () => {
       try {
         const gameServerInfo = unpackGameServerInfoPackets(receivedPackets.packets)
 
+        const map = await prisma.map.upsert({
+          select: {
+            id: true,
+          },
+          where: {
+            name_gameTypeName: {
+              name: gameServerInfo.map,
+              gameTypeName: gameServerInfo.gameType,
+            },
+          },
+          update: {},
+          create: {
+            name: gameServerInfo.map,
+            gameType: {
+              connectOrCreate: {
+                create: {
+                  name: gameServerInfo.gameType,
+                },
+                where: {
+                  name: gameServerInfo.gameType,
+                },
+              },
+            },
+          },
+        });
+
         await prisma.gameServerSnapshot.create({
           data: {
             gameServer: {
@@ -90,26 +116,8 @@ export const pollGameServers: Task = async () => {
             name: gameServerInfo.name,
 
             map: {
-              connectOrCreate: {
-                where: {
-                  name_gameTypeName: {
-                    name: gameServerInfo.map,
-                    gameTypeName: gameServerInfo.gameType,
-                  },
-                },
-                create: {
-                  name: gameServerInfo.map,
-                  gameType: {
-                    connectOrCreate: {
-                      where: {
-                        name: gameServerInfo.gameType,
-                      },
-                      create: {
-                        name: gameServerInfo.gameType,
-                      },
-                    },
-                  },
-                },
+              connect: {
+                id: map.id,
               },
             },
             numPlayers: gameServerInfo.numPlayers,
@@ -119,6 +127,8 @@ export const pollGameServers: Task = async () => {
 
             clients: {
               create: gameServerInfo.clients.map((client) => ({
+                playerName: client.name,
+
                 player: {
                   connectOrCreate: {
                     where: {
@@ -129,6 +139,7 @@ export const pollGameServers: Task = async () => {
                     }
                   },
                 },
+
                 clan: client.clan === "" ? undefined : {
                   connectOrCreate: {
                     where: {
@@ -139,6 +150,83 @@ export const pollGameServers: Task = async () => {
                     }
                   }
                 },
+
+                playerInfoGameType: {
+                  connectOrCreate: {
+                    where: {
+                      playerName_gameTypeName: {
+                        playerName: client.name,
+                        gameTypeName: gameServerInfo.gameType,
+                      },
+                    },
+                    create: {
+                      playerName: client.name,
+                      gameType: {
+                        connect: {
+                          name: gameServerInfo.gameType,
+                        },
+                      },
+                    },
+                  },
+                },
+
+                clanInfoGameType: client.clan === "" ? undefined : {
+                  connectOrCreate: {
+                    where: {
+                      clanName_gameTypeName: {
+                        clanName: client.clan,
+                        gameTypeName: gameServerInfo.gameType,
+                      },
+                    },
+                    create: {
+                      clanName: client.clan,
+                      gameType: {
+                        connect: {
+                          name: gameServerInfo.gameType,
+                        },
+                      },
+                    },
+                  },
+                },
+
+                playerInfoMap: {
+                  connectOrCreate: {
+                    where: {
+                      playerName_mapId: {
+                        playerName: client.name,
+                        mapId: map.id,
+                      }
+                    },
+                    create: {
+                      playerName: client.name,
+                      map: {
+                        connect: {
+                          id: map.id,
+                        },
+                      },
+                    },
+                  },
+                },
+
+                clanInfoMap: client.clan === "" ? undefined : {
+                  connectOrCreate: {
+                    where: {
+                      clanName_mapId: {
+                        clanName: client.clan,
+                        mapId: map.id,
+                      }
+                    },
+                    create: {
+                      clanName: client.clan,
+                      map: {
+                        connect: {
+                          id: map.id,
+                        },
+                      },
+                    },
+                  },
+                },
+
                 country: client.country,
                 score: client.score,
                 inGame: client.inGame,

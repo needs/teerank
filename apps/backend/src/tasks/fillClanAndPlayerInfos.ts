@@ -5,28 +5,7 @@ import { prisma } from "../prisma";
 const STEP = 1000;
 
 export const fillClanAndPlayerInfos: Task = async () => {
-  const count = await prisma.gameServerClient.count({
-    where: {
-      OR: [
-        {
-          playerInfoGameType: null,
-        },
-        {
-          clanInfoGameType: null,
-        },
-        {
-          playerInfoMap: null,
-        },
-        {
-          clanInfoMap: null,
-        },
-      ]
-    },
-  });
-
-  for (let i = 0; i < count; i += STEP) {
-    console.log(`Processing ${i} of ${count} (${i / count * 100.0}%)`);
-
+  for (let i = 0; i < 10; i++) {
     const clients = await prisma.gameServerClient.findMany({
       where: {
         OR: [
@@ -63,7 +42,7 @@ export const fillClanAndPlayerInfos: Task = async () => {
     });
 
     if (clients.length === 0) {
-      break;
+      return TaskRunStatus.COMPLETED;
     }
 
     await prisma.$transaction([
@@ -133,5 +112,5 @@ export const fillClanAndPlayerInfos: Task = async () => {
     ]);
   }
 
-  return TaskRunStatus.COMPLETED;
+  return TaskRunStatus.INCOMPLETE;
 }

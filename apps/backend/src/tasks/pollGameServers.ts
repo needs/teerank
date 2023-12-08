@@ -98,6 +98,90 @@ export const pollGameServers: Task = async () => {
           },
         });
 
+        await prisma.player.createMany({
+          data: gameServerInfo.clients.map((client) => ({
+            name: client.name,
+          })),
+          skipDuplicates: true,
+        });
+
+        const uniqClans = [...new Set(gameServerInfo.clients.map((client) => client.clan))];
+
+        await prisma.clan.createMany({
+          data: uniqClans.map((clan) => ({
+            name: clan,
+          })),
+          skipDuplicates: true,
+        });
+
+        const playerInfoGameTypes = await prisma.$transaction(gameServerInfo.clients.map((client) => prisma.playerInfoGameType.upsert({
+          select: {
+            id: true,
+          },
+          where: {
+            playerName_gameTypeName: {
+              playerName: client.name,
+              gameTypeName: gameServerInfo.gameType,
+            },
+          },
+          update: {},
+          create: {
+            playerName: client.name,
+            gameTypeName: gameServerInfo.gameType,
+          },
+        })));
+
+        const clanInfoGameTypes = await prisma.$transaction(uniqClans.map((clan) => prisma.clanInfoGameType.upsert({
+          select: {
+            id: true,
+          },
+          where: {
+            clanName_gameTypeName: {
+              clanName: clan,
+              gameTypeName: gameServerInfo.gameType,
+            },
+          },
+          update: {},
+          create: {
+            clanName: clan,
+            gameTypeName: gameServerInfo.gameType,
+          },
+        })));
+
+        const playerInfoMaps = await prisma.$transaction(gameServerInfo.clients.map((client) => prisma.playerInfoMap.upsert({
+          select: {
+            id: true,
+          },
+          where: {
+            playerName_mapId: {
+              playerName: client.name,
+              mapId: map.id,
+            },
+          },
+          update: {},
+          create: {
+            playerName: client.name,
+            mapId: map.id,
+          },
+        })));
+
+        const clanInfoMaps = await prisma.$transaction(uniqClans.map((clan) => prisma.clanInfoMap.upsert({
+          select: {
+            id: true,
+          },
+          where: {
+            clanName_mapId: {
+              clanName: clan,
+              mapId: map.id,
+            },
+          },
+          update: {},
+          create: {
+            clanName: clan,
+            mapId: map.id,
+          },
+        })));
+
         await prisma.gameServerSnapshot.create({
           data: {
             gameServer: {
@@ -126,106 +210,15 @@ export const pollGameServers: Task = async () => {
             maxClients: gameServerInfo.maxClients,
 
             clients: {
-              create: gameServerInfo.clients.map((client) => ({
+              create: gameServerInfo.clients.map((client, index) => ({
                 playerName: client.name,
+                clanName: client.clan === "" ? undefined : client.clan,
 
-                player: {
-                  connectOrCreate: {
-                    where: {
-                      name: client.name,
-                    },
-                    create: {
-                      name: client.name,
-                    }
-                  },
-                },
+                playerInfoGameTypeId: playerInfoGameTypes[index].id,
+                clanInfoGameTypeId: client.clan === "" ? undefined : clanInfoGameTypes[uniqClans.indexOf(client.clan)].id,
 
-                clan: client.clan === "" ? undefined : {
-                  connectOrCreate: {
-                    where: {
-                      name: client.clan,
-                    },
-                    create: {
-                      name: client.clan,
-                    }
-                  }
-                },
-
-                playerInfoGameType: {
-                  connectOrCreate: {
-                    where: {
-                      playerName_gameTypeName: {
-                        playerName: client.name,
-                        gameTypeName: gameServerInfo.gameType,
-                      },
-                    },
-                    create: {
-                      playerName: client.name,
-                      gameType: {
-                        connect: {
-                          name: gameServerInfo.gameType,
-                        },
-                      },
-                    },
-                  },
-                },
-
-                clanInfoGameType: client.clan === "" ? undefined : {
-                  connectOrCreate: {
-                    where: {
-                      clanName_gameTypeName: {
-                        clanName: client.clan,
-                        gameTypeName: gameServerInfo.gameType,
-                      },
-                    },
-                    create: {
-                      clanName: client.clan,
-                      gameType: {
-                        connect: {
-                          name: gameServerInfo.gameType,
-                        },
-                      },
-                    },
-                  },
-                },
-
-                playerInfoMap: {
-                  connectOrCreate: {
-                    where: {
-                      playerName_mapId: {
-                        playerName: client.name,
-                        mapId: map.id,
-                      }
-                    },
-                    create: {
-                      playerName: client.name,
-                      map: {
-                        connect: {
-                          id: map.id,
-                        },
-                      },
-                    },
-                  },
-                },
-
-                clanInfoMap: client.clan === "" ? undefined : {
-                  connectOrCreate: {
-                    where: {
-                      clanName_mapId: {
-                        clanName: client.clan,
-                        mapId: map.id,
-                      }
-                    },
-                    create: {
-                      clanName: client.clan,
-                      map: {
-                        connect: {
-                          id: map.id,
-                        },
-                      },
-                    },
-                  },
-                },
+                playerInfoMapId: playerInfoMaps[index].id,
+                clanInfoMapId: client.clan === "" ? undefined : clanInfoMaps[uniqClans.indexOf(client.clan)].id,
 
                 country: client.country,
                 score: client.score,

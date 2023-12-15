@@ -29,7 +29,14 @@ const PACKET_GETLIST = Buffer.from([
 export async function pollMasterServers(rangeStart: number, rangeEnd: number) {
   const sockets = setupSockets();
 
-  const masterServers = await prisma.masterServer.findMany();
+  const masterServers = await prisma.masterServer.findMany({
+    where: {
+      id: {
+        gte: rangeStart,
+        lte: rangeEnd,
+      },
+    },
+  });
 
   for (const masterServer of masterServers) {
     console.log(`Polling ${masterServer.address}:${masterServer.port}`);

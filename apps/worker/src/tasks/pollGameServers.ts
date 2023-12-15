@@ -41,7 +41,14 @@ const PACKET_GETINFO64 = Buffer.from([
 export async function pollGameServers(rangeStart: number, rangeEnd: number) {
   const sockets = setupSockets();
 
-  const gameServers = await prisma.gameServer.findMany();
+  const gameServers = await prisma.gameServer.findMany({
+    where: {
+      id: {
+        gte: rangeStart,
+        lte: rangeEnd,
+      },
+    },
+  });
 
   await Promise.all(gameServers.filter((gameServer) => {
     if (gameServer.offlineSince !== null) {

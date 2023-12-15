@@ -2,7 +2,6 @@ import { addMinutes } from "date-fns";
 import { clearDatabase } from "../../testSetup";
 import { prisma } from "../prisma";
 import { updatePlayTimes } from "./updatePlayTime";
-import exp from "constants";
 
 beforeEach(async () => {
   await clearDatabase();

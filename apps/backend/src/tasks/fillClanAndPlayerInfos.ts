@@ -14,12 +14,18 @@ export const fillClanAndPlayerInfos: Task = async () => {
           },
           {
             clanInfoGameType: null,
+            clanName: {
+              not: null,
+            }
           },
           {
             playerInfoMap: null,
           },
           {
             clanInfoMap: null,
+            clanName: {
+              not: null,
+            }
           },
         ]
       },

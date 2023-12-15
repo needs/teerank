@@ -111,8 +111,8 @@ async function checkRatings(expectedRatings: number[]) {
 }
 
 test('Only one snapshot', async () => {
-  await createSnapshot([100, 100]);
-  await rankPlayers();
+  const snapshot = await createSnapshot([100, 100]);
+  await rankPlayers(snapshot.id, snapshot.id);
   await checkRatings([]);
 });
 
@@ -138,7 +138,7 @@ test('Different map', async () => {
     },
   });
 
-  await rankPlayers();
+  await rankPlayers(snapshot1.id, snapshot2.id);
 
   await checkRatings([]);
 });
@@ -166,25 +166,25 @@ test('Different game type', async () => {
     },
   });
 
-  await rankPlayers();
+  await rankPlayers(snapshot1.id, snapshot2.id);
 
   await checkRatings([]);
 });
 
 test('Not enough players', async () => {
-  await createSnapshot([100]);
-  await createSnapshot([101]);
+  const snapshot1 = await createSnapshot([100]);
+  const snapshot2 = await createSnapshot([101]);
 
-  await rankPlayers();
+  await rankPlayers(snapshot1.id, snapshot2.id);
 
   await checkRatings([]);
 });
 
 test('Negative score average', async () => {
-  await createSnapshot([100, 100]);
-  await createSnapshot([98, 98]);
+  const snapshot1 = await createSnapshot([100, 100]);
+  const snapshot2 = await createSnapshot([98, 98]);
 
-  await rankPlayers();
+  await rankPlayers(snapshot1.id, snapshot2.id);
 
   await checkRatings([]);
 });
@@ -202,25 +202,25 @@ test('Big time gap', async () => {
     },
   });
 
-  await rankPlayers();
+  await rankPlayers(snapshot1.id, snapshot2.id);
 
   await checkRatings([]);
 });
 
 test('Two players', async () => {
-  await createSnapshot([100, 100]);
-  await createSnapshot([99, 101]);
+  const snapshot1 = await createSnapshot([100, 100]);
+  const snapshot2 = await createSnapshot([99, 101]);
 
-  await rankPlayers();
+  await rankPlayers(snapshot1.id, snapshot2.id);
 
   await checkRatings([-12.5, 12.5]);
 });
 
 test('Rank order', async () => {
-  await createSnapshot([100, 100]);
-  await createSnapshot([99, 101]);
+  const snapshot1 = await createSnapshot([100, 100]);
+  const snapshot2 = await createSnapshot([99, 101]);
 
-  await rankPlayers();
+  await rankPlayers(snapshot1.id, snapshot2.id);
 
   await checkRatings([-12.5, 12.5]);
 });

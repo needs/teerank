@@ -1,0 +1,14 @@
+-- CreateEnum
+CREATE TYPE "JobType" AS ENUM ('POLL_MASTER_SERVERS', 'POLL_GAME_SERVERS', 'RANK_PLAYERS', 'UPDATE_PLAYTIME');
+
+-- CreateTable
+CREATE TABLE "Job" (
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "jobType" "JobType" NOT NULL,
+    "rangeStart" INTEGER NOT NULL,
+    "rangeEnd" INTEGER NOT NULL,
+    "priority" INTEGER NOT NULL,
+
+    CONSTRAINT "Job_pkey" PRIMARY KEY ("id")
+);

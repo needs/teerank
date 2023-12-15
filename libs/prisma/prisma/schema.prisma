@@ -333,3 +333,19 @@ model TaskRun {
   finishedAt DateTime?
   status     TaskRunStatus?
 }
+
+enum JobType {
+  POLL_MASTER_SERVERS
+  POLL_GAME_SERVERS
+  RANK_PLAYERS
+  UPDATE_PLAYTIME
+}
+
+model Job {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  jobType    JobType
+  rangeStart Int
+  rangeEnd   Int
+  priority   Int
+}

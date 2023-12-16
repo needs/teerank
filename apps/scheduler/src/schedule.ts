@@ -25,7 +25,7 @@ export async function scheduleJobs(jobType: JobType, batchSize: number, minRange
       data: {
         jobType,
         rangeStart: i,
-        rangeEnd: i + batchSize,
+        rangeEnd: i + batchSize - 1,
         priority: jobPriority(jobType),
       },
     });

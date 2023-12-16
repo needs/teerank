@@ -10,42 +10,30 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
   //    - For each client, increase play time
   //    - Mark the snapshot as play timed
 
-  const gameServers = await prisma.gameServer.findMany({
+  const snapshots = await prisma.gameServerSnapshot.findMany({
     select: {
       id: true,
-      snapshots: {
+      createdAt: true,
+      gameServerId: true,
+      mapId: true,
+      map: {
         select: {
-          id: true,
-          createdAt: true,
-          mapId: true,
-          map: {
-            select: {
-              gameTypeName: true,
-            },
-          },
-          clients: {
-            select: {
-              playerName: true,
-              clanName: true,
-            },
-          },
+          gameTypeName: true,
         },
-        where: {
-          playTimedAt: null,
+      },
+      clients: {
+        select: {
+          playerName: true,
+          clanName: true,
         },
-        orderBy: {
-          createdAt: 'asc',
-        },
-        take: 10,
       },
     },
-
     where: {
-      snapshots: {
-        some: {
-          playTimedAt: null,
-        }
+      id: {
+        gte: rangeStart,
+        lte: rangeEnd,
       },
+      playTimedAt: null,
     },
   });
 
@@ -122,68 +110,61 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
     }
   }
 
-  const snapshotIds = new Array<number>();
-
   if (process.env.NODE_ENV !== 'test') {
-    console.log(`Play timing ${gameServers.length} game servers and ${gameServers.reduce((sum, gameServer) => sum + gameServer.snapshots.length, 0)} snapshots`);
+    console.log(`Play timing ${snapshots.length} snapshots`);
   }
 
-  for (const gameServer of gameServers) {
-    for (let index = 0; index < gameServer.snapshots.length - 1; index++) {
-      const snapshotStart = gameServer.snapshots[index];
-      const snapshotEnd = gameServer.snapshots[index + 1];
+  for (const snapshot of snapshots) {
+    const snapshotBefore = await prisma.gameServerSnapshot.findFirst({
+      select: {
+        id: true,
+        createdAt: true,
+        mapId: true,
+        map: {
+          select: {
+            gameTypeName: true,
+          },
+        },
+        clients: {
+          select: {
+            playerName: true,
+            clanName: true,
+          },
+        },
+      },
+      where: {
+        createdAt: {
+          lt: snapshot.createdAt,
+        },
+        gameServerId: snapshot.gameServerId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    }) ?? snapshot;
 
-      const deltaSecond = differenceInSeconds(snapshotEnd.createdAt, snapshotStart.createdAt);
-      const deltaPlayTime = deltaSecond > 10 * 60 ? 5 * 60 : deltaSecond;
-      const clients = removeDuplicatedClients(snapshotStart.clients);
+    const deltaSecond = differenceInSeconds(snapshot.createdAt, snapshotBefore.createdAt);
+    const deltaPlayTime = deltaSecond > 10 * 60 ? 5 * 60 : deltaSecond;
+    const clients = removeDuplicatedClients(snapshotBefore.clients);
 
-      for (const client of clients) {
-        addPlayerPlayTimeMap(snapshotStart.mapId, client.playerName, deltaPlayTime);
-        addPlayerPlayTimeGameType(snapshotStart.map.gameTypeName, client.playerName, deltaPlayTime);
-        addPlayerPlayTime(client.playerName, deltaPlayTime);
+    for (const client of clients) {
+      addPlayerPlayTimeMap(snapshotBefore.mapId, client.playerName, deltaPlayTime);
+      addPlayerPlayTimeGameType(snapshotBefore.map.gameTypeName, client.playerName, deltaPlayTime);
+      addPlayerPlayTime(client.playerName, deltaPlayTime);
 
-        if (client.clanName !== null) {
-          addClanPlayTimeMap(snapshotStart.mapId, client.clanName, deltaPlayTime);
-          addClanPlayTimeGameType(snapshotStart.map.gameTypeName, client.clanName, deltaPlayTime);
-          addClanPlayTime(client.clanName, deltaPlayTime);
+      if (client.clanName !== null) {
+        addClanPlayTimeMap(snapshotBefore.mapId, client.clanName, deltaPlayTime);
+        addClanPlayTimeGameType(snapshotBefore.map.gameTypeName, client.clanName, deltaPlayTime);
+        addClanPlayTime(client.clanName, deltaPlayTime);
 
-          addClanPlayerPlayTime(client.playerName, client.clanName, deltaPlayTime);
-        }
-
-        setPlayerClan(client.playerName, client.clanName, snapshotStart.createdAt);
+        addClanPlayerPlayTime(client.playerName, client.clanName, deltaPlayTime);
       }
 
-      addGameTypePlayTime(snapshotStart.map.gameTypeName, deltaPlayTime * clients.length);
-      addMapPlayTime(snapshotStart.mapId, deltaPlayTime * clients.length);
-
-      snapshotIds.push(snapshotStart.id);
+      setPlayerClan(client.playerName, client.clanName, snapshotBefore.createdAt);
     }
 
-    // Still process last snapshot clients so that player info, clan info and
-    // player clan are created/updated.
-    if (gameServer.snapshots.length > 0) {
-      const lastSnapshot = gameServer.snapshots[gameServer.snapshots.length - 1];
-      const clients = removeDuplicatedClients(lastSnapshot.clients);
-
-      for (const client of clients) {
-        addPlayerPlayTimeMap(lastSnapshot.mapId, client.playerName, 0);
-        addPlayerPlayTimeGameType(lastSnapshot.map.gameTypeName, client.playerName, 0);
-        addPlayerPlayTime(client.playerName, 0);
-
-        if (client.clanName !== null) {
-          addClanPlayTimeMap(lastSnapshot.mapId, client.clanName, 0);
-          addClanPlayTimeGameType(lastSnapshot.map.gameTypeName, client.clanName, 0);
-          addClanPlayTime(client.clanName, 0);
-
-          addClanPlayerPlayTime(client.playerName, client.clanName, 0);
-        }
-
-        // Game type and map play time are not updated for the last snapshot
-        // since both are already created.
-
-        setPlayerClan(client.playerName, client.clanName, lastSnapshot.createdAt);
-      }
-    }
+    addGameTypePlayTime(snapshotBefore.map.gameTypeName, deltaPlayTime * clients.length);
+    addMapPlayTime(snapshotBefore.mapId, deltaPlayTime * clients.length);
   }
 
   // Since a lot of entries can be updated at once, upserting one by one is too slow.
@@ -450,13 +431,14 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
 
   if (process.env.NODE_ENV !== 'test') {
     console.timeEnd(`Updating ${mapPlayTime.size} map play times`);
-    console.time(`Marking ${snapshotIds.length} snapshots as play timed`);
+    console.time(`Marking ${snapshots.length} snapshots as play timed`);
   }
 
   await prisma.gameServerSnapshot.updateMany({
     where: {
       id: {
-        in: snapshotIds,
+        gte: rangeStart,
+        lte: rangeEnd,
       }
     },
     data: {
@@ -465,6 +447,6 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
   });
 
   if (process.env.NODE_ENV !== 'test') {
-    console.timeEnd(`Marking ${snapshotIds.length} snapshots as play timed`);
+    console.timeEnd(`Marking ${snapshots.length} snapshots as play timed`);
   }
 }

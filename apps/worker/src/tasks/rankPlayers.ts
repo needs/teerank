@@ -237,8 +237,7 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
     prisma.gameServerSnapshot.updateMany({
       where: {
         id: {
-          lte: rangeEnd,
-          gte: rangeStart,
+          in: snapshots.map((snapshot) => snapshot.id),
         },
         map: {
           gameType: {

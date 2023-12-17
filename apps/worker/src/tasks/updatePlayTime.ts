@@ -437,8 +437,7 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
   await prisma.gameServerSnapshot.updateMany({
     where: {
       id: {
-        gte: rangeStart,
-        lte: rangeEnd,
+        in: snapshots.map((snapshot) => snapshot.id),
       }
     },
     data: {

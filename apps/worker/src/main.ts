@@ -4,6 +4,7 @@ import { pollMasterServers } from "./tasks/pollMasterServers";
 import { pollGameServers } from "./tasks/pollGameServers";
 import { rankPlayers } from "./tasks/rankPlayers";
 import { updatePlayTimes } from "./tasks/updatePlayTime";
+import { secondsToMilliseconds } from "date-fns";
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -18,7 +19,7 @@ async function main() {
     });
 
     if (job === null) {
-      await sleep(5000);
+      await sleep(secondsToMilliseconds(5));
       continue;
     }
 
@@ -31,6 +32,9 @@ async function main() {
     } catch (e) {
       continue;
     }
+
+    console.log(`Job ${job.jobType} (${job.rangeStart} - ${job.rangeEnd})`);
+    console.time(`Job ${job.jobType} (${job.rangeStart} - ${job.rangeEnd})`);
 
     switch (job.jobType) {
       case JobType.POLL_MASTER_SERVERS:
@@ -46,6 +50,8 @@ async function main() {
         await updatePlayTimes(job.rangeStart, job.rangeEnd);
         break;
     }
+
+    console.timeEnd(`Job ${job.jobType} (${job.rangeStart} - ${job.rangeEnd})`);
   }
 }
 

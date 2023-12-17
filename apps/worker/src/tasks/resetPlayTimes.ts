@@ -3,13 +3,25 @@ import { Task } from "../task";
 import { prisma } from "../prisma";
 
 export const resetPlayTimes: Task = async () => {
-  await prisma.clanInfo.updateMany({
+  await prisma.clanInfoGameType.updateMany({
     data: {
       playTime: 0,
     },
   });
 
-  await prisma.playerInfo.updateMany({
+  await prisma.clanInfoMap.updateMany({
+    data: {
+      playTime: 0,
+    },
+  });
+
+  await prisma.playerInfoGameType.updateMany({
+    data: {
+      playTime: 0,
+    },
+  });
+
+  await prisma.playerInfoMap.updateMany({
     data: {
       playTime: 0,
     },

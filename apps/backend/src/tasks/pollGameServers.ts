@@ -214,12 +214,6 @@ export const pollGameServers: Task = async () => {
                 playerName: client.name,
                 clanName: client.clan === "" ? undefined : client.clan,
 
-                playerInfoGameTypeId: playerInfoGameTypes[index].id,
-                clanInfoGameTypeId: client.clan === "" ? undefined : clanInfoGameTypes[uniqClans.indexOf(client.clan)].id,
-
-                playerInfoMapId: playerInfoMaps[index].id,
-                clanInfoMapId: client.clan === "" ? undefined : clanInfoMaps[uniqClans.indexOf(client.clan)].id,
-
                 country: client.country,
                 score: client.score,
                 inGame: client.inGame,

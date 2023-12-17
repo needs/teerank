@@ -1,6 +1,7 @@
 import { JobType } from "@prisma/client";
 import { prisma } from "../prisma";
 import { scheduleJobs } from "../schedule";
+import { subMinutes } from "date-fns";
 
 const BATCH_SIZE = 100;
 
@@ -12,6 +13,13 @@ export async function scheduleGameServersPolling() {
     _max: {
       id: true
     },
+    where: {
+      lastSnapshot: {
+        createdAt: {
+          lt: subMinutes(new Date(), 5),
+        }
+      }
+    }
   });
 
   if (results._min.id !== null && results._max.id !== null) {

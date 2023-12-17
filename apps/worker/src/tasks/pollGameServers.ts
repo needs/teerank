@@ -217,15 +217,9 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
             maxClients: gameServerInfo.maxClients,
 
             clients: {
-              create: gameServerInfo.clients.map((client, index) => ({
+              create: gameServerInfo.clients.map((client) => ({
                 playerName: client.name,
                 clanName: client.clan === "" ? undefined : client.clan,
-
-                playerInfoGameTypeId: playerInfoGameTypes[index].id,
-                clanInfoGameTypeId: client.clan === "" ? undefined : clanInfoGameTypes[uniqClans.indexOf(client.clan)].id,
-
-                playerInfoMapId: playerInfoMaps[index].id,
-                clanInfoMapId: client.clan === "" ? undefined : clanInfoMaps[uniqClans.indexOf(client.clan)].id,
 
                 country: client.country,
                 score: client.score,

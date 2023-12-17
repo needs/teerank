@@ -38,20 +38,7 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
   for (const snapshot of snapshots) {
     const snapshotBefore = await prisma.gameServerSnapshot.findFirst({
       select: {
-        id: true,
         createdAt: true,
-        mapId: true,
-        map: {
-          select: {
-            gameTypeName: true,
-          },
-        },
-        clients: {
-          select: {
-            playerName: true,
-            clanName: true,
-          },
-        },
       },
       where: {
         createdAt: {
@@ -62,9 +49,9 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
       orderBy: {
         createdAt: 'desc',
       },
-    }) ?? snapshot;
+    });
 
-    const deltaSecond = differenceInSeconds(snapshot.createdAt, snapshotBefore.createdAt);
+    const deltaSecond = snapshotBefore === null ? 0 : differenceInSeconds(snapshot.createdAt, snapshotBefore.createdAt);
     const deltaPlayTime = deltaSecond > 10 * 60 ? 5 * 60 : deltaSecond;
     const clients = removeDuplicatedClients(snapshot.clients);
 

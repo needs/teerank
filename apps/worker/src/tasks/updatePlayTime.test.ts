@@ -1,4 +1,4 @@
-import { addMinutes } from "date-fns";
+import { addMinutes, subMinutes } from "date-fns";
 import { clearDatabase } from "../../testSetup";
 import { prisma } from "../prisma";
 import { updatePlayTimes } from "./updatePlayTime";
@@ -245,4 +245,72 @@ test('Two players, different clan', async () => {
 
   await updatePlayTimes(snapshot1.id, snapshot2.id);
   await checkPlayTimes([5 * 60, 5 * 60], [5 * 60, 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);
+});
+
+test('New player clan', async () => {
+  const snapshot = await createSnapshot(new Date(), 1, 1);
+
+  const playerBefore = await prisma.player.update({
+    select: {
+      clanName: true,
+      clanSnapshotCreatedAt: true,
+    },
+    where: {
+      name: 'player0',
+    },
+    data: {
+      clanSnapshotCreatedAt: subMinutes(snapshot.createdAt, 1),
+    },
+  });
+
+  expect(playerBefore.clanName).toBeNull();
+
+  await updatePlayTimes(snapshot.id, snapshot.id);
+
+  const playerAfter = await prisma.player.findUniqueOrThrow({
+    where: {
+      name: 'player0',
+    },
+    select: {
+      clanName: true,
+      clanSnapshotCreatedAt: true,
+    },
+  });
+
+  expect(playerAfter.clanName).toEqual('clan0');
+  expect(playerAfter.clanSnapshotCreatedAt).toEqual(snapshot.createdAt);
+});
+
+test('Outdated player clan', async () => {
+  const snapshot = await createSnapshot(new Date(), 1, 1);
+
+  const playerBefore = await prisma.player.update({
+    select: {
+      clanName: true,
+      clanSnapshotCreatedAt: true,
+    },
+    where: {
+      name: 'player0',
+    },
+    data: {
+      clanSnapshotCreatedAt: addMinutes(snapshot.createdAt, 1),
+    },
+  });
+
+  expect(playerBefore.clanName).toBeNull();
+
+  await updatePlayTimes(snapshot.id, snapshot.id);
+
+  const playerAfter = await prisma.player.findUniqueOrThrow({
+    where: {
+      name: 'player0',
+    },
+    select: {
+      clanName: true,
+      clanSnapshotCreatedAt: true,
+    },
+  });
+
+  expect(playerBefore.clanName).toBeNull();
+  expect(playerAfter.clanSnapshotCreatedAt).toEqual(playerBefore.clanSnapshotCreatedAt);
 });

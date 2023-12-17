@@ -43,8 +43,9 @@ model Player {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  clan     Clan?   @relation(fields: [clanName], references: [name])
-  clanName String?
+  clan                  Clan?    @relation(fields: [clanName], references: [name])
+  clanName              String?
+  clanSnapshotCreatedAt DateTime @default(now())
 
   playTime Int @default(0)
 

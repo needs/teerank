@@ -24,6 +24,11 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
       clients: {
         select: {
           playerName: true,
+          player: {
+            select: {
+              clanSnapshotCreatedAt: true,
+            }
+          },
           clanName: true,
         },
       },
@@ -145,26 +150,28 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
 
     const deltaSecond = differenceInSeconds(snapshot.createdAt, snapshotBefore.createdAt);
     const deltaPlayTime = deltaSecond > 10 * 60 ? 5 * 60 : deltaSecond;
-    const clients = removeDuplicatedClients(snapshotBefore.clients);
+    const clients = removeDuplicatedClients(snapshot.clients);
 
     for (const client of clients) {
-      addPlayerPlayTimeMap(snapshotBefore.mapId, client.playerName, deltaPlayTime);
-      addPlayerPlayTimeGameType(snapshotBefore.map.gameTypeName, client.playerName, deltaPlayTime);
+      addPlayerPlayTimeMap(snapshot.mapId, client.playerName, deltaPlayTime);
+      addPlayerPlayTimeGameType(snapshot.map.gameTypeName, client.playerName, deltaPlayTime);
       addPlayerPlayTime(client.playerName, deltaPlayTime);
 
       if (client.clanName !== null) {
-        addClanPlayTimeMap(snapshotBefore.mapId, client.clanName, deltaPlayTime);
-        addClanPlayTimeGameType(snapshotBefore.map.gameTypeName, client.clanName, deltaPlayTime);
+        addClanPlayTimeMap(snapshot.mapId, client.clanName, deltaPlayTime);
+        addClanPlayTimeGameType(snapshot.map.gameTypeName, client.clanName, deltaPlayTime);
         addClanPlayTime(client.clanName, deltaPlayTime);
 
         addClanPlayerPlayTime(client.playerName, client.clanName, deltaPlayTime);
       }
 
-      setPlayerClan(client.playerName, client.clanName, snapshotBefore.createdAt);
+      if (client.player.clanSnapshotCreatedAt < snapshot.createdAt) {
+        setPlayerClan(client.playerName, client.clanName, snapshot.createdAt);
+      }
     }
 
-    addGameTypePlayTime(snapshotBefore.map.gameTypeName, deltaPlayTime * clients.length);
-    addMapPlayTime(snapshotBefore.mapId, deltaPlayTime * clients.length);
+    addGameTypePlayTime(snapshot.map.gameTypeName, deltaPlayTime * clients.length);
+    addMapPlayTime(snapshot.mapId, deltaPlayTime * clients.length);
   }
 
   // Since a lot of entries can be updated at once, upserting one by one is too slow.
@@ -343,6 +350,7 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
         name: playerName,
       },
       data: {
+        clanSnapshotCreatedAt: value.date,
         clan: clanName === null ? {
           disconnect: true
         } : {

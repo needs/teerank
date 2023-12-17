@@ -348,4 +348,6 @@ model Job {
   rangeStart Int
   rangeEnd   Int
   priority   Int
+
+  @@unique([jobType, rangeStart, rangeEnd])
 }

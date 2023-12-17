@@ -1,84 +1,62 @@
 import { RankMethod } from "@prisma/client";
 import { prisma } from "../prisma";
 import { fromBase64, toBase64 } from "../utils";
-import groupBy from "lodash.groupby";
 import { rankPlayersElo } from "../rankMethods/rankPlayersElo";
 import { rankPlayersTime } from "../rankMethods/rankPlayersTime";
 
-export type SnapshotToRank = Awaited<ReturnType<typeof getGameServers>>[number]['snapshots'][number];
+export type SnapshotToRank = Awaited<ReturnType<typeof getSnapshots>>[number];
 
 export type RankFunctionArgs = {
-  snapshots: SnapshotToRank[],
+  snapshot: SnapshotToRank,
   getMapRating: (mapId: number, playerName: string) => number | undefined,
   setMapRating: (mapId: number, playerName: string, rating: number) => void,
   getGameTypeRating: (gameTypeName: string, playerName: string) => number | undefined,
   setGameTypeRating: (gameTypeName: string, playerName: string, rating: number) => void,
-  markAsRanked: (snapshotId: number) => void
 };
 
-async function getGameServers() {
-  return await prisma.gameServer.findMany({
+async function getSnapshots(rangeStart: number, rangeEnd: number) {
+  return await prisma.gameServerSnapshot.findMany({
     where: {
-      snapshots: {
-        some: {
-          rankedAt: null,
-          AND: {
-            map: {
-              gameType: {
-                rankMethod: {
-                  not: null,
-                },
-              },
-            },
-          }
-        }
-      }
+      id: {
+        gte: rangeStart,
+        lte: rangeEnd,
+      },
+      map: {
+        gameType: {
+          rankMethod: {
+            not: null,
+          },
+        },
+      },
     },
     select: {
-      snapshots: {
+      id: true,
+      createdAt: true,
+      gameServerId: true,
+      clients: {
         where: {
-          rankedAt: null,
-          map: {
-            gameType: {
-              rankMethod: {
-                not: null,
-              },
-            },
-          },
+          playerName: {
+            // Don't rank connecting players because their score is meaningless.
+            not: "(connecting)",
+          }
         },
         select: {
-          id: true,
-          createdAt: true,
-          clients: {
-            where: {
-              playerName: {
-                // Don't rank connecting players because their score is meaningless.
-                not: "(connecting)",
-              }
-            },
+          playerName: true,
+          score: true,
+          inGame: true,
+        }
+      },
+      mapId: true,
+      map: {
+        select: {
+          gameTypeName: true,
+          gameType: {
             select: {
-              playerName: true,
-              score: true,
-              inGame: true,
+              rankMethod: true,
             }
           },
-          mapId: true,
-          map: {
-            select: {
-              gameTypeName: true,
-              gameType: {
-                select: {
-                  rankMethod: true,
-                }
-              },
-            },
-          },
         },
-        orderBy: {
-          createdAt: 'asc',
-        },
-        take: 10,
-      }
+      },
     },
   });
 }
@@ -88,7 +66,7 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
     console.time(`Loading snapshots`);
   }
 
-  const gameServers = await getGameServers();
+  const snapshots = await getSnapshots(rangeStart, rangeEnd);
 
   if (process.env.NODE_ENV !== 'test') {
     console.timeEnd(`Loading snapshots`);
@@ -101,11 +79,9 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
   const getGameTypeRating = (gameTypeName: string, playerName: string) => ratingByGameType.get(gameTypeKey(gameTypeName, playerName));
   const setGameTypeRating = (gameTypeName: string, playerName: string, rating: number | undefined) => ratingByGameType.set(gameTypeKey(gameTypeName, playerName), rating);
 
-  for (const gameServer of gameServers) {
-    for (const snapshot of gameServer.snapshots) {
-      for (const client of snapshot.clients) {
-        setGameTypeRating(snapshot.map.gameTypeName, client.playerName, undefined);
-      }
+  for (const snapshot of snapshots) {
+    for (const client of snapshot.clients) {
+      setGameTypeRating(snapshot.map.gameTypeName, client.playerName, undefined);
     }
   }
 
@@ -153,11 +129,9 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
   const getMapRating = (mapId: number, playerName: string) => ratingByMap.get(mapKey(mapId, playerName));
   const setMapRating = (mapId: number, playerName: string, rating: number | undefined) => ratingByMap.set(mapKey(mapId, playerName), rating);
 
-  for (const gameServer of gameServers) {
-    for (const snapshot of gameServer.snapshots) {
-      for (const client of snapshot.clients) {
-        setMapRating(snapshot.mapId, client.playerName, undefined);
-      }
+  for (const snapshot of snapshots) {
+    for (const client of snapshot.clients) {
+      setMapRating(snapshot.mapId, client.playerName, undefined);
     }
   }
 
@@ -166,7 +140,6 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
       const [mapIdEncoded, playerNameEncoded] = key.split(':');
       const mapId = Number(mapIdEncoded);
       const playerName = fromBase64(playerNameEncoded);
-
 
       return prisma.playerInfo.upsert({
         where: {
@@ -200,27 +173,22 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
     console.time(`Ranking snapshots`);
   }
 
-  const rankedSnapshotIds: number[] = [];
-  const markAsRanked = (snapshotId: number) => rankedSnapshotIds.push(snapshotId);
+  for (const snapshot of snapshots) {
+    const rankFunctionArgs = {
+      snapshot,
+      getMapRating,
+      setMapRating,
+      getGameTypeRating,
+      setGameTypeRating,
+    }
 
-  for (const gameServer of gameServers) {
-    const snapshotsPerRankMethod = groupBy(gameServer.snapshots, (snapshot) => snapshot.map.gameType.rankMethod);
-
-    for (const [rankMethod, snapshots] of Object.entries(snapshotsPerRankMethod)) {
-      const rankFunctionArgs = {
-        snapshots,
-        getMapRating,
-        setMapRating,
-        getGameTypeRating,
-        setGameTypeRating,
-        markAsRanked,
-      }
-
-      if (rankMethod === RankMethod.ELO) {
-        rankPlayersElo(rankFunctionArgs);
-      } else if (rankMethod === RankMethod.TIME) {
-        rankPlayersTime(rankFunctionArgs);
-      }
+    switch (snapshot.map.gameType.rankMethod) {
+      case RankMethod.ELO:
+        await rankPlayersElo(rankFunctionArgs);
+        break;
+      case RankMethod.TIME:
+        await rankPlayersTime(rankFunctionArgs);
+        break;
     }
   }
 
@@ -269,8 +237,16 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
     prisma.gameServerSnapshot.updateMany({
       where: {
         id: {
-          in: rankedSnapshotIds,
+          lte: rangeEnd,
+          gte: rangeStart,
         },
+        map: {
+          gameType: {
+            rankMethod: {
+              not: null,
+            },
+          },
+        }
       },
       data: {
         rankedAt: new Date(),

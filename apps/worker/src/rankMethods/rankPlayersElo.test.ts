@@ -77,21 +77,7 @@ async function createSnapshot(scores: number[]) {
   });
 }
 
-async function checkRatings(expectedRatings: number[]) {
-  const mapPlayerInfos = await prisma.playerInfo.findMany({
-    select: {
-      rating: true,
-    },
-    where: {
-      map: {
-        isNot: null,
-      }
-    },
-    orderBy: {
-      playerName: 'asc',
-    },
-  });
-
+async function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: number[]) {
   const gameTypePlayerInfos = await prisma.playerInfo.findMany({
     select: {
       rating: true,
@@ -106,14 +92,28 @@ async function checkRatings(expectedRatings: number[]) {
     },
   });
 
-  expect(mapPlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual(expectedRatings);
-  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual(expectedRatings);
+  const mapPlayerInfos = await prisma.playerInfo.findMany({
+    select: {
+      rating: true,
+    },
+    where: {
+      map: {
+        isNot: null,
+      }
+    },
+    orderBy: {
+      playerName: 'asc',
+    },
+  });
+
+  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual(expectedRatingsGameType);
+  expect(mapPlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual(expectedRatingsMap);
 }
 
 test('Only one snapshot', async () => {
   const snapshot = await createSnapshot([100, 100]);
   await rankPlayers(snapshot.id, snapshot.id);
-  await checkRatings([]);
+  await checkRatings([0, 0], [0, 0]);
 });
 
 test('Different map', async () => {
@@ -140,7 +140,7 @@ test('Different map', async () => {
 
   await rankPlayers(snapshot1.id, snapshot2.id);
 
-  await checkRatings([]);
+  await checkRatings([0, 0], [0, 0, 0, 0]);
 });
 
 test('Different game type', async () => {
@@ -168,7 +168,7 @@ test('Different game type', async () => {
 
   await rankPlayers(snapshot1.id, snapshot2.id);
 
-  await checkRatings([]);
+  await checkRatings([0, 0, 0, 0], [0, 0, 0, 0]);
 });
 
 test('Not enough players', async () => {
@@ -177,7 +177,7 @@ test('Not enough players', async () => {
 
   await rankPlayers(snapshot1.id, snapshot2.id);
 
-  await checkRatings([]);
+  await checkRatings([0], [0]);
 });
 
 test('Negative score average', async () => {
@@ -186,7 +186,7 @@ test('Negative score average', async () => {
 
   await rankPlayers(snapshot1.id, snapshot2.id);
 
-  await checkRatings([]);
+  await checkRatings([0, 0], [0, 0]);
 });
 
 test('Big time gap', async () => {
@@ -204,7 +204,7 @@ test('Big time gap', async () => {
 
   await rankPlayers(snapshot1.id, snapshot2.id);
 
-  await checkRatings([]);
+  await checkRatings([0, 0], [0, 0]);
 });
 
 test('Two players', async () => {
@@ -213,7 +213,7 @@ test('Two players', async () => {
 
   await rankPlayers(snapshot1.id, snapshot2.id);
 
-  await checkRatings([-12.5, 12.5]);
+  await checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });
 
 test('Rank order', async () => {
@@ -222,5 +222,5 @@ test('Rank order', async () => {
 
   await rankPlayers(snapshot1.id, snapshot2.id);
 
-  await checkRatings([-12.5, 12.5]);
+  await checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });

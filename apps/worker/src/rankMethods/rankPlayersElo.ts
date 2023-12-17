@@ -1,5 +1,6 @@
 import { differenceInMinutes } from "date-fns";
 import { RankFunctionArgs, SnapshotToRank } from "../tasks/rankPlayers";
+import { prisma } from "../prisma";
 
 type ScoreDeltas = Map<string, number>;
 
@@ -89,45 +90,85 @@ function updateRatings(
 type TemporaryRatings = { playerName: string, rating: number }[];
 
 export const rankPlayersElo = async ({
-  snapshots,
+  snapshot,
   getMapRating,
   setMapRating,
   getGameTypeRating,
   setGameTypeRating,
-  markAsRanked,
 }: RankFunctionArgs) => {
-  for (let index = 0; index < snapshots.length - 1; index++) {
-    const snapshotStart = snapshots[index];
-    const snapshotEnd = snapshots[index + 1];
+  const snapshotBefore = await prisma.gameServerSnapshot.findFirst({
+    select: {
+      id: true,
+      createdAt: true,
+      gameServerId: true,
+      clients: {
+        where: {
+          playerName: {
+            // Don't rank connecting players because their score is meaningless.
+            not: "(connecting)",
+          }
+        },
+        select: {
+          playerName: true,
+          score: true,
+          inGame: true,
+        }
+      },
+      mapId: true,
+      map: {
+        select: {
+          gameTypeName: true,
+          gameType: {
+            select: {
+              rankMethod: true,
+            }
+          },
+        },
+      },
+    },
+    where: {
+      createdAt: {
+        lt: snapshot.createdAt,
+      },
+      gameServerId: snapshot.gameServerId,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  }) ?? snapshot;
 
-    const scoreDeltas = getScoreDeltas(snapshotStart, snapshotEnd);
+  for (const client of snapshot.clients) {
+    const rating = getMapRating(snapshot.mapId, client.playerName) ?? 0;
+    setMapRating(snapshot.mapId, client.playerName, rating);
 
-    if (scoreDeltas !== undefined) {
-      const newMapRatings: TemporaryRatings = [];
+    const ratingGameType = getGameTypeRating(snapshot.map.gameTypeName, client.playerName) ?? 0;
+    setGameTypeRating(snapshot.map.gameTypeName, client.playerName, ratingGameType);
+  }
 
-      updateRatings(
-        scoreDeltas,
-        (playerName) => getMapRating(snapshotStart.mapId, playerName),
-        (playerName, rating) => newMapRatings.push({ playerName, rating })
-      );
+  const scoreDeltas = getScoreDeltas(snapshotBefore, snapshot);
+  if (scoreDeltas !== undefined) {
+    const newMapRatings: TemporaryRatings = [];
 
-      for (const { playerName, rating } of newMapRatings) {
-        setMapRating(snapshotStart.mapId, playerName, rating);
-      }
+    updateRatings(
+      scoreDeltas,
+      (playerName) => getMapRating(snapshot.mapId, playerName),
+      (playerName, rating) => newMapRatings.push({ playerName, rating })
+    );
 
-      const newGameTypeRatings: TemporaryRatings = [];
-
-      updateRatings(
-        scoreDeltas,
-        (playerName) => getGameTypeRating(snapshotStart.map.gameTypeName, playerName),
-        (playerName, rating) => newGameTypeRatings.push({ playerName, rating })
-      );
-
-      for (const { playerName, rating } of newGameTypeRatings) {
-        setGameTypeRating(snapshotStart.map.gameTypeName, playerName, rating);
-      }
+    for (const { playerName, rating } of newMapRatings) {
+      setMapRating(snapshot.mapId, playerName, rating);
     }
 
-    markAsRanked(snapshotStart.id);
+    const newGameTypeRatings: TemporaryRatings = [];
+
+    updateRatings(
+      scoreDeltas,
+      (playerName) => getGameTypeRating(snapshot.map.gameTypeName, playerName),
+      (playerName, rating) => newGameTypeRatings.push({ playerName, rating })
+    );
+
+    for (const { playerName, rating } of newGameTypeRatings) {
+      setGameTypeRating(snapshot.map.gameTypeName, playerName, rating);
+    }
   }
 }

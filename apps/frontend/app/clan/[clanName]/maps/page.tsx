@@ -24,17 +24,11 @@ export default async function Index({
     select: {
       _count: {
         select: {
-          clanInfos: {
-            where: {
-              map: {
-                isNot: null,
-              },
-            },
-          },
+          clanInfoMaps: true,
         },
       },
 
-      clanInfos: {
+      clanInfoMaps: {
         select: {
           map: {
             select: {
@@ -43,11 +37,6 @@ export default async function Index({
             },
           },
           playTime: true,
-        },
-        where: {
-          map: {
-            isNot: null,
-          },
         },
         orderBy: {
           playTime: 'desc',
@@ -65,12 +54,12 @@ export default async function Index({
 
   return (
     <MapList
-      mapCount={clan._count.clanInfos}
-      maps={clan.clanInfos.map((clanInfo, index) => ({
+      mapCount={clan._count.clanInfoMaps}
+      maps={clan.clanInfoMaps.map((clanInfoMap, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: clanInfo.map?.name ?? '',
-        gameTypeName: clanInfo.map?.gameTypeName ?? '',
-        playTime: clanInfo.playTime,
+        name: clanInfoMap.map?.name ?? '',
+        gameTypeName: clanInfoMap.map?.gameTypeName ?? '',
+        playTime: clanInfoMap.playTime,
       }))}
     />
   );

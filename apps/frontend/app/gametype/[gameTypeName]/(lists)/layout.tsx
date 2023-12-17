@@ -12,14 +12,14 @@ export default async function Index({
   const { gameTypeName } = paramsSchema.parse(params);
 
   const counts = await prisma.$transaction([
-    prisma.playerInfo.count({
+    prisma.playerInfoGameType.count({
       where: {
         gameType: {
           name: { equals: gameTypeName },
         },
       },
     }),
-    prisma.clanInfo.count({
+    prisma.clanInfoGameType.count({
       where: {
         gameType: {
           name: { equals: gameTypeName },

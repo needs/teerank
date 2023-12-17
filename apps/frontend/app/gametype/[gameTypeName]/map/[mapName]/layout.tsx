@@ -11,7 +11,7 @@ export default async function Index({
 }) {
   const { gameTypeName, mapName } = paramsSchema.parse(params);
 
-  const playerCount = await prisma.playerInfo.count({
+  const playerCount = await prisma.playerInfoMap.count({
     where: {
       map: {
         name: { equals: mapName },
@@ -20,7 +20,7 @@ export default async function Index({
     },
   });
 
-  const clanCount = await prisma.clanInfo.count({
+  const clanCount = await prisma.clanInfoMap.count({
     where: {
       map: {
         name: { equals: mapName },

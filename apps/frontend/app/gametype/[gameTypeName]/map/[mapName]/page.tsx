@@ -27,10 +27,10 @@ export default async function Index({
       },
       _count: {
         select: {
-          playerInfos: true,
+          playerInfoMaps: true,
         },
       },
-      playerInfos: {
+      playerInfoMaps: {
         select: {
           rating: true,
           player: {
@@ -70,14 +70,14 @@ export default async function Index({
 
   return (
     <PlayerList
-    playerCount={map._count.playerInfos}
+    playerCount={map._count.playerInfoMaps}
       rankMethod={map.gameType.rankMethod}
-      players={map.playerInfos.map((playerInfo, index) => ({
+      players={map.playerInfoMaps.map((playerInfoMap, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: playerInfo.player.name,
-        clan: playerInfo.player.clanName ?? undefined,
-        rating: playerInfo.rating ?? undefined,
-        playTime: playerInfo.playTime,
+        name: playerInfoMap.player.name,
+        clan: playerInfoMap.player.clanName ?? undefined,
+        rating: playerInfoMap.rating ?? undefined,
+        playTime: playerInfoMap.playTime,
       }))}
     />
   );

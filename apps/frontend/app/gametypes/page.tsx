@@ -22,9 +22,9 @@ export default async function Index({
       playTime: true,
       _count: {
         select: {
-          playerInfos: true,
+          playerInfoGameTypes: true,
           map: true,
-          clanInfos: true,
+          clanInfoGameTypes: true,
         },
       },
       map: {
@@ -45,7 +45,7 @@ export default async function Index({
     },
     orderBy: [
       {
-        playerInfos: {
+        playerInfoGameTypes: {
           _count: 'desc',
         },
       },
@@ -118,14 +118,14 @@ export default async function Index({
             />
             <ListCell
               alignRight
-              label={formatInteger(gameType._count.playerInfos)}
+              label={formatInteger(gameType._count.playerInfoGameTypes)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(gameType.name)}`,
               }}
             />
             <ListCell
               alignRight
-              label={formatInteger(gameType._count.clanInfos)}
+              label={formatInteger(gameType._count.clanInfoGameTypes)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
                   gameType.name

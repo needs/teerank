@@ -49,7 +49,6 @@ model Player {
 
   playTime Int @default(0)
 
-  playerInfos       PlayerInfo[]
   gameServerClients GameServerClient[]
   clanPlayerInfos   ClanPlayerInfo[]
 
@@ -70,8 +69,6 @@ model GameType {
   map         Map[]
   rankMethod  RankMethod?
   playTime    Int          @default(0)
-  playerInfos PlayerInfo[]
-  clanInfos   ClanInfo[]
 
   playerInfoGameTypes PlayerInfoGameType[]
   clanInfoGameTypes   ClanInfoGameType[]
@@ -89,34 +86,10 @@ model Map {
   gameTypeName String
 
   snapshots      GameServerSnapshot[]
-  playerInfos    PlayerInfo[]
-  clanInfos      ClanInfo[]
   playerInfoMaps PlayerInfoMap[]
   clanInfoMaps   ClanInfoMap[]
 
   @@unique([name, gameTypeName])
-  @@index([playTime(sort: Desc)])
-}
-
-model PlayerInfo {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
-  playerName String
-
-  map   Map? @relation(fields: [mapId], references: [id], onDelete: Cascade)
-  mapId Int?
-
-  rating   Float?
-  playTime Int    @default(0)
-
-  gameType     GameType? @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
-  gameTypeName String?
-
-  @@unique([playerName, mapId])
-  @@unique([playerName, gameTypeName])
   @@index([playTime(sort: Desc)])
 }
 
@@ -202,27 +175,6 @@ model GameServerSnapshot {
   @@index([playTimedAt])
 }
 
-model ClanInfo {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
-  clanName String
-
-  map   Map? @relation(fields: [mapId], references: [id], onDelete: Cascade)
-  mapId Int?
-
-  playTime Int @default(0)
-
-  gameType     GameType? @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
-  gameTypeName String?
-
-  @@unique([clanName, mapId])
-  @@unique([clanName, gameTypeName])
-  @@index([playTime(sort: Desc)])
-}
-
 model ClanInfoGameType {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -266,7 +218,6 @@ model Clan {
   playTime Int      @default(0)
   players  Player[]
 
-  clanInfos ClanInfo[]
   clients   GameServerClient[]
 
   clanPlayerInfos ClanPlayerInfo[]

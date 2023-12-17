@@ -24,25 +24,14 @@ export default async function Index({
     select: {
       _count: {
         select: {
-          clanInfos: {
-            where: {
-              gameType: {
-                isNot: null,
-              },
-            },
-          },
+          clanInfoGameTypes: true,
         },
       },
 
-      clanInfos: {
+      clanInfoGameTypes: {
         select: {
           gameTypeName: true,
           playTime: true,
-        },
-        where: {
-          gameType: {
-            isNot: null,
-          },
         },
         orderBy: {
           playTime: 'desc',
@@ -60,11 +49,11 @@ export default async function Index({
 
   return (
     <GameTypeList
-      gameTypeCount={clan._count.clanInfos}
-      gameTypes={clan.clanInfos.map((clanInfo, index) => ({
+      gameTypeCount={clan._count.clanInfoGameTypes}
+      gameTypes={clan.clanInfoGameTypes.map((clanInfoGameType, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: clanInfo.gameTypeName ?? '',
-        playTime: clanInfo.playTime,
+        name: clanInfoGameType.gameTypeName ?? '',
+        playTime: clanInfoGameType.playTime,
       }))}
     />
   );

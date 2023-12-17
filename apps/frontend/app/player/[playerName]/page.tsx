@@ -24,25 +24,14 @@ export default async function Index({
     select: {
       _count: {
         select: {
-          playerInfos: {
-            where: {
-              gameType: {
-                isNot: null,
-              },
-            },
-          },
+          playerInfoGameTypes: true,
         },
       },
 
-      playerInfos: {
+      playerInfoGameTypes: {
         select: {
           gameTypeName: true,
           playTime: true,
-        },
-        where: {
-          gameType: {
-            isNot: null,
-          },
         },
         orderBy: {
           playTime: 'desc',
@@ -60,11 +49,11 @@ export default async function Index({
 
   return (
     <GameTypeList
-      gameTypeCount={player._count.playerInfos}
-      gameTypes={player.playerInfos.map((playerInfo, index) => ({
+      gameTypeCount={player._count.playerInfoGameTypes}
+      gameTypes={player.playerInfoGameTypes.map((playerInfoGameType, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: playerInfo.gameTypeName ?? '',
-        playTime: playerInfo.playTime,
+        name: playerInfoGameType.gameTypeName ?? '',
+        playTime: playerInfoGameType.playTime,
       }))}
     />
   );

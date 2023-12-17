@@ -36,8 +36,8 @@ export default async function Index({
       playTime: true,
       _count: {
         select: {
-          playerInfos: true,
-          clanInfos: true,
+          playerInfoMaps: true,
+          clanInfoMaps: true,
           snapshots: {
             where: {
               gameServerLast: {
@@ -55,7 +55,7 @@ export default async function Index({
     },
     orderBy: [
       {
-        playerInfos: {
+        playerInfoMaps: {
           _count: 'desc',
         },
       },
@@ -119,7 +119,7 @@ export default async function Index({
             />
             <ListCell
               alignRight
-              label={formatInteger(map._count.playerInfos)}
+              label={formatInteger(map._count.playerInfoMaps)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
                   map.gameTypeName
@@ -128,7 +128,7 @@ export default async function Index({
             />
             <ListCell
               alignRight
-              label={formatInteger(map._count.clanInfos)}
+              label={formatInteger(map._count.clanInfoMaps)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
                   map.gameTypeName

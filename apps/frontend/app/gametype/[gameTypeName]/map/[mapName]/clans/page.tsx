@@ -22,10 +22,10 @@ export default async function Index({
     select: {
       _count: {
         select: {
-          clanInfos: true,
+          clanInfoMaps: true,
         }
       },
-      clanInfos: {
+      clanInfoMaps: {
         select: {
           clan: {
             select: {
@@ -69,12 +69,12 @@ export default async function Index({
 
   return (
     <ClanList
-      clanCount={map._count.clanInfos}
-      clans={map.clanInfos.map((clanInfo, index) => ({
+      clanCount={map._count.clanInfoMaps}
+      clans={map.clanInfoMaps.map((clanInfoMap, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: clanInfo.clanName,
-        playerCount: clanInfo.clan._count.players,
-        playTime: clanInfo.playTime,
+        name: clanInfoMap.clanName,
+        playerCount: clanInfoMap.clan._count.players,
+        playTime: clanInfoMap.playTime,
       }))}
     />
   );

@@ -35,24 +35,18 @@ export default async function Index({
   });
 
   const counts = await prisma.$transaction([
-    prisma.clanInfo.count({
+    prisma.clanInfoGameType.count({
       where: {
         clan: {
           name: clanName,
         },
-        gameType: {
-          isNot: null,
-        }
       }
     }),
-    prisma.clanInfo.count({
+    prisma.clanInfoMap.count({
       where: {
         clan: {
           name: clanName,
         },
-        map: {
-          isNot: null,
-        }
       }
     }),
   ]);

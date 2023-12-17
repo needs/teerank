@@ -23,7 +23,7 @@ export default async function Index({
       playTime: true,
       clanName: true,
 
-      playerInfos: {
+      playerInfoMaps: {
         select: {
           map: {
             select: {
@@ -32,11 +32,6 @@ export default async function Index({
             },
           },
           playTime: true,
-        },
-        where: {
-          map: {
-            isNot: null,
-          },
         },
         orderBy: {
           playTime: 'desc',
@@ -49,20 +44,14 @@ export default async function Index({
   });
 
   const counts = await prisma.$transaction([
-    prisma.playerInfo.count({
+    prisma.playerInfoMap.count({
       where: {
         playerName,
-        map: {
-          isNot: null,
-        },
       },
     }),
-    prisma.playerInfo.count({
+    prisma.playerInfoGameType.count({
       where: {
         playerName,
-        gameType: {
-          isNot: null,
-        },
       },
     }),
     prisma.clanPlayerInfo.count({

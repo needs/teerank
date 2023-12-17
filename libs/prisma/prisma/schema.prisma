@@ -134,8 +134,6 @@ model PlayerInfoGameType {
   gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String
 
-  clients GameServerClient[]
-
   @@unique([playerName, gameTypeName])
   @@index([playTime(sort: Desc)])
 }
@@ -154,8 +152,6 @@ model PlayerInfoMap {
   map   Map @relation(fields: [mapId], references: [id], onDelete: Cascade)
   mapId Int
 
-  clients GameServerClient[]
-
   @@unique([playerName, mapId])
   @@index([playTime(sort: Desc)])
 }
@@ -171,16 +167,6 @@ model GameServerClient {
 
   clan     Clan?   @relation(fields: [clanName], references: [name], onDelete: Cascade)
   clanName String?
-
-  playerInfoGameType   PlayerInfoGameType? @relation(fields: [playerInfoGameTypeId], references: [id], onDelete: Cascade)
-  playerInfoGameTypeId Int?
-  playerInfoMap        PlayerInfoMap?      @relation(fields: [playerInfoMapId], references: [id], onDelete: Cascade)
-  playerInfoMapId      Int?
-
-  clanInfoGameType   ClanInfoGameType? @relation(fields: [clanInfoGameTypeId], references: [id], onDelete: Cascade)
-  clanInfoGameTypeId Int?
-  clanInfoMap        ClanInfoMap?      @relation(fields: [clanInfoMapId], references: [id], onDelete: Cascade)
-  clanInfoMapId      Int?
 
   score   Int
   country Int
@@ -250,8 +236,6 @@ model ClanInfoGameType {
   gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String
 
-  clients GameServerClient[]
-
   @@unique([clanName, gameTypeName])
   @@index([playTime(sort: Desc)])
 }
@@ -268,8 +252,6 @@ model ClanInfoMap {
 
   map   Map @relation(fields: [mapId], references: [id], onDelete: Cascade)
   mapId Int
-
-  clients GameServerClient[]
 
   @@unique([clanName, mapId])
   @@index([playTime(sort: Desc)])

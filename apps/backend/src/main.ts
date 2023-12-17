@@ -10,7 +10,6 @@ import { removeBadIps } from './tasks/removeBadIps';
 import { addDefaultGameTypes } from './tasks/addDefaultGameTypes';
 import { addDefaultMasterServers } from './tasks/addDefaultMasterServers';
 import { resetPlayTimes } from './tasks/resetPlayTimes';
-import { fillClanAndPlayerInfos } from './tasks/fillClanAndPlayerInfos';
 import { minutesToMilliseconds } from 'date-fns';
 
 if (process.env.NODE_ENV === 'production') {
@@ -36,7 +35,6 @@ const tasks = {
 
   removeBadIps,
   resetPlayTimes,
-  fillClanAndPlayerInfos,
 
   pollMasterServers,
   pollGameServers,

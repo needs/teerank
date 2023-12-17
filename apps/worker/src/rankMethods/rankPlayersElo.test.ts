@@ -78,28 +78,18 @@ async function createSnapshot(scores: number[]) {
 }
 
 async function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: number[]) {
-  const gameTypePlayerInfos = await prisma.playerInfo.findMany({
+  const gameTypePlayerInfos = await prisma.playerInfoGameType.findMany({
     select: {
       rating: true,
-    },
-    where: {
-      gameType: {
-        isNot: null,
-      }
     },
     orderBy: {
       playerName: 'asc',
     },
   });
 
-  const mapPlayerInfos = await prisma.playerInfo.findMany({
+  const mapPlayerInfos = await prisma.playerInfoMap.findMany({
     select: {
       rating: true,
-    },
-    where: {
-      map: {
-        isNot: null,
-      }
     },
     orderBy: {
       playerName: 'asc',

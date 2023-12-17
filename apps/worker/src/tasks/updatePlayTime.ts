@@ -186,7 +186,7 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
     const mapId = Number(mapIdEncoded);
     const playerName = fromBase64(playerNameEncoded);
 
-    return prisma.playerInfo.upsert({
+    return prisma.playerInfoMap.upsert({
       where: {
         playerName_mapId: {
           mapId,
@@ -216,7 +216,7 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
     const gameTypeName = fromBase64(gameTypeNameEncoded);
     const playerName = fromBase64(playerNameEncoded);
 
-    return prisma.playerInfo.upsert({
+    return prisma.playerInfoGameType.upsert({
       where: {
         playerName_gameTypeName: {
           gameTypeName,

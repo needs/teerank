@@ -1,25 +1,93 @@
 import { differenceInMinutes } from "date-fns";
-import { RankFunctionArgs, SnapshotToRank } from "../tasks/rankPlayers";
 import { prisma } from "../prisma";
 
-type ScoreDeltas = Map<string, number>;
+async function getSnapshots(snapshotId: number) {
+  const snapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
+    where: {
+      id: snapshotId,
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      gameServerId: true,
+      clients: {
+        where: {
+          playerName: {
+            // Don't rank connecting players because their score is meaningless.
+            not: "(connecting)",
+          }
+        },
+        select: {
+          playerName: true,
+          score: true,
+          inGame: true,
+        }
+      },
+      mapId: true,
+      map: {
+        select: {
+          gameTypeName: true,
+        },
+      },
+    },
+  });
 
-function getScoreDeltas(snapshotStart: SnapshotToRank, snapshotEnd: SnapshotToRank): ScoreDeltas | undefined {
+  const snapshotBefore = await prisma.gameServerSnapshot.findFirst({
+    select: {
+      id: true,
+      createdAt: true,
+      gameServerId: true,
+      clients: {
+        where: {
+          playerName: {
+            // Don't rank connecting players because their score is meaningless.
+            not: "(connecting)",
+          }
+        },
+        select: {
+          playerName: true,
+          score: true,
+          inGame: true,
+        }
+      },
+      mapId: true,
+      map: {
+        select: {
+          gameTypeName: true,
+        },
+      },
+    },
+    where: {
+      createdAt: {
+        lt: snapshot.createdAt,
+      },
+      gameServerId: snapshot.gameServerId,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  }) ?? snapshot;
+
+  return { snapshot, snapshotBefore };
+}
+
+type ScoreDeltas = Map<string, number | undefined>;
+
+function getScoreDeltas({ snapshotBefore, snapshot }: Awaited<ReturnType<typeof getSnapshots>>): ScoreDeltas {
   // Ranking on a different map or gametype doesn't make sense.
-  if (snapshotStart.mapId !== snapshotEnd.mapId) {
-    return undefined;
+  if (snapshotBefore.mapId !== snapshot.mapId) {
+    return new Map();
   }
 
   // More than 30 minutes between snapshots increases odds to rank a different game.
-  if (differenceInMinutes(snapshotEnd.createdAt, snapshotStart.createdAt) > 30) {
-    return undefined;
+  if (differenceInMinutes(snapshot.createdAt, snapshotBefore.createdAt) > 30) {
+    return new Map();
   }
 
-  // Get common players from both snapshots
   const scoreDeltas = new Map<string, number>();
 
-  for (const clientStart of snapshotStart.clients) {
-    const clientEnd = snapshotEnd.clients.find((clientEnd) =>
+  for (const clientStart of snapshotBefore.clients) {
+    const clientEnd = snapshot.clients.find((clientEnd) =>
       clientEnd.playerName === clientStart.playerName
     )
 
@@ -30,13 +98,13 @@ function getScoreDeltas(snapshotStart: SnapshotToRank, snapshotEnd: SnapshotToRa
 
   // At least two players are needed to rank.
   if (scoreDeltas.size < 2) {
-    return undefined;
+    return new Map();
   }
 
   // If average score is less than -1, then it's probably a new game.
   const scoreAverage = [...scoreDeltas.values()].reduce((sum, scoreDelta) => sum + scoreDelta, 0) / scoreDeltas.size;
   if (scoreAverage < -1) {
-    return undefined;
+    return new Map();
   }
 
   return scoreDeltas;
@@ -63,112 +131,129 @@ function computeEloDelta(scoreA: number, eloA: number, scoreB: number, eloB: num
   return K * (W - p(eloA - eloB));
 }
 
-function updateRatings(
+function computeEloDeltas(
   scoreDeltas: ScoreDeltas,
-  getRating: (playerName: string) => number | undefined,
-  setRating: (playerName: string, rating: number) => void
+  getRating: (playerName: string) => number,
 ) {
+  const eloDeltas = new Map<string, number>();
+
   for (const [playerName, scoreDelta] of scoreDeltas.entries()) {
     let eloSum = 0;
 
     for (const [otherPlayerName, otherScoreDelta] of scoreDeltas.entries()) {
-      if (playerName !== otherPlayerName) {
+      if (playerName !== otherPlayerName && scoreDelta !== undefined && otherScoreDelta !== undefined) {
         eloSum += computeEloDelta(
           scoreDelta,
-          getRating(playerName) ?? 0,
+          getRating(playerName),
           otherScoreDelta,
-          getRating(otherPlayerName) ?? 0
+          getRating(otherPlayerName)
         );
       }
     }
 
-    const eloAverage = eloSum / (scoreDeltas.size - 1);
-    setRating(playerName, (getRating(playerName) ?? 0) + eloAverage);
+    const eloDelta = eloSum / (scoreDeltas.size - 1);
+    eloDeltas.set(playerName, eloDelta);
   }
+
+  return eloDeltas;
 }
 
-type TemporaryRatings = { playerName: string, rating: number }[];
+export const rankPlayersElo = async (snapshotId: number) => {
+  const { snapshot, snapshotBefore } = await getSnapshots(snapshotId);
 
-export const rankPlayersElo = async ({
-  snapshot,
-  getMapRating,
-  setMapRating,
-  getGameTypeRating,
-  setGameTypeRating,
-}: RankFunctionArgs) => {
-  const snapshotBefore = await prisma.gameServerSnapshot.findFirst({
-    select: {
-      id: true,
-      createdAt: true,
-      gameServerId: true,
-      clients: {
-        where: {
-          playerName: {
-            // Don't rank connecting players because their score is meaningless.
-            not: "(connecting)",
-          }
+  const playerInfoMaps = await prisma.$transaction(
+    snapshot.clients.map((client) => prisma.playerInfoMap.upsert({
+      where: {
+        playerName_mapId: {
+          playerName: client.playerName,
+          mapId: snapshot.mapId,
         },
-        select: {
-          playerName: true,
-          score: true,
-          inGame: true,
-        }
       },
-      mapId: true,
-      map: {
-        select: {
-          gameTypeName: true,
-          gameType: {
-            select: {
-              rankMethod: true,
-            }
+      select: {
+        id: true,
+        playerName: true,
+        rating: true,
+      },
+      update: {},
+      create: {
+        playerName: client.playerName,
+        mapId: snapshot.mapId,
+        rating: 0,
+      },
+    })),
+  );
+
+  const mapRatings = new Map(playerInfoMaps.map(({ playerName, rating }) => [playerName, rating ?? 0]));
+
+  const playerInfoGameTypes = await prisma.$transaction(
+    snapshot.clients.map((client) => prisma.playerInfoGameType.upsert({
+      where: {
+        playerName_gameTypeName: {
+          playerName: client.playerName,
+          gameTypeName: snapshot.map.gameTypeName,
+        },
+      },
+      select: {
+        id: true,
+        playerName: true,
+        rating: true,
+      },
+      update: {},
+      create: {
+        playerName: client.playerName,
+        gameTypeName: snapshot.map.gameTypeName,
+        rating: 0,
+      },
+    })),
+  );
+
+  const gameTypeRatings = new Map(playerInfoGameTypes.map(({ playerName, rating }) => [playerName, rating ?? 0]));
+
+  const scoreDeltas = getScoreDeltas({ snapshotBefore, snapshot });
+
+  const eloDeltasMap = computeEloDeltas(
+    scoreDeltas,
+    (playerName) => mapRatings.get(playerName) ?? 0,
+  );
+
+  if (eloDeltasMap.size > 0) {
+    await prisma.$transaction(Array.from(eloDeltasMap.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
+      prisma.playerInfoMap.update({
+        where: {
+          playerName_mapId: {
+            playerName,
+            mapId: snapshot.mapId,
           },
         },
-      },
-    },
-    where: {
-      createdAt: {
-        lt: snapshot.createdAt,
-      },
-      gameServerId: snapshot.gameServerId,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  }) ?? snapshot;
-
-  for (const client of snapshot.clients) {
-    const rating = getMapRating(snapshot.mapId, client.playerName) ?? 0;
-    setMapRating(snapshot.mapId, client.playerName, rating);
-
-    const ratingGameType = getGameTypeRating(snapshot.map.gameTypeName, client.playerName) ?? 0;
-    setGameTypeRating(snapshot.map.gameTypeName, client.playerName, ratingGameType);
+        data: {
+          rating: {
+            increment: eloDelta,
+          },
+        },
+      })
+    ));
   }
 
-  const scoreDeltas = getScoreDeltas(snapshotBefore, snapshot);
-  if (scoreDeltas !== undefined) {
-    const newMapRatings: TemporaryRatings = [];
+  const eloDeltasGameType = computeEloDeltas(
+    scoreDeltas,
+    (playerName) => gameTypeRatings.get(playerName) ?? 0,
+  );
 
-    updateRatings(
-      scoreDeltas,
-      (playerName) => getMapRating(snapshot.mapId, playerName),
-      (playerName, rating) => newMapRatings.push({ playerName, rating })
-    );
-
-    for (const { playerName, rating } of newMapRatings) {
-      setMapRating(snapshot.mapId, playerName, rating);
-    }
-
-    const newGameTypeRatings: TemporaryRatings = [];
-
-    updateRatings(
-      scoreDeltas,
-      (playerName) => getGameTypeRating(snapshot.map.gameTypeName, playerName),
-      (playerName, rating) => newGameTypeRatings.push({ playerName, rating })
-    );
-
-    for (const { playerName, rating } of newGameTypeRatings) {
-      setGameTypeRating(snapshot.map.gameTypeName, playerName, rating);
-    }
+  if (eloDeltasGameType.size > 0) {
+    await prisma.$transaction(Array.from(eloDeltasGameType.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
+      prisma.playerInfoGameType.update({
+        where: {
+          playerName_gameTypeName: {
+            playerName,
+            gameTypeName: snapshot.map.gameTypeName,
+          },
+        },
+        data: {
+          rating: {
+            increment: eloDelta,
+          },
+        },
+      })
+    ));
   }
 }

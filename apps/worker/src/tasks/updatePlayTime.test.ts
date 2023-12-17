@@ -100,28 +100,18 @@ async function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPla
     },
   });
 
-  const mapPlayerInfos = await prisma.playerInfo.findMany({
+  const mapPlayerInfos = await prisma.playerInfoMap.findMany({
     select: {
       playTime: true,
-    },
-    where: {
-      map: {
-        isNot: null,
-      }
     },
     orderBy: {
       playerName: 'asc',
     },
   });
 
-  const gameTypePlayerInfos = await prisma.playerInfo.findMany({
+  const gameTypePlayerInfos = await prisma.playerInfoGameType.findMany({
     select: {
       playTime: true,
-    },
-    where: {
-      gameType: {
-        isNot: null,
-      }
     },
     orderBy: {
       playerName: 'asc',

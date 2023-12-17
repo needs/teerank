@@ -22,6 +22,16 @@ async function main() {
       continue;
     }
 
+    try {
+      await prisma.job.delete({
+        where: {
+          id: job.id,
+        }
+      });
+    } catch (e) {
+      continue;
+    }
+
     switch (job.jobType) {
       case JobType.POLL_MASTER_SERVERS:
         await pollMasterServers(job.rangeStart, job.rangeEnd);

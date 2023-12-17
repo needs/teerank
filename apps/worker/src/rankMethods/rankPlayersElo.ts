@@ -66,7 +66,7 @@ async function getSnapshots(snapshotId: number) {
     orderBy: {
       createdAt: 'desc',
     },
-  }) ?? snapshot;
+  });
 
   return { snapshot, snapshotBefore };
 }
@@ -74,6 +74,10 @@ async function getSnapshots(snapshotId: number) {
 type ScoreDeltas = Map<string, number | undefined>;
 
 function getScoreDeltas({ snapshotBefore, snapshot }: Awaited<ReturnType<typeof getSnapshots>>): ScoreDeltas {
+  if (snapshotBefore === null) {
+    return new Map();
+  }
+
   // Ranking on a different map or gametype doesn't make sense.
   if (snapshotBefore.mapId !== snapshot.mapId) {
     return new Map();
@@ -209,51 +213,53 @@ export const rankPlayersElo = async (snapshotId: number) => {
 
   const gameTypeRatings = new Map(playerInfoGameTypes.map(({ playerName, rating }) => [playerName, rating ?? 0]));
 
-  const scoreDeltas = getScoreDeltas({ snapshotBefore, snapshot });
+  if (snapshotBefore !== null) {
+    const scoreDeltas = getScoreDeltas({ snapshotBefore, snapshot });
 
-  const eloDeltasMap = computeEloDeltas(
-    scoreDeltas,
-    (playerName) => mapRatings.get(playerName) ?? 0,
-  );
+    const eloDeltasMap = computeEloDeltas(
+      scoreDeltas,
+      (playerName) => mapRatings.get(playerName) ?? 0,
+    );
 
-  if (eloDeltasMap.size > 0) {
-    await prisma.$transaction(Array.from(eloDeltasMap.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
-      prisma.playerInfoMap.update({
-        where: {
-          playerName_mapId: {
-            playerName,
-            mapId: snapshot.mapId,
+    if (eloDeltasMap.size > 0) {
+      await prisma.$transaction(Array.from(eloDeltasMap.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
+        prisma.playerInfoMap.update({
+          where: {
+            playerName_mapId: {
+              playerName,
+              mapId: snapshot.mapId,
+            },
           },
-        },
-        data: {
-          rating: {
-            increment: eloDelta,
+          data: {
+            rating: {
+              increment: eloDelta,
+            },
           },
-        },
-      })
-    ));
-  }
+        })
+      ));
+    }
 
-  const eloDeltasGameType = computeEloDeltas(
-    scoreDeltas,
-    (playerName) => gameTypeRatings.get(playerName) ?? 0,
-  );
+    const eloDeltasGameType = computeEloDeltas(
+      scoreDeltas,
+      (playerName) => gameTypeRatings.get(playerName) ?? 0,
+    );
 
-  if (eloDeltasGameType.size > 0) {
-    await prisma.$transaction(Array.from(eloDeltasGameType.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
-      prisma.playerInfoGameType.update({
-        where: {
-          playerName_gameTypeName: {
-            playerName,
-            gameTypeName: snapshot.map.gameTypeName,
+    if (eloDeltasGameType.size > 0) {
+      await prisma.$transaction(Array.from(eloDeltasGameType.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
+        prisma.playerInfoGameType.update({
+          where: {
+            playerName_gameTypeName: {
+              playerName,
+              gameTypeName: snapshot.map.gameTypeName,
+            },
           },
-        },
-        data: {
-          rating: {
-            increment: eloDelta,
+          data: {
+            rating: {
+              increment: eloDelta,
+            },
           },
-        },
-      })
-    ));
+        })
+      ));
+    }
   }
 }

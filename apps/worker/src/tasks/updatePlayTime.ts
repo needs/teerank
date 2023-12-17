@@ -1,6 +1,6 @@
 import { prisma } from "../prisma";
 import { differenceInSeconds } from "date-fns";
-import { fromBase64, removeDuplicatedClients, toBase64 } from "../utils";
+import { removeDuplicatedClients } from "../utils";
 
 export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
   const snapshots = await prisma.gameServerSnapshot.findMany({
@@ -34,23 +34,6 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
       playTimedAt: null,
     },
   });
-
-  const playerClan = new Map<string, { date: Date, clanName: string | null }>();
-
-  const setPlayerClan = (playerName: string, clanName: string | null, date: Date) => {
-    const key = toBase64(playerName);
-    const currentClan = playerClan.get(key);
-    if (currentClan === undefined || currentClan.date < date) {
-      playerClan.set(key, {
-        date,
-        clanName,
-      });
-    }
-  }
-
-  if (process.env.NODE_ENV !== 'test') {
-    console.log(`Play timing ${snapshots.length} snapshots`);
-  }
 
   for (const snapshot of snapshots) {
     const snapshotBefore = await prisma.gameServerSnapshot.findFirst({

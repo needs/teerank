@@ -2,7 +2,7 @@ import { prisma } from "../prisma";
 import { destroySockets, getReceivedPackets, sendData, setupSockets } from "../socket";
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { wait } from "../utils";
-import { differenceInMinutes } from "date-fns";
+import { differenceInMinutes, subMinutes } from "date-fns";
 import { Task } from "../task";
 import { TaskRunStatus } from "@prisma/client";
 
@@ -47,6 +47,9 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
         gte: rangeStart,
         lte: rangeEnd,
       },
+      polledAt: {
+        lt: subMinutes(new Date(), 5)
+      }
     },
   });
 
@@ -121,7 +124,7 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
           skipDuplicates: true,
         });
 
-        const playerInfoGameTypes = await prisma.$transaction(gameServerInfo.clients.map((client) => prisma.playerInfoGameType.upsert({
+        await prisma.$transaction(gameServerInfo.clients.map((client) => prisma.playerInfoGameType.upsert({
           select: {
             id: true,
           },
@@ -138,7 +141,7 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
           },
         })));
 
-        const clanInfoGameTypes = await prisma.$transaction(uniqClans.map((clan) => prisma.clanInfoGameType.upsert({
+        await prisma.$transaction(uniqClans.map((clan) => prisma.clanInfoGameType.upsert({
           select: {
             id: true,
           },
@@ -155,7 +158,7 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
           },
         })));
 
-        const playerInfoMaps = await prisma.$transaction(gameServerInfo.clients.map((client) => prisma.playerInfoMap.upsert({
+        await prisma.$transaction(gameServerInfo.clients.map((client) => prisma.playerInfoMap.upsert({
           select: {
             id: true,
           },
@@ -172,7 +175,7 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
           },
         })));
 
-        const clanInfoMaps = await prisma.$transaction(uniqClans.map((clan) => prisma.clanInfoMap.upsert({
+        await prisma.$transaction(uniqClans.map((clan) => prisma.clanInfoMap.upsert({
           select: {
             id: true,
           },
@@ -235,22 +238,31 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
           },
           data: {
             offlineSince: null,
+            polledAt: new Date(),
           },
         });
       } catch (e) {
         console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
       }
+    } else if (gameServer.offlineSince === null) {
+      await prisma.gameServer.update({
+        where: {
+          id: gameServer.id,
+        },
+        data: {
+          offlineSince: new Date(),
+          polledAt: new Date(),
+        },
+      });
     } else {
-      if (gameServer.offlineSince === null) {
-        await prisma.gameServer.update({
-          where: {
-            id: gameServer.id,
-          },
-          data: {
-            offlineSince: new Date(),
-          },
-        });
-      }
+      await prisma.gameServer.update({
+        where: {
+          id: gameServer.id,
+        },
+        data: {
+          polledAt: new Date(),
+        },
+      });
     }
   }))
 

@@ -3,8 +3,7 @@ import { lookup } from "dns/promises";
 import { unpackMasterPackets } from "../packets/masterServerInfo";
 import { destroySockets, getReceivedPackets, sendData, setupSockets } from "../socket";
 import { wait } from "../utils";
-import { Task } from "../task";
-import { TaskRunStatus } from "@prisma/client";
+import { subMinutes } from "date-fns";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -35,6 +34,9 @@ export async function pollMasterServers(rangeStart: number, rangeEnd: number) {
         gte: rangeStart,
         lte: rangeEnd,
       },
+      polledAt: {
+        lt: subMinutes(new Date(), 10)
+      }
     },
   });
 
@@ -85,6 +87,15 @@ export async function pollMasterServers(rangeStart: number, rangeEnd: number) {
 
       console.log(`Added ${masterServerInfo.gameServers.length} game servers (${masterServer.address}:${masterServer.port})`)
     }
+
+    await prisma.masterServer.update({
+      where: {
+        id: masterServer.id,
+      },
+      data: {
+        polledAt: new Date(),
+      },
+    });
   }
 
   destroySockets(sockets);

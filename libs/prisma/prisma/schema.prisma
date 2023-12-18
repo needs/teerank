@@ -11,6 +11,7 @@ model MasterServer {
   id          Int          @id @default(autoincrement())
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  polledAt    DateTime?
   address     String
   port        Int
   gameServers GameServer[]
@@ -23,6 +24,7 @@ model GameServer {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   offlineSince DateTime?
+  polledAt     DateTime?
 
   ip   String
   port Int

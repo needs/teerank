@@ -14,10 +14,8 @@ export async function scheduleGameServersPolling() {
       id: true
     },
     where: {
-      lastSnapshot: {
-        createdAt: {
-          lt: subMinutes(new Date(), 5),
-        }
+      polledAt: {
+        lt: subMinutes(new Date(), 5),
       }
     }
   });

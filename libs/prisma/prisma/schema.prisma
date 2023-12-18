@@ -284,6 +284,7 @@ model Job {
   rangeStart Int
   rangeEnd   Int
   priority   Int
+  startedAt  DateTime?
 
   @@unique([jobType, rangeStart, rangeEnd])
 }

@@ -14,6 +14,13 @@ export async function schedulePlayerRanking() {
     },
     where: {
       rankedAt: null,
+      map: {
+        gameType: {
+          rankMethod: {
+            not: null,
+          },
+        },
+      }
     }
   });
 

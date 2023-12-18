@@ -13,6 +13,9 @@ async function sleep(ms: number) {
 async function main() {
   for (; ;) {
     const job = await prisma.job.findFirst({
+      where: {
+        startedAt: null,
+      },
       orderBy: {
         priority: 'desc',
       }
@@ -24,16 +27,19 @@ async function main() {
     }
 
     try {
-      await prisma.job.delete({
+      await prisma.job.update({
         where: {
           id: job.id,
+          startedAt: null,
+        },
+        data: {
+          startedAt: new Date(),
         }
       });
     } catch (e) {
       continue;
     }
 
-    console.log(`Job ${job.jobType} (${job.rangeStart} - ${job.rangeEnd})`);
     console.time(`Job ${job.jobType} (${job.rangeStart} - ${job.rangeEnd})`);
 
     switch (job.jobType) {
@@ -52,6 +58,18 @@ async function main() {
     }
 
     console.timeEnd(`Job ${job.jobType} (${job.rangeStart} - ${job.rangeEnd})`);
+
+    try {
+      await prisma.job.delete({
+        where: {
+          id: job.id,
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      console.error(`Failed to delete job ${job.id}, this could happend when job is taking too long to complete`);
+      continue;
+    }
   }
 }
 

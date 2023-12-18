@@ -5,6 +5,7 @@ import { scheduleUpdatePlaytimes } from "./schedulers/scheduleUpdatePlaytimes";
 import { secondsToMilliseconds } from 'date-fns';
 import { addDefaultGameTypes } from './addDefaultGameTypes';
 import { addDefaultMasterServers } from './addDefaultMasterServers';
+import { cleanupStuckJobs } from "./cleanupStuckJobs";
 
 async function main() {
   await addDefaultGameTypes();
@@ -15,6 +16,7 @@ async function main() {
   const callback = async () => {
     if (!isRunning) {
       isRunning = true;
+      await cleanupStuckJobs();
       await scheduleMasterServersPolling();
       await scheduleGameServersPolling();
       await schedulePlayerRanking();

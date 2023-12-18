@@ -17,6 +17,7 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
           },
         },
       },
+      rankedAt: null,
     },
     select: {
       id: true,
@@ -41,16 +42,14 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
         await rankPlayersTime(id);
         break;
     }
-  }
 
-  prisma.gameServerSnapshot.updateMany({
-    where: {
-      id: {
-        in: snapshots.map((snapshot) => snapshot.id),
+    await prisma.gameServerSnapshot.update({
+      where: {
+        id,
       },
-    },
-    data: {
-      rankedAt: new Date(),
-    }
-  })
+      data: {
+        rankedAt: new Date(),
+      },
+    });
+  }
 }

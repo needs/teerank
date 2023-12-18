@@ -6,6 +6,18 @@ import { subMinutes } from "date-fns";
 const BATCH_SIZE = 100;
 
 export async function scheduleGameServersPolling() {
+  const cooldownCount = await prisma.gameServer.count({
+    where: {
+      polledAt: {
+        gte: subMinutes(new Date(), 5),
+      }
+    }
+  });
+
+  if (cooldownCount > 0) {
+    return;
+  }
+
   const results = await prisma.gameServer.aggregate({
     _min: {
       id: true
@@ -14,9 +26,13 @@ export async function scheduleGameServersPolling() {
       id: true
     },
     where: {
-      polledAt: {
-        lt: subMinutes(new Date(), 5),
-      }
+      OR: [{
+        polledAt: {
+          lt: subMinutes(new Date(), 5),
+        }
+      }, {
+        polledAt: null,
+      }]
     }
   });
 

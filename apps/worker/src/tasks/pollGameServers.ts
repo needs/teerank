@@ -47,9 +47,13 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
         gte: rangeStart,
         lte: rangeEnd,
       },
-      polledAt: {
-        lt: subMinutes(new Date(), 5)
-      }
+      OR: [{
+        polledAt: {
+          lt: subMinutes(new Date(), 5)
+        }
+      }, {
+        polledAt: null,
+      }]
     },
   });
 
@@ -238,7 +242,6 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
           },
           data: {
             offlineSince: null,
-            polledAt: new Date(),
           },
         });
       } catch (e) {
@@ -251,19 +254,18 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
         },
         data: {
           offlineSince: new Date(),
-          polledAt: new Date(),
-        },
-      });
-    } else {
-      await prisma.gameServer.update({
-        where: {
-          id: gameServer.id,
-        },
-        data: {
-          polledAt: new Date(),
         },
       });
     }
+
+    await prisma.gameServer.update({
+      where: {
+        id: gameServer.id,
+      },
+      data: {
+        polledAt: new Date(),
+      },
+    });
   }))
 
   destroySockets(sockets);

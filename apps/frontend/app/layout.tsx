@@ -53,12 +53,14 @@ export default async function RootLayout({
 
         <footer className="flex flex-row gap-6 items-center py-8 text-sm text-white">
           <Link
-            href="/"
+            href="https://github.com/needs/teerank"
+            prefetch={false}
             className="[text-shadow:_1px_1px_1px_#383838] hover:underline"
           >
             Teerank 1.0 (stable)
           </Link>
           <Link
+            prefetch={false}
             href="/status"
             className="[text-shadow:_1px_1px_1px_#383838] hover:underline"
           >

@@ -187,7 +187,7 @@ export const rankPlayersElo = async (snapshotId: number) => {
     })),
   );
 
-  const mapRatings = new Map(playerInfoMaps.map(({ playerName, rating }) => [playerName, rating ?? 0]));
+  const mapRatings = new Map(playerInfoMaps.map(({ playerName, rating, id }) => [playerName, { rating: rating ?? 0, id }]));
 
   const playerInfoGameTypes = await prisma.$transaction(
     snapshot.clients.map((client) => prisma.playerInfoGameType.upsert({
@@ -211,24 +211,21 @@ export const rankPlayersElo = async (snapshotId: number) => {
     })),
   );
 
-  const gameTypeRatings = new Map(playerInfoGameTypes.map(({ playerName, rating }) => [playerName, rating ?? 0]));
+  const gameTypeRatings = new Map(playerInfoGameTypes.map(({ playerName, rating, id }) => [playerName, { rating: rating ?? 0, id }]));
 
   if (snapshotBefore !== null) {
     const scoreDeltas = getScoreDeltas({ snapshotBefore, snapshot });
 
     const eloDeltasMap = computeEloDeltas(
       scoreDeltas,
-      (playerName) => mapRatings.get(playerName) ?? 0,
+      (playerName) => mapRatings.get(playerName)?.rating ?? 0,
     );
 
     if (eloDeltasMap.size > 0) {
       await prisma.$transaction(Array.from(eloDeltasMap.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
         prisma.playerInfoMap.update({
           where: {
-            playerName_mapId: {
-              playerName,
-              mapId: snapshot.mapId,
-            },
+            id: mapRatings.get(playerName)?.id ?? 0,
           },
           data: {
             rating: {
@@ -241,17 +238,14 @@ export const rankPlayersElo = async (snapshotId: number) => {
 
     const eloDeltasGameType = computeEloDeltas(
       scoreDeltas,
-      (playerName) => gameTypeRatings.get(playerName) ?? 0,
+      (playerName) => gameTypeRatings.get(playerName)?.rating ?? 0,
     );
 
     if (eloDeltasGameType.size > 0) {
       await prisma.$transaction(Array.from(eloDeltasGameType.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
         prisma.playerInfoGameType.update({
           where: {
-            playerName_gameTypeName: {
-              playerName,
-              gameTypeName: snapshot.map.gameTypeName,
-            },
+            id: gameTypeRatings.get(playerName)?.id ?? 0,
           },
           data: {
             rating: {

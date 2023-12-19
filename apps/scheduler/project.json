@@ -71,6 +71,10 @@
           "codeCoverage": true
         }
       }
+    },
+    "docker-build": {
+      "dependsOn": ["build"],
+      "command": "docker build -f apps/scheduler/Dockerfile . -t scheduler"
     }
   },
   "tags": []

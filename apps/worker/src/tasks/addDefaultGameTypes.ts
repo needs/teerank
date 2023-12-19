@@ -1,8 +1,7 @@
-import { RankMethod, TaskRunStatus } from "@prisma/client";
+import { RankMethod } from "@prisma/client";
 import { prisma } from "../prisma";
-import { Task } from "../task";
 
-export const addDefaultGameTypes: Task = async () => {
+export async function addDefaultGameTypes() {
   const gameTypesElo = [
     "DM", "CTF", "TDM", "DM*", "DM+", "DM++", "fng2", "fng2+", "iCTF*", "iCTF+", "iCTFX", "iDM*", "iDM+", "zCatch", "zCatch/TeeVi"
   ];
@@ -38,6 +37,4 @@ export const addDefaultGameTypes: Task = async () => {
       },
     })),
   ]);
-
-  return TaskRunStatus.COMPLETED;
 }

@@ -1,8 +1,6 @@
-import { TaskRunStatus } from ".prisma/client";
-import { Task } from "../task";
 import { prisma } from "../prisma";
 
-export const resetPlayTimes: Task = async () => {
+export async function resetPlayTimes() {
   await prisma.clanInfoGameType.updateMany({
     data: {
       playTime: 0,
@@ -62,6 +60,4 @@ export const resetPlayTimes: Task = async () => {
       playTimedAt: null,
     },
   });
-
-  return TaskRunStatus.COMPLETED;
 }

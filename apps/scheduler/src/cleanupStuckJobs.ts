@@ -5,7 +5,7 @@ export async function cleanupStuckJobs() {
   const result = await prisma.job.deleteMany({
     where: {
       startedAt: {
-        lt: subMinutes(new Date(), 5),
+        lt: subMinutes(new Date(), 15),
       },
     },
   });

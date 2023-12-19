@@ -38,6 +38,7 @@ model GameServer {
   lastSnapshotId Int?                @unique
 
   @@unique([ip, port])
+  @@index([createdAt(sort: Desc)])
 }
 
 model Player {

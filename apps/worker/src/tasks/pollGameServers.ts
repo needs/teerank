@@ -41,10 +41,6 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
 
   const gameServers = await prisma.gameServer.findMany({
     where: {
-      id: {
-        gte: rangeStart,
-        lte: rangeEnd,
-      },
       OR: [{
         polledAt: {
           lt: subMinutes(new Date(), 5)
@@ -53,6 +49,11 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
         polledAt: null,
       }]
     },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    skip: rangeStart,
+    take: rangeEnd - rangeStart + 1,
   });
 
   await Promise.all(gameServers.filter((gameServer) => {

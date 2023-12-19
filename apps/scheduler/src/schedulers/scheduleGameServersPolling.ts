@@ -18,25 +18,7 @@ export async function scheduleGameServersPolling() {
     return;
   }
 
-  const results = await prisma.gameServer.aggregate({
-    _min: {
-      id: true
-    },
-    _max: {
-      id: true
-    },
-    where: {
-      OR: [{
-        polledAt: {
-          lt: subMinutes(new Date(), 5),
-        }
-      }, {
-        polledAt: null,
-      }]
-    }
-  });
+  const count = await prisma.gameServer.count();
 
-  if (results._min.id !== null && results._max.id !== null) {
-    await scheduleJobs(JobType.POLL_GAME_SERVERS, BATCH_SIZE, results._min.id, results._max.id);
-  }
+  await scheduleJobs(JobType.POLL_GAME_SERVERS, BATCH_SIZE, 0, count);
 }

@@ -246,30 +246,6 @@ model ClanPlayerInfo {
   @@index([playTime(sort: Desc)])
 }
 
-model Task {
-  name        String    @id
-  createdAt   DateTime  @default(now())
-  completedAt DateTime?
-  index       Int       @default(0)
-
-  runs TaskRun[]
-}
-
-enum TaskRunStatus {
-  INCOMPLETE
-  COMPLETED
-  FAILED
-}
-
-model TaskRun {
-  id         Int            @id @default(autoincrement())
-  task       Task           @relation(fields: [taskName], references: [name], onDelete: Cascade)
-  taskName   String
-  startedAt  DateTime       @default(now())
-  finishedAt DateTime?
-  status     TaskRunStatus?
-}
-
 enum JobType {
   POLL_MASTER_SERVERS
   POLL_GAME_SERVERS

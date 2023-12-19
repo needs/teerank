@@ -52,9 +52,11 @@ export default async function Index() {
         },
       },
     },
-    orderBy: {
-      createdAt: 'asc',
-    },
+    orderBy: [{
+      address: 'asc',
+    }, {
+      port: 'asc',
+    }],
   });
 
   const [

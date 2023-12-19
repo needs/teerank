@@ -17,6 +17,7 @@ export function LastSeen({
   if (lastSnapshot !== null) {
     return (
       <Link
+        prefetch={false}
         href={{
           pathname: `/server/${lastSnapshot.ip}/${lastSnapshot.port}`,
         }}

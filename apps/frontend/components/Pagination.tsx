@@ -85,6 +85,7 @@ export function Pagination({ pageCount }: { pageCount: number }) {
             return (
               <span key={page}>
                 <Link
+                  prefetch={false}
                   href={{
                     pathname,
                     query:

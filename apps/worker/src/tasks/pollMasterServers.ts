@@ -34,9 +34,13 @@ export async function pollMasterServers(rangeStart: number, rangeEnd: number) {
         gte: rangeStart,
         lte: rangeEnd,
       },
-      polledAt: {
-        lt: subMinutes(new Date(), 10)
-      }
+      OR: [{
+        polledAt: {
+          lt: subMinutes(new Date(), 10)
+        }
+      }, {
+        polledAt: null,
+      }]
     },
   });
 

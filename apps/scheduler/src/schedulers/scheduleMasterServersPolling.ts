@@ -14,9 +14,13 @@ export async function scheduleMasterServersPolling() {
       id: true
     },
     where: {
-      polledAt: {
-        lt: subMinutes(new Date(), 10)
-      },
+      OR: [{
+        polledAt: {
+          lt: subMinutes(new Date(), 10)
+        },
+      }, {
+        polledAt: null,
+      }]
     }
   });
 

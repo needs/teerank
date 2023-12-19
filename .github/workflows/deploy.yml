@@ -34,15 +34,20 @@ jobs:
       - name: Prisma Generate
         run: npx nx run-many -t prisma-generate --parallel=3
 
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
       - name: Migrate database
-        run: npx nx run-many -t prisma-deploy --parallel=3
+        run: |
+          flyctl proxy 5434:5432 --app teerankio-postgres
+          npx nx run-many -t prisma-deploy --parallel=3
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.PROXY_DATABASE_URL }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES }}
 
       - name: Build
         run: npx nx run-many -t build --parallel=3
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.PROXY_DATABASE_URL }}
 
       - name: Test
         run: |
@@ -50,8 +55,6 @@ jobs:
           npx nx run-many -t test --runInBand
         env:
           DATABASE_URL: postgres://postgres-test:postgres-test@localhost:5433/teerank-test
-
-      - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy frontend
         run: flyctl deploy --config apps/frontend/fly.toml --dockerfile apps/frontend/Dockerfile

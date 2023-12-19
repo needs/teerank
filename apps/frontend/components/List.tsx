@@ -70,7 +70,7 @@ export function ListCell({
   return (
     <span className={twMerge('truncate', alignRight && 'text-right')}>
       {href !== undefined ? (
-        <Link href={href} className="hover:underline">
+        <Link href={href} prefetch={false} className="hover:underline">
           {label}
         </Link>
       ) : (

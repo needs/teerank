@@ -24,6 +24,7 @@ function Button({
     return (
       <Link
         href={href}
+        prefetch={false}
         className={'bg-[#f7f7f7] px-4 py-1.5 text-[#970] hover:underline'}
       >
         {label}

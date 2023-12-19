@@ -16,7 +16,7 @@ function jobPriority(jobType: JobType) {
 
 // In some cases, like when playtimes are reset, a lot of job will be scheduled
 // at once, which might overload the database.
-const MAXIMUM_JOB_PER_SCHEDULE = 40;
+const MAXIMUM_JOB_PER_SCHEDULE = 100;
 
 export async function scheduleJobs(jobType: JobType, batchSize: number, minRange: number, maxRange: number) {
   const batchStart = minRange - (minRange % batchSize);

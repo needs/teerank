@@ -11,25 +11,24 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function Index() {
-  const [masterServersAggregate, gameServersAggregate, snapshotsAggregate] =
-    await prisma.$transaction([
-      prisma.masterServer.aggregate({
-        _max: {
-          polledAt: true,
-        },
-      }),
-      prisma.gameServer.aggregate({
-        _max: {
-          polledAt: true,
-        },
-      }),
-      prisma.gameServerSnapshot.aggregate({
-        _max: {
-          rankedAt: true,
-          playTimedAt: true,
-        },
-      }),
-    ]);
+  const masterServersAggregate = await prisma.masterServer.aggregate({
+    _max: {
+      polledAt: true,
+    },
+  });
+
+  const gameServersAggregate = await prisma.gameServer.aggregate({
+    _max: {
+      polledAt: true,
+    },
+  });
+
+  const snapshotsAggregate = await prisma.gameServerSnapshot.aggregate({
+    _max: {
+      rankedAt: true,
+      playTimedAt: true,
+    },
+  });
 
   const jobsAggregate = await prisma.job.groupBy({
     by: 'jobType',

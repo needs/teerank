@@ -52,59 +52,21 @@ export default async function Index() {
         },
       },
     },
-    orderBy: [{
-      address: 'asc',
-    }, {
-      port: 'asc',
-    }],
+    orderBy: [
+      {
+        address: 'asc',
+      },
+      {
+        port: 'asc',
+      },
+    ],
   });
 
-  const [
-    unreferencedGameServersCount,
-    snapshotsCount,
-    rankableSnapshotsCount,
-    rankedSnapshotsCount,
-    playTimedSnapshotsCount,
-  ] = await prisma.$transaction([
-    prisma.gameServer.count({
-      where: {
-        masterServer: null,
-      },
-    }),
-    prisma.gameServerSnapshot.count(),
-    prisma.gameServerSnapshot.count({
-      where: {
-        map: {
-          gameType: {
-            rankMethod: {
-              not: null,
-            },
-          },
-        },
-      },
-    }),
-    prisma.gameServerSnapshot.count({
-      where: {
-        map: {
-          gameType: {
-            rankMethod: {
-              not: null,
-            },
-          },
-        },
-        rankedAt: {
-          not: null,
-        },
-      },
-    }),
-    prisma.gameServerSnapshot.count({
-      where: {
-        playTimedAt: {
-          not: null,
-        },
-      },
-    }),
-  ]);
+  const unreferencedGameServersCount = await prisma.gameServer.count({
+    where: {
+      masterServer: null,
+    },
+  });
 
   const jobCountByJobtype = keyBy(
     jobsAggregate,
@@ -146,9 +108,11 @@ export default async function Index() {
             <div key={section.title} className="flex flex-row items-center p-2">
               <span className="grow px-4">{section.title}</span>
               <div className="flex flex-row divide-x">
-                {section.jobCount > 0 && <span className="text-sm text-[#d1a4a4] px-4">
-                  {section.jobCount} jobs pending
-                </span>}
+                {section.jobCount > 0 && (
+                  <span className="text-sm text-[#d1a4a4] px-4">
+                    {section.jobCount} jobs pending
+                  </span>
+                )}
                 {section.date !== null && (
                   <span className="text-sm text-[#aaa] px-4">
                     {formatDistanceToNow(section.date, {
@@ -166,27 +130,6 @@ export default async function Index() {
             </div>
           );
         })}
-        <div className="flex flex-row items-center p-4 gap-4 text-sm text-[#aaa] text-center">
-          <span className="grow">
-            {`${Intl.NumberFormat('en-US', {
-              maximumFractionDigits: 0,
-            }).format(snapshotsCount)} snapshots`}
-          </span>
-          <span className="grow">
-            {`${Intl.NumberFormat('en-US', {
-              maximumFractionDigits: 1,
-            }).format(
-              (playTimedSnapshotsCount / snapshotsCount) * 100.0
-            )}% play timed`}
-          </span>
-          <span className="grow">
-            {`${Intl.NumberFormat('en-US', {
-              maximumFractionDigits: 1,
-            }).format(
-              (rankedSnapshotsCount / rankableSnapshotsCount) * 100.0
-            )}% ranked`}
-          </span>
-        </div>
       </div>
       <h1 className="text-2xl font-bold clear-both">Teeworlds</h1>
       <div className="flex flex-col divide-y">

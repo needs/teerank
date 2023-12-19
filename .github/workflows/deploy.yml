@@ -61,9 +61,9 @@ jobs:
       - name: Deploy scheduler
         run: flyctl deploy --config apps/scheduler/fly.toml --dockerfile apps/scheduler/Dockerfile
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_BACKEND }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_SCHEDULER }}
 
       - name: Deploy worker
         run: flyctl deploy --config apps/worker/fly.toml --dockerfile apps/worker/Dockerfile
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_BACKEND }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WORKER }}

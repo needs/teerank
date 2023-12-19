@@ -11,12 +11,6 @@ async function getSnapshots(snapshotId: number) {
       createdAt: true,
       gameServerId: true,
       clients: {
-        where: {
-          playerName: {
-            // Don't rank connecting players because their score is meaningless.
-            not: "(connecting)",
-          }
-        },
         select: {
           playerName: true,
           score: true,
@@ -38,12 +32,6 @@ async function getSnapshots(snapshotId: number) {
       createdAt: true,
       gameServerId: true,
       clients: {
-        where: {
-          playerName: {
-            // Don't rank connecting players because their score is meaningless.
-            not: "(connecting)",
-          }
-        },
         select: {
           playerName: true,
           score: true,

@@ -7,12 +7,6 @@ export const rankPlayersTime = async (snapshotId: number) => {
     },
     select: {
       clients: {
-        where: {
-          playerName: {
-            // Don't rank connecting players because their score is meaningless.
-            not: "(connecting)",
-          }
-        },
         select: {
           playerName: true,
           score: true,
@@ -48,7 +42,7 @@ export const rankPlayersTime = async (snapshotId: number) => {
   const newPlayerTimes = new Map<string, number>();
 
   for (const client of snapshot.clients) {
-    if (!client.inGame || Math.abs(client.score) === 9999) {
+    if (!client.inGame || Math.abs(client.score) === 9999 || client.playerName === '(connecting)') {
       continue;
     }
 

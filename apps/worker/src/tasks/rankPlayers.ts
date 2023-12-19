@@ -10,13 +10,6 @@ export async function rankPlayers(rangeStart: number, rangeEnd: number) {
         gte: rangeStart,
         lte: rangeEnd,
       },
-      map: {
-        gameType: {
-          rankMethod: {
-            not: null,
-          },
-        },
-      },
       rankedAt: null,
     },
     select: {

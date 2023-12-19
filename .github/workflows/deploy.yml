@@ -31,23 +31,21 @@ jobs:
       - name: Lint
         run: npx nx run-many -t lint --parallel=3
 
-      - name: Prisma Generate
-        run: npx nx run-many -t prisma-generate --parallel=3
-
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Migrate database
         run: |
-          flyctl proxy 5434:5432 --app teerankio-postgres
+          flyctl proxy 5434:5432 --app teerankio-postgres &
+          npx nx run-many -t prisma-generate --parallel=3
           npx nx run-many -t prisma-deploy --parallel=3
         env:
-          DATABASE_URL: ${{ secrets.PROXY_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES }}
 
       - name: Build
         run: npx nx run-many -t build --parallel=3
         env:
-          DATABASE_URL: ${{ secrets.PROXY_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Test
         run: |

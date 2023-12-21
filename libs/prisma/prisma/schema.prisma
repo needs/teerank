@@ -178,6 +178,8 @@ model GameServerSnapshot {
   @@index([createdAt])
   @@index([rankedAt])
   @@index([playTimedAt])
+  @@index([createdAt(sort: Desc), rankedAt])
+  @@index([createdAt(sort: Desc), playTimedAt])
 }
 
 model ClanInfoGameType {

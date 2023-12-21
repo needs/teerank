@@ -16,7 +16,7 @@ function jobPriority(jobType: JobType) {
 
 // In some cases, like when playtimes are reset, a lot of job will be scheduled
 // at once, which might overload the database.
-const MAXIMUM_JOB_PER_SCHEDULE = 100;
+export const MAXIMUM_JOB_PER_SCHEDULE = 100;
 
 export async function scheduleJobs(jobType: JobType, batchSize: number, minRange: number, maxRange: number) {
   const batchStart = minRange - (minRange % batchSize);
@@ -34,5 +34,26 @@ export async function scheduleJobs(jobType: JobType, batchSize: number, minRange
 
   if (results.count !== 0) {
     console.log(`Scheduled ${(results.count)} jobs for ${jobType} (${batchStart} - ${batchEnd})`)
+  }
+}
+
+export async function scheduleJobBatches(jobType: JobType, batchSize: number, batches: number[]) {
+  const batchRanges = batches.slice(0, MAXIMUM_JOB_PER_SCHEDULE).map(batch => ({
+    rangeStart: batch - (batch % batchSize),
+    rangeEnd: batch - (batch % batchSize) + batchSize - 1,
+  }));
+
+  const results = await prisma.job.createMany({
+    data: batchRanges.map(range => ({
+      jobType,
+      rangeStart: range.rangeStart,
+      rangeEnd: range.rangeEnd,
+      priority: jobPriority(jobType),
+    })),
+    skipDuplicates: true,
+  });
+
+  if (results.count !== 0) {
+    console.log(`Scheduled a batch of ${(results.count)} jobs for ${jobType}`)
   }
 }

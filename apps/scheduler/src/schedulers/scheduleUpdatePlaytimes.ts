@@ -1,23 +1,27 @@
 import { JobType } from "@prisma/client";
 import { prisma } from "../prisma";
-import { scheduleJobs } from "../schedule";
+import { MAXIMUM_JOB_PER_SCHEDULE, scheduleJobBatches } from "../schedule";
+import { compact} from 'lodash';
 
 const BATCH_SIZE = 100;
 
 export async function scheduleUpdatePlaytimes() {
-  const results = await prisma.gameServerSnapshot.aggregate({
-    _min: {
-      id: true
-    },
-    _max: {
+  const offsets = Array.from({ length: MAXIMUM_JOB_PER_SCHEDULE }, (_, index) => index * BATCH_SIZE);
+
+  const mostRecentUnrankedSnapshots = await prisma.$transaction(offsets.map(offset => prisma.gameServerSnapshot.findFirst({
+    select: {
       id: true
     },
     where: {
       playTimedAt: null,
-    }
-  });
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    skip: offset,
+  })));
 
-  if (results._min.id !== null && results._max.id !== null) {
-    await scheduleJobs(JobType.UPDATE_PLAYTIME, BATCH_SIZE, results._min.id, results._max.id);
-  }
+  const batches = compact(mostRecentUnrankedSnapshots.map(snapshot => snapshot?.id));
+
+  await scheduleJobBatches(JobType.UPDATE_PLAYTIME, BATCH_SIZE, batches);
 }

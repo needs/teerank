@@ -28,7 +28,7 @@ async function main() {
   };
 
   callback();
-  setInterval(callback, secondsToMilliseconds(30));
+  setInterval(callback, secondsToMilliseconds(5));
 }
 
 main();

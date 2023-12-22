@@ -39,6 +39,7 @@ model GameServer {
 
   @@unique([ip, port])
   @@index([createdAt(sort: Desc)])
+  @@index([polledAt])
 }
 
 model Player {

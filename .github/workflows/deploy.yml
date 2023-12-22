@@ -76,6 +76,8 @@ jobs:
         with:
           name: build
 
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
       - name: Deploy frontend
         run: flyctl deploy --config apps/frontend/fly.toml --dockerfile apps/frontend/Dockerfile
         env:
@@ -96,6 +98,8 @@ jobs:
         with:
           name: build
 
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
       - name: Deploy scheduler
         run: flyctl deploy --config apps/scheduler/fly.toml --dockerfile apps/scheduler/Dockerfile
         env:
@@ -115,6 +119,8 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: build
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy worker
         run: flyctl deploy --config apps/worker/fly.toml --dockerfile apps/worker/Dockerfile

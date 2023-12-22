@@ -58,8 +58,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: build
-          path: |
-            dist
+          path: dist
 
   deploy-frontend:
     name: Deploy frontend
@@ -72,9 +71,10 @@ jobs:
           fetch-depth: 0
 
       - name: Restore build artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: build
+          path: dist
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -94,9 +94,10 @@ jobs:
           fetch-depth: 0
 
       - name: Restore build artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: build
+          path: dist
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -116,9 +117,10 @@ jobs:
           fetch-depth: 0
 
       - name: Restore build artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: build
+          path: dist
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 

@@ -6,6 +6,7 @@ import { secondsToMilliseconds } from 'date-fns';
 import { addDefaultGameTypes } from './addDefaultGameTypes';
 import { addDefaultMasterServers } from './addDefaultMasterServers';
 import { cleanupStuckJobs } from "./cleanupStuckJobs";
+import { schedulePlayerLastGameServerClientInitialization } from "./schedulers/schedulePlayerLastGameServerClientInitialization";
 
 async function main() {
   await addDefaultGameTypes();
@@ -21,6 +22,7 @@ async function main() {
       await scheduleGameServersPolling();
       await schedulePlayerRanking();
       await scheduleUpdatePlaytimes();
+      await schedulePlayerLastGameServerClientInitialization();
       isRunning = false;
     } else {
       console.warn('Skipping a new run because one is already in progress');

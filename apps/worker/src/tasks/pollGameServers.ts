@@ -195,7 +195,15 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
           },
         })));
 
-        await prisma.gameServerSnapshot.create({
+        const snapshot = await prisma.gameServerSnapshot.create({
+          select: {
+            clients: {
+              select: {
+                playerName: true,
+                id: true
+              }
+            }
+          },
           data: {
             gameServer: {
               connect: {
@@ -223,17 +231,35 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
             maxClients: gameServerInfo.maxClients,
 
             clients: {
-              create: gameServerInfo.clients.map((client) => ({
-                playerName: client.name,
-                clanName: client.clan === "" ? undefined : client.clan,
-
-                country: client.country,
-                score: client.score,
-                inGame: client.inGame,
-              })),
-            },
+              createMany: {
+                data: gameServerInfo.clients.map((client) => ({
+                  playerName: client.name,
+                  clanName: client.clan === "" ? undefined : client.clan,
+                  country: client.country,
+                  score: client.score,
+                  inGame: client.inGame,
+                })),
+              },
+            }
           },
         });
+
+        await prisma.$transaction(
+          snapshot.clients.map((client) =>
+            prisma.player.update({
+              where: {
+                name: client.playerName,
+              },
+              data: {
+                lastGameServerClient: {
+                  connect: {
+                    id: client.id,
+                  }
+                }
+              },
+            })
+          )
+        );
 
         await prisma.gameServer.update({
           where: {

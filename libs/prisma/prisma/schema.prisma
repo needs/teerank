@@ -53,13 +53,21 @@ model Player {
 
   playTime Int @default(0)
 
+  lastGameServerClient              GameServerClient? @relation(name: "PlayerLastGameServerClientId", fields: [lastGameServerClientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  lastGameServerClientId            Int?              @unique
+  lastGameServerClientInitializedAt DateTime?         @default(now())
+
   gameServerClients GameServerClient[]
   clanPlayerInfos   ClanPlayerInfo[]
 
-  playerInfoMaps      PlayerInfoMap[]
-  playerInfoGameTypes PlayerInfoGameType[]
+  playerInfoMaps       PlayerInfoMap[]
+  playerInfoGameTypes  PlayerInfoGameType[]
+  GameServerSnapshot   GameServerSnapshot?  @relation(fields: [gameServerSnapshotId], references: [id])
+  gameServerSnapshotId Int?
 
   @@index([playTime(sort: Desc)])
+  @@index([createdAt(sort: Desc), lastGameServerClientInitializedAt])
+  @@index([lastGameServerClientInitializedAt])
 }
 
 enum RankMethod {
@@ -68,11 +76,11 @@ enum RankMethod {
 }
 
 model GameType {
-  name        String       @id
-  createdAt   DateTime     @default(now())
-  map         Map[]
-  rankMethod  RankMethod?
-  playTime    Int          @default(0)
+  name       String      @id
+  createdAt  DateTime    @default(now())
+  map        Map[]
+  rankMethod RankMethod?
+  playTime   Int         @default(0)
 
   playerInfoGameTypes PlayerInfoGameType[]
   clanInfoGameTypes   ClanInfoGameType[]
@@ -149,6 +157,8 @@ model GameServerClient {
   country Int
   inGame  Boolean
 
+  playerLast Player? @relation(name: "PlayerLastGameServerClientId")
+
   @@index([snapshotId])
 }
 
@@ -172,6 +182,7 @@ model GameServerSnapshot {
   clients GameServerClient[]
 
   gameServerLast GameServer?
+  players        Player[]
 
   gameServerId Int
   gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
@@ -226,7 +237,7 @@ model Clan {
   playTime Int      @default(0)
   players  Player[]
 
-  clients   GameServerClient[]
+  clients GameServerClient[]
 
   clanPlayerInfos ClanPlayerInfo[]
 
@@ -257,11 +268,12 @@ enum JobType {
   POLL_GAME_SERVERS
   RANK_PLAYERS
   UPDATE_PLAYTIME
+  INITIALIZE_PLAYER_LAST_GAME_SERVER_CLIENT
 }
 
 model Job {
-  id         Int      @id @default(autoincrement())
-  createdAt  DateTime @default(now())
+  id         Int       @id @default(autoincrement())
+  createdAt  DateTime  @default(now())
   jobType    JobType
   rangeStart Int
   rangeEnd   Int

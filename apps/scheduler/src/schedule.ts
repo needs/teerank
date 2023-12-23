@@ -1,7 +1,7 @@
 import { JobType } from "@prisma/client";
 import { prisma } from "./prisma";
 
-function jobPriority(jobType: JobType) {
+export function jobPriority(jobType: JobType) {
   switch (jobType) {
     case JobType.POLL_MASTER_SERVERS:
       return 4;
@@ -11,6 +11,8 @@ function jobPriority(jobType: JobType) {
       return 2;
     case JobType.UPDATE_PLAYTIME:
       return 1;
+    case JobType.INITIALIZE_PLAYER_LAST_GAME_SERVER_CLIENT:
+      return 0;
   }
 }
 
@@ -18,9 +20,9 @@ function jobPriority(jobType: JobType) {
 // at once, which might overload the database.
 export const MAXIMUM_JOB_PER_SCHEDULE = 100;
 
-export async function scheduleJobs(jobType: JobType, batchSize: number, minRange: number, maxRange: number) {
+export async function scheduleJobs(jobType: JobType, batchSize: number, minRange: number, maxRange: number, maximumScheduledJobs: number = MAXIMUM_JOB_PER_SCHEDULE) {
   const batchStart = minRange - (minRange % batchSize);
-  const batchEnd = Math.min(maxRange - (maxRange % batchSize) + batchSize, batchStart + MAXIMUM_JOB_PER_SCHEDULE * batchSize);
+  const batchEnd = Math.min(maxRange - (maxRange % batchSize) + batchSize, batchStart + maximumScheduledJobs * batchSize);
 
   const results = await prisma.job.createMany({
     data: Array.from({ length: (batchEnd - batchStart) / batchSize }, (_, i) => ({

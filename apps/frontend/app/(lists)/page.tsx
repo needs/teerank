@@ -20,7 +20,7 @@ export default async function Index({
       playTime: true,
       clanName: true,
 
-      gameServerClients: {
+      lastGameServerClient: {
         select: {
           snapshot: {
             select: {
@@ -34,15 +34,7 @@ export default async function Index({
             },
           },
         },
-
-        orderBy: {
-          snapshot: {
-            createdAt: 'desc',
-          },
-        },
-
-        take: 1,
-      },
+      }
     },
     orderBy: {
       playTime: 'desc',
@@ -64,9 +56,9 @@ export default async function Index({
         clan: player.clanName ?? undefined,
         rating: undefined,
         playTime: player.playTime,
-        lastSeen: {
-          at: player.gameServerClients[0]?.snapshot.createdAt ?? new Date(),
-          lastSnapshot: player.gameServerClients[0]?.snapshot.gameServerLast,
+        lastSeen: player.lastGameServerClient === null ? undefined : {
+          at: player.lastGameServerClient.snapshot.createdAt,
+          lastSnapshot: player.lastGameServerClient.snapshot.gameServerLast,
         },
       }))}
     />

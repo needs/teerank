@@ -5,6 +5,7 @@ import { pollGameServers } from "./tasks/pollGameServers";
 import { rankPlayers } from "./tasks/rankPlayers";
 import { updatePlayTimes } from "./tasks/updatePlayTime";
 import { secondsToMilliseconds } from "date-fns";
+import { initializePlayerLastGameServerClient } from "./tasks/initializePlayerLastGameServerClient";
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -54,6 +55,9 @@ async function main() {
         break;
       case JobType.UPDATE_PLAYTIME:
         await updatePlayTimes(job.rangeStart, job.rangeEnd);
+        break;
+      case JobType.INITIALIZE_PLAYER_LAST_GAME_SERVER_CLIENT:
+        await initializePlayerLastGameServerClient(job.rangeStart, job.rangeEnd);
         break;
     }
 

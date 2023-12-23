@@ -34,7 +34,7 @@ export default async function Index({
         playTime: true,
         clanName: true,
 
-        gameServerClients: {
+        lastGameServerClient: {
           select: {
             snapshot: {
               select: {
@@ -48,14 +48,6 @@ export default async function Index({
               },
             },
           },
-
-          orderBy: {
-            snapshot: {
-              createdAt: 'desc',
-            },
-          },
-
-          take: 1,
         },
       },
       orderBy: {
@@ -85,7 +77,7 @@ export default async function Index({
         playTime: true,
         clanName: true,
 
-        gameServerClients: {
+        lastGameServerClient: {
           select: {
             snapshot: {
               select: {
@@ -99,14 +91,6 @@ export default async function Index({
               },
             },
           },
-
-          orderBy: {
-            snapshot: {
-              createdAt: 'desc',
-            },
-          },
-
-          take: 1,
         },
       },
       orderBy: {
@@ -126,7 +110,7 @@ export default async function Index({
         playTime: true,
         clanName: true,
 
-        gameServerClients: {
+        lastGameServerClient: {
           select: {
             snapshot: {
               select: {
@@ -140,14 +124,6 @@ export default async function Index({
               },
             },
           },
-
-          orderBy: {
-            snapshot: {
-              createdAt: 'desc',
-            },
-          },
-
-          take: 1,
         },
       },
       orderBy: {
@@ -171,10 +147,10 @@ export default async function Index({
             name: player.name,
             clan: player.clanName ?? undefined,
             rating: undefined,
-            lastSeen: {
-              at: player.gameServerClients[0]?.snapshot.createdAt ?? new Date(),
+            lastSeen: player.lastGameServerClient === null ? undefined : {
+              at: player.lastGameServerClient.snapshot.createdAt ?? new Date(),
               lastSnapshot:
-                player.gameServerClients[0]?.snapshot.gameServerLast,
+                player.lastGameServerClient.snapshot.gameServerLast,
             },
             playTime: player.playTime,
           }))}

@@ -5,10 +5,7 @@ import { pollGameServers } from "./tasks/pollGameServers";
 import { pollMasterServers } from "./tasks/pollMasterServers";
 import { rankPlayers } from "./tasks/rankPlayers";
 import { updatePlayTimes } from "./tasks/updatePlayTime";
-
-async function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+import { wait } from "./utils";
 
 async function main() {
   await addDefaultGameTypes();
@@ -26,7 +23,7 @@ async function main() {
     }
 
     if (!foundTasks) {
-      await sleep(5000);
+      await wait(5000);
     }
   }
 }

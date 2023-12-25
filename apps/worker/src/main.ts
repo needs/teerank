@@ -7,30 +7,31 @@ import { rankPlayers } from "./tasks/rankPlayers";
 import { updatePlayTimes } from "./tasks/updatePlayTime";
 import { wait } from "./utils";
 
+async function runJob(job: () => Promise<boolean>, jobName: string, delayOnBusy: number, delayOnIdle: number) {
+  for (; ;) {
+    console.time(jobName);
+    const isBusy = await job();
+    console.timeEnd(jobName);
+
+    if (isBusy) {
+      await wait(delayOnBusy);
+    } else {
+      await wait(delayOnIdle);
+    }
+  }
+}
+
 async function main() {
   await addDefaultGameTypes();
   await addDefaultMasterServers();
 
-  for (; ;) {
-    let foundTasks = false;
-
-    for (const task of [cleanStuckJobs, pollMasterServers, pollGameServers, rankPlayers, updatePlayTimes]) {
-      try {
-        console.time(task.name);
-        const hasRun = await task();
-        foundTasks ||= hasRun;
-        console.timeEnd(task.name);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    if (!foundTasks) {
-      console.log('No tasks found, waiting 5 seconds');
-      await wait(5000);
-    }
-
-  }
+  await Promise.all([
+    runJob(cleanStuckJobs, 'cleanStuckJobs', 5000, 5000),
+    runJob(pollMasterServers, 'pollMasterServers', 0, 60000),
+    runJob(pollGameServers, 'pollGameServers', 0, 5000),
+    runJob(rankPlayers, 'rankPlayers', 0, 5000),
+    runJob(updatePlayTimes, 'updatePlayTimes', 0, 5000),
+  ]);
 }
 
 main()

@@ -101,13 +101,13 @@ async function checkRatings(expectedRatingsGameType: number[], expectedRatingsMa
 }
 
 test('Only one snapshot', async () => {
-  const snapshot = await createSnapshot([100, 100]);
-  await rankPlayers(snapshot.id, snapshot.id);
+  await createSnapshot([100, 100]);
+  await rankPlayers();
   await checkRatings([0, 0], [0, 0]);
 });
 
 test('Different map', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
+  await createSnapshot([100, 100]);
   const snapshot2 = await createSnapshot([99, 101]);
 
   await prisma.gameServerSnapshot.update({
@@ -128,13 +128,13 @@ test('Different map', async () => {
     },
   });
 
-  await rankPlayers(snapshot1.id, snapshot2.id);
+  await rankPlayers();
 
   await checkRatings([0, 0], [0, 0, 0, 0]);
 });
 
 test('Different game type', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
+  await createSnapshot([100, 100]);
   const snapshot2 = await createSnapshot([99, 101]);
 
   await prisma.gameServerSnapshot.update({
@@ -156,25 +156,25 @@ test('Different game type', async () => {
     },
   });
 
-  await rankPlayers(snapshot1.id, snapshot2.id);
+  await rankPlayers();
 
   await checkRatings([0, 0, 0, 0], [0, 0, 0, 0]);
 });
 
 test('Not enough players', async () => {
-  const snapshot1 = await createSnapshot([100]);
-  const snapshot2 = await createSnapshot([101]);
+  await createSnapshot([100]);
+  await createSnapshot([101]);
 
-  await rankPlayers(snapshot1.id, snapshot2.id);
+  await rankPlayers();
 
   await checkRatings([0], [0]);
 });
 
 test('Negative score average', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
-  const snapshot2 = await createSnapshot([98, 98]);
+  await createSnapshot([100, 100]);
+  await createSnapshot([98, 98]);
 
-  await rankPlayers(snapshot1.id, snapshot2.id);
+  await rankPlayers();
 
   await checkRatings([0, 0], [0, 0]);
 });
@@ -192,25 +192,25 @@ test('Big time gap', async () => {
     },
   });
 
-  await rankPlayers(snapshot1.id, snapshot2.id);
+  await rankPlayers();
 
   await checkRatings([0, 0], [0, 0]);
 });
 
 test('Two players', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
-  const snapshot2 = await createSnapshot([99, 101]);
+  await createSnapshot([100, 100]);
+  await createSnapshot([99, 101]);
 
-  await rankPlayers(snapshot1.id, snapshot2.id);
+  await rankPlayers();
 
   await checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });
 
 test('Rank order', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
-  const snapshot2 = await createSnapshot([99, 101]);
+  await createSnapshot([100, 100]);
+  await createSnapshot([99, 101]);
 
-  await rankPlayers(snapshot1.id, snapshot2.id);
+  await rankPlayers();
 
   await checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });

@@ -25,82 +25,99 @@ const PACKET_GETLIST = Buffer.from([
   ...stringToCharCode('req2'),
 ]);
 
-export async function pollMasterServers(rangeStart: number, rangeEnd: number) {
-  const sockets = setupSockets();
-
-  const masterServers = await prisma.masterServer.findMany({
+export async function pollMasterServers() {
+  const masterServerCandidate = await prisma.masterServer.findFirst({
     where: {
-      id: {
-        gte: rangeStart,
-        lte: rangeEnd,
-      },
       OR: [{
         polledAt: {
           lt: subMinutes(new Date(), 10)
         }
       }, {
         polledAt: null,
-      }]
+      }],
+      pollingStartedAt: null,
     },
+    select: {
+      id: true
+    }
   });
 
-  for (const masterServer of masterServers) {
-    console.log(`Polling ${masterServer.address}:${masterServer.port}`);
-    const ip = await lookup(masterServer.address);
+  if (masterServerCandidate === null) {
+    return false;
+  }
 
-    sendData(sockets, PACKET_GETLIST, ip.address, masterServer.port);
+  const masterServer = await prisma.masterServer.update({
+    where: {
+      id: masterServerCandidate.id,
+      pollingStartedAt: null,
+    },
+    data: {
+      pollingStartedAt: new Date(),
+    },
+  }).catch(() => null);
 
-    await wait(2000);
+  if (masterServer === null) {
+    return false;
+  }
 
-    const receivedPackets = getReceivedPackets(sockets, ip.address, masterServer.port);
+  const sockets = setupSockets();
 
-    if (receivedPackets !== undefined) {
-      const masterServerInfo = unpackMasterPackets(receivedPackets.packets)
+  console.log(`Polling ${masterServer.address}:${masterServer.port}`);
+  const ip = await lookup(masterServer.address);
 
-      const ids = await prisma.$transaction(
-        masterServerInfo.gameServers.map(({ ip, port }) =>
-          prisma.gameServer.upsert({
-            where: {
-              ip_port: {
-                ip,
-                port,
-              },
-            },
-            select: {
-              id: true,
-            },
-            update: {},
-            create: {
+  sendData(sockets, PACKET_GETLIST, ip.address, masterServer.port);
+
+  await wait(2000);
+
+  const receivedPackets = getReceivedPackets(sockets, ip.address, masterServer.port);
+
+  if (receivedPackets !== undefined) {
+    const masterServerInfo = unpackMasterPackets(receivedPackets.packets)
+
+    const ids = await prisma.$transaction(
+      masterServerInfo.gameServers.map(({ ip, port }) =>
+        prisma.gameServer.upsert({
+          where: {
+            ip_port: {
               ip,
               port,
             },
-          })
-        )
-      );
-
-      await prisma.masterServer.update({
-        where: {
-          id: masterServer.id,
-        },
-        data: {
-          gameServers: {
-            set: ids,
           },
-        },
-      });
-
-      console.log(`Added ${masterServerInfo.gameServers.length} game servers (${masterServer.address}:${masterServer.port})`)
-    }
+          select: {
+            id: true,
+          },
+          update: {},
+          create: {
+            ip,
+            port,
+          },
+        })
+      )
+    );
 
     await prisma.masterServer.update({
       where: {
         id: masterServer.id,
       },
       data: {
-        polledAt: new Date(),
+        gameServers: {
+          set: ids,
+        },
       },
     });
+
+    console.log(`Added ${masterServerInfo.gameServers.length} game servers (${masterServer.address}:${masterServer.port})`)
   }
 
+  await prisma.masterServer.update({
+    where: {
+      id: masterServer.id,
+    },
+    data: {
+      polledAt: new Date(),
+    },
+  });
+
   destroySockets(sockets);
+  return true;
 }

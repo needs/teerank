@@ -14,12 +14,6 @@
       "args": "Frontend"
     },
     {
-      "id": "terminateScheduler",
-      "type": "command",
-      "command": "workbench.action.tasks.terminate",
-      "args": "Scheduler"
-    },
-    {
       "id": "terminateWorker",
       "type": "command",
       "command": "workbench.action.tasks.terminate",
@@ -52,7 +46,6 @@
       "label": "Terminate Serve",
       "dependsOn": [
         "Terminate Frontend",
-        "Terminate Scheduler",
         "Terminate Worker",
         "Terminate Docker"
       ],
@@ -61,11 +54,6 @@
       "label": "Terminate Frontend",
       "type": "process",
       "command": "echo ${input:terminateFrontend}",
-    },
-    {
-      "label": "Terminate Scheduler",
-      "type": "process",
-      "command": "echo ${input:terminateScheduler}",
     },
     {
       "label": "Terminate Worker",
@@ -106,7 +94,6 @@
       "dependsOn": [
         "Start docker",
         "Frontend",
-        "Scheduler",
         "Worker",
       ],
     },
@@ -114,12 +101,6 @@
       "label": "Frontend",
       "type": "shell",
       "command": "npx nx serve frontend",
-      "isBackground": true,
-    },
-    {
-      "label": "Scheduler",
-      "type": "shell",
-      "command": "npx nx serve scheduler",
       "isBackground": true,
     },
     {

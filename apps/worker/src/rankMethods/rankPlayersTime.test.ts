@@ -100,28 +100,28 @@ async function checkRatings(expectedRatings: number[]) {
 }
 
 test('Positive and negative time', async () => {
-  const snapshot = await createSnapshot([10, -10]);
-  await rankPlayers(snapshot.id, snapshot.id);
+  await createSnapshot([10, -10]);
+  await rankPlayers();
   await checkRatings([-10, -10]);
 });
 
 test('Time increase', async () => {
-  const snapshot1 = await createSnapshot([10]);
-  const snapshot2 = await createSnapshot([30]);
-  await rankPlayers(snapshot1.id, snapshot2.id);
+  await createSnapshot([10]);
+  await createSnapshot([30]);
+  await rankPlayers();
   await checkRatings([-10]);
 });
 
 test('Time decrease', async () => {
-  const snapshot1 = await createSnapshot([30]);
-  const snapshot2 = await createSnapshot([10]);
-  await rankPlayers(snapshot1.id, snapshot2.id);
+  await createSnapshot([30]);
+  await createSnapshot([10]);
+  await rankPlayers();
   await checkRatings([-10]);
 });
 
 test('Maximum time', async () => {
-  const snapshot = await createSnapshot([9999, -9999]);
-  await rankPlayers(snapshot.id, snapshot.id);
+  await createSnapshot([9999, -9999]);
+  await rankPlayers();
   await checkRatings([]);
 });
 
@@ -148,6 +148,6 @@ test('Connecting player', async () => {
     },
   });
 
-  await rankPlayers(snapshot.id, snapshot.id);
+  await rankPlayers();
   await checkRatings([]);
 });

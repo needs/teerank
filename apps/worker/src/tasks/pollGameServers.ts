@@ -3,6 +3,7 @@ import { destroySockets, getReceivedPackets, sendData, setupSockets } from "../s
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { wait } from "../utils";
 import { differenceInMinutes, subMinutes } from "date-fns";
+import { compact } from "lodash";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -36,10 +37,11 @@ const PACKET_GETINFO64 = Buffer.from([
   0
 ]);
 
-export async function pollGameServers(rangeStart: number, rangeEnd: number) {
-  const sockets = setupSockets();
-
-  const gameServers = await prisma.gameServer.findMany({
+export async function pollGameServers() {
+  const gameServerCandidates = await prisma.gameServer.findMany({
+    select: {
+      id: true,
+    },
     where: {
       OR: [{
         polledAt: {
@@ -47,14 +49,36 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
         }
       }, {
         polledAt: null,
-      }]
+      }],
+      pollingStartedAt: null,
     },
     orderBy: {
       createdAt: 'desc',
     },
-    skip: rangeStart,
-    take: rangeEnd - rangeStart + 1,
+    take: 100,
   });
+
+  if (gameServerCandidates.length === 0) {
+    return false;
+  }
+
+  const gameServers = compact(await Promise.all(gameServerCandidates.map(async ({ id }) => {
+    return await prisma.gameServer.update({
+      where: {
+        id,
+        pollingStartedAt: null,
+      },
+      data: {
+        pollingStartedAt: new Date(),
+      },
+    }).catch(() => null);
+  })));
+
+  if (gameServers.length === 0) {
+    return false;
+  }
+
+  const sockets = setupSockets();
 
   await Promise.all(gameServers.filter((gameServer) => {
     if (gameServer.offlineSince !== null) {
@@ -289,9 +313,12 @@ export async function pollGameServers(rangeStart: number, rangeEnd: number) {
       },
       data: {
         polledAt: new Date(),
+        pollingStartedAt: null,
       },
     });
   }))
 
   destroySockets(sockets);
+
+  return true;
 }

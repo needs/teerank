@@ -1,39 +1,63 @@
 import { prisma } from "../prisma";
 import { differenceInSeconds } from "date-fns";
 import { removeDuplicatedClients } from "../utils";
+import { compact } from "lodash";
 
-export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
-  const snapshots = await prisma.gameServerSnapshot.findMany({
+export async function updatePlayTimes() {
+  const snapshotCandidates = await prisma.gameServerSnapshot.findMany({
+    where: {
+      playTimingStartedAt: null,
+    },
     select: {
       id: true,
-      createdAt: true,
-      gameServerId: true,
-      mapId: true,
-      map: {
-        select: {
-          gameTypeName: true,
-        },
-      },
-      clients: {
-        select: {
-          playerName: true,
-          player: {
-            select: {
-              clanSnapshotCreatedAt: true,
-            }
-          },
-          clanName: true,
-        },
-      },
     },
-    where: {
-      id: {
-        gte: rangeStart,
-        lte: rangeEnd,
-      },
-      playTimedAt: null,
+    orderBy: {
+      createdAt: 'desc',
     },
+    take: 100,
   });
+
+  if (snapshotCandidates.length === 0) {
+    return false;
+  }
+
+  const snapshots = compact(await Promise.all(snapshotCandidates.map(async ({ id }) => {
+    return await prisma.gameServerSnapshot.update({
+      where: {
+        id,
+        playTimingStartedAt: null,
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        gameServerId: true,
+        mapId: true,
+        map: {
+          select: {
+            gameTypeName: true,
+          },
+        },
+        clients: {
+          select: {
+            playerName: true,
+            player: {
+              select: {
+                clanSnapshotCreatedAt: true,
+              }
+            },
+            clanName: true,
+          },
+        },
+      },
+      data: {
+        playTimingStartedAt: new Date(),
+      },
+    }).catch(() => null);
+  })));
+
+  if (snapshots.length === 0) {
+    return false;
+  }
 
   for (const snapshot of snapshots) {
     const snapshotBefore = await prisma.gameServerSnapshot.findFirst({
@@ -264,4 +288,6 @@ export async function updatePlayTimes(rangeStart: number, rangeEnd: number) {
       },
     });
   }
+
+  return true;
 }

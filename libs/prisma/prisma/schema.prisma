@@ -8,13 +8,14 @@ datasource db {
 }
 
 model MasterServer {
-  id          Int          @id @default(autoincrement())
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  polledAt    DateTime?
-  address     String
-  port        Int
-  gameServers GameServer[]
+  id               Int          @id @default(autoincrement())
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  polledAt         DateTime?
+  pollingStartedAt DateTime?
+  address          String
+  port             Int
+  gameServers      GameServer[]
 
   @@unique([address, port])
 }
@@ -24,7 +25,10 @@ model GameServer {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   offlineSince DateTime?
-  polledAt     DateTime?
+
+  polledAt         DateTime?
+  pollingStartedAt DateTime?
+  pollBatchUuid    String?   @db.Uuid()
 
   ip   String
   port Int
@@ -163,10 +167,12 @@ model GameServerClient {
 }
 
 model GameServerSnapshot {
-  id          Int       @id @default(autoincrement())
-  createdAt   DateTime  @default(now())
-  rankedAt    DateTime?
-  playTimedAt DateTime?
+  id                  Int       @id @default(autoincrement())
+  createdAt           DateTime  @default(now())
+  rankedAt            DateTime?
+  rankingStartedAt    DateTime?
+  playTimedAt         DateTime?
+  playTimingStartedAt DateTime?
 
   version String
   name    String
@@ -189,9 +195,13 @@ model GameServerSnapshot {
 
   @@index([createdAt])
   @@index([rankedAt])
+  @@index([rankingStartedAt])
   @@index([playTimedAt])
+  @@index([playTimingStartedAt])
   @@index([createdAt(sort: Desc), rankedAt])
   @@index([createdAt(sort: Desc), playTimedAt])
+  @@index([createdAt(sort: Desc), rankingStartedAt])
+  @@index([createdAt(sort: Desc), playTimingStartedAt])
 }
 
 model ClanInfoGameType {

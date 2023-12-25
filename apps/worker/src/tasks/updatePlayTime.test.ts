@@ -190,40 +190,40 @@ async function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPla
 }
 
 test('Single snapshot', async () => {
-  const snapshot = await createSnapshot(new Date(), 1, 1);
-  await updatePlayTimes(snapshot.id, snapshot.id);
+  await createSnapshot(new Date(), 1, 1);
+  await updatePlayTimes();
   await checkPlayTimes([0], [0], [0], 0);
 });
 
 test('One player, no clan', async () => {
   const snapshot1 = await createSnapshot(new Date(), 1, 0);
-  const snapshot2 = await createSnapshot(addMinutes(snapshot1.createdAt, 5), 1, 0);
+  await createSnapshot(addMinutes(snapshot1.createdAt, 5), 1, 0);
 
-  await updatePlayTimes(snapshot1.id, snapshot2.id);
+  await updatePlayTimes();
   await checkPlayTimes([5 * 60], [], [], 5 * 60);
 });
 
 test('One player, one clan', async () => {
   const snapshot1 = await createSnapshot(new Date(), 1, 1);
-  const snapshot2 = await createSnapshot(addMinutes(snapshot1.createdAt, 5), 1, 1);
+  await createSnapshot(addMinutes(snapshot1.createdAt, 5), 1, 1);
 
-  await updatePlayTimes(snapshot1.id, snapshot2.id);
+  await updatePlayTimes();
   await checkPlayTimes([5 * 60], [5 * 60], [5 * 60], 5 * 60);
 });
 
 test('Two players, same clan', async () => {
   const snapshot1 = await createSnapshot(new Date(), 2, 1);
-  const snapshot2 = await createSnapshot(addMinutes(snapshot1.createdAt, 5), 2, 1);
+  await createSnapshot(addMinutes(snapshot1.createdAt, 5), 2, 1);
 
-  await updatePlayTimes(snapshot1.id, snapshot2.id);
+  await updatePlayTimes();
   await checkPlayTimes([5 * 60, 5 * 60], [2 * 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);
 });
 
 test('Two players, different clan', async () => {
   const snapshot1 = await createSnapshot(new Date(), 2, 2);
-  const snapshot2 = await createSnapshot(addMinutes(snapshot1.createdAt, 5), 2, 2);
+  await createSnapshot(addMinutes(snapshot1.createdAt, 5), 2, 2);
 
-  await updatePlayTimes(snapshot1.id, snapshot2.id);
+  await updatePlayTimes();
   await checkPlayTimes([5 * 60, 5 * 60], [5 * 60, 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);
 });
 
@@ -245,7 +245,7 @@ test('New player clan', async () => {
 
   expect(playerBefore.clanName).toBeNull();
 
-  await updatePlayTimes(snapshot.id, snapshot.id);
+  await updatePlayTimes();
 
   const playerAfter = await prisma.player.findUniqueOrThrow({
     where: {
@@ -279,7 +279,7 @@ test('Outdated player clan', async () => {
 
   expect(playerBefore.clanName).toBeNull();
 
-  await updatePlayTimes(snapshot.id, snapshot.id);
+  await updatePlayTimes();
 
   const playerAfter = await prisma.player.findUniqueOrThrow({
     where: {

@@ -1,5 +1,5 @@
 import { addMinutes, subMinutes } from "date-fns";
-import { clearDatabase } from "../../testSetup";
+import { clearDatabase, runJobNTimes } from "../../testSetup";
 import { prisma } from "../prisma";
 import { updatePlayTimes } from "./updatePlayTime";
 
@@ -191,7 +191,7 @@ async function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPla
 
 test('Single snapshot', async () => {
   await createSnapshot(new Date(), 1, 1);
-  await updatePlayTimes();
+  await runJobNTimes(2, updatePlayTimes);
   await checkPlayTimes([0], [0], [0], 0);
 });
 
@@ -199,7 +199,7 @@ test('One player, no clan', async () => {
   const snapshot1 = await createSnapshot(new Date(), 1, 0);
   await createSnapshot(addMinutes(snapshot1.createdAt, 5), 1, 0);
 
-  await updatePlayTimes();
+  await runJobNTimes(3, updatePlayTimes);
   await checkPlayTimes([5 * 60], [], [], 5 * 60);
 });
 
@@ -207,7 +207,7 @@ test('One player, one clan', async () => {
   const snapshot1 = await createSnapshot(new Date(), 1, 1);
   await createSnapshot(addMinutes(snapshot1.createdAt, 5), 1, 1);
 
-  await updatePlayTimes();
+  await runJobNTimes(3, updatePlayTimes);
   await checkPlayTimes([5 * 60], [5 * 60], [5 * 60], 5 * 60);
 });
 
@@ -215,7 +215,7 @@ test('Two players, same clan', async () => {
   const snapshot1 = await createSnapshot(new Date(), 2, 1);
   await createSnapshot(addMinutes(snapshot1.createdAt, 5), 2, 1);
 
-  await updatePlayTimes();
+  await runJobNTimes(3, updatePlayTimes);
   await checkPlayTimes([5 * 60, 5 * 60], [2 * 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);
 });
 
@@ -223,7 +223,7 @@ test('Two players, different clan', async () => {
   const snapshot1 = await createSnapshot(new Date(), 2, 2);
   await createSnapshot(addMinutes(snapshot1.createdAt, 5), 2, 2);
 
-  await updatePlayTimes();
+  await runJobNTimes(3, updatePlayTimes);
   await checkPlayTimes([5 * 60, 5 * 60], [5 * 60, 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);
 });
 
@@ -245,7 +245,7 @@ test('New player clan', async () => {
 
   expect(playerBefore.clanName).toBeNull();
 
-  await updatePlayTimes();
+  await runJobNTimes(2, updatePlayTimes);
 
   const playerAfter = await prisma.player.findUniqueOrThrow({
     where: {
@@ -279,7 +279,7 @@ test('Outdated player clan', async () => {
 
   expect(playerBefore.clanName).toBeNull();
 
-  await updatePlayTimes();
+  await runJobNTimes(2, updatePlayTimes);
 
   const playerAfter = await prisma.player.findUniqueOrThrow({
     where: {

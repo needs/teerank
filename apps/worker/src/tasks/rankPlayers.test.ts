@@ -1,5 +1,5 @@
 import { RankMethod } from "@prisma/client";
-import { clearDatabase } from "../../testSetup";
+import { clearDatabase, runJobNTimes } from "../../testSetup";
 import { prisma } from "../prisma";
 import { rankPlayers } from "./rankPlayers";
 
@@ -69,7 +69,7 @@ test('Already scheduled snapshot', async () => {
     },
   });
 
-  await rankPlayers();
+  await runJobNTimes(1, rankPlayers);
 
   const snapshotAfter = await prisma.gameServerSnapshot.findUnique({
     where: {
@@ -90,7 +90,7 @@ test('Already scheduled snapshot', async () => {
 test('rankedAt', async () => {
   const snapshot = await createSnapshot();
 
-  await rankPlayers();
+  await runJobNTimes(2, rankPlayers);
 
   const snapshotAfter = await prisma.gameServerSnapshot.findUniqueOrThrow({
     select: {

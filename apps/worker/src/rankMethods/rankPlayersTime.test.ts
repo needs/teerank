@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { clearDatabase } from '../../testSetup';
+import { clearDatabase, runJobNTimes } from '../../testSetup';
 import { rankPlayers } from '../tasks/rankPlayers';
 import { RankMethod } from '@prisma/client';
 
@@ -101,27 +101,27 @@ async function checkRatings(expectedRatings: number[]) {
 
 test('Positive and negative time', async () => {
   await createSnapshot([10, -10]);
-  await rankPlayers();
+  await runJobNTimes(2, rankPlayers);
   await checkRatings([-10, -10]);
 });
 
 test('Time increase', async () => {
   await createSnapshot([10]);
   await createSnapshot([30]);
-  await rankPlayers();
+  await runJobNTimes(3, rankPlayers);
   await checkRatings([-10]);
 });
 
 test('Time decrease', async () => {
   await createSnapshot([30]);
   await createSnapshot([10]);
-  await rankPlayers();
+  await runJobNTimes(3, rankPlayers);
   await checkRatings([-10]);
 });
 
 test('Maximum time', async () => {
   await createSnapshot([9999, -9999]);
-  await rankPlayers();
+  await runJobNTimes(2, rankPlayers);
   await checkRatings([]);
 });
 
@@ -148,6 +148,6 @@ test('Connecting player', async () => {
     },
   });
 
-  await rankPlayers();
+  await runJobNTimes(2, rankPlayers);
   await checkRatings([]);
 });

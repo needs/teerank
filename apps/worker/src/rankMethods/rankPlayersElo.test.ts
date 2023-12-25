@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { clearDatabase } from '../../testSetup';
+import { clearDatabase, runJobNTimes } from '../../testSetup';
 import { rankPlayers } from '../tasks/rankPlayers';
 import { addHours } from 'date-fns';
 import { RankMethod } from '@prisma/client';
@@ -102,7 +102,7 @@ async function checkRatings(expectedRatingsGameType: number[], expectedRatingsMa
 
 test('Only one snapshot', async () => {
   await createSnapshot([100, 100]);
-  await rankPlayers();
+  await runJobNTimes(2, rankPlayers);
   await checkRatings([0, 0], [0, 0]);
 });
 
@@ -128,7 +128,7 @@ test('Different map', async () => {
     },
   });
 
-  await rankPlayers();
+  await runJobNTimes(3, rankPlayers);
 
   await checkRatings([0, 0], [0, 0, 0, 0]);
 });
@@ -156,7 +156,7 @@ test('Different game type', async () => {
     },
   });
 
-  await rankPlayers();
+  await runJobNTimes(3, rankPlayers);
 
   await checkRatings([0, 0, 0, 0], [0, 0, 0, 0]);
 });
@@ -165,7 +165,7 @@ test('Not enough players', async () => {
   await createSnapshot([100]);
   await createSnapshot([101]);
 
-  await rankPlayers();
+  await runJobNTimes(3, rankPlayers);
 
   await checkRatings([0], [0]);
 });
@@ -174,7 +174,7 @@ test('Negative score average', async () => {
   await createSnapshot([100, 100]);
   await createSnapshot([98, 98]);
 
-  await rankPlayers();
+  await runJobNTimes(3, rankPlayers);
 
   await checkRatings([0, 0], [0, 0]);
 });
@@ -192,7 +192,7 @@ test('Big time gap', async () => {
     },
   });
 
-  await rankPlayers();
+  await runJobNTimes(3, rankPlayers);
 
   await checkRatings([0, 0], [0, 0]);
 });
@@ -201,7 +201,7 @@ test('Two players', async () => {
   await createSnapshot([100, 100]);
   await createSnapshot([99, 101]);
 
-  await rankPlayers();
+  await runJobNTimes(3, rankPlayers);
 
   await checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });
@@ -210,7 +210,7 @@ test('Rank order', async () => {
   await createSnapshot([100, 100]);
   await createSnapshot([99, 101]);
 
-  await rankPlayers();
+  await runJobNTimes(3, rankPlayers);
 
   await checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });

@@ -14,3 +14,11 @@ export async function clearDatabase() {
     }
   };
 }
+
+export async function runJobNTimes(n: number, job: () => Promise<boolean>) {
+  for (let i = 0; i < n - 1; i++) {
+    expect(await job()).toBe(true);
+  }
+
+  expect(await job()).toBe(false);
+}

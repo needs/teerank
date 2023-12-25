@@ -83,29 +83,6 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_FRONTEND }}
 
-  deploy-scheduler:
-    name: Deploy scheduler
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Restore build artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: build
-          path: dist
-
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Deploy scheduler
-        run: flyctl deploy --config apps/scheduler/fly.toml --dockerfile apps/scheduler/Dockerfile
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_SCHEDULER }}
-
   deploy-worker:
     name: Deploy worker
     runs-on: ubuntu-latest

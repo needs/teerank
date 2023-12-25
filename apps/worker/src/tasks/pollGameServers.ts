@@ -3,7 +3,6 @@ import { resetPackets, getReceivedPackets, sendData, setupSockets } from "../soc
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { wait } from "../utils";
 import { differenceInMinutes, subMinutes } from "date-fns";
-import { compact } from "lodash";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -37,8 +36,36 @@ const PACKET_GETINFO64 = Buffer.from([
   0
 ]);
 
+function skipPolling(offlineSince: Date | null) {
+  if (offlineSince !== null) {
+    const now = new Date();
+
+    const maxMinutes = 24 * 60;
+    const offlineSinceMinutes = Math.min(maxMinutes, differenceInMinutes(now, offlineSince));
+
+    // The longer offline, the less odds to poll, range from 0.95 to 0.05
+    const odds = 0.05 + 0.9 * (offlineSinceMinutes / maxMinutes);
+
+    return Math.random() < odds;
+  } else {
+    return true;
+  }
+}
+
+function markAsPolled(gameServerId: number) {
+  return prisma.gameServer.update({
+    where: {
+      id: gameServerId,
+    },
+    data: {
+      polledAt: new Date(),
+      pollingStartedAt: null,
+    },
+  });
+}
+
 export async function pollGameServers() {
-  const gameServerCandidates = await prisma.gameServer.findMany({
+  const gameServerCandidate = await prisma.gameServer.findFirst({
     select: {
       id: true,
     },
@@ -55,53 +82,39 @@ export async function pollGameServers() {
     orderBy: {
       createdAt: 'desc',
     },
-    take: 100,
   });
 
-  if (gameServerCandidates.length === 0) {
+  if (gameServerCandidate === null) {
     return false;
   }
 
-  const gameServers = compact(await Promise.all(gameServerCandidates.map(async ({ id }) => {
-    return await prisma.gameServer.update({
+  const gameServer =
+    await prisma.gameServer.update({
       where: {
-        id,
+        id: gameServerCandidate.id,
         pollingStartedAt: null,
       },
       data: {
         pollingStartedAt: new Date(),
       },
     }).catch(() => null);
-  })));
 
-  if (gameServers.length === 0) {
+  if (gameServer === null) {
     return false;
+  }
+
+  if (!skipPolling(gameServer.offlineSince)) {
+    await markAsPolled(gameServer.id);
+    return true;
   }
 
   const sockets = await setupSockets;
 
-  await Promise.all(gameServers.filter((gameServer) => {
-    if (gameServer.offlineSince !== null) {
-      const offlineSince = new Date(gameServer.offlineSince);
-      const now = new Date();
+  sendData(sockets, PACKET_GETINFO, gameServer.ip, gameServer.port);
+  sendData(sockets, PACKET_GETINFO64, gameServer.ip, gameServer.port);
 
-      const maxMinutes = 24 * 60;
-      const offlineSinceMinutes = Math.min(maxMinutes, differenceInMinutes(now, offlineSince));
-
-      // The longer offline, the less odds to poll, range from 0.95 to 0.05
-      const odds = 0.05 + 0.9 * (offlineSinceMinutes / maxMinutes);
-
-      return Math.random() < odds;
-    } else {
-      return true;
-    }
-  }).map(async (gameServer, index) => {
-    await wait(index * 100);
-
-    sendData(sockets, PACKET_GETINFO, gameServer.ip, gameServer.port);
-    sendData(sockets, PACKET_GETINFO64, gameServer.ip, gameServer.port);
-
-    await wait(2000);
+  wait(100).then(async () => {
+    await wait(1900);
 
     const receivedPackets = getReceivedPackets(sockets, gameServer.ip, gameServer.port);
 
@@ -307,19 +320,10 @@ export async function pollGameServers() {
       });
     }
 
-    await prisma.gameServer.update({
-      where: {
-        id: gameServer.id,
-      },
-      data: {
-        polledAt: new Date(),
-        pollingStartedAt: null,
-      },
-    });
-
     resetPackets(sockets, gameServer.ip, gameServer.port);
-  }))
 
+    await markAsPolled(gameServer.id);
+  });
 
   return true;
 }

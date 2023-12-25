@@ -16,15 +16,20 @@ async function main() {
 
     for (const task of [cleanStuckJobs, pollMasterServers, pollGameServers, rankPlayers, updatePlayTimes]) {
       try {
-        foundTasks ||= await task();
+        console.time(task.name);
+        const hasRun = await task();
+        foundTasks ||= hasRun;
+        console.timeEnd(task.name);
       } catch (error) {
         console.error(error);
       }
     }
 
     if (!foundTasks) {
+      console.log('No tasks found, waiting 5 seconds');
       await wait(5000);
     }
+
   }
 }
 

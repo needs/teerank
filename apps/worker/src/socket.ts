@@ -15,37 +15,31 @@ function ipAndPortToString(ip: string, port: number) {
   return `${ip} | ${port}`;
 }
 
-export function setupSockets(): Sockets {
-  const packetsByIpAndPort: Record<
-    string,
-    { packets: Packet[]; remoteInfo: RemoteInfo }
-  > = {};
-
-  const socket4 = createSocket({ type: "udp4" });
-  const socket6 = createSocket({ type: "udp6" });
+export const setupSockets = new Promise<Sockets>((resolve) => {
+  const sockets: Sockets = {
+    socket4: createSocket({ type: "udp4" }),
+    socket6: createSocket({ type: "udp6" }),
+    packetsByIpAndPort: {},
+  };
 
   const handleMessages = (message: Buffer, remoteInfo: RemoteInfo) => {
     const ipAndPort = ipAndPortToString(remoteInfo.address, remoteInfo.port);
     const packet = packetFromBuffer(message);
 
-    const receivedPacket = packetsByIpAndPort[ipAndPort];
+    const receivedPacket = sockets.packetsByIpAndPort[ipAndPort];
 
     if (receivedPacket === undefined) {
-      packetsByIpAndPort[ipAndPort] = { packets: [packet], remoteInfo };
+      sockets.packetsByIpAndPort[ipAndPort] = { packets: [packet], remoteInfo };
     } else {
       receivedPacket.packets.push(packet);
     }
   };
 
-  socket4.on('message', handleMessages);
-  socket6.on('message', handleMessages);
+  sockets.socket4.on('message', handleMessages);
+  sockets.socket6.on('message', handleMessages);
 
-  return {
-    socket4,
-    socket6,
-    packetsByIpAndPort,
-  };
-}
+  resolve(sockets);
+});
 
 function getSocket(sockets: Sockets, ip: string) {
   switch (isIP(ip)) {
@@ -73,7 +67,7 @@ export function getReceivedPackets(sockets: Sockets, ip: string, port: number) {
   return sockets.packetsByIpAndPort[ipAndPort];
 }
 
-export function destroySockets(sockets: Sockets) {
-  sockets.socket4.close();
-  sockets.socket6.close();
+export function resetPackets(sockets: Sockets, ip: string, port: number) {
+  const ipAndPort = ipAndPortToString(ip, port);
+  delete sockets.packetsByIpAndPort[ipAndPort];
 }

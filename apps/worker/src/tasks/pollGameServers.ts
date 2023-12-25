@@ -1,5 +1,5 @@
 import { prisma } from "../prisma";
-import { destroySockets, getReceivedPackets, sendData, setupSockets } from "../socket";
+import { resetPackets, getReceivedPackets, sendData, setupSockets } from "../socket";
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { wait } from "../utils";
 import { differenceInMinutes, subMinutes } from "date-fns";
@@ -78,7 +78,7 @@ export async function pollGameServers() {
     return false;
   }
 
-  const sockets = setupSockets();
+  const sockets = await setupSockets;
 
   await Promise.all(gameServers.filter((gameServer) => {
     if (gameServer.offlineSince !== null) {
@@ -316,9 +316,10 @@ export async function pollGameServers() {
         pollingStartedAt: null,
       },
     });
+
+    resetPackets(sockets, gameServer.ip, gameServer.port);
   }))
 
-  destroySockets(sockets);
 
   return true;
 }

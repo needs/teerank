@@ -1,7 +1,5 @@
 import prisma from '../../utils/prisma';
-import { JobType } from '@prisma/client';
 import { formatDistanceToNow, subMinutes } from 'date-fns';
-import { keyBy } from 'lodash';
 
 export const metadata = {
   title: 'Status',
@@ -17,9 +15,25 @@ export default async function Index() {
     },
   });
 
+  const masterServerPollingJobs = await prisma.masterServer.count({
+    where: {
+      pollingStartedAt: {
+        not: null,
+      },
+    },
+  });
+
   const gameServersAggregate = await prisma.gameServer.aggregate({
     _max: {
       polledAt: true,
+    },
+  });
+
+  const gameServerPollingJobs = await prisma.gameServer.count({
+    where: {
+      pollingStartedAt: {
+        not: null,
+      },
     },
   });
 
@@ -30,13 +44,19 @@ export default async function Index() {
     },
   });
 
-  const jobsAggregate = await prisma.job.groupBy({
-    by: 'jobType',
-    _count: {
-      id: true,
+  const snapshotRankingJobs = await prisma.gameServerSnapshot.count({
+    where: {
+      rankingStartedAt: {
+        not : null
+      }
     },
-    orderBy: {
-      jobType: 'asc',
+  });
+
+  const snapshotPlayTimingJobs = await prisma.gameServerSnapshot.count({
+    where: {
+      playTimingStartedAt: {
+        not : null
+      }
     },
   });
 
@@ -67,31 +87,26 @@ export default async function Index() {
     },
   });
 
-  const jobCountByJobtype = keyBy(
-    jobsAggregate,
-    (jobAggregate) => jobAggregate.jobType
-  );
-
   const sections = [
     {
       title: 'Polling Master Servers',
       date: masterServersAggregate._max.polledAt,
-      jobCount: jobCountByJobtype[JobType.POLL_MASTER_SERVERS]?._count?.id ?? 0,
+      jobCount: masterServerPollingJobs,
     },
     {
       title: 'Polling Game Servers',
       date: gameServersAggregate._max.polledAt,
-      jobCount: jobCountByJobtype[JobType.POLL_GAME_SERVERS]?._count?.id ?? 0,
+      jobCount: gameServerPollingJobs,
     },
     {
       title: 'Ranking',
       date: snapshotsAggregate._max.rankedAt,
-      jobCount: jobCountByJobtype[JobType.RANK_PLAYERS]?._count?.id ?? 0,
+      jobCount: snapshotRankingJobs,
     },
     {
       title: 'Playtiming',
       date: snapshotsAggregate._max.playTimedAt,
-      jobCount: jobCountByJobtype[JobType.UPDATE_PLAYTIME]?._count?.id ?? 0,
+      jobCount: snapshotPlayTimingJobs,
     },
   ];
 

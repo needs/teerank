@@ -272,23 +272,3 @@ model ClanPlayerInfo {
   @@unique([clanName, playerName])
   @@index([playTime(sort: Desc)])
 }
-
-enum JobType {
-  POLL_MASTER_SERVERS
-  POLL_GAME_SERVERS
-  RANK_PLAYERS
-  UPDATE_PLAYTIME
-  INITIALIZE_PLAYER_LAST_GAME_SERVER_CLIENT
-}
-
-model Job {
-  id         Int       @id @default(autoincrement())
-  createdAt  DateTime  @default(now())
-  jobType    JobType
-  rangeStart Int
-  rangeEnd   Int
-  priority   Int
-  startedAt  DateTime?
-
-  @@unique([jobType, rangeStart, rangeEnd])
-}

@@ -1,13 +1,13 @@
 import { subMinutes } from "date-fns";
 import { prisma } from "../prisma";
 
-const timeoutMinutes = 15;
+export const jobTimeoutMinutes = 15;
 
 export async function cleanStuckJobs() {
   const unstuckMasterServerPollingJobs = await prisma.masterServer.updateMany({
     where: {
       pollingStartedAt: {
-        lt: subMinutes(new Date(), timeoutMinutes),
+        lt: subMinutes(new Date(), jobTimeoutMinutes),
       },
     },
     data: {
@@ -15,14 +15,14 @@ export async function cleanStuckJobs() {
     },
   });
 
-  if (unstuckMasterServerPollingJobs.count > 0) {
+  if (unstuckMasterServerPollingJobs.count > 0 && process.env.NODE_ENV !== 'test') {
     console.warn(`Unstuck ${unstuckMasterServerPollingJobs.count} master server polling jobs`);
   }
 
   const unstuckGameServerPollingJobs = await prisma.gameServer.updateMany({
     where: {
       pollingStartedAt: {
-        lt: subMinutes(new Date(), timeoutMinutes),
+        lt: subMinutes(new Date(), jobTimeoutMinutes),
       },
     },
     data: {
@@ -30,14 +30,14 @@ export async function cleanStuckJobs() {
     },
   });
 
-  if (unstuckGameServerPollingJobs.count > 0) {
+  if (unstuckGameServerPollingJobs.count > 0 && process.env.NODE_ENV !== 'test') {
     console.warn(`Unstuck ${unstuckGameServerPollingJobs.count} game server polling jobs`);
   }
 
   const unstuckSnapshotRankingJobs = await prisma.gameServerSnapshot.updateMany({
     where: {
       rankingStartedAt: {
-        lt: subMinutes(new Date(), timeoutMinutes),
+        lt: subMinutes(new Date(), jobTimeoutMinutes),
       },
     },
     data: {
@@ -45,14 +45,14 @@ export async function cleanStuckJobs() {
     },
   });
 
-  if (unstuckSnapshotRankingJobs.count > 0) {
+  if (unstuckSnapshotRankingJobs.count > 0 && process.env.NODE_ENV !== 'test') {
     console.warn(`Unstuck ${unstuckSnapshotRankingJobs.count} snapshot ranking jobs`);
   }
 
   const unstuckSnapshotPlayTimingJobs = await prisma.gameServerSnapshot.updateMany({
     where: {
       playTimingStartedAt: {
-        lt: subMinutes(new Date(), timeoutMinutes),
+        lt: subMinutes(new Date(), jobTimeoutMinutes),
       },
     },
     data: {
@@ -60,7 +60,7 @@ export async function cleanStuckJobs() {
     },
   });
 
-  if (unstuckSnapshotPlayTimingJobs.count > 0) {
+  if (unstuckSnapshotPlayTimingJobs.count > 0 && process.env.NODE_ENV !== 'test') {
     console.warn(`Unstuck ${unstuckSnapshotPlayTimingJobs.count} snapshot play timing jobs`);
   }
 

@@ -59,7 +59,6 @@ model Player {
 
   lastGameServerClient              GameServerClient? @relation(name: "PlayerLastGameServerClientId", fields: [lastGameServerClientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   lastGameServerClientId            Int?              @unique
-  lastGameServerClientInitializedAt DateTime?         @default(now())
 
   gameServerClients GameServerClient[]
   clanPlayerInfos   ClanPlayerInfo[]
@@ -70,8 +69,6 @@ model Player {
   gameServerSnapshotId Int?
 
   @@index([playTime(sort: Desc)])
-  @@index([createdAt(sort: Desc), lastGameServerClientInitializedAt])
-  @@index([lastGameServerClientInitializedAt])
 }
 
 enum RankMethod {

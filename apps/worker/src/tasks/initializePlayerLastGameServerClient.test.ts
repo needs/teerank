@@ -1,4 +1,4 @@
-import { clearDatabase } from "../../testSetup";
+import { clearDatabase, runJobNTimes } from "../../testSetup";
 import { prisma } from "../prisma";
 import { initializePlayerLastGameServerClient } from "./initializePlayerLastGameServerClient";
 
@@ -6,11 +6,16 @@ beforeEach(async () => {
   await clearDatabase();
 });
 
-async function createSnapshot(createdAt: Date) {
+async function createSnapshot(playerNames: string[]) {
   return await prisma.gameServerSnapshot.create({
+    select: {
+      clients: {
+        select: {
+          id: true,
+        }
+      }
+    },
     data: {
-      createdAt,
-
       map: {
         connectOrCreate: {
           where: {
@@ -30,10 +35,21 @@ async function createSnapshot(createdAt: Date) {
         },
       },
 
-      maxClients: 1,
-      numClients: 1,
-      maxPlayers: 1,
-      numPlayers: 1,
+      maxClients: playerNames.length,
+      numClients: playerNames.length,
+      maxPlayers: playerNames.length,
+      numPlayers: playerNames.length,
+
+      clients: {
+        createMany: {
+          data: playerNames.map((playerName) => ({
+            playerName,
+            score: 0,
+            inGame: true,
+            country: 0,
+          })),
+        }
+      },
 
       name: 'snapshot',
       version: 'version',
@@ -62,12 +78,10 @@ test('Default values', async () => {
       name: 'player',
     },
     select: {
-      lastGameServerClientInitializedAt: true,
       lastGameServerClient: true,
     }
   });
 
-  expect(player.lastGameServerClientInitializedAt).not.toBeNull();
   expect(player.lastGameServerClient).toBeNull();
 });
 
@@ -77,81 +91,90 @@ test('Already initialized', async () => {
       name: 'player',
     },
     select: {
-      lastGameServerClientInitializedAt: true,
+      name: true,
+    }
+  });
+
+  const snapshot = await createSnapshot([player.name]);
+
+  const playerBefore = await prisma.player.update({
+    where: {
+      name: player.name,
+    },
+    select: {
+      lastGameServerClient: true,
+    },
+    data: {
+      lastGameServerClient: {
+        connect: {
+          id: snapshot.clients[0].id,
+        }
+      }
+    }
+  });
+
+  expect(playerBefore.lastGameServerClient).not.toBeNull();
+
+  await runJobNTimes(1, initializePlayerLastGameServerClient);
+
+  const playerAfter = await prisma.player.findUniqueOrThrow({
+    where: {
+      name: player.name,
+    },
+    select: {
       lastGameServerClient: true,
     }
   });
 
-  await initializePlayerLastGameServerClient(0, 0);
-
-  expect(player.lastGameServerClientInitializedAt).not.toBeNull();
-  expect(player.lastGameServerClient).toBeNull();
+  expect(playerAfter.lastGameServerClient).toStrictEqual(playerBefore.lastGameServerClient);
 });
 
 test('No client', async () => {
   const player = await prisma.player.create({
     data: {
       name: 'player',
-      lastGameServerClientInitializedAt: null,
-    },
-    select: {
-      lastGameServerClientInitializedAt: true,
-      lastGameServerClient: true,
-    }
-  });
-
-  await initializePlayerLastGameServerClient(0, 0);
-
-  expect(player.lastGameServerClientInitializedAt).toBeNull();
-  expect(player.lastGameServerClient).toBeNull();
-});
-
-test('Has client', async () => {
-  const uninitializedPlayer = await prisma.player.create({
-    data: {
-      name: 'player',
-      lastGameServerClientInitializedAt: null,
     },
     select: {
       name: true,
     }
   });
 
-  const snapshot = await createSnapshot(new Date());
+  await runJobNTimes(1, initializePlayerLastGameServerClient);
 
-  const gameServerClient = await prisma.gameServerClient.create({
-    data: {
-      player: {
-        connect: {
-          name: uninitializedPlayer.name,
-        },
-      },
-      score: 0,
-      inGame: false,
-      country: 0,
-      snapshot: {
-        connect: {
-          id: snapshot.id,
-        }
-      },
+  const playerAfter = await prisma.player.findUniqueOrThrow({
+    where: {
+      name: player.name,
     },
     select: {
-      id: true,
-    },
+      lastGameServerClient: true,
+    }
   });
 
-  await initializePlayerLastGameServerClient(0, 0);
+  expect(playerAfter.lastGameServerClient).toBeNull();
+});
+
+test('Has client', async () => {
+  const uninitializedPlayer = await prisma.player.create({
+    data: {
+      name: 'player',
+    },
+    select: {
+      name: true,
+    }
+  });
+
+  const snapshot = await createSnapshot([uninitializedPlayer.name]);
+
+  await runJobNTimes(2, initializePlayerLastGameServerClient);
 
   const initializedPlayer = await prisma.player.findUniqueOrThrow({
     where: {
       name: uninitializedPlayer.name,
     },
     select: {
-      lastGameServerClientInitializedAt: true,
       lastGameServerClient: true,
     }
   });
 
-  expect(initializedPlayer.lastGameServerClientInitializedAt).not.toBeNull();
-  expect(initializedPlayer.lastGameServerClient?.id).toBe(gameServerClient.id);
+  expect(initializedPlayer.lastGameServerClient?.id).toBe(snapshot.clients[0].id);
 });

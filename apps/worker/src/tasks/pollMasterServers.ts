@@ -73,7 +73,7 @@ export async function pollMasterServers() {
     if (receivedPackets !== undefined) {
       const masterServerInfo = unpackMasterPackets(receivedPackets.packets)
 
-      const ids = await prisma.$transaction(
+      const ids = await Promise.all(
         masterServerInfo.gameServers.map(({ ip, port }) =>
           prisma.gameServer.upsert({
             where: {

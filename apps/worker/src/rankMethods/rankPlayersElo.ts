@@ -153,7 +153,7 @@ function computeEloDeltas(
 export const rankPlayersElo = async (snapshotId: number) => {
   const { snapshot, snapshotBefore } = await getSnapshots(snapshotId);
 
-  const playerInfoMaps = await prisma.$transaction(
+  const playerInfoMaps = await Promise.all(
     snapshot.clients.map((client) => prisma.playerInfoMap.upsert({
       where: {
         playerName_mapId: {
@@ -177,7 +177,7 @@ export const rankPlayersElo = async (snapshotId: number) => {
 
   const mapRatings = new Map(playerInfoMaps.map(({ playerName, rating, id }) => [playerName, { rating: rating ?? 0, id }]));
 
-  const playerInfoGameTypes = await prisma.$transaction(
+  const playerInfoGameTypes = await Promise.all(
     snapshot.clients.map((client) => prisma.playerInfoGameType.upsert({
       where: {
         playerName_gameTypeName: {
@@ -210,7 +210,7 @@ export const rankPlayersElo = async (snapshotId: number) => {
     );
 
     if (eloDeltasMap.size > 0) {
-      await prisma.$transaction(Array.from(eloDeltasMap.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
+      await Promise.all(Array.from(eloDeltasMap.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
         prisma.playerInfoMap.update({
           where: {
             id: mapRatings.get(playerName)?.id ?? 0,
@@ -230,7 +230,7 @@ export const rankPlayersElo = async (snapshotId: number) => {
     );
 
     if (eloDeltasGameType.size > 0) {
-      await prisma.$transaction(Array.from(eloDeltasGameType.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
+      await Promise.all(Array.from(eloDeltasGameType.entries()).filter(([, eloDelta]) => eloDelta !== 0).map(([playerName, eloDelta]) =>
         prisma.playerInfoGameType.update({
           where: {
             id: gameTypeRatings.get(playerName)?.id ?? 0,

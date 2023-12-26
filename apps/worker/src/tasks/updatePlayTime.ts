@@ -75,7 +75,7 @@ export async function updatePlayTimes() {
   const clients = removeDuplicatedClients(snapshot.clients);
 
   for (const client of clients) {
-    await prisma.$transaction([
+    await Promise.all([
       prisma.playerInfoMap.upsert({
         where: {
           playerName_mapId: {
@@ -250,7 +250,7 @@ export async function updatePlayTimes() {
     ])
   }
 
-  await prisma.$transaction([
+  await Promise.all([
     prisma.gameType.update({
       where: {
         name: snapshot.map.gameTypeName,

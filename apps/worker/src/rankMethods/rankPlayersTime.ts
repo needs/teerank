@@ -17,7 +17,7 @@ export const rankPlayersTime = async (snapshotId: number) => {
     },
   });
 
-  const playerInfoMaps = await prisma.$transaction(
+  const playerInfoMaps = await Promise.all(
     snapshot.clients.map((client) => prisma.playerInfoMap.upsert({
       where: {
         playerName_mapId: {
@@ -54,7 +54,7 @@ export const rankPlayersTime = async (snapshotId: number) => {
     }
   }
 
-  await prisma.$transaction(Array.from(newPlayerTimes.entries()).map(([playerName, newTime]) =>
+  await Promise.all(Array.from(newPlayerTimes.entries()).map(([playerName, newTime]) =>
     prisma.playerInfoMap.update({
       where: {
         playerName_mapId: {

@@ -10,7 +10,7 @@ export async function addDefaultGameTypes() {
     "DDraceNetwork", "Gores", "TestDDraceNetwor", "TestGores", "Race", "iDDRace", "XXLDDRace", "PPRace", "TestDDNet++"
   ];
 
-  await prisma.$transaction([
+  await Promise.all([
     ...gameTypesElo.map(gameType => prisma.gameType.upsert({
       where: {
         name: gameType,

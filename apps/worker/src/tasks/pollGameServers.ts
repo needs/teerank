@@ -162,7 +162,7 @@ export async function pollGameServers() {
           skipDuplicates: true,
         });
 
-        await prisma.$transaction(gameServerInfo.clients.map((client) => prisma.playerInfoGameType.upsert({
+        await Promise.all(gameServerInfo.clients.map((client) => prisma.playerInfoGameType.upsert({
           select: {
             id: true,
           },
@@ -179,7 +179,7 @@ export async function pollGameServers() {
           },
         })));
 
-        await prisma.$transaction(uniqClans.map((clan) => prisma.clanInfoGameType.upsert({
+        await Promise.all(uniqClans.map((clan) => prisma.clanInfoGameType.upsert({
           select: {
             id: true,
           },
@@ -196,7 +196,7 @@ export async function pollGameServers() {
           },
         })));
 
-        await prisma.$transaction(gameServerInfo.clients.map((client) => prisma.playerInfoMap.upsert({
+        await Promise.all(gameServerInfo.clients.map((client) => prisma.playerInfoMap.upsert({
           select: {
             id: true,
           },
@@ -213,7 +213,7 @@ export async function pollGameServers() {
           },
         })));
 
-        await prisma.$transaction(uniqClans.map((clan) => prisma.clanInfoMap.upsert({
+        await Promise.all(uniqClans.map((clan) => prisma.clanInfoMap.upsert({
           select: {
             id: true,
           },
@@ -279,7 +279,7 @@ export async function pollGameServers() {
           },
         });
 
-        await prisma.$transaction(
+        await Promise.all(
           snapshot.clients.map((client) =>
             prisma.player.update({
               where: {

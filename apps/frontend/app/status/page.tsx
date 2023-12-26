@@ -48,7 +48,8 @@ export default async function Index() {
     where: {
       rankingStartedAt: {
         not : null
-      }
+      },
+      rankedAt: null,
     },
   });
 
@@ -56,7 +57,8 @@ export default async function Index() {
     where: {
       playTimingStartedAt: {
         not : null
-      }
+      },
+      playTimedAt: null,
     },
   });
 

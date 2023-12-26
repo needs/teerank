@@ -1,4 +1,4 @@
-import { formatDistanceToNow, intervalToDuration } from 'date-fns';
+import { intervalToDuration } from 'date-fns';
 import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
 import { formatDurationShort } from '../utils/format';

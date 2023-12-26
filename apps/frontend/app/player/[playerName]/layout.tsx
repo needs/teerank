@@ -23,6 +23,22 @@ export default async function Index({
       playTime: true,
       clanName: true,
 
+      lastGameServerClient: {
+        select: {
+          snapshot: {
+            select: {
+              createdAt: true,
+              gameServerLast: {
+                select: {
+                  ip: true,
+                  port: true,
+                },
+              },
+            },
+          },
+        },
+      },
+
       playerInfoMaps: {
         select: {
           map: {
@@ -61,29 +77,6 @@ export default async function Index({
     }),
   ]);
 
-  const lastSnapshot = await prisma.gameServerSnapshot.findFirst({
-    select: {
-      createdAt: true,
-
-      gameServerLast: {
-        select: {
-          ip: true,
-          port: true,
-        },
-      },
-    },
-    where: {
-      clients: {
-        some: {
-          playerName,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-
   if (player === null) {
     return notFound();
   }
@@ -111,12 +104,14 @@ export default async function Index({
           <p>
             <b>Playtime</b>: {formatPlayTime(player.playTime)}
           </p>
-          {lastSnapshot !== null && (
-            <LastSeen
-              lastSnapshot={lastSnapshot.gameServerLast}
-              lastSeen={lastSnapshot.createdAt}
-            />
-          )}
+          <LastSeen
+            lastSnapshot={
+              player.lastGameServerClient?.snapshot.gameServerLast ?? null
+            }
+            lastSeen={
+              player.lastGameServerClient?.snapshot.createdAt ?? new Date()
+            }
+          />
         </aside>
       </header>
 

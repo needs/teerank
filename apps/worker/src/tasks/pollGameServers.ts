@@ -79,9 +79,6 @@ export async function pollGameServers() {
       }],
       pollingStartedAt: null,
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
   });
 
   if (gameServerCandidate === null) {

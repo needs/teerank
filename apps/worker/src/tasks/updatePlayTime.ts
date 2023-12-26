@@ -10,9 +10,6 @@ export async function updatePlayTimes() {
     select: {
       id: true,
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
   });
 
   if (snapshotCandidate === null) {

@@ -11,9 +11,6 @@ export async function rankPlayers() {
     select: {
       id: true,
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
   });
 
   if (snapshotCandidate === null) {

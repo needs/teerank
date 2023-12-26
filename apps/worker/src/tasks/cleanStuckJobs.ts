@@ -39,6 +39,7 @@ export async function cleanStuckJobs() {
       rankingStartedAt: {
         lt: subMinutes(new Date(), jobTimeoutMinutes),
       },
+      rankedAt: null,
     },
     data: {
       rankingStartedAt: null,
@@ -54,6 +55,7 @@ export async function cleanStuckJobs() {
       playTimingStartedAt: {
         lt: subMinutes(new Date(), jobTimeoutMinutes),
       },
+      playTimedAt: null,
     },
     data: {
       playTimingStartedAt: null,

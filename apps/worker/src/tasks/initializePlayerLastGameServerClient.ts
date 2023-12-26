@@ -11,17 +11,6 @@ export async function initializePlayerLastGameServerClient() {
     select: {
       name: true,
 
-      lastGameServerClient: {
-        select: {
-          id: true,
-          snapshot: {
-            select: {
-              createdAt: true,
-            },
-          }
-        },
-      },
-
       gameServerClients: {
         select: {
           id: true,

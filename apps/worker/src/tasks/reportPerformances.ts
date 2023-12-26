@@ -51,7 +51,9 @@ function formatDuration(duration: number) {
 }
 
 export async function reportPerformances() {
-  const performanceSummary = [...jobPerformances.entries()].map(([jobName, performanceData]) => {
+  const performanceSummary = [...jobPerformances.entries()].sort((a, b) => {
+    return Math.max(a[1].maxBusyDuration, a[1].maxIdleDuration) - Math.max(b[1].maxBusyDuration, b[1].maxIdleDuration);
+  }).map(([jobName, performanceData]) => {
     return {
       jobName,
 

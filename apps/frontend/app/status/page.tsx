@@ -9,10 +9,15 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function Index() {
-  const masterServersAggregate = await prisma.masterServer.aggregate({
-    _max: {
+  const lastPolledMasterServer = await prisma.masterServer.findFirst({
+    select: {
       polledAt: true,
     },
+    orderBy: [
+      {
+        polledAt: 'desc',
+      },
+    ],
   });
 
   const masterServerPollingJobs = await prisma.masterServer.count({
@@ -23,10 +28,15 @@ export default async function Index() {
     },
   });
 
-  const gameServersAggregate = await prisma.gameServer.aggregate({
-    _max: {
+  const lastPolledGameServer = await prisma.gameServer.findFirst({
+    select: {
       polledAt: true,
     },
+    orderBy: [
+      {
+        polledAt: 'desc',
+      },
+    ],
   });
 
   const gameServerPollingJobs = await prisma.gameServer.count({
@@ -37,11 +47,36 @@ export default async function Index() {
     },
   });
 
-  const snapshotsAggregate = await prisma.gameServerSnapshot.aggregate({
-    _max: {
+  const lastRankedSnapshot = await prisma.gameServerSnapshot.findFirst({
+    where: {
+      rankedAt: {
+        not: null,
+      },
+    },
+    select: {
       rankedAt: true,
+    },
+    orderBy: [
+      {
+        rankedAt: 'desc',
+      },
+    ],
+  });
+
+  const lastPlayTimedSnapshot = await prisma.gameServerSnapshot.findFirst({
+    where: {
+      playTimedAt: {
+        not: null,
+      },
+    },
+    select: {
       playTimedAt: true,
     },
+    orderBy: [
+      {
+        playTimedAt: 'desc',
+      },
+    ],
   });
 
   const snapshotRankingJobs = await prisma.gameServerSnapshot.count({
@@ -92,22 +127,22 @@ export default async function Index() {
   const sections = [
     {
       title: 'Polling Master Servers',
-      date: masterServersAggregate._max.polledAt,
+      date: lastPolledMasterServer?.polledAt ?? null,
       jobCount: masterServerPollingJobs,
     },
     {
       title: 'Polling Game Servers',
-      date: gameServersAggregate._max.polledAt,
+      date: lastPolledGameServer?.polledAt ?? null,
       jobCount: gameServerPollingJobs,
     },
     {
       title: 'Ranking',
-      date: snapshotsAggregate._max.rankedAt,
+      date: lastRankedSnapshot?.rankedAt ?? null,
       jobCount: snapshotRankingJobs,
     },
     {
       title: 'Playtiming',
-      date: snapshotsAggregate._max.playTimedAt,
+      date: lastPlayTimedSnapshot?.playTimedAt ?? null,
       jobCount: snapshotPlayTimingJobs,
     },
   ];
@@ -137,7 +172,7 @@ export default async function Index() {
                   </span>
                 )}
                 {!isOk && (
-                  <span className="font-bold text-[#b05656] px-4">Error</span>
+                  <span className="font-bold text-[#b05656] px-4">Down</span>
                 )}
                 {isOk && (
                   <span className="font-bold text-[#5a8d39] px-4">OK</span>

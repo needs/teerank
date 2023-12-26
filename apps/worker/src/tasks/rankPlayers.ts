@@ -24,6 +24,7 @@ export async function rankPlayers() {
     },
     select: {
       id: true,
+      rankedAt: true,
       map: {
         select: {
           gameType: {
@@ -43,13 +44,15 @@ export async function rankPlayers() {
     return true;
   }
 
-  switch (snapshot.map.gameType.rankMethod) {
-    case RankMethod.ELO:
-      await rankPlayersElo(snapshot.id);
-      break;
-    case RankMethod.TIME:
-      await rankPlayersTime(snapshot.id);
-      break;
+  if (snapshot.rankedAt === null) {
+    switch (snapshot.map.gameType.rankMethod) {
+      case RankMethod.ELO:
+        await rankPlayersElo(snapshot.id);
+        break;
+      case RankMethod.TIME:
+        await rankPlayersTime(snapshot.id);
+        break;
+    }
   }
 
   await prisma.gameServerSnapshot.update({

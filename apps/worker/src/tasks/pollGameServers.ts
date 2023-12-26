@@ -46,9 +46,9 @@ function skipPolling(offlineSince: Date | null) {
     // The longer offline, the less odds to poll, range from 0.95 to 0.05
     const odds = 0.05 + 0.9 * (offlineSinceMinutes / maxMinutes);
 
-    return Math.random() < odds;
+    return Math.random() >= odds;
   } else {
-    return true;
+    return false;
   }
 }
 
@@ -103,7 +103,7 @@ export async function pollGameServers() {
     return false;
   }
 
-  if (!skipPolling(gameServer.offlineSince)) {
+  if (skipPolling(gameServer.offlineSince)) {
     await markAsPolled(gameServer.id);
     return true;
   }
@@ -113,9 +113,7 @@ export async function pollGameServers() {
   sendData(sockets, PACKET_GETINFO, gameServer.ip, gameServer.port);
   sendData(sockets, PACKET_GETINFO64, gameServer.ip, gameServer.port);
 
-  wait(100).then(async () => {
-    await wait(1900);
-
+  wait(2000).then(async () => {
     const receivedPackets = getReceivedPackets(sockets, gameServer.ip, gameServer.port);
 
     if (receivedPackets !== undefined) {

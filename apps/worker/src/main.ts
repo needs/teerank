@@ -45,8 +45,8 @@ async function main() {
 
   await Promise.all([
     runJob(cleanStuckJobs, 'cleanStuckJobs', 5000, 60000),
-    runJob(pollMasterServers, 'pollMasterServers', 0, 60000),
-    runJob(pollGameServers, 'pollGameServers', 0, 5000),
+    runJob(pollMasterServers, 'pollMasterServers', 100, 60000),
+    runJob(pollGameServers, 'pollGameServers', 100, 5000),
     runJob(rankPlayers, 'rankPlayers', 0, 5000),
     runJob(updatePlayTimes, 'updatePlayTimes', 0, 5000),
     runJob(reportPerformances, 'reportPerformances', 60000, 60000),

@@ -67,9 +67,7 @@ export async function pollMasterServers() {
 
   sendData(sockets, PACKET_GETLIST, ip.address, masterServer.port);
 
-  wait(100).then(async () => {
-    await wait(1900);
-
+  wait(2000).then(async () => {
     const receivedPackets = getReceivedPackets(sockets, ip.address, masterServer.port);
 
     if (receivedPackets !== undefined) {

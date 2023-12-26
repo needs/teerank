@@ -114,6 +114,7 @@ export async function pollMasterServers() {
       },
       data: {
         polledAt: new Date(),
+        pollingStartedAt: null,
       },
     });
 

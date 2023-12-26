@@ -11,7 +11,7 @@ export async function LayoutTabs({
   query: string;
   selectedTab: 'players' | 'clans' | 'servers';
 }) {
-  const [playerCount, clanCount, gameServerCount] = await prisma.$transaction([
+  const [playerCount, clanCount, gameServerCount] = await Promise.all([
     prisma.player.count({
       where: {
         name: {

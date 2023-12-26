@@ -11,7 +11,7 @@ export default async function Index({
 }) {
   const { gameTypeName } = paramsSchema.parse(params);
 
-  const counts = await prisma.$transaction([
+  const [playerCount, clanCount, gameServerCount] = await Promise.all([
     prisma.playerInfoGameType.count({
       where: {
         gameType: {
@@ -46,9 +46,9 @@ export default async function Index({
     <div className="flex flex-col gap-4 py-8">
       <LayoutTabs
         gameTypeName={gameTypeName}
-        playerCount={counts[0]}
-        clanCount={counts[1]}
-        serverCount={counts[2]}
+        playerCount={playerCount}
+        clanCount={clanCount}
+        serverCount={gameServerCount}
       />
 
       {children}

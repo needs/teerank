@@ -1,12 +1,12 @@
-import prisma from "../../utils/prisma";
-import { LayoutTabs } from "./LayoutTabs";
+import prisma from '../../utils/prisma';
+import { LayoutTabs } from './LayoutTabs';
 
 export default async function Index({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const counts = await prisma.$transaction([
+  const [playerCount, clanCount, gameServerCount] = await Promise.all([
     prisma.player.count(),
     prisma.clan.count(),
     prisma.gameServer.count({
@@ -20,9 +20,13 @@ export default async function Index({
 
   return (
     <div className="flex flex-col gap-4 py-8">
-      <LayoutTabs playerCount={counts[0]} clanCount={counts[1]} serverCount={counts[2]} />
+      <LayoutTabs
+        playerCount={playerCount}
+        clanCount={clanCount}
+        serverCount={gameServerCount}
+      />
 
       {children}
     </div>
-  )
+  );
 }

@@ -34,7 +34,7 @@ export default async function Index({
     },
   });
 
-  const counts = await prisma.$transaction([
+  const [gameTypeCount, mapCount] = await Promise.all([
     prisma.clanInfoGameType.count({
       where: {
         clan: {
@@ -78,8 +78,8 @@ export default async function Index({
       <LayoutTabs
         clanName={clanName}
         playerCount={clan.players.length}
-        gameTypeCount={counts[0]}
-        mapCount={counts[1]}
+        gameTypeCount={gameTypeCount}
+        mapCount={mapCount}
       />
 
       {children}

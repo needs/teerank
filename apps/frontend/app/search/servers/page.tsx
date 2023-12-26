@@ -21,7 +21,7 @@ export default async function Index({
     return <Error message="Please enter at least 2 characters." />;
   }
 
-  const matches = await prisma.$transaction([
+  const matches = await Promise.all([
     prisma.gameServer.findMany({
       where: {
         lastSnapshot: {

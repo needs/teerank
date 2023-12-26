@@ -57,7 +57,7 @@ export async function pollMasterServers() {
   }).catch(() => null);
 
   if (masterServer === null) {
-    return false;
+    return true;
   }
 
   const sockets = await setupSockets;

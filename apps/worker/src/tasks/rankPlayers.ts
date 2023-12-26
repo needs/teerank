@@ -40,7 +40,7 @@ export async function rankPlayers() {
   }).catch(() => null);
 
   if (snapshot === null) {
-    return false;
+    return true;
   }
 
   switch (snapshot.map.gameType.rankMethod) {

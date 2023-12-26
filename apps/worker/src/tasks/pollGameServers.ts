@@ -97,7 +97,7 @@ export async function pollGameServers() {
     }).catch(() => null);
 
   if (gameServer === null) {
-    return false;
+    return true;
   }
 
   if (skipPolling(gameServer.offlineSince)) {

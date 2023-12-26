@@ -49,7 +49,7 @@ export async function updatePlayTimes() {
   }).catch(() => null);
 
   if (snapshot === null) {
-    return false;
+    return true;
   }
 
   const snapshotBefore = await prisma.gameServerSnapshot.findFirst({

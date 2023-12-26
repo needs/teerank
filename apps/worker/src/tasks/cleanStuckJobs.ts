@@ -64,5 +64,5 @@ export async function cleanStuckJobs() {
     console.warn(`Unstuck ${unstuckSnapshotPlayTimingJobs.count} snapshot play timing jobs`);
   }
 
-  return false;
+  return unstuckGameServerPollingJobs.count > 0 || unstuckSnapshotRankingJobs.count > 0 || unstuckSnapshotPlayTimingJobs.count > 0 || unstuckMasterServerPollingJobs.count > 0;
 }

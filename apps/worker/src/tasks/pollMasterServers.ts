@@ -1,7 +1,7 @@
 import { prisma } from "../prisma";
 import { lookup } from "dns/promises";
 import { unpackMasterPackets } from "../packets/masterServerInfo";
-import { resetPackets, getReceivedPackets, sendData, setupSockets } from "../socket";
+import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { wait } from "../utils";
 import { subMinutes } from "date-fns";
 
@@ -64,6 +64,8 @@ export async function pollMasterServers() {
 
   console.log(`Polling ${masterServer.address}:${masterServer.port}`);
   const ip = await lookup(masterServer.address);
+
+  listenForPackets(sockets, ip.address, masterServer.port);
 
   sendData(sockets, PACKET_GETLIST, ip.address, masterServer.port);
 

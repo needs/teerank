@@ -1,5 +1,5 @@
 import { prisma } from "../prisma";
-import { resetPackets, getReceivedPackets, sendData, setupSockets } from "../socket";
+import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { wait } from "../utils";
 import { differenceInMinutes, subMinutes } from "date-fns";
@@ -106,6 +106,8 @@ export async function pollGameServers() {
   }
 
   const sockets = await setupSockets;
+
+  listenForPackets(sockets, gameServer.ip, gameServer.port);
 
   sendData(sockets, PACKET_GETINFO, gameServer.ip, gameServer.port);
   sendData(sockets, PACKET_GETINFO64, gameServer.ip, gameServer.port);

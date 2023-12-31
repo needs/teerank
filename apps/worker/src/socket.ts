@@ -7,7 +7,7 @@ type Sockets = {
   socket6: Socket;
   packetsByIpAndPort: Record<
     string,
-    { packets: Packet[]; remoteInfo: RemoteInfo }
+    { packets: Packet[]; }
   >;
 };
 
@@ -28,9 +28,7 @@ export const setupSockets = new Promise<Sockets>((resolve) => {
 
     const receivedPacket = sockets.packetsByIpAndPort[ipAndPort];
 
-    if (receivedPacket === undefined) {
-      sockets.packetsByIpAndPort[ipAndPort] = { packets: [packet], remoteInfo };
-    } else {
+    if (receivedPacket !== undefined) {
       receivedPacket.packets.push(packet);
     }
   };
@@ -60,6 +58,11 @@ export function sendData(sockets: Sockets, data: Buffer, ip: string, port: numbe
       console.error(err);
     }
   });
+}
+
+export function listenForPackets(sockets: Sockets, ip: string, port: number) {
+  const ipAndPort = ipAndPortToString(ip, port);
+  sockets.packetsByIpAndPort[ipAndPort] = { packets: [] };
 }
 
 export function getReceivedPackets(sockets: Sockets, ip: string, port: number) {

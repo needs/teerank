@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+npx nx run-many -t prisma-status | grep -q 'Database schema is up to date'
+npx nx run-many -t lint --parallel=3
+npx nx run-many -t build --parallel=3
+npx nx run-many -t test --runInBand --parallel=1

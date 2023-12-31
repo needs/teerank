@@ -1,99 +1,37 @@
-Teerank
-=======
+# Teerank.io
 
-Teerank is a simple and fast ranking system for Teeworlds.  You can
-test the lastest stable version at [teerank.com](http://teerank.com/).
+Teerank is a simple and fast ranking system for Teeworlds. You can test the
+lastest stable version at teerank.io.
 
-How to use
-==========
+# Run
 
-Build it:
+Make sure docker is running and simply build the project in VSCode.  For more
+informations have a look at the `.vscode/tasks.json` file.
 
-```bash
-make
-```
+# Legacy
 
-Then start updating the database:
+This project is a reboot of teerank.com.  The former was written in C and used
+SQLite.  While good, this technologies are arguably not the best tools in the
+box for making a ranking system.
 
-```
-./teerank-update
-```
+This project instead relies on Typescript, NextJS, PostgreSQL, redis.
+Performance is not really a concern so Typescript is a good language to use, as
+it improves developement speed and is accessible to more people.  Redis is handy
+because it provides a way to sort our players directly while SQLite doesn't.
 
-Finally configure your webserver.  Root path must point to `assets`, so
-that `/style.css` can be resolved.  Database and CGI are located in the
-parent directory by default, hence `$document_root/../` to access them.
-Here is an example for Nginx:
+Finally, the old teerank frontend was a C program compiled into a CGI which then
+was plugged into Nginx.  It worked, but it was difficult to setup.  Using NextJS
+saves a lot of time and is more flexible.
 
-```
-http {
-	server {
-		listen       8000;
-		server_name  teerank.com;
-		root         /home/foo/teerank/assets;
+Also the domain teerank.com expired by accident, and was immediately
+cyber-squatted.  They refused my buying offers, so at some point I stopped the
+server and let the project die.  Now the domain is available again but due to
+the premium system for .com demains, it costs more than a thousand dollars,
+which is not something I can afford for a pet project.  That's why teerank is
+now available at teerank.io.
 
-		try_files $uri @teerank;
-		location @teerank {
-			include       fastcgi_params;
+# Goals
 
-			fastcgi_param TEERANK_DB      $document_root/../teerank.sqlite3;
-			fastcgi_param SCRIPT_FILENAME $document_root/../teerank.cgi;
-			fastcgi_pass  unix:/run/fcgiwrap.sock;
-		}
-	}
-}
-```
-
-The CGI require write persmissions on the database file, as well as any
-files created by sqlite itself.  This is because we are using
-[WAL](https://www.sqlite.org/wal.html) for performances reasons.
-
-Once everything is set up, check `localhost:8000` or whatever location you
-choosed and you should be good to go.
-
-Advanced use
-============
-
-You may want to build a version opimized for your own server using:
-
-```bash
-make -B release
-```
-
-Also, you can specify additional `CFLAGS` and change compiler, to build
-statically linked binaries for instance:
-
-```bash
-CC="musl-gcc" CFLAGS="-static" make -B release
-```
-
-When running `teerank-update`, set `TEERANK_DB` to change database
-location, and `TEERANK_VERBOSE` to `1` to enable verbose mode.
-
-Setting up a CGI for developpement may be cumbursome, you can actually
-simulate CGI environment with the command line, like so:
-
-```bash
-DOCUMENT_URI="/search" QUERY_STRING="q=Nameless" ./teerank.cgi
-```
-
-Upgrading from a previous version
-=================================
-
-Database from the previous stable version can be upgraded using:
-
-```
-./teerank-upgrade
-```
-
-Keep in mind that upgrades are only supported between stable version of
-teerank.  It means that database created or upgraded while being on an
-unstable version will likely not be upgradable to the next stable teerank.
-
-Contributing
-============
-
-Teerank is a free software under the GNU GPL v3.
-
-All the development takes place on github.  Feel free to open issue on
-github or send pull-requests.  If you don't want to use github you can
-also send me an e-mail at needs@mailoo.org.
+  - Reference every servers and players accross all teeworlds versions;
+  - Provide a ranking system for every mods;
+  - Gather historical data on players, servers, maps, clans and more;

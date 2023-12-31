@@ -1,0 +1,271 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MasterServer {
+  id               Int          @id @default(autoincrement())
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  polledAt         DateTime?
+  pollingStartedAt DateTime?
+  address          String
+  port             Int
+  gameServers      GameServer[]
+
+  @@unique([address, port])
+}
+
+model GameServer {
+  id           Int       @id @default(autoincrement())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  offlineSince DateTime?
+
+  polledAt         DateTime?
+  pollingStartedAt DateTime?
+  pollBatchUuid    String?   @db.Uuid()
+
+  ip   String
+  port Int
+
+  masterServer   MasterServer? @relation(fields: [masterServerId], references: [id])
+  masterServerId Int?
+
+  snapshots GameServerSnapshot[] @relation(name: "GameServerSnapshotGameServerId")
+
+  lastSnapshot   GameServerSnapshot? @relation(fields: [lastSnapshotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lastSnapshotId Int?                @unique
+
+  @@unique([ip, port])
+  @@index([createdAt(sort: Desc)])
+  @@index([polledAt])
+}
+
+model Player {
+  name      String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clan                  Clan?    @relation(fields: [clanName], references: [name])
+  clanName              String?
+  clanSnapshotCreatedAt DateTime @default(now())
+
+  playTime Int @default(0)
+
+  lastGameServerClient              GameServerClient? @relation(name: "PlayerLastGameServerClientId", fields: [lastGameServerClientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  lastGameServerClientId            Int?              @unique
+
+  gameServerClients GameServerClient[]
+  clanPlayerInfos   ClanPlayerInfo[]
+
+  playerInfoMaps       PlayerInfoMap[]
+  playerInfoGameTypes  PlayerInfoGameType[]
+  GameServerSnapshot   GameServerSnapshot?  @relation(fields: [gameServerSnapshotId], references: [id])
+  gameServerSnapshotId Int?
+
+  @@index([playTime(sort: Desc)])
+}
+
+enum RankMethod {
+  ELO
+  TIME
+}
+
+model GameType {
+  name       String      @id
+  createdAt  DateTime    @default(now())
+  map        Map[]
+  rankMethod RankMethod?
+  playTime   Int         @default(0)
+
+  playerInfoGameTypes PlayerInfoGameType[]
+  clanInfoGameTypes   ClanInfoGameType[]
+
+  @@index([playTime(sort: Desc)])
+}
+
+model Map {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  playTime  Int      @default(0)
+
+  gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
+  gameTypeName String
+
+  snapshots      GameServerSnapshot[]
+  playerInfoMaps PlayerInfoMap[]
+  clanInfoMaps   ClanInfoMap[]
+
+  @@unique([name, gameTypeName])
+  @@index([playTime(sort: Desc)])
+}
+
+model PlayerInfoGameType {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
+  playerName String
+
+  rating   Float?
+  playTime Int    @default(0)
+
+  gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
+  gameTypeName String
+
+  @@unique([playerName, gameTypeName])
+  @@index([playTime(sort: Desc)])
+}
+
+model PlayerInfoMap {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
+  playerName String
+
+  rating   Float?
+  playTime Int    @default(0)
+
+  map   Map @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  mapId Int
+
+  @@unique([playerName, mapId])
+  @@index([playTime(sort: Desc)])
+}
+
+model GameServerClient {
+  id Int @id @default(autoincrement())
+
+  snapshot   GameServerSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  snapshotId Int
+
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
+  playerName String
+
+  clan     Clan?   @relation(fields: [clanName], references: [name], onDelete: Cascade)
+  clanName String?
+
+  score   Int
+  country Int
+  inGame  Boolean
+
+  playerLast Player? @relation(name: "PlayerLastGameServerClientId")
+
+  @@index([snapshotId])
+}
+
+model GameServerSnapshot {
+  id                  Int       @id @default(autoincrement())
+  createdAt           DateTime  @default(now())
+  rankedAt            DateTime?
+  rankingStartedAt    DateTime?
+  playTimedAt         DateTime?
+  playTimingStartedAt DateTime?
+
+  version String
+  name    String
+  map     Map    @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  mapId   Int
+
+  numPlayers Int
+  maxPlayers Int
+
+  numClients Int
+  maxClients Int
+
+  clients GameServerClient[]
+
+  gameServerLast GameServer?
+  players        Player[]
+
+  gameServerId Int
+  gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([rankedAt])
+  @@index([rankingStartedAt])
+  @@index([playTimedAt])
+  @@index([playTimingStartedAt])
+  @@index([createdAt(sort: Desc), rankedAt])
+  @@index([createdAt(sort: Desc), playTimedAt])
+  @@index([createdAt(sort: Desc), rankingStartedAt(sort: Desc)])
+  @@index([createdAt(sort: Desc), playTimingStartedAt(sort: Desc)])
+}
+
+model ClanInfoGameType {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
+  clanName String
+
+  playTime Int @default(0)
+
+  gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
+  gameTypeName String
+
+  @@unique([clanName, gameTypeName])
+  @@index([playTime(sort: Desc)])
+}
+
+model ClanInfoMap {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
+  clanName String
+
+  playTime Int @default(0)
+
+  map   Map @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  mapId Int
+
+  @@unique([clanName, mapId])
+  @@index([playTime(sort: Desc)])
+}
+
+model Clan {
+  name String @id
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  playTime Int      @default(0)
+  players  Player[]
+
+  clients GameServerClient[]
+
+  clanPlayerInfos ClanPlayerInfo[]
+
+  clanInfoGameTypes ClanInfoGameType[]
+  clanInfoMaps      ClanInfoMap[]
+
+  @@index([playTime(sort: Desc)])
+}
+
+model ClanPlayerInfo {
+  clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
+  clanName String
+
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
+  playerName String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  playTime Int @default(0)
+
+  @@unique([clanName, playerName])
+  @@index([playTime(sort: Desc)])
+}

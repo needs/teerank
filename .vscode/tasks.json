@@ -1,0 +1,113 @@
+{
+  "version": "2.0.0",
+  "presentation": {
+    "echo": false,
+    "reveal": "silent",
+    "focus": false,
+    "panel": "dedicated",
+  },
+  "inputs": [
+    {
+      "id": "terminateFrontend",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "Frontend"
+    },
+    {
+      "id": "terminateWorker",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "Worker"
+    },
+    {
+      "id": "terminateDocker",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "Docker"
+    },
+  ],
+  "tasks": [
+    {
+      "label": "Launch local dev",
+      "dependsOn": [
+        "Terminate Serve",
+        "Npm install",
+        "Start docker",
+        "Setup databases",
+        "Start Serve"
+      ],
+      "dependsOrder": "sequence",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Terminate Serve",
+      "dependsOn": [
+        "Terminate Frontend",
+        "Terminate Worker",
+        "Terminate Docker"
+      ],
+    },
+    {
+      "label": "Terminate Frontend",
+      "type": "process",
+      "command": "echo ${input:terminateFrontend}",
+    },
+    {
+      "label": "Terminate Worker",
+      "type": "process",
+      "command": "echo ${input:terminateWorker}",
+    },
+    {
+      "label": "Terminate Docker",
+      "type": "process",
+      "command": "echo ${input:terminateDocker}",
+    },
+    {
+      "label": "Npm install",
+      "type": "shell",
+      "command": "npm install",
+      "presentation": {
+        "close": true
+      }
+    },
+    {
+      "label": "Start docker",
+      "type": "shell",
+      "command": "docker compose up --detach --wait",
+      "presentation": {
+        "close": true
+      }
+    },
+    {
+      "label": "Setup databases",
+      "type": "shell",
+      "command": "npx nx run prisma:prisma-push --accept-data-loss && DATABASE_URL=postgres://postgres-test:postgres-test@localhost:5433/teerank-test npx nx run prisma:prisma-push --accept-data-loss",
+      "presentation": {
+        "close": true
+      }
+    },
+    {
+      "label": "Start Serve",
+      "dependsOn": [
+        "Start docker",
+        "Frontend",
+        "Worker",
+      ],
+    },
+    {
+      "label": "Frontend",
+      "type": "shell",
+      "command": "npx nx serve frontend",
+      "isBackground": true,
+    },
+    {
+      "label": "Worker",
+      "type": "shell",
+      "command": "npx nx serve worker",
+      "isBackground": true,
+    },
+  ]
+}

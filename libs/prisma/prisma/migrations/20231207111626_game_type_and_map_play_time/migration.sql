@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "GameType" ADD COLUMN     "playTime" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Map" ADD COLUMN     "playTime" INTEGER NOT NULL DEFAULT 0;

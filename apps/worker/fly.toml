@@ -1,0 +1,14 @@
+# fly.toml app configuration file generated for teerankio-worker on 2023-12-19T09:56:19+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "teerankio-worker"
+primary_region = "cdg"
+
+[build]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

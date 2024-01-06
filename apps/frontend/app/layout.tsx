@@ -29,7 +29,7 @@ export default async function RootLayout({
         map: {
           _count: 'desc',
         },
-      }
+      },
     ],
     take: 2,
   });
@@ -37,11 +37,34 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[url('/background.png')] bg-repeat-x bg-left-top flex flex-col items-center m-0 bg-[#9EB5D6] text-[#666]">
-        <header className="max-w-5xl w-full flex flex-row py-4 justify-between">
-          <Link href="/">
+        <header className="max-w-5xl w-full flex flex-row justify-between">
+          <Link href="/" className="py-4">
             <Image src="/logo.png" alt="Logo" width={483} height={98} />
           </Link>
-          <SearchForm />
+          <div className="flex flex-col items-end">
+            <Link
+              href="https://github.com/needs/teerank"
+              target="_blank"
+              prefetch={false}
+              className="flex flex-row bg-white rounded-b-md px-2 py-1 items-center gap-1"
+            >
+              <Image
+                src="/github/mark.png"
+                alt="Github mark"
+                width={16}
+                height={16}
+              />
+              <Image
+                src="/github/logo.png"
+                alt="Github logo"
+                height={16}
+                width={1000.0 * (16.0 / 410.0)}
+              />
+            </Link>
+            <div className="flex grow items-center">
+              <SearchForm />
+            </div>
+          </div>
         </header>
 
         <main className="max-w-5xl w-full rounded-xl bg-[#e7e5be] shadow-sm">

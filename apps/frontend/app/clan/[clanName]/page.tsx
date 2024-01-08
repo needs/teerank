@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { notFound } from 'next/navigation';
 import prisma from '../../../utils/prisma';
 import { PlayerList } from '../../../components/PlayerList';
+import { searchParamPageSchema } from '../../../utils/page';
 
 export const metadata = {
   title: 'Clan',
@@ -11,10 +12,13 @@ export const metadata = {
 
 export default async function Index({
   params,
+  searchParams,
 }: {
   params: z.infer<typeof paramsSchema>;
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const { clanName } = paramsSchema.parse(params);
+  const { page } = searchParamPageSchema.parse(searchParams);
 
   const clan = await prisma.clan.findUnique({
     select: {
@@ -35,7 +39,9 @@ export default async function Index({
         },
         orderBy: {
           playTime: 'desc',
-        }
+        },
+        take: 100,
+        skip: (page - 1) * 100,
       },
     },
     where: {

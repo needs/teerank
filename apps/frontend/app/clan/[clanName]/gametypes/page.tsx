@@ -36,6 +36,8 @@ export default async function Index({
         orderBy: {
           playTime: 'desc',
         },
+        take: 100,
+        skip: (page - 1) * 100,
       },
     },
     where: {

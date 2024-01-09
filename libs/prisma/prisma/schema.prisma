@@ -55,7 +55,7 @@ model Player {
   clanName              String?
   clanSnapshotCreatedAt DateTime @default(now())
 
-  playTime Int @default(0)
+  playTime BigInt @default(0)
 
   lastGameServerClient              GameServerClient? @relation(name: "PlayerLastGameServerClientId", fields: [lastGameServerClientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   lastGameServerClientId            Int?              @unique
@@ -81,7 +81,7 @@ model GameType {
   createdAt  DateTime    @default(now())
   map        Map[]
   rankMethod RankMethod?
-  playTime   Int         @default(0)
+  playTime   BigInt         @default(0)
 
   playerInfoGameTypes PlayerInfoGameType[]
   clanInfoGameTypes   ClanInfoGameType[]
@@ -93,7 +93,7 @@ model Map {
   id        Int      @id @default(autoincrement())
   name      String
   createdAt DateTime @default(now())
-  playTime  Int      @default(0)
+  playTime  BigInt      @default(0)
 
   gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String
@@ -115,7 +115,7 @@ model PlayerInfoGameType {
   playerName String
 
   rating   Float?
-  playTime Int    @default(0)
+  playTime BigInt    @default(0)
 
   gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String
@@ -133,7 +133,7 @@ model PlayerInfoMap {
   playerName String
 
   rating   Float?
-  playTime Int    @default(0)
+  playTime BigInt    @default(0)
 
   map   Map @relation(fields: [mapId], references: [id], onDelete: Cascade)
   mapId Int
@@ -209,7 +209,7 @@ model ClanInfoGameType {
   clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
   clanName String
 
-  playTime Int @default(0)
+  playTime BigInt @default(0)
 
   gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String
@@ -226,7 +226,7 @@ model ClanInfoMap {
   clan     Clan   @relation(fields: [clanName], references: [name], onDelete: Cascade)
   clanName String
 
-  playTime Int @default(0)
+  playTime BigInt @default(0)
 
   map   Map @relation(fields: [mapId], references: [id], onDelete: Cascade)
   mapId Int
@@ -241,7 +241,7 @@ model Clan {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  playTime Int      @default(0)
+  playTime BigInt      @default(0)
   players  Player[]
 
   clients GameServerClient[]
@@ -264,7 +264,7 @@ model ClanPlayerInfo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  playTime Int @default(0)
+  playTime BigInt @default(0)
 
   @@unique([clanName, playerName])
   @@index([playTime(sort: Desc)])

@@ -14,7 +14,7 @@ export function PlayerList({
     name: string;
     clan?: string;
     rating?: number;
-    playTime: number;
+    playTime: bigint;
     lastSeen?: {
       at: Date;
       lastSnapshot: {
@@ -105,7 +105,7 @@ export function PlayerList({
               label={
                 player.rating === undefined
                   ? ''
-                  : formatPlayTime(-player.rating)
+                  : formatPlayTime(BigInt(-player.rating))
               }
             />
           )}

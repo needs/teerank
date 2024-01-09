@@ -1,9 +1,9 @@
 import { Duration, intervalToDuration } from "date-fns";
 
-export function formatPlayTime(playTime: number) {
+export function formatPlayTime(playTime: bigint) {
   const duration = intervalToDuration({
     start: 0,
-    end: playTime * 1000,
+    end: Number(playTime * BigInt(1000)),
   })
 
   const format = (amount1: number, unit1: string, amount2: number, unit2: string) => {

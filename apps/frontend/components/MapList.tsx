@@ -9,7 +9,7 @@ export function MapList({
     rank: number;
     name: string;
     gameTypeName: string;
-    playTime: number;
+    playTime: bigint;
   }[];
   mapCount: number;
 }) {

@@ -8,7 +8,7 @@ export function GameTypeList({
   gameTypes: {
     rank: number;
     name: string;
-    playTime: number;
+    playTime: bigint;
   }[];
   gameTypeCount: number;
 }) {

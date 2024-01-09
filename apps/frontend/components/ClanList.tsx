@@ -9,7 +9,7 @@ export function ClanList({
     rank: number;
     name: string;
     playerCount: number;
-    playTime: number;
+    playTime: bigint;
   }[];
   clanCount?: number;
 }) {

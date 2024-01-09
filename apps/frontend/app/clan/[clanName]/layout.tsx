@@ -66,12 +66,6 @@ export default async function Index({
           <p>
             <b>Total Playtime</b>: {formatPlayTime(clan.playTime)}
           </p>
-          <p>
-            <i>Player Playtime</i>:{' '}
-            {formatPlayTime(
-              clan.players.reduce((acc, player) => acc + player.playTime, 0)
-            )}
-          </p>
         </aside>
       </header>
 

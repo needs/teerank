@@ -31,3 +31,7 @@ export function toBase64(str: string) {
 export function fromBase64(str: string) {
   return Buffer.from(str, 'base64').toString();
 }
+
+export function toBigIntArray(array: number[]) {
+  return array.map((value) => BigInt(value));
+}

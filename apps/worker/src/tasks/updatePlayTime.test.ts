@@ -2,6 +2,7 @@ import { addMinutes, subMinutes } from "date-fns";
 import { clearDatabase, runJobNTimes } from "../../testSetup";
 import { prisma } from "../prisma";
 import { updatePlayTimes } from "./updatePlayTime";
+import { toBigIntArray } from "../utils";
 
 beforeEach(async () => {
   await clearDatabase();
@@ -175,18 +176,18 @@ async function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPla
     },
   });
 
-  expect(players.map(playerInfo => playerInfo.playTime)).toEqual(expectedPlayerPlayTimes);
-  expect(mapPlayerInfos.map(playerInfo => playerInfo.playTime)).toEqual(expectedPlayerPlayTimes);
-  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.playTime)).toEqual(expectedPlayerPlayTimes);
+  expect(players.map(playerInfo => playerInfo.playTime)).toEqual(toBigIntArray(expectedPlayerPlayTimes));
+  expect(mapPlayerInfos.map(playerInfo => playerInfo.playTime)).toEqual(toBigIntArray(expectedPlayerPlayTimes));
+  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.playTime)).toEqual(toBigIntArray(expectedPlayerPlayTimes));
 
-  expect(clans.map(clanInfo => clanInfo.playTime)).toEqual(expectedClanPlayTimes);
-  expect(mapClanInfos.map(clanInfo => clanInfo.playTime)).toEqual(expectedClanPlayTimes);
-  expect(gameTypeClanInfos.map(clanInfo => clanInfo.playTime)).toEqual(expectedClanPlayTimes);
+  expect(clans.map(clanInfo => clanInfo.playTime)).toEqual(toBigIntArray(expectedClanPlayTimes));
+  expect(mapClanInfos.map(clanInfo => clanInfo.playTime)).toEqual(toBigIntArray(expectedClanPlayTimes));
+  expect(gameTypeClanInfos.map(clanInfo => clanInfo.playTime)).toEqual(toBigIntArray(expectedClanPlayTimes));
 
-  expect(clanPlayerInfos.map(clanPlayerInfo => clanPlayerInfo.playTime)).toEqual(expectedClanPlayerPlayTimes);
+  expect(clanPlayerInfos.map(clanPlayerInfo => clanPlayerInfo.playTime)).toEqual(toBigIntArray(expectedClanPlayerPlayTimes));
 
-  expect(gameTypePlayTime.playTime).toEqual(gameTypeAndMapPlayTime);
-  expect(mapPlayTime.playTime).toEqual(gameTypeAndMapPlayTime);
+  expect(gameTypePlayTime.playTime).toEqual(BigInt(gameTypeAndMapPlayTime));
+  expect(mapPlayTime.playTime).toEqual(BigInt(gameTypeAndMapPlayTime));
 }
 
 test('Single snapshot', async () => {

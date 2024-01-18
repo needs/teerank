@@ -62,13 +62,15 @@ export function ListCell({
   label,
   href,
   alignRight,
+  className="",
 }: {
   label: string;
   href?: UrlObject;
   alignRight?: boolean;
+  className?: string;
 }) {
   return (
-    <span className={twMerge('truncate', alignRight && 'text-right')}>
+    <span className={twMerge('truncate', alignRight && 'text-right', className)}>
       {href !== undefined ? (
         <Link href={href} prefetch={false} className="hover:underline">
           {label}

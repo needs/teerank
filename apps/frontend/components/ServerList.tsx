@@ -49,12 +49,13 @@ export function ServerList({
         <>
           <ListCell alignRight label={formatInteger(server.rank)} />
           <ListCell
-            label={server.name}
+            label={server.name || '<empty name>' }
             href={{
               pathname: `/server/${encodeURIComponent(
                 server.ip
               )}/${encodeURIComponent(server.port)}`,
             }}
+            className={server.name === '' ? "italic" : undefined}
           />
           <ListCell
             label={server.gameTypeName}

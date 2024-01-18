@@ -52,11 +52,11 @@ export default async function Index({
     if (gameServer.lastSnapshot !== null) {
       arr.push({
         rank: (page - 1) * 100 + arr.length + 1,
-        name: gameServer.lastSnapshot!.name,
-        gameTypeName: gameServer.lastSnapshot!.map.gameTypeName,
-        mapName: gameServer.lastSnapshot!.map.name ?? '',
-        numClients: gameServer.lastSnapshot!.numClients,
-        maxClients: gameServer.lastSnapshot!.maxClients,
+        name: gameServer.lastSnapshot.name,
+        gameTypeName: gameServer.lastSnapshot.map.gameTypeName,
+        mapName: gameServer.lastSnapshot.map.name,
+        numClients: gameServer.lastSnapshot.numClients,
+        maxClients: gameServer.lastSnapshot.maxClients,
         ip: gameServer.ip,
         port: gameServer.port,
       });

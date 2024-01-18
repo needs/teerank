@@ -47,7 +47,7 @@ export function MapList({
           <ListCell
             label={map.name}
             href={{
-              pathname: `/gametype/${encodeURIComponent(map.name)}/map/${encodeURIComponent(map.name)}`,
+              pathname: `/gametype/${encodeURIComponent(map.gameTypeName)}/map/${encodeURIComponent(map.name)}`,
             }}
           />
           <ListCell alignRight label={formatPlayTime(map.playTime)} />

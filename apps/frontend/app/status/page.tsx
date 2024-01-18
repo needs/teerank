@@ -129,21 +129,25 @@ export default async function Index() {
       title: 'Polling Master Servers',
       date: lastPolledMasterServer?.polledAt ?? null,
       jobCount: masterServerPollingJobs,
+      jobCountWording: 'master servers to be polled',
     },
     {
       title: 'Polling Game Servers',
       date: lastPolledGameServer?.polledAt ?? null,
       jobCount: gameServerPollingJobs,
+      jobCountWording: 'game servers to be polled',
     },
     {
       title: 'Ranking',
       date: lastRankedSnapshot?.rankedAt ?? null,
       jobCount: snapshotRankingJobs,
+      jobCountWording: 'snapshots to be ranked',
     },
     {
       title: 'Playtiming',
       date: lastPlayTimedSnapshot?.playTimedAt ?? null,
       jobCount: snapshotPlayTimingJobs,
+      jobCountWording: 'snapshots to be playtimed',
     },
   ];
 
@@ -161,7 +165,7 @@ export default async function Index() {
               <div className="flex flex-row divide-x">
                 {section.jobCount > 0 && (
                   <span className="text-sm text-[#d1a4a4] px-4">
-                    {section.jobCount} jobs pending
+                    {section.jobCount} ${section.jobCountWording}
                   </span>
                 )}
                 {section.date !== null && (

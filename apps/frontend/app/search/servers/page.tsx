@@ -22,121 +22,118 @@ export default async function Index({
   }
 
   const matches = await Promise.all([
-    prisma.gameServer.findMany({
+    prisma.gameServerSnapshot.findMany({
       where: {
-        lastSnapshot: {
-          name: {
-            equals: query,
-            mode: 'insensitive',
+        gameServerLast: {
+          isNot: null,
         },
+        name: {
+          equals: query,
+          mode: 'insensitive',
         },
       },
       select: {
-        id: true,
-        ip: true,
-        port: true,
-        lastSnapshot: {
+        name: true,
+        map: true,
+        numClients: true,
+        maxClients: true,
+        gameServerLast: {
           select: {
-            name: true,
-            map: true,
-            numClients: true,
-            maxClients: true,
+            id: true,
+            ip: true,
+            port: true,
           },
         },
       },
       orderBy: {
-        lastSnapshot: {
-          name: 'asc',
-        },
+        name: 'asc',
       },
       take: 100,
     }),
-    prisma.gameServer.findMany({
+    prisma.gameServerSnapshot.findMany({
       where: {
-        lastSnapshot: {
-          OR: [
-            {
-              name: {
-                startsWith: query,
-                mode: 'insensitive',
-              },
-            },
-            {
-              name: {
-                endsWith: query,
-                mode: 'insensitive',
-              },
-            },
-          ],
+        gameServerLast: {
+          isNot: null,
         },
+        OR: [
+          {
+            name: {
+              startsWith: query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            name: {
+              endsWith: query,
+              mode: 'insensitive',
+            },
+          },
+        ],
       },
       select: {
-        id: true,
-        ip: true,
-        port: true,
-        lastSnapshot: {
+        name: true,
+        map: true,
+        numClients: true,
+        maxClients: true,
+        gameServerLast: {
           select: {
-            name: true,
-            map: true,
-            numClients: true,
-            maxClients: true,
+            id: true,
+            ip: true,
+            port: true,
           },
         },
       },
       orderBy: {
-        lastSnapshot: {
-          name: 'asc',
-        },
+        name: 'asc',
       },
       take: 100,
     }),
-    prisma.gameServer.findMany({
+    prisma.gameServerSnapshot.findMany({
       where: {
-        lastSnapshot: {
-          name: {
-            contains: query,
-            mode: 'insensitive',
-          },
+        gameServerLast: {
+          isNot: null
+        },
+        name: {
+          contains: query,
+          mode: 'insensitive',
         },
       },
       select: {
-        id: true,
-        ip: true,
-        port: true,
-        lastSnapshot: {
+        name: true,
+        map: true,
+        numClients: true,
+        maxClients: true,
+        gameServerLast: {
           select: {
-            name: true,
-            map: true,
-            numClients: true,
-            maxClients: true,
+            id: true,
+            ip: true,
+            port: true,
           },
         },
       },
       orderBy: {
-        lastSnapshot: {
-          name: 'asc',
-        },
+        name: 'asc',
       },
       take: 100,
     }),
   ]);
 
-  const gameServers = uniqBy(matches.flat(), 'id').slice(0, 100);
+  const gameServerSnapshots = uniqBy(matches.flat(), 'gameServerLast.id').slice(0, 100);
 
   return (
     <LayoutTabs query={query} selectedTab="servers">
       {({ gameServerCount }) => (
         <ServerList
           serverCount={gameServerCount}
-          servers={gameServers.map((gameServer, index) => ({
+          servers={gameServerSnapshots.map((gameServerSnapshot, index) => ({
             rank: index + 1,
-            name: gameServer.lastSnapshot!.name,
-            gameTypeName: gameServer.lastSnapshot!.map.gameTypeName,
-            mapName: gameServer.lastSnapshot!.map.name,
-            ip: gameServer.ip,
-            port: gameServer.port,
-            numClients: gameServer.lastSnapshot!.numClients,
-            maxClients: gameServer.lastSnapshot!.maxClients,
+            name: gameServerSnapshot.name,
+            gameTypeName: gameServerSnapshot.map.gameTypeName,
+            mapName: gameServerSnapshot.map.name,
+            ip: gameServerSnapshot.gameServerLast!.ip,
+            port: gameServerSnapshot.gameServerLast!.port,
+            numClients: gameServerSnapshot.numClients,
+            maxClients: gameServerSnapshot.maxClients,
           }))}
         />
       )}

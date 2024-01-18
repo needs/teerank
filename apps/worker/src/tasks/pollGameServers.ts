@@ -115,7 +115,7 @@ export async function pollGameServers() {
   wait(2000).then(async () => {
     const receivedPackets = getReceivedPackets(sockets, gameServer.ip, gameServer.port);
 
-    if (receivedPackets !== undefined) {
+    if (receivedPackets.packets.length > 0) {
       try {
         const gameServerInfo = unpackGameServerInfoPackets(receivedPackets.packets)
 

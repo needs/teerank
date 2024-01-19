@@ -313,6 +313,9 @@ export async function pollGameServers() {
         },
         data: {
           offlineSince: new Date(),
+          lastSnapshot: {
+            disconnect: true,
+          },
         },
       });
     }

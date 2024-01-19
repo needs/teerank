@@ -201,7 +201,7 @@ model GameServerSnapshot {
   @@index([createdAt(sort: Desc), playTimingStartedAt(sort: Desc)])
 
   // TODO: To be removed when all empty snapshots are removed.
-  @@index(fields: [version], type: Hash)
+  @@index([version])
 }
 
 model ClanInfoGameType {

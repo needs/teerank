@@ -8,6 +8,7 @@ import { updatePlayTimes } from "./tasks/updatePlayTime";
 import { reportPerformances, monitorJobPerformance } from "./tasks/reportPerformances";
 import { cancellableWait } from "./utils";
 import { initializePlayerLastGameServerClient } from "./tasks/initializePlayerLastGameServerClient";
+import { removeEmptySnapshots } from "./tasks/removeEmptySnapshots";
 
 let stopGracefully = false;
 const cancellableWaits = new Set<() => void>();
@@ -51,6 +52,7 @@ async function main() {
     runJob(rankPlayers, 'rankPlayers', 0, 5000),
     runJob(updatePlayTimes, 'updatePlayTimes', 0, 5000),
     runJob(initializePlayerLastGameServerClient, 'initializePlayerLastGameServerClient', 0, 60 * 1000 * 5),
+    runJob(removeEmptySnapshots, 'removeEmptySnapshots', 0, 60 * 1000 * 5),
     runJob(reportPerformances, 'reportPerformances', 60000, 60000),
   ]);
 

@@ -165,7 +165,7 @@ export default async function Index() {
               <div className="flex flex-row divide-x">
                 {section.jobCount > 0 && (
                   <span className="text-sm text-[#d1a4a4] px-4">
-                    {section.jobCount} ${section.jobCountWording}
+                    {section.jobCount} {section.jobCountWording}
                   </span>
                 )}
                 {section.date !== null && (

@@ -4,7 +4,8 @@
   "license": "MIT",
   "scripts": {
     "preinstall": "npx only-allow npm",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "proxy-prod": "fly proxy 5434:5432 --app teerankio-postgres"
   },
   "private": true,
   "devDependencies": {

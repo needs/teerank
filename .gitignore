@@ -44,3 +44,6 @@ Thumbs.db
 # Prod values
 .env
 .env.prod
+
+# NX cache
+.nx/cache

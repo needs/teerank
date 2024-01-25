@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { HeaderTabs } from '../components/HeaderTabs';
 import prisma from '../utils/prisma';
 import { SearchForm } from '../components/SearchForm';
+import packageJson from 'package.json';
 
 export const metadata = {
   title: 'Welcome to Teerank',
@@ -80,7 +81,7 @@ export default async function RootLayout({
             prefetch={false}
             className="[text-shadow:_1px_1px_1px_#383838] hover:underline"
           >
-            Teerank 1.0 (stable)
+            Teerank {packageJson.version} ({process.env.NODE_ENV})
           </Link>
           <Link
             prefetch={false}

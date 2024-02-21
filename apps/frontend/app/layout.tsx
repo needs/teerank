@@ -5,6 +5,9 @@ import { HeaderTabs } from '../components/HeaderTabs';
 import prisma from '../utils/prisma';
 import { SearchForm } from '../components/SearchForm';
 import packageJson from 'package.json';
+import { GoogleAnalytics } from '@next/third-parties/google';
+
+const gaId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
 
 export const metadata = {
   title: 'Welcome to Teerank',
@@ -98,6 +101,7 @@ export default async function RootLayout({
           </Link>
         </footer>
       </body>
+      {gaId !== undefined && <GoogleAnalytics gaId={gaId} />}
     </html>
   );
 }

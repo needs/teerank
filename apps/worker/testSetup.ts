@@ -12,7 +12,7 @@ export async function clearDatabase() {
       // eslint-disable-next-line
       await model.deleteMany();
     }
-  };
+  }
 }
 
 export async function runJobNTimes(n: number, job: () => Promise<boolean>) {

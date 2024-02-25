@@ -12,7 +12,7 @@ npx nx run frontend:serve
 npx nx run worker:serve
 ```
 
-Alternatively, open the projetc on VSCode and run the build commend using
+Alternatively, open the projetc on VSCode and run the start building using:
 `Command + Shift + B`.
 
 # Legacy

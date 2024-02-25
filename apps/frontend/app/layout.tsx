@@ -40,34 +40,32 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className="bg-[url('/background.png')] bg-repeat-x bg-left-top flex flex-col items-center m-0 bg-[#9EB5D6] text-[#666]">
-        <header className="max-w-5xl w-full flex flex-row justify-between">
-          <Link href="/" className="py-4">
+      <body className="bg-[url('/background.png')] bg-repeat-x bg-left-top flex flex-col items-center m-0 bg-[#9EB5D6] text-[#666] px-4">
+        <header className="max-w-5xl w-full flex flex-col lg:flex-row relative">
+          <Link
+            href="https://github.com/needs/teerank"
+            target="_blank"
+            prefetch={false}
+            className="flex flex-row bg-white rounded-b-md px-2 py-1 items-center gap-1 absolute top-0 right-0"
+          >
+            <Image
+              src="/github/mark.png"
+              alt="Github mark"
+              width={16}
+              height={16}
+            />
+            <Image
+              src="/github/logo.png"
+              alt="Github logo"
+              height={16}
+              width={1000.0 * (16.0 / 410.0)}
+            />
+          </Link>
+          <Link href="/" className="py-4 grow">
             <Image src="/logo.png" alt="Logo" width={483} height={98} />
           </Link>
-          <div className="flex flex-col items-end">
-            <Link
-              href="https://github.com/needs/teerank"
-              target="_blank"
-              prefetch={false}
-              className="flex flex-row bg-white rounded-b-md px-2 py-1 items-center gap-1"
-            >
-              <Image
-                src="/github/mark.png"
-                alt="Github mark"
-                width={16}
-                height={16}
-              />
-              <Image
-                src="/github/logo.png"
-                alt="Github logo"
-                height={16}
-                width={1000.0 * (16.0 / 410.0)}
-              />
-            </Link>
-            <div className="flex grow items-center">
-              <SearchForm />
-            </div>
+          <div className="flex grow pb-4 lg:pt-4 shrink-0 lg:justify-end">
+            <SearchForm />
           </div>
         </header>
 
@@ -75,7 +73,7 @@ export default async function RootLayout({
           <HeaderTabs
             defaultGameTypes={defaultGameTypes.map((gameType) => gameType.name)}
           />
-          <main className="bg-white rounded-xl shadow-md">{children}</main>
+          <main className="bg-white rounded-xl shadow-md overflow-x-auto">{children}</main>
         </main>
 
         <footer className="flex flex-row gap-6 items-center py-8 text-sm text-white">

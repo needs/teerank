@@ -4,7 +4,7 @@ import { UrlObject } from 'url';
 
 export function Tabs({ children }: { children: React.ReactNode }) {
   return (
-    <header className="flex flex-row bg-gradient-to-b from-transparent to-[#eaeaea] px-12">
+    <header className="flex flex-row bg-gradient-to-b from-transparent to-[#eaeaea] px-4 lg:px-8 xl:px-12">
       {children}
     </header>
   );
@@ -30,8 +30,8 @@ export function Tab({
 
   const content = (
     <>
-      <span className="text-xl font-bold border-r px-4">{label}</span>
-      <span className="text-[#999] text-lg px-4">{count}</span>
+      <span className="text-xl font-bold px-4">{label}</span>
+      <span className="text-[#999] text-lg px-4 hidden lg:block border-l">{count}</span>
     </>
   );
 

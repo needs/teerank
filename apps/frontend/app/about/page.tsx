@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function Index() {
   return (
-    <main className="py-12 px-20 text-[#666] flex flex-col gap-4">
+    <main className="py-12 px-4 md:px-12 xl:px-20 text-[#666] flex flex-col gap-4">
       <h1 className="text-2xl font-bold clear-both">About</h1>
       <p>
         Teerank is an <i>unofficial</i> ranking system for{' '}

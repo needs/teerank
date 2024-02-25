@@ -18,6 +18,7 @@ function HeaderTab({
   sublabelPlaceholder,
   sublabelHref,
   labelHref,
+  hideOnTabletAndMobile
 }: {
   label: string;
   url: UrlObject;
@@ -26,6 +27,7 @@ function HeaderTab({
   sublabelPlaceholder?: string;
   sublabelHref?: UrlObject;
   labelHref?: UrlObject;
+  hideOnTabletAndMobile?: boolean;
 }) {
   const sublabelComponent = () => {
     if (sublabel === undefined) {
@@ -70,8 +72,9 @@ function HeaderTab({
   const content = (
     <div
       className={twMerge(
-        'flex flex-row divide-x py-1.5 rounded-t-md border border-[#dddddd] border-b-0 text-base divide-[#999]',
-        isActive ? 'bg-white' : 'bg-gradient-to-b from-[#ffffff] to-[#cccccc]'
+        'flex flex-row divide-x py-1.5 rounded-t-md border border-[#dddddd] border-b-0 text-base divide-[#999] shrink-0',
+        isActive ? 'bg-white' : 'bg-gradient-to-b from-[#ffffff] to-[#cccccc]',
+        hideOnTabletAndMobile === true && 'hidden lg:flex'
       )}
     >
       {labelComponent()}
@@ -86,7 +89,7 @@ function HeaderTabSeparator() {
   return <div className="grow" />;
 }
 
-function HeaderTabGameType({ gameTypeName }: { gameTypeName: string }) {
+function HeaderTabGameType({ gameTypeName, hideOnTabletAndMobile }: { gameTypeName: string, hideOnTabletAndMobile?: boolean}) {
   const params = useParams();
 
   const parsedParams = paramsSchemaGameType
@@ -115,6 +118,7 @@ function HeaderTabGameType({ gameTypeName }: { gameTypeName: string }) {
       sublabelHref={{
         pathname: `/gametype/${encodeURIComponent(gameTypeName)}/maps`,
       }}
+      hideOnTabletAndMobile={hideOnTabletAndMobile}
     />
   );
 }
@@ -153,7 +157,7 @@ export function HeaderTabs({
     .parse(params);
 
   return (
-    <header className="flex flex-row gap-2 -mt-1.5 px-8">
+    <header className="flex flex-row gap-2 -mt-1.5 px-2 md:px-4 lg:px-8 overflow-x-auto">
       <HeaderTabPage
         label="Home"
         pathname="/"
@@ -161,7 +165,7 @@ export function HeaderTabs({
       />
 
       {defaultGameTypes.map((gameType) => (
-        <HeaderTabGameType key={gameType} gameTypeName={gameType} />
+        <HeaderTabGameType key={gameType} gameTypeName={gameType} hideOnTabletAndMobile={gameType !== gameTypeName}/>
       ))}
 
       {gameTypeName !== undefined &&

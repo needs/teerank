@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
 import { UrlObject } from 'url';
 import { Pagination } from './Pagination';
-import { LastSeen } from './LastSeen';
 
 type Column = {
   title: string;
@@ -26,7 +25,7 @@ export function List({
 
   return (
     <main
-      className={`grid px-16 gap-x-8 gap-y-2`}
+      className={`grid px-4 lg:px-8 xl:px-16 gap-x-8 gap-y-2`}
       style={{
         gridTemplateColumns,
       }}

@@ -59,10 +59,20 @@ export default async function RootLayout({
               alt="Github logo"
               height={16}
               width={1000.0 * (16.0 / 410.0)}
+              style={{
+                width: 'auto',
+                height: '100%',
+              }}
             />
           </Link>
           <Link href="/" className="py-4 grow">
-            <Image src="/logo.png" alt="Logo" width={483} height={98} />
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={483}
+              height={98}
+              priority={true}
+            />
           </Link>
           <div className="flex grow pb-4 lg:pt-4 shrink-0 lg:justify-end">
             <SearchForm />
@@ -73,7 +83,9 @@ export default async function RootLayout({
           <HeaderTabs
             defaultGameTypes={defaultGameTypes.map((gameType) => gameType.name)}
           />
-          <main className="bg-white rounded-xl shadow-md overflow-x-auto">{children}</main>
+          <main className="bg-white rounded-xl shadow-md overflow-x-auto">
+            {children}
+          </main>
         </main>
 
         <footer className="flex flex-row gap-6 items-center py-8 text-sm text-white">

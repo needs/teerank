@@ -1,3 +1,4 @@
+import groupBy from 'lodash.groupby';
 import { searchParamSchema } from '../(lists)/schema';
 import { List, ListCell } from '../../components/List';
 import { capitalize, formatInteger, formatPlayTime } from '../../utils/format';
@@ -15,6 +16,25 @@ export default async function Index({
 }) {
   const { page } = searchParamSchema.parse(searchParams);
 
+  const onlineGameServers = await prisma.gameServer.findMany({
+    select: {
+      lastSnapshot: {
+        select: {
+          map: {
+            select: {
+              gameType: true,
+            },
+          }
+        }
+      },
+    },
+    where: {
+      lastSnapshot: {
+        isNot: null,
+      },
+    },
+  });
+
   const gameTypes = await prisma.gameType.findMany({
     select: {
       name: true,
@@ -25,21 +45,6 @@ export default async function Index({
           playerInfoGameTypes: true,
           map: true,
           clanInfoGameTypes: true,
-        },
-      },
-      map: {
-        select: {
-          _count: {
-            select: {
-              snapshots: {
-                where: {
-                  gameServerLast: {
-                    isNot: null,
-                  },
-                },
-              },
-            },
-          },
         },
       },
     },
@@ -60,6 +65,8 @@ export default async function Index({
   });
 
   const gameTypeCount = await prisma.gameType.count();
+
+  const onlineGameServersByGameType = groupBy(onlineGameServers, (server) => server.lastSnapshot?.map.gameType.name);
 
   return (
     <div className="py-8">
@@ -135,7 +142,7 @@ export default async function Index({
             <ListCell
               alignRight
               label={formatInteger(
-                gameType.map.reduce((sum, map) => sum + map._count.snapshots, 0)
+                onlineGameServersByGameType[gameType.name]?.length ?? 0
               )}
               href={{
                 pathname: `/gametype/${encodeURIComponent(

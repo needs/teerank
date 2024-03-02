@@ -1,4 +1,3 @@
-import groupBy from 'lodash.groupby';
 import { searchParamSchema } from '../(lists)/schema';
 import { List, ListCell } from '../../components/List';
 import { capitalize, formatInteger, formatPlayTime } from '../../utils/format';
@@ -17,49 +16,23 @@ export default async function Index({
 }) {
   const { page } = searchParamSchema.parse(searchParams);
 
-  const [onlineGameServers, gameTypes, gameTypeCount] = await Promise.all([
-    prisma.gameServer.findMany({
-      select: {
-        lastSnapshot: {
-          select: {
-            map: {
-              select: {
-                gameType: true,
-              },
-            },
-          },
-        },
-      },
-      where: {
-        lastSnapshot: {
-          isNot: null,
-        },
-      },
-    }),
-
+  const [gameTypes, gameTypeCount] = await Promise.all([
     prisma.gameType.findMany({
       select: {
         name: true,
         rankMethod: true,
         playTime: true,
-        _count: {
-          select: {
-            playerInfoGameTypes: true,
-            map: true,
-            clanInfoGameTypes: true,
-          },
-        },
+        playerCount: true,
+        mapCount: true,
+        clanCount: true,
+        gameServerCount: true,
       },
       orderBy: [
         {
-          playerInfoGameTypes: {
-            _count: 'desc',
-          },
+          playerCount: 'desc',
         },
         {
-          map: {
-            _count: 'desc',
-          },
+          mapCount: 'desc',
         },
       ],
       take: 100,
@@ -68,11 +41,6 @@ export default async function Index({
 
     prisma.gameType.count(),
   ]);
-
-  const onlineGameServersByGameType = groupBy(
-    onlineGameServers,
-    (server) => server.lastSnapshot?.map.gameType.name
-  );
 
   return (
     <div className="py-8">
@@ -131,14 +99,14 @@ export default async function Index({
             />
             <ListCell
               alignRight
-              label={formatInteger(gameType._count.playerInfoGameTypes)}
+              label={formatInteger(gameType.playerCount)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(gameType.name)}`,
               }}
             />
             <ListCell
               alignRight
-              label={formatInteger(gameType._count.clanInfoGameTypes)}
+              label={formatInteger(gameType.clanCount)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
                   gameType.name
@@ -148,7 +116,7 @@ export default async function Index({
             <ListCell
               alignRight
               label={formatInteger(
-                onlineGameServersByGameType[gameType.name]?.length ?? 0
+                gameType.gameServerCount
               )}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
@@ -158,7 +126,7 @@ export default async function Index({
             />
             <ListCell
               alignRight
-              label={formatInteger(gameType._count.map)}
+              label={formatInteger(gameType.mapCount)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(gameType.name)}/maps`,
               }}

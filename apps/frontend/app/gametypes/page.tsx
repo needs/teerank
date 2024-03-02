@@ -16,57 +16,62 @@ export default async function Index({
 }) {
   const { page } = searchParamSchema.parse(searchParams);
 
-  const onlineGameServers = await prisma.gameServer.findMany({
-    select: {
-      lastSnapshot: {
-        select: {
-          map: {
-            select: {
-              gameType: true,
+  const [onlineGameServers, gameTypes, gameTypeCount] = await Promise.all([
+    prisma.gameServer.findMany({
+      select: {
+        lastSnapshot: {
+          select: {
+            map: {
+              select: {
+                gameType: true,
+              },
             },
-          }
-        }
-      },
-    },
-    where: {
-      lastSnapshot: {
-        isNot: null,
-      },
-    },
-  });
-
-  const gameTypes = await prisma.gameType.findMany({
-    select: {
-      name: true,
-      rankMethod: true,
-      playTime: true,
-      _count: {
-        select: {
-          playerInfoGameTypes: true,
-          map: true,
-          clanInfoGameTypes: true,
+          },
         },
       },
-    },
-    orderBy: [
-      {
-        playerInfoGameTypes: {
-          _count: 'desc',
+      where: {
+        lastSnapshot: {
+          isNot: null,
         },
       },
-      {
-        map: {
-          _count: 'desc',
+    }),
+
+    prisma.gameType.findMany({
+      select: {
+        name: true,
+        rankMethod: true,
+        playTime: true,
+        _count: {
+          select: {
+            playerInfoGameTypes: true,
+            map: true,
+            clanInfoGameTypes: true,
+          },
         },
       },
-    ],
-    take: 100,
-    skip: (page - 1) * 100,
-  });
+      orderBy: [
+        {
+          playerInfoGameTypes: {
+            _count: 'desc',
+          },
+        },
+        {
+          map: {
+            _count: 'desc',
+          },
+        },
+      ],
+      take: 100,
+      skip: (page - 1) * 100,
+    }),
 
-  const gameTypeCount = await prisma.gameType.count();
+    prisma.gameType.count()
+  ]);
 
-  const onlineGameServersByGameType = groupBy(onlineGameServers, (server) => server.lastSnapshot?.map.gameType.name);
+  const onlineGameServersByGameType = groupBy(
+    onlineGameServers,
+    (server) => server.lastSnapshot?.map.gameType.name
+  );
 
   return (
     <div className="py-8">

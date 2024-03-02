@@ -22,17 +22,15 @@ export default async function RootLayout({
   const defaultGameTypes = await prisma.gameType.findMany({
     select: {
       name: true,
+      playerCount: true,
+      mapCount: true,
     },
     orderBy: [
       {
-        playerInfoGameTypes: {
-          _count: 'desc',
-        },
+        playerCount: 'desc',
       },
       {
-        map: {
-          _count: 'desc',
-        },
+        mapCount: 'desc',
       },
     ],
     take: 2,

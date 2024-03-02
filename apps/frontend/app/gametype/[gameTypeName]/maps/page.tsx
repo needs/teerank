@@ -47,9 +47,7 @@ export default async function Index({
       },
       orderBy: [
         {
-          playerInfoMaps: {
-            _count: 'desc',
-          },
+          playerCount: 'desc',
         },
       ],
       take: 100,

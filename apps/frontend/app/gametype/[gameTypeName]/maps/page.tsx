@@ -1,3 +1,4 @@
+import groupBy from 'lodash.groupby';
 import { List, ListCell } from '../../../../components/List';
 import { formatInteger, formatPlayTime } from '../../../../utils/format';
 import prisma from '../../../../utils/prisma';
@@ -29,48 +30,67 @@ export default async function Index({
     return notFound();
   }
 
-  const maps = await prisma.map.findMany({
-    select: {
-      name: true,
-      gameTypeName: true,
-      playTime: true,
-      _count: {
-        select: {
-          playerInfoMaps: true,
-          clanInfoMaps: true,
-          snapshots: {
-            where: {
-              gameServerLast: {
-                isNot: null,
+  const [onlineGameServers, maps, mapCount] = await Promise.all([
+    prisma.gameServer.findMany({
+      select: {
+        lastSnapshot: {
+          select: {
+            map: {
+              select: {
+                name: true,
               },
             },
           },
         },
       },
-    },
-    where: {
-      gameType: {
-        name: { equals: gameTypeName },
-      },
-    },
-    orderBy: [
-      {
-        playerInfoMaps: {
-          _count: 'desc',
+      where: {
+        lastSnapshot: {
+          isNot: null,
         },
       },
-    ],
-    take: 100,
-    skip: (page - 1) * 100,
-  });
+    }),
 
-  const mapCount = await prisma.map.count({
-    where: {
-      gameType: {
-        name: { equals: gameTypeName },
+    prisma.map.findMany({
+      select: {
+        name: true,
+        gameTypeName: true,
+        playTime: true,
+        _count: {
+          select: {
+            playerInfoMaps: true,
+            clanInfoMaps: true,
+          },
+        },
       },
-    },
-  });
+      where: {
+        gameType: {
+          name: { equals: gameTypeName },
+        },
+      },
+      orderBy: [
+        {
+          playerInfoMaps: {
+            _count: 'desc',
+          },
+        },
+      ],
+      take: 100,
+      skip: (page - 1) * 100,
+    }),
+
+    prisma.map.count({
+      where: {
+        gameType: {
+          name: { equals: gameTypeName },
+        },
+      },
+    }),
+  ]);
+
+  const onlineGameServersByMap = groupBy(
+    onlineGameServers,
+    (server) => server.lastSnapshot?.map.name
+  );
 
   return (
     <div className="py-8">
@@ -137,7 +157,9 @@ export default async function Index({
             />
             <ListCell
               alignRight
-              label={formatInteger(map._count.snapshots)}
+              label={formatInteger(
+                onlineGameServersByMap[map.name]?.length ?? 0
+              )}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
                   map.gameTypeName

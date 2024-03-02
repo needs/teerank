@@ -106,12 +106,19 @@ model Map {
   gameType     GameType @relation(fields: [gameTypeName], references: [name], onDelete: Cascade)
   gameTypeName String
 
+  playerCount     Int @default(0)
+  clanCount       Int @default(0)
+  gameServerCount Int @default(0)
+
+  countedAt DateTime @default(now())
+
   snapshots      GameServerSnapshot[]
   playerInfoMaps PlayerInfoMap[]
   clanInfoMaps   ClanInfoMap[]
 
   @@unique([name, gameTypeName])
   @@index([playTime(sort: Desc)])
+  @@index([countedAt])
 }
 
 model PlayerInfoGameType {

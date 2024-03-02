@@ -30,37 +30,15 @@ export default async function Index({
     return notFound();
   }
 
-  const [onlineGameServers, maps, mapCount] = await Promise.all([
-    prisma.gameServer.findMany({
-      select: {
-        lastSnapshot: {
-          select: {
-            map: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-      },
-      where: {
-        lastSnapshot: {
-          isNot: null,
-        },
-      },
-    }),
-
+  const [maps, mapCount] = await Promise.all([
     prisma.map.findMany({
       select: {
         name: true,
         gameTypeName: true,
         playTime: true,
-        _count: {
-          select: {
-            playerInfoMaps: true,
-            clanInfoMaps: true,
-          },
-        },
+        playerCount: true,
+        clanCount: true,
+        gameServerCount: true,
       },
       where: {
         gameType: {
@@ -86,11 +64,6 @@ export default async function Index({
       },
     }),
   ]);
-
-  const onlineGameServersByMap = groupBy(
-    onlineGameServers,
-    (server) => server.lastSnapshot?.map.name
-  );
 
   return (
     <div className="py-8">
@@ -139,7 +112,7 @@ export default async function Index({
             />
             <ListCell
               alignRight
-              label={formatInteger(map._count.playerInfoMaps)}
+              label={formatInteger(map.playerCount)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
                   map.gameTypeName
@@ -148,7 +121,7 @@ export default async function Index({
             />
             <ListCell
               alignRight
-              label={formatInteger(map._count.clanInfoMaps)}
+              label={formatInteger(map.clanCount)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
                   map.gameTypeName
@@ -157,9 +130,7 @@ export default async function Index({
             />
             <ListCell
               alignRight
-              label={formatInteger(
-                onlineGameServersByMap[map.name]?.length ?? 0
-              )}
+              label={formatInteger(map.gameServerCount)}
               href={{
                 pathname: `/gametype/${encodeURIComponent(
                   map.gameTypeName

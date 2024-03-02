@@ -23,11 +23,7 @@ export default async function Index({
       name: gameTypeName,
     },
     select: {
-      _count: {
-        select: {
-          clanInfoGameTypes: true,
-        },
-      },
+      clanCount: true,
       clanInfoGameTypes: {
         select: {
           clan: {
@@ -66,7 +62,7 @@ export default async function Index({
 
   return (
     <ClanList
-      clanCount={gameType._count.clanInfoGameTypes}
+      clanCount={gameType.clanCount}
       clans={gameType.clanInfoGameTypes.map((clanInfoGameType, index) => ({
         rank: (page - 1) * 100 + index + 1,
         name: clanInfoGameType.clanName,

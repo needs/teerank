@@ -25,11 +25,7 @@ export default async function Index({
           rankMethod: true,
         },
       },
-      _count: {
-        select: {
-          playerInfoMaps: true,
-        },
-      },
+      playerCount: true,
       playerInfoMaps: {
         select: {
           rating: true,
@@ -37,7 +33,7 @@ export default async function Index({
             select: {
               name: true,
               clanName: true,
-            }
+            },
           },
           playTime: true,
         },
@@ -46,7 +42,7 @@ export default async function Index({
             rating: {
               sort: 'desc',
               nulls: 'last',
-            }
+            },
           },
           {
             playTime: 'desc',
@@ -54,7 +50,7 @@ export default async function Index({
         ],
         take: 100,
         skip: (page - 1) * 100,
-      }
+      },
     },
     where: {
       name_gameTypeName: {
@@ -70,7 +66,7 @@ export default async function Index({
 
   return (
     <PlayerList
-    playerCount={map._count.playerInfoMaps}
+      playerCount={map.playerCount}
       rankMethod={map.gameType.rankMethod}
       players={map.playerInfoMaps.map((playerInfoMap, index) => ({
         rank: (page - 1) * 100 + index + 1,

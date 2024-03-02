@@ -22,11 +22,7 @@ export default async function Index({
   const gameType = await prisma.gameType.findUnique({
     select: {
       rankMethod: true,
-      _count: {
-        select: {
-          playerInfoGameTypes: true,
-        },
-      },
+      playerCount: true,
       playerInfoGameTypes: {
         select: {
           rating: true,
@@ -64,7 +60,7 @@ export default async function Index({
 
   return (
     <PlayerList
-      playerCount={gameType._count.playerInfoGameTypes}
+      playerCount={gameType.playerCount}
       rankMethod={gameType.rankMethod === RankMethod.TIME ? null : gameType.rankMethod}
       players={gameType.playerInfoGameTypes.map((playerInfoGameType, index) => ({
         rank: (page - 1) * 100 + index + 1,

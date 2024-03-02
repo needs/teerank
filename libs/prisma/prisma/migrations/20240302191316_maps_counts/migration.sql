@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "Map" ADD COLUMN     "clanCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "countedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "gameServerCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "playerCount" INTEGER NOT NULL DEFAULT 0;
+
+-- CreateIndex
+CREATE INDEX "Map_countedAt_idx" ON "Map"("countedAt");

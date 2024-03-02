@@ -20,11 +20,7 @@ export default async function Index({
 
   const map = await prisma.map.findUnique({
     select: {
-      _count: {
-        select: {
-          clanInfoMaps: true,
-        }
-      },
+      clanCount: true,
       clanInfoMaps: {
         select: {
           clan: {
@@ -69,7 +65,7 @@ export default async function Index({
 
   return (
     <ClanList
-      clanCount={map._count.clanInfoMaps}
+      clanCount={map.clanCount}
       clans={map.clanInfoMaps.map((clanInfoMap, index) => ({
         rank: (page - 1) * 100 + index + 1,
         name: clanInfoMap.clanName,

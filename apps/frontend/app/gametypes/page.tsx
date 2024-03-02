@@ -3,6 +3,7 @@ import { searchParamSchema } from '../(lists)/schema';
 import { List, ListCell } from '../../components/List';
 import { capitalize, formatInteger, formatPlayTime } from '../../utils/format';
 import prisma from '../../utils/prisma';
+import { Fragment } from 'react';
 
 export const metadata = {
   title: 'Gametypes',
@@ -65,7 +66,7 @@ export default async function Index({
       skip: (page - 1) * 100,
     }),
 
-    prisma.gameType.count()
+    prisma.gameType.count(),
   ]);
 
   const onlineGameServersByGameType = groupBy(
@@ -113,7 +114,7 @@ export default async function Index({
         ]}
       >
         {gameTypes.map((gameType, index) => (
-          <>
+          <Fragment key={gameType.name}>
             <ListCell
               alignRight
               label={formatInteger((page - 1) * 100 + index + 1)}
@@ -162,8 +163,11 @@ export default async function Index({
                 pathname: `/gametype/${encodeURIComponent(gameType.name)}/maps`,
               }}
             />
-            <ListCell alignRight label={formatPlayTime(gameType.playTime)} />
-          </>
+            <ListCell
+              alignRight
+              label={formatPlayTime(gameType.playTime)}
+            />
+          </Fragment>
         ))}
       </List>
     </div>

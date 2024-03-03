@@ -1,4 +1,5 @@
 import { ClanList } from '../../../components/ClanList';
+import { getGlobalCounts } from '../../../utils/globalCounts';
 import prisma from '../../../utils/prisma';
 import { searchParamSchema } from '../schema';
 
@@ -38,7 +39,7 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
-  const clanCount = await prisma.clan.count();
+  const { clanCount } = await getGlobalCounts();
 
   return (
     <ClanList

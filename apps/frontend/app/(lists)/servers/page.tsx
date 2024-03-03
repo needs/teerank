@@ -1,4 +1,5 @@
 import { ServerList } from '../../../components/ServerList';
+import { getGlobalCounts } from '../../../utils/globalCounts';
 import prisma from '../../../utils/prisma';
 import { searchParamSchema } from '../schema';
 import { ComponentProps } from 'react';
@@ -38,13 +39,7 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
-  const gameServerCount = await prisma.gameServer.count({
-    where: {
-      lastSnapshot: {
-        isNot: null,
-      },
-    },
-  });
+  const { gameServerCount } = await getGlobalCounts();
 
   const servers = gameServers.reduce<
     ComponentProps<typeof ServerList>['servers']

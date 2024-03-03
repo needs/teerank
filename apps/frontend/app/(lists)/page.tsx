@@ -1,4 +1,5 @@
 import { PlayerList } from '../../components/PlayerList';
+import { getGlobalCounts } from '../../utils/globalCounts';
 import prisma from '../../utils/prisma';
 import { searchParamSchema } from './schema';
 
@@ -43,7 +44,7 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
-  const playerCount = await prisma.player.count();
+  const { playerCount } = await getGlobalCounts();
 
   return (
     <PlayerList

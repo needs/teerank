@@ -286,3 +286,12 @@ model ClanPlayerInfo {
   @@unique([clanName, playerName])
   @@index([playTime(sort: Desc)])
 }
+
+model GlobalCounts {
+  globalId  String   @id
+  updatedAt DateTime @updatedAt
+
+  playerCount     Int @default(0)
+  clanCount       Int @default(0)
+  gameServerCount Int @default(0)
+}

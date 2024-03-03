@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { formatInteger, formatPlayTime } from '../utils/format';
 import { List, ListCell } from './List';
+import { encodeString } from '../utils/encoding';
 
 export function GameTypeList({
   gameTypes,
@@ -37,7 +38,7 @@ export function GameTypeList({
           <ListCell
             label={gameType.name}
             href={{
-              pathname: `/gametype/${encodeURIComponent(gameType.name)}`,
+              pathname: `/gametype/${encodeString(gameType.name)}`,
             }}
           />
           <ListCell alignRight label={formatPlayTime(gameType.playTime)} />

@@ -9,6 +9,7 @@ import { paramsSchema as paramsSchemaGameType } from '../app/gametype/[gameTypeN
 import { paramsSchema as paramsSchemaServer } from '../app/server/[ip]/[port]/schema';
 import { paramsSchema as paramsSchemaPlayer } from '../app/player/[playerName]/schema';
 import { paramsSchema as paramsSchemaClan } from '../app/clan/[clanName]/schema';
+import { encodeString } from '../utils/encoding';
 
 function HeaderTab({
   label,
@@ -102,7 +103,7 @@ function HeaderTabGameType({ gameTypeName, hideOnTabletAndMobile }: { gameTypeNa
   return (
     <HeaderTab
       label={gameTypeName}
-      url={{ pathname: `/gametype/${encodeURIComponent(gameTypeName)}` }}
+      url={{ pathname: `/gametype/${encodeString(gameTypeName)}` }}
       isActive={isActive}
       sublabel={
         isActive && parsedParams.mapName !== undefined
@@ -113,10 +114,10 @@ function HeaderTabGameType({ gameTypeName, hideOnTabletAndMobile }: { gameTypeNa
       labelHref={
         !isActive
           ? undefined
-          : { pathname: `/gametype/${encodeURIComponent(gameTypeName)}` }
+          : { pathname: `/gametype/${encodeString(gameTypeName)}` }
       }
       sublabelHref={{
-        pathname: `/gametype/${encodeURIComponent(gameTypeName)}/maps`,
+        pathname: `/gametype/${encodeString(gameTypeName)}/maps`,
       }}
       hideOnTabletAndMobile={hideOnTabletAndMobile}
     />
@@ -183,10 +184,10 @@ export function HeaderTabs({
       {playerName !== undefined && (
         <HeaderTabPage
           label="Player"
-          pathname={`/player/${encodeURIComponent(playerName)}`}
+          pathname={`/player/${encodeString(playerName)}`}
           extraPathnames={[
-            `/player/${encodeURIComponent(playerName)}/maps`,
-            `/player/${encodeURIComponent(playerName)}/clans`,
+            `/player/${encodeString(playerName)}/maps`,
+            `/player/${encodeString(playerName)}/clans`,
           ]}
         />
       )}
@@ -194,10 +195,10 @@ export function HeaderTabs({
       {clanName !== undefined && (
         <HeaderTabPage
           label="Clan"
-          pathname={`/clan/${encodeURIComponent(clanName)}`}
+          pathname={`/clan/${encodeString(clanName)}`}
           extraPathnames={[
-            `/clan/${encodeURIComponent(clanName)}/gametypes`,
-            `/clan/${encodeURIComponent(clanName)}/maps`,
+            `/clan/${encodeString(clanName)}/gametypes`,
+            `/clan/${encodeString(clanName)}/maps`,
           ]}
         />
       )}

@@ -3,6 +3,7 @@ import { formatInteger, formatPlayTime } from '../utils/format';
 import { List, ListCell } from './List';
 import { LastSeen } from './LastSeen';
 import { Fragment } from 'react';
+import { encodeString } from '../utils/encoding';
 
 export function PlayerList({
   players,
@@ -79,7 +80,7 @@ export function PlayerList({
           <ListCell
             label={player.name}
             href={{
-              pathname: `/player/${encodeURIComponent(player.name)}`,
+              pathname: `/player/${encodeString(player.name)}`,
             }}
           />
           <ListCell
@@ -88,7 +89,7 @@ export function PlayerList({
               player.clan === undefined
                 ? undefined
                 : {
-                    pathname: `/clan/${encodeURIComponent(player.clan)}`,
+                    pathname: `/clan/${encodeString(player.clan)}`,
                   }
             }
           />

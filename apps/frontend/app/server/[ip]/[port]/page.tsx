@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { List, ListCell } from '../../../../components/List';
 import { searchParamPageSchema } from '../../../../utils/page';
 import prisma from '../../../../utils/prisma';
+import { encodeString } from '../../../../utils/encoding';
 
 export const metadata = {
   title: 'Server',
@@ -73,7 +74,7 @@ export default async function Index({
               <Link
                 className="hover:underline"
                 href={{
-                  pathname: `/gametype/${encodeURIComponent(
+                  pathname: `/gametype/${encodeString(
                     gameServer.lastSnapshot.map.gameTypeName
                   )}`,
                 }}
@@ -85,7 +86,7 @@ export default async function Index({
               <Link
                 className="hover:underline"
                 href={{
-                  pathname: `/gametype/${encodeURIComponent(
+                  pathname: `/gametype/${encodeString(
                     gameServer.lastSnapshot.map.gameTypeName
                   )}/map/${gameServer.lastSnapshot.map.name}`,
                 }}
@@ -134,7 +135,7 @@ export default async function Index({
             <ListCell
               label={client.playerName}
               href={{
-                pathname: `/player/${encodeURIComponent(client.playerName)}`,
+                pathname: `/player/${encodeString(client.playerName)}`,
               }}
             />
             <ListCell
@@ -143,7 +144,7 @@ export default async function Index({
                 client.clanName === null
                   ? undefined
                   : {
-                      pathname: `/clan/${encodeURIComponent(client.clanName)}`,
+                      pathname: `/clan/${encodeString(client.clanName)}`,
                     }
               }
             />

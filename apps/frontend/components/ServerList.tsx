@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { formatInteger } from '../utils/format';
 import { List, ListCell } from './List';
+import { encodeString } from '../utils/encoding';
 
 export function ServerList({
   servers,
@@ -52,16 +53,16 @@ export function ServerList({
           <ListCell
             label={server.name || '<empty name>' }
             href={{
-              pathname: `/server/${encodeURIComponent(
+              pathname: `/server/${encodeString(
                 server.ip
-              )}/${encodeURIComponent(server.port)}`,
+              )}/${encodeString(server.port.toString())}`,
             }}
             className={server.name === '' ? "italic" : undefined}
           />
           <ListCell
             label={server.gameTypeName}
             href={{
-              pathname: `/gametype/${encodeURIComponent(
+              pathname: `/gametype/${encodeString(
                 server.gameTypeName
               )}/servers`,
             }}
@@ -69,9 +70,9 @@ export function ServerList({
           <ListCell
             label={server.mapName ?? ''}
             href={{
-              pathname: `/gametype/${encodeURIComponent(
+              pathname: `/gametype/${encodeString(
                 server.gameTypeName
-              )}/map/${encodeURIComponent(server.mapName)}/servers`,
+              )}/map/${encodeString(server.mapName)}/servers`,
             }}
           />
           <ListCell

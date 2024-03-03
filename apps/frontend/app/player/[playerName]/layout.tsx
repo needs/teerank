@@ -7,6 +7,7 @@ import { formatPlayTime } from '../../../utils/format';
 import prisma from '../../../utils/prisma';
 import { LayoutTabs } from './LayoutTabs';
 import { LastSeen } from '../../../components/LastSeen';
+import { encodeString } from '../../../utils/encoding';
 
 export default async function Index({
   params,
@@ -92,7 +93,7 @@ export default async function Index({
               <Link
                 className="hover:underline"
                 href={{
-                  pathname: `/clan/${encodeURIComponent(player.clanName)}`,
+                  pathname: `/clan/${encodeString(player.clanName)}`,
                 }}
               >
                 {player.clanName}

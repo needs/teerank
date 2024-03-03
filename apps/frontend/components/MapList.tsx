@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { formatInteger, formatPlayTime } from '../utils/format';
 import { List, ListCell } from './List';
+import { encodeString } from '../utils/encoding';
 
 export function MapList({
   maps: maps,
@@ -42,13 +43,13 @@ export function MapList({
           <ListCell
             label={map.gameTypeName}
             href={{
-              pathname: `/gametype/${encodeURIComponent(map.gameTypeName)}`,
+              pathname: `/gametype/${encodeString(map.gameTypeName)}`,
             }}
           />
           <ListCell
             label={map.name}
             href={{
-              pathname: `/gametype/${encodeURIComponent(map.gameTypeName)}/map/${encodeURIComponent(map.name)}`,
+              pathname: `/gametype/${encodeString(map.gameTypeName)}/map/${encodeString(map.name)}`,
             }}
           />
           <ListCell alignRight label={formatPlayTime(map.playTime)} />

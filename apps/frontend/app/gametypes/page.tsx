@@ -1,5 +1,6 @@
 import { searchParamSchema } from '../(lists)/schema';
 import { List, ListCell } from '../../components/List';
+import { encodeString } from '../../utils/encoding';
 import { capitalize, formatInteger, formatPlayTime } from '../../utils/format';
 import prisma from '../../utils/prisma';
 import { Fragment } from 'react';
@@ -90,7 +91,7 @@ export default async function Index({
             <ListCell
               label={gameType.name}
               href={{
-                pathname: `/gametype/${encodeURIComponent(gameType.name)}`,
+                pathname: `/gametype/${encodeString(gameType.name)}`,
               }}
             />
             <ListCell
@@ -101,14 +102,14 @@ export default async function Index({
               alignRight
               label={formatInteger(gameType.playerCount)}
               href={{
-                pathname: `/gametype/${encodeURIComponent(gameType.name)}`,
+                pathname: `/gametype/${encodeString(gameType.name)}`,
               }}
             />
             <ListCell
               alignRight
               label={formatInteger(gameType.clanCount)}
               href={{
-                pathname: `/gametype/${encodeURIComponent(
+                pathname: `/gametype/${encodeString(
                   gameType.name
                 )}/clans`,
               }}
@@ -119,7 +120,7 @@ export default async function Index({
                 gameType.gameServerCount
               )}
               href={{
-                pathname: `/gametype/${encodeURIComponent(
+                pathname: `/gametype/${encodeString(
                   gameType.name
                 )}/servers`,
               }}
@@ -128,7 +129,7 @@ export default async function Index({
               alignRight
               label={formatInteger(gameType.mapCount)}
               href={{
-                pathname: `/gametype/${encodeURIComponent(gameType.name)}/maps`,
+                pathname: `/gametype/${encodeString(gameType.name)}/maps`,
               }}
             />
             <ListCell

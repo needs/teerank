@@ -2,6 +2,7 @@
 
 import { Tab, Tabs } from '../../../components/Tabs';
 import { usePathname } from 'next/navigation';
+import { encodeString } from '../../../utils/encoding';
 
 export function LayoutTabs({
   gameTypeName,
@@ -18,8 +19,8 @@ export function LayoutTabs({
 }) {
   const pathname = usePathname();
 
-  const urlPathname = `/gametype/${encodeURIComponent(gameTypeName)}${
-    mapName === undefined ? '' : `/map/${encodeURIComponent(mapName)}`
+  const urlPathname = `/gametype/${encodeString(gameTypeName)}${
+    mapName === undefined ? '' : `/map/${encodeString(mapName)}`
   }`;
 
   return (

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { decodeString } from "../../../utils/encoding";
 
 export const searchParamsSchema = z
   .object({
@@ -7,5 +8,5 @@ export const searchParamsSchema = z
   .catch({ page: 1 });
 
 export const paramsSchema = z.object({
-  gameTypeName: z.string().transform(decodeURIComponent),
+  gameTypeName: z.string().transform(decodeString),
 });

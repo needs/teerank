@@ -1,9 +1,9 @@
-import groupBy from 'lodash.groupby';
 import { List, ListCell } from '../../../../components/List';
 import { formatInteger, formatPlayTime } from '../../../../utils/format';
 import prisma from '../../../../utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../schema';
 import { notFound } from 'next/navigation';
+import { encodeString } from '../../../../utils/encoding';
 
 export const metadata = {
   title: 'Maps',
@@ -103,36 +103,36 @@ export default async function Index({
             <ListCell
               label={map.name}
               href={{
-                pathname: `/gametype/${encodeURIComponent(
+                pathname: `/gametype/${encodeString(
                   map.gameTypeName
-                )}/map/${encodeURIComponent(map.name)}`,
+                )}/map/${encodeString(map.name)}`,
               }}
             />
             <ListCell
               alignRight
               label={formatInteger(map.playerCount)}
               href={{
-                pathname: `/gametype/${encodeURIComponent(
+                pathname: `/gametype/${encodeString(
                   map.gameTypeName
-                )}/map/${encodeURIComponent(map.name)}`,
+                )}/map/${encodeString(map.name)}`,
               }}
             />
             <ListCell
               alignRight
               label={formatInteger(map.clanCount)}
               href={{
-                pathname: `/gametype/${encodeURIComponent(
+                pathname: `/gametype/${encodeString(
                   map.gameTypeName
-                )}/map/${encodeURIComponent(map.name)}/clans`,
+                )}/map/${encodeString(map.name)}/clans`,
               }}
             />
             <ListCell
               alignRight
               label={formatInteger(map.gameServerCount)}
               href={{
-                pathname: `/gametype/${encodeURIComponent(
+                pathname: `/gametype/${encodeString(
                   map.gameTypeName
-                )}/map/${encodeURIComponent(map.name)}/servers`,
+                )}/map/${encodeString(map.name)}/servers`,
               }}
             />
             <ListCell alignRight label={formatPlayTime(map.playTime)} />

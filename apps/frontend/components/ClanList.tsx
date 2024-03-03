@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { formatInteger, formatPlayTime } from "../utils/format";
 import { List, ListCell } from "./List";
+import { encodeString } from "../utils/encoding";
 
 export function ClanList({
   clans,
@@ -46,7 +47,7 @@ export function ClanList({
           <ListCell
             label={clan.name}
             href={{
-              pathname: `/clan/${encodeURIComponent(clan.name)}`,
+              pathname: `/clan/${encodeString(clan.name)}`,
             }}
           />
           <ListCell alignRight label={formatInteger(clan.playerCount)} />

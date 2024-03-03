@@ -2,6 +2,7 @@
 
 import { Tab, Tabs } from '../../../components/Tabs';
 import { usePathname } from 'next/navigation';
+import { encodeString } from '../../../utils/encoding';
 
 export function LayoutTabs({
   clanName, playerCount, gameTypeCount, mapCount,
@@ -11,7 +12,7 @@ export function LayoutTabs({
   gameTypeCount: number;
   mapCount: number;
 }) {
-  const urlPathname = `/clan/${encodeURIComponent(clanName)}`;
+  const urlPathname = `/clan/${encodeString(clanName)}`;
   const pathname = usePathname();
 
   return (

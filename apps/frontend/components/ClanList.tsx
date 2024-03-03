@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { formatInteger, formatPlayTime } from "../utils/format";
 import { List, ListCell } from "./List";
 
@@ -40,7 +41,7 @@ export function ClanList({
       }
     >
       {clans.map((clan) => (
-        <>
+        <Fragment key={clan.name}>
           <ListCell alignRight label={formatInteger(clan.rank)} />
           <ListCell
             label={clan.name}
@@ -50,7 +51,7 @@ export function ClanList({
           />
           <ListCell alignRight label={formatInteger(clan.playerCount)} />
           <ListCell alignRight label={formatPlayTime(clan.playTime)} />
-        </>
+        </Fragment>
       ))}
     </List>
   );

@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { formatInteger, formatPlayTime } from '../utils/format';
 import { List, ListCell } from './List';
 
@@ -36,7 +37,7 @@ export function MapList({
       pageCount={Math.ceil(mapCount / 100)}
     >
       {maps.map((map) => (
-        <>
+        <Fragment key={map.name}>
           <ListCell alignRight label={formatInteger(map.rank)} />
           <ListCell
             label={map.gameTypeName}
@@ -51,7 +52,7 @@ export function MapList({
             }}
           />
           <ListCell alignRight label={formatPlayTime(map.playTime)} />
-        </>
+        </Fragment>
       ))}
     </List>
   );

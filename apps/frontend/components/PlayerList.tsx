@@ -2,6 +2,7 @@ import { RankMethod } from '@prisma/client';
 import { formatInteger, formatPlayTime } from '../utils/format';
 import { List, ListCell } from './List';
 import { LastSeen } from './LastSeen';
+import { Fragment } from 'react';
 
 export function PlayerList({
   players,
@@ -73,7 +74,7 @@ export function PlayerList({
       }
     >
       {players.map((player) => (
-        <>
+        <Fragment key={player.name}>
           <ListCell alignRight label={formatInteger(player.rank)} />
           <ListCell
             label={player.name}
@@ -119,7 +120,7 @@ export function PlayerList({
           {showLastSeen && player.lastSeen === undefined && (
             <ListCell alignRight label={''} />
           )}
-        </>
+        </Fragment>
       ))}
     </List>
   );

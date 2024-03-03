@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { formatInteger } from '../utils/format';
 import { List, ListCell } from './List';
 
@@ -46,7 +47,7 @@ export function ServerList({
       ]}
     >
       {servers.map((server) => (
-        <>
+        <Fragment key={`${server.ip}-${server.port}`}>
           <ListCell alignRight label={formatInteger(server.rank)} />
           <ListCell
             label={server.name || '<empty name>' }
@@ -79,7 +80,7 @@ export function ServerList({
               server.maxClients
             )}`}
           />
-        </>
+        </Fragment>
       ))}
     </List>
   );

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import prisma from '../../../../utils/prisma';
 import { LayoutTabs } from '../LayoutTabs';
 import { paramsSchema } from '../schema';
+import { updateGameTypeCountsIfOutdated } from '@teerank/teerank';
 
 export default async function Index({
   children,
@@ -12,12 +13,7 @@ export default async function Index({
 }) {
   const { gameTypeName } = paramsSchema.parse(params);
 
-  const gameType = await prisma.gameType.findUnique({
-    select: {
-      playerCount: true,
-      clanCount: true,
-      gameServerCount: true,
-    },
+  let gameType = await prisma.gameType.findUnique({
     where: {
       name: gameTypeName,
     },
@@ -26,6 +22,8 @@ export default async function Index({
   if (gameType === null) {
     notFound();
   }
+
+  gameType = await updateGameTypeCountsIfOutdated(prisma, gameType);
 
   return (
     <div className="flex flex-col gap-4 py-8">

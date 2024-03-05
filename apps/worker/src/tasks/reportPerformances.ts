@@ -62,7 +62,7 @@ export async function reportPerformances() {
       busyMax: formatDuration(performanceData.maxBusyDuration),
 
       idleRun: performanceData.numberOfIdleRun,
-      idleAvg: formatDuration(performanceData.totalIdleDuration / performanceData.numberOfIdleRun ?? undefined),
+      idleAvg: formatDuration(performanceData.totalIdleDuration / performanceData.numberOfIdleRun),
       idleMax: formatDuration(performanceData.maxIdleDuration),
     };
   });

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import prisma from '../../../../../utils/prisma';
 import { LayoutTabs } from '../../LayoutTabs';
 import { paramsSchema } from './schema';
+import { updateMapCounts } from "@teerank/teerank";
 
 export default async function Index({
   children,
@@ -12,7 +13,7 @@ export default async function Index({
 }) {
   const { gameTypeName, mapName } = paramsSchema.parse(params);
 
-  const map = await prisma.map.findUnique({
+  let map = await prisma.map.findUnique({
     where: {
       name_gameTypeName: {
         name: mapName,
@@ -24,6 +25,8 @@ export default async function Index({
   if (map === null) {
     notFound();
   }
+
+  map = await updateMapCounts(prisma, map);
 
   return (
     <div className="flex flex-col gap-4 py-8">

@@ -1,0 +1,29 @@
+{
+  "name": "teerank",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/teerank/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/teerank",
+        "main": "libs/teerank/src/index.ts",
+        "tsConfig": "libs/teerank/tsconfig.lib.json",
+        "assets": ["libs/teerank/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/teerank/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}

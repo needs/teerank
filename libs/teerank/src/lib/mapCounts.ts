@@ -1,8 +1,8 @@
+import { Map, PrismaClient } from '@prisma/client'
 import { subMinutes } from "date-fns";
-import { prisma } from "../prisma";
 
-export async function updateMapsCounts() {
-  const map = await prisma.map.findFirst({
+export async function nextMapToCount(prisma: PrismaClient) {
+  return await prisma.map.findFirst({
     where: {
       countedAt: {
         lte: new Date(subMinutes(Date.now(), 1)),
@@ -12,14 +12,16 @@ export async function updateMapsCounts() {
       countedAt: 'asc',
     },
   });
+}
 
-  if (map === null) {
-    return false;
+export async function updateMapCounts(prisma: PrismaClient, map: Map) {
+  if (map.countedAt > subMinutes(new Date(), 1)) {
+    return map;
   }
 
   const mapWithCounts = await prisma.map.findUnique({
     where: {
-      id: map.id,
+      id: map.id
     },
     select: {
       _count: {
@@ -37,7 +39,7 @@ export async function updateMapsCounts() {
         { lastSnapshot: { isNot: null } },
         {
           lastSnapshot: {
-            mapId: map.id,
+            mapId: map.id
           },
         },
       ],
@@ -45,12 +47,12 @@ export async function updateMapsCounts() {
   });
 
   if (mapWithCounts === null) {
-    return false;
+    return map;
   }
 
-  await prisma.map.update({
+  return await prisma.map.update({
     where: {
-      id: map.id,
+      id: map.id
     },
     data: {
       playerCount: mapWithCounts._count.playerInfoMaps,
@@ -59,6 +61,4 @@ export async function updateMapsCounts() {
       countedAt: new Date(),
     },
   });
-
-  return true;
 }

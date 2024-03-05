@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@teerank/prisma": ["libs/prisma/src/index.ts"]
+      "@teerank/prisma": ["libs/prisma/src/index.ts"],
+      "@teerank/teerank": ["libs/teerank/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

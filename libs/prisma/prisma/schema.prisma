@@ -155,6 +155,7 @@ model PlayerInfoMap {
 
   @@unique([playerName, mapId])
   @@index([playTime(sort: Desc)])
+  @@index([rating])
 }
 
 model GameServerClient {
@@ -176,6 +177,7 @@ model GameServerClient {
   playerLast Player? @relation(name: "PlayerLastGameServerClientId")
 
   @@index([snapshotId])
+  @@index([score, inGame])
 }
 
 model GameServerSnapshot {

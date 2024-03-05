@@ -4,10 +4,10 @@
   "license": "MIT",
   "scripts": {
     "preinstall": "npx only-allow npm",
-    "prepare": "husky install",
+    "prepare": "husky install && bash playground/setup-playground.sh",
     "proxy-prod": "fly proxy 5434:5432 --app teerankio-postgres",
-    "playground": "ts-node scripts/playground.ts",
-    "playground-prod": "DATABASE_URL=postgres://postgres-test:postgres-test@localhost:5434/teerank ts-node scripts/playground.ts"
+    "playground:dev": "ts-node playground/playground.dev.ts",
+    "playground:prod": "DATABASE_URL=postgres://postgres-test:postgres-test@localhost:5434/teerank ts-node playground/playground.prod.ts"
   },
   "private": true,
   "devDependencies": {

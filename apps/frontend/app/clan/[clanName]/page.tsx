@@ -29,13 +29,32 @@ export default async function Index({
       },
       clanPlayerInfos: {
         select: {
-          playerName: true,
           playTime: true,
+          player: {
+            select: {
+              name: true,
+              lastGameServerClient: {
+                select: {
+                  snapshot: {
+                    select: {
+                      createdAt: true,
+                      gameServerLast: {
+                        select: {
+                          ip: true,
+                          port: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         where: {
           player: {
-            clanName
-          }
+            clanName,
+          },
         },
         orderBy: {
           playTime: 'desc',
@@ -57,11 +76,21 @@ export default async function Index({
     <PlayerList
       playerCount={clan._count.players}
       rankMethod={null}
-      players={clan.clanPlayerInfos.map((player, index) => ({
+      showLastSeen={true}
+      players={clan.clanPlayerInfos.map((playerInfo, index) => ({
         rank: index + 1,
-        name: player.playerName,
+        name: playerInfo.player.name,
         clan: clanName,
-        playTime: player.playTime,
+        playTime: playerInfo.playTime,
+        lastSeen:
+          playerInfo.player.lastGameServerClient === null
+            ? undefined
+            : {
+                at: playerInfo.player.lastGameServerClient.snapshot.createdAt,
+                lastSnapshot:
+                  playerInfo.player.lastGameServerClient.snapshot
+                    .gameServerLast,
+              },
       }))}
     />
   );

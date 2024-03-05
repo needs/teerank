@@ -19,10 +19,7 @@ export async function updateMapCountsIfOutdated(prisma: PrismaClient, map: Map) 
     return map;
   }
 
-  const mapWithCounts = await prisma.map.findUnique({
-    where: {
-      id: map.id
-    },
+  const mapWithCounts = await prisma.map.update({
     select: {
       _count: {
         select: {
@@ -31,7 +28,14 @@ export async function updateMapCountsIfOutdated(prisma: PrismaClient, map: Map) 
         },
       },
     },
-  });
+    where: {
+      id: map.id,
+      countedAt: map.countedAt,
+    },
+    data: {
+      countedAt: new Date(),
+    },
+  }).catch(() => null);
 
   const gameServerCount = await prisma.gameServer.count({
     where: {
@@ -58,7 +62,6 @@ export async function updateMapCountsIfOutdated(prisma: PrismaClient, map: Map) 
       playerCount: mapWithCounts._count.playerInfoMaps,
       clanCount: mapWithCounts._count.clanInfoMaps,
       gameServerCount,
-      countedAt: new Date(),
     },
   });
 }

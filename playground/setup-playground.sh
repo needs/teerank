@@ -1,3 +1,2 @@
-cp -n playground/example.ts playground/playground.dev.ts
-cp -n playground/example.ts playground/playground.prod.ts
+cp -n playground/example.ts playground/playground.ts
 echo "Playground setup complete"

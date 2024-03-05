@@ -1,11 +1,17 @@
 import { Map, PrismaClient } from '@prisma/client'
 import { subMinutes } from "date-fns";
 
+const MAP_COUNT_CACHE_DURATION = 1;
+
+export function mapCountOldestDate() {
+  return subMinutes(new Date(), MAP_COUNT_CACHE_DURATION)
+}
+
 export async function nextMapToCount(prisma: PrismaClient) {
   return await prisma.map.findFirst({
     where: {
       countedAt: {
-        lte: new Date(subMinutes(Date.now(), 1)),
+        lte: mapCountOldestDate(),
       },
     },
     orderBy: {
@@ -15,7 +21,7 @@ export async function nextMapToCount(prisma: PrismaClient) {
 }
 
 export async function updateMapCountsIfOutdated(prisma: PrismaClient, map: Map) {
-  if (map.countedAt > subMinutes(new Date(), 1)) {
+  if (map.countedAt > mapCountOldestDate()) {
     return map;
   }
 

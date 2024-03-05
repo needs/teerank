@@ -1,11 +1,17 @@
 import { GameType, PrismaClient } from '@prisma/client'
 import { subMinutes } from "date-fns";
 
+const GAME_TYPE_COUNT_CACHE_DURATION = 1;
+
+export function gameTypeCountOldestDate() {
+  return subMinutes(new Date(), GAME_TYPE_COUNT_CACHE_DURATION)
+}
+
 export async function nextGameTypeToCount(prisma: PrismaClient) {
   return await prisma.gameType.findFirst({
     where: {
       countedAt: {
-        lte: new Date(subMinutes(Date.now(), 1)),
+        lte: gameTypeCountOldestDate(),
       },
     },
     orderBy: {
@@ -15,7 +21,7 @@ export async function nextGameTypeToCount(prisma: PrismaClient) {
 }
 
 export async function updateGameTypeCountsIfOutdated(prisma: PrismaClient, gameType: GameType) {
-  if (gameType.countedAt > subMinutes(new Date(), 1)) {
+  if (gameType.countedAt > gameTypeCountOldestDate()) {
     return gameType;
   }
 

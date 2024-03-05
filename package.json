@@ -5,7 +5,9 @@
   "scripts": {
     "preinstall": "npx only-allow npm",
     "prepare": "husky install",
-    "proxy-prod": "fly proxy 5434:5432 --app teerankio-postgres"
+    "proxy-prod": "fly proxy 5434:5432 --app teerankio-postgres",
+    "playground": "ts-node scripts/playground.ts",
+    "playground-prod": "DATABASE_URL=postgres://postgres-test:postgres-test@localhost:5434/teerank ts-node scripts/playground.ts"
   },
   "private": true,
   "devDependencies": {

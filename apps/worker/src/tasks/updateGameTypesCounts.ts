@@ -8,6 +8,9 @@ export async function updateGameTypesCounts() {
         lte: new Date(subMinutes(Date.now(), 1)),
       },
     },
+    orderBy: {
+      countedAt: 'asc',
+    },
   });
 
   if (gameType === null) {

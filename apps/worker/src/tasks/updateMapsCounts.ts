@@ -8,6 +8,9 @@ export async function updateMapsCounts() {
         lte: new Date(subMinutes(Date.now(), 1)),
       },
     },
+    orderBy: {
+      countedAt: 'asc',
+    },
   });
 
   if (map === null) {

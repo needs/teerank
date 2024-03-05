@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import prisma from '../../../../../utils/prisma';
 import { LayoutTabs } from '../../LayoutTabs';
 import { paramsSchema } from './schema';
-import { updateMapCounts } from "@teerank/teerank";
+import { updateMapCountsIfOutdated } from "@teerank/teerank";
 
 export default async function Index({
   children,
@@ -26,7 +26,7 @@ export default async function Index({
     notFound();
   }
 
-  map = await updateMapCounts(prisma, map);
+  map = await updateMapCountsIfOutdated(prisma, map);
 
   return (
     <div className="flex flex-col gap-4 py-8">

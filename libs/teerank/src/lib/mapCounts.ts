@@ -14,7 +14,7 @@ export async function nextMapToCount(prisma: PrismaClient) {
   });
 }
 
-export async function updateMapCounts(prisma: PrismaClient, map: Map) {
+export async function updateMapCountsIfOutdated(prisma: PrismaClient, map: Map) {
   if (map.countedAt > subMinutes(new Date(), 1)) {
     return map;
   }

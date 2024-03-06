@@ -10,6 +10,7 @@ import { cancellableWait } from "./utils";
 import { removeEmptySnapshots } from "./tasks/removeEmptySnapshots";
 import { updateGameTypesCounts } from "./tasks/updateGameTypesCounts";
 import { updateMapsCounts } from "./tasks/updateMapsCounts";
+import { fixWrongPlayerTimeRatings } from "./tasks/fixWrongPlayerTimeRatings";
 
 let stopGracefully = false;
 const cancellableWaits = new Set<() => void>();
@@ -55,6 +56,7 @@ async function main() {
     runJob(removeEmptySnapshots, 'removeEmptySnapshots', 0, 60 * 1000 * 5),
     runJob(updateGameTypesCounts, 'updateGameTypesCounts', 0, 5 * 1000),
     runJob(updateMapsCounts, 'updateMapsCounts', 0, 5 * 1000),
+    runJob(fixWrongPlayerTimeRatings, 'fixWrongPlayerTimeRatings', 0, 60 * 1000),
     runJob(reportPerformances, 'reportPerformances', 60000, 60000),
   ]);
 

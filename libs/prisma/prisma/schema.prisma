@@ -178,6 +178,7 @@ model GameServerClient {
 
   @@index([snapshotId])
   @@index([score, inGame])
+  @@index([playerName])
 }
 
 model GameServerSnapshot {

@@ -13,10 +13,17 @@ export async function monitorJobPerformance(jobName: string, job: () => Promise<
     return await job();
   }
 
-  performance.mark(`${jobName}-start`);
+  const performanceMarkStart = `${jobName}-start`;
+  const performanceMarkEnd = `${jobName}-end`;
+
+  performance.mark(performanceMarkStart);
   const isBusy = await job();
-  performance.mark(`${jobName}-end`);
-  const measure = performance.measure(jobName, `${jobName}-start`, `${jobName}-end`);
+  performance.mark(performanceMarkEnd);
+  const measure = performance.measure(jobName, performanceMarkStart, performanceMarkEnd);
+
+  performance.clearMarks(performanceMarkStart);
+  performance.clearMarks(performanceMarkEnd);
+  performance.clearMeasures(jobName);
 
   const performanceData = jobPerformances.get(jobName) ?? {
     numberOfBusyRun: 0,

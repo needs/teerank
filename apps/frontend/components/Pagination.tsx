@@ -39,13 +39,11 @@ export function Pagination({ pageCount }: { pageCount: number }) {
   const pathname = usePathname();
 
   const pages = [
-    currentPage - 3,
     currentPage - 2,
     currentPage - 1,
     currentPage,
     currentPage + 1,
     currentPage + 2,
-    currentPage + 3,
   ].filter((page) => page > 0 && page <= pageCount);
 
   if (pages[0] !== 1) {

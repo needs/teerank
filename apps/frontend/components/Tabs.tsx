@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
 import { UrlObject } from 'url';
+import { formatInteger } from '../utils/format';
 
 export function Tabs({ children }: { children: React.ReactNode }) {
   return (
@@ -31,7 +32,9 @@ export function Tab({
   const content = (
     <>
       <span className="text-xl font-bold px-4">{label}</span>
-      <span className="text-[#999] text-lg px-4 hidden lg:block border-l">{count}</span>
+      <span className="text-[#999] text-lg px-4 hidden lg:block border-l">
+        {formatInteger(count)}
+      </span>
     </>
   );
 

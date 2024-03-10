@@ -5,8 +5,8 @@ import { searchParamSchema } from '../schema';
 import { ComponentProps } from 'react';
 
 export const metadata = {
-  title: 'Servers',
-  description: 'List of all servers',
+  title: 'All Servers - Teerank',
+  description: 'Teerank is a simple and fast ranking system for Teeworlds.',
 };
 
 export default async function Index({

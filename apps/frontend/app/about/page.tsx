@@ -1,5 +1,10 @@
 import Link from 'next/link';
 
+export const metadata = {
+  title: 'About - Teerank',
+  description: 'Teerank is a simple and fast ranking system for Teeworlds.',
+};
+
 export default function Index() {
   return (
     <main className="py-12 px-4 md:px-12 xl:px-20 text-[#666] flex flex-col gap-4">

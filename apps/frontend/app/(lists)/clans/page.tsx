@@ -4,8 +4,8 @@ import prisma from '../../../utils/prisma';
 import { searchParamSchema } from '../schema';
 
 export const metadata = {
-  title: 'Clans',
-  description: 'List of all clans',
+  title: 'All Clans - Teerank',
+  description: 'Teerank is a simple and fast ranking system for Teeworlds.',
 };
 
 export default async function Index({

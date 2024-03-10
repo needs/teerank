@@ -4,8 +4,8 @@ import prisma from '../../utils/prisma';
 import { searchParamSchema } from './schema';
 
 export const metadata = {
-  title: 'Players',
-  description: 'List of all players',
+  title: 'All Players - Teerank',
+  description: 'Teerank is a simple and fast ranking system for Teeworlds.',
 };
 
 export default async function Index({
@@ -47,6 +47,10 @@ export default async function Index({
   const { playerCount } = await getGlobalCounts();
 
   return (
+    <>
+    <p className="hidden">
+      {`Teerank is a simple and fast ranking system for Teeworlds.`}
+    </p>
     <PlayerList
       playerCount={playerCount}
       rankMethod={null}
@@ -63,5 +67,6 @@ export default async function Index({
         },
       }))}
     />
+    </>
   );
 }

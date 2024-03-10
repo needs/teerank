@@ -8,8 +8,8 @@ import prisma from '../../utils/prisma';
 import { formatDistanceToNow, subMinutes } from 'date-fns';
 
 export const metadata = {
-  title: 'Status',
-  description: 'Teerank status',
+  title: 'Status - Teerank',
+  description: 'Teerank status and statistics.',
 };
 
 export const dynamic = 'force-dynamic';

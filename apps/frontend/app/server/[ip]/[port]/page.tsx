@@ -88,7 +88,7 @@ export default async function Index({
                 href={{
                   pathname: `/gametype/${encodeString(
                     gameServer.lastSnapshot.map.gameTypeName
-                  )}/map/${gameServer.lastSnapshot.map.name}`,
+                  )}/map/${encodeString(gameServer.lastSnapshot.map.name)}`,
                 }}
               >
                 {gameServer.lastSnapshot.map.name}

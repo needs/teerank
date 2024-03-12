@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { formatInteger } from '../utils/format';
 import { List, ListCell } from './List';
-import { encodeString } from '../utils/encoding';
+import { encodeIp, encodeString } from '../utils/encoding';
 
 export function ServerList({
   servers,
@@ -51,13 +51,11 @@ export function ServerList({
         <Fragment key={`${server.ip}-${server.port}`}>
           <ListCell alignRight label={formatInteger(server.rank)} />
           <ListCell
-            label={server.name || '<empty name>' }
+            label={server.name || '<empty name>'}
             href={{
-              pathname: `/server/${encodeString(
-                server.ip
-              )}/${encodeString(server.port.toString())}`,
+              pathname: `/server/${encodeIp(server.ip)}/${server.port}`,
             }}
-            className={server.name === '' ? "italic" : undefined}
+            className={server.name === '' ? 'italic' : undefined}
           />
           <ListCell
             label={server.gameTypeName}

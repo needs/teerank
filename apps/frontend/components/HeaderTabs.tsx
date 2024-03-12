@@ -9,7 +9,7 @@ import { paramsSchema as paramsSchemaGameType } from '../app/gametype/[gameTypeN
 import { paramsSchema as paramsSchemaServer } from '../app/server/[ip]/[port]/schema';
 import { paramsSchema as paramsSchemaPlayer } from '../app/player/[playerName]/schema';
 import { paramsSchema as paramsSchemaClan } from '../app/clan/[clanName]/schema';
-import { encodeString } from '../utils/encoding';
+import { encodeIp, encodeString } from '../utils/encoding';
 
 function HeaderTab({
   label,
@@ -19,7 +19,7 @@ function HeaderTab({
   sublabelPlaceholder,
   sublabelHref,
   labelHref,
-  hideOnTabletAndMobile
+  hideOnTabletAndMobile,
 }: {
   label: string;
   url: UrlObject;
@@ -90,7 +90,13 @@ function HeaderTabSeparator() {
   return <div className="grow" />;
 }
 
-function HeaderTabGameType({ gameTypeName, hideOnTabletAndMobile }: { gameTypeName: string, hideOnTabletAndMobile?: boolean}) {
+function HeaderTabGameType({
+  gameTypeName,
+  hideOnTabletAndMobile,
+}: {
+  gameTypeName: string;
+  hideOnTabletAndMobile?: boolean;
+}) {
   const params = useParams();
 
   const parsedParams = paramsSchemaGameType
@@ -166,7 +172,11 @@ export function HeaderTabs({
       />
 
       {defaultGameTypes.map((gameType) => (
-        <HeaderTabGameType key={gameType} gameTypeName={gameType} hideOnTabletAndMobile={gameType !== gameTypeName}/>
+        <HeaderTabGameType
+          key={gameType}
+          gameTypeName={gameType}
+          hideOnTabletAndMobile={gameType !== gameTypeName}
+        />
       ))}
 
       {gameTypeName !== undefined &&
@@ -178,7 +188,10 @@ export function HeaderTabs({
       <HeaderTabSeparator />
 
       {ip !== undefined && port !== undefined && (
-        <HeaderTabPage label="Server" pathname={`/server/${ip}/${port}`} />
+        <HeaderTabPage
+          label="Server"
+          pathname={`/server/${encodeIp(ip)}/${port}`}
+        />
       )}
 
       {playerName !== undefined && (

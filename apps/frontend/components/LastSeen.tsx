@@ -2,10 +2,11 @@ import { intervalToDuration } from 'date-fns';
 import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
 import { formatDurationShort } from '../utils/format';
+import { encodeIp, encodeString } from '../utils/encoding';
 
 export function LastSeen({
   lastSnapshot,
-  lastSeen
+  lastSeen,
 }: {
   lastSnapshot: {
     ip: string;
@@ -19,7 +20,7 @@ export function LastSeen({
       <Link
         prefetch={false}
         href={{
-          pathname: `/server/${lastSnapshot.ip}/${lastSnapshot.port}`,
+          pathname: `/server/${encodeIp(lastSnapshot.ip)}/${lastSnapshot.port}`,
         }}
         className="text-[#43a700] font-bold hover:underline"
       >
@@ -46,7 +47,9 @@ export function LastSeen({
 
     return (
       <span className={twMerge('truncate', className)}>
-        {formatDurationShort(intervalToDuration({ start: lastSeen, end: new Date() }))}
+        {formatDurationShort(
+          intervalToDuration({ start: lastSeen, end: new Date() })
+        )}
       </span>
     );
   }

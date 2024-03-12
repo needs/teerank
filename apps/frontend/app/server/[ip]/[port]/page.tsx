@@ -7,6 +7,7 @@ import { List, ListCell } from '../../../../components/List';
 import { searchParamPageSchema } from '../../../../utils/page';
 import prisma from '../../../../utils/prisma';
 import { encodeString } from '../../../../utils/encoding';
+import { formatPlayTime } from '../../../../utils/format';
 
 export const metadata = {
   title: 'Server',
@@ -95,10 +96,12 @@ export default async function Index({
               </Link>
             </span>
             <span className="px-4">{`${gameServer.lastSnapshot.numClients} / ${gameServer.lastSnapshot.maxClients} clients`}</span>
-            <span className="px-4">{`${gameServer.lastSnapshot.numPlayers} players`}</span>
+            <span className="px-4">
+              Playtime: {formatPlayTime(gameServer.playTime)}
+            </span>
           </div>
         </section>
-        <section className="flex flex-col divide-y border rounded-md overflow-hidde self-start">
+        <section className="flex flex-col divide-y border rounded-md overflow-hidden self-start">
           <h2 className="py-1.5 px-4 bg-gradient-to-b from-[#ffffff] to-[#eaeaea] text-center">
             Server address
           </h2>

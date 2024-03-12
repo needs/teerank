@@ -191,7 +191,7 @@ model GameServerSnapshot {
   playTimingStartedAt DateTime?
 
   // Can be removed once all game servers are playtimed.
-  gameServerPlayTimedAt DateTime?
+  gameServerPlayTimedAt         DateTime?
   gameServerPlayTimingStartedAt DateTime?
 
   version String
@@ -218,6 +218,7 @@ model GameServerSnapshot {
   @@index([rankingStartedAt])
   @@index([playTimedAt])
   @@index([playTimingStartedAt])
+  @@index([gameServerPlayTimingStartedAt])
   @@index([createdAt(sort: Desc), rankedAt])
   @@index([createdAt(sort: Desc), playTimedAt])
   @@index([createdAt(sort: Desc), rankingStartedAt(sort: Desc)])

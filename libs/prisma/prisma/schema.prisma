@@ -25,6 +25,7 @@ model GameServer {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   offlineSince DateTime?
+  playTime     BigInt    @default(0)
 
   polledAt         DateTime?
   pollingStartedAt DateTime?
@@ -188,6 +189,10 @@ model GameServerSnapshot {
   rankingStartedAt    DateTime?
   playTimedAt         DateTime?
   playTimingStartedAt DateTime?
+
+  // Can be removed once all game servers are playtimed.
+  gameServerPlayTimedAt DateTime?
+  gameServerPlayTimingStartedAt DateTime?
 
   version String
   name    String

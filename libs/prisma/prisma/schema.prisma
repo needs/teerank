@@ -218,7 +218,7 @@ model GameServerSnapshot {
   @@index([rankingStartedAt])
   @@index([playTimedAt])
   @@index([playTimingStartedAt])
-  @@index([gameServerPlayTimingStartedAt])
+  @@index([gameServerPlayTimingStartedAt, gameServerPlayTimedAt])
   @@index([createdAt(sort: Desc), rankedAt])
   @@index([createdAt(sort: Desc), playTimedAt])
   @@index([createdAt(sort: Desc), rankingStartedAt(sort: Desc)])

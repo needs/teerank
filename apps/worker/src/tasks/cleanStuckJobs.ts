@@ -66,5 +66,25 @@ export async function cleanStuckJobs() {
     console.warn(`Unstuck ${unstuckSnapshotPlayTimingJobs.count} snapshot play timing jobs`);
   }
 
-  return unstuckGameServerPollingJobs.count > 0 || unstuckSnapshotRankingJobs.count > 0 || unstuckSnapshotPlayTimingJobs.count > 0 || unstuckMasterServerPollingJobs.count > 0;
+  const unstuckSnapshotGameServerPlayTimingJobs = await prisma.gameServerSnapshot.updateMany({
+    where: {
+      gameServerPlayTimingStartedAt: {
+        lt: subMinutes(new Date(), jobTimeoutMinutes),
+      },
+      gameServerPlayTimedAt: null,
+    },
+    data: {
+      gameServerPlayTimedAt: null,
+    },
+  });
+
+  if (unstuckSnapshotGameServerPlayTimingJobs.count > 0 && process.env.NODE_ENV !== 'test') {
+    console.warn(`Unstuck ${unstuckSnapshotGameServerPlayTimingJobs.count} snapshot game server play timing jobs`);
+  }
+
+  return unstuckGameServerPollingJobs.count > 0
+    || unstuckSnapshotRankingJobs.count > 0
+    || unstuckSnapshotPlayTimingJobs.count > 0
+    || unstuckMasterServerPollingJobs.count > 0
+    || unstuckSnapshotGameServerPlayTimingJobs.count > 0;
 }

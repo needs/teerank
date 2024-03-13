@@ -74,7 +74,7 @@ export async function cleanStuckJobs() {
       gameServerPlayTimedAt: null,
     },
     data: {
-      gameServerPlayTimedAt: null,
+      gameServerPlayTimingStartedAt: null,
     },
   });
 

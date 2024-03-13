@@ -226,3 +226,49 @@ test('Running snapshot play timing job', async () => {
 
   expect(updatedSnapshot.playTimingStartedAt).not.toBeNull();
 })
+
+test('Stuck snapshot game server play timing job', async () => {
+  const snapshot = await createSnapshot();
+
+  await prisma.gameServerSnapshot.update({
+    where: {
+      id: snapshot.id,
+    },
+    data: {
+      gameServerPlayTimingStartedAt: subMinutes(new Date(), jobTimeoutMinutes + 1),
+    }
+  });
+
+  await cleanStuckJobs();
+
+  const updatedSnapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
+    where: {
+      id: snapshot.id,
+    },
+  });
+
+  expect(updatedSnapshot.gameServerPlayTimingStartedAt).toBeNull();
+})
+
+test('Running snapshot game server play timing job', async () => {
+  const snapshot = await createSnapshot();
+
+  await prisma.gameServerSnapshot.update({
+    where: {
+      id: snapshot.id,
+    },
+    data: {
+      gameServerPlayTimingStartedAt: new Date(),
+    }
+  });
+
+  await cleanStuckJobs();
+
+  const updatedSnapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
+    where: {
+      id: snapshot.id,
+    },
+  });
+
+  expect(updatedSnapshot.gameServerPlayTimingStartedAt).not.toBeNull();
+})

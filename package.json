@@ -59,8 +59,10 @@
   "dependencies": {
     "@next/third-parties": "^14.1.0",
     "@prisma/client": "^5.1.1",
-    "@sentry/node": "^7.77.0",
-    "@sentry/profiling-node": "^1.2.6",
+    "@sentry/nextjs": "^7.107.0",
+    "@sentry/node": "^7.107.0",
+    "@sentry/profiling-node": "^7.107.0",
+    "@sentry/utils": "^7.107.0",
     "base64url": "^3.0.1",
     "date-fns": "^2.30.0",
     "lodash.groupby": "^4.6.0",

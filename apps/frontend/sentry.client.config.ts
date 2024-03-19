@@ -3,6 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import prisma from "./utils/prisma";
 
 Sentry.init({
   dsn: "https://7241e2e7d80fba086db8ac315b79d183@o4506935456890880.ingest.us.sentry.io/4506935457153024",
@@ -23,8 +24,11 @@ Sentry.init({
   integrations: [
     Sentry.replayIntegration({
       // Additional Replay configuration goes in here, for example:
-      maskAllText: true,
-      blockAllMedia: true,
+      maskAllText: false,
+      blockAllMedia: false,
     }),
+    new Sentry.Integrations.Prisma({
+      client: prisma,
+    })
   ],
 });

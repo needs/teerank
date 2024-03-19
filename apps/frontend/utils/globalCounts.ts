@@ -45,7 +45,7 @@ export async function getGlobalCounts() {
       clanCount,
       gameServerCount,
     },
-  });
+  }).catch(console.error);
 
   return {
     playerCount,

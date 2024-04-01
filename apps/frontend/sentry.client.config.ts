@@ -27,8 +27,5 @@ Sentry.init({
       maskAllText: false,
       blockAllMedia: false,
     }),
-    new Sentry.Integrations.Prisma({
-      client: prisma,
-    })
   ],
 });

@@ -30,14 +30,20 @@ export default async function Index({
   params: z.infer<typeof paramsSchema>;
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const parsedParams = paramsSchema.parse(params);
+  const parsedParams = paramsSchema.safeParse(params);
   const { page } = searchParamPageSchema.parse(searchParams);
+
+  if (!parsedParams.success) {
+    return notFound();
+  }
+
+  const { ip, port } = parsedParams.data;
 
   const gameServer = await prisma.gameServer.findUnique({
     where: {
       ip_port: {
-        ip: parsedParams.ip,
-        port: parsedParams.port,
+        ip,
+        port,
       },
     },
     include: {

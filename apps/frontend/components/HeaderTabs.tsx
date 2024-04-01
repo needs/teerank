@@ -155,13 +155,18 @@ export function HeaderTabs({
   const params = useParams();
   const pathname = usePathname();
 
-  const { ip, port, gameTypeName, playerName, clanName } = paramsSchemaGameType
+  const schema = paramsSchemaGameType
     .merge(paramsSchemaServer)
     .merge(paramsSchemaPlayer)
     .merge(paramsSchemaMap)
     .merge(paramsSchemaClan)
-    .partial()
-    .parse(params);
+    .partial();
+
+  const parsedParams = schema.safeParse(params);
+
+  const { ip, port, gameTypeName, playerName, clanName } = parsedParams.success
+    ? parsedParams.data
+    : schema.parse({});
 
   return (
     <header className="flex flex-row gap-2 -mt-1.5 px-2 md:px-4 lg:px-8 overflow-x-auto">

@@ -173,6 +173,11 @@ export function HeaderTabs({
       <HeaderTabPage
         label="Home"
         pathname="/"
+      />
+
+      <HeaderTabPage
+        label="Rankings"
+        pathname="/all"
         extraPathnames={['/clans', '/servers']}
       />
 

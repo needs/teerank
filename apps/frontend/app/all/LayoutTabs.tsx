@@ -17,22 +17,22 @@ export function LayoutTabs({
       <Tab
         label="Players"
         count={playerCount}
-        isActive={pathname === '/'}
+        isActive={pathname === '/all'}
         href={{
-          pathname: '/',
+          pathname: '/all',
         }}
       />
       <Tab
         label="Clans"
         count={clanCount}
-        isActive={pathname === '/clans'}
-        href={{ pathname: '/clans' }}
+        isActive={pathname === '/all/clans'}
+        href={{ pathname: '/all/clans' }}
       />
       <Tab
         label="Servers"
         count={serverCount}
-        isActive={pathname === '/servers'}
-        href={{ pathname: '/servers' }}
+        isActive={pathname === '/all/servers'}
+        href={{ pathname: '/all/servers' }}
       />
     </Tabs>
   );

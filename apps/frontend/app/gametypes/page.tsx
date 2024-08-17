@@ -1,4 +1,4 @@
-import { searchParamSchema } from '../(lists)/schema';
+import { searchParamSchema } from '../all/schema';
 import { List, ListCell } from '../../components/List';
 import { encodeString } from '../../utils/encoding';
 import { capitalize, formatInteger, formatPlayTime } from '../../utils/format';

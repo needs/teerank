@@ -10,9 +10,11 @@ import { paramsSchema as paramsSchemaServer } from '../app/server/[ip]/[port]/sc
 import { paramsSchema as paramsSchemaPlayer } from '../app/player/[playerName]/schema';
 import { paramsSchema as paramsSchemaClan } from '../app/clan/[clanName]/schema';
 import { encodeIp, encodeString } from '../utils/encoding';
+import { ReactNode } from 'react';
 
 function HeaderTab({
   label,
+  icon,
   url,
   isActive,
   sublabel,
@@ -22,6 +24,7 @@ function HeaderTab({
   hideOnTabletAndMobile,
 }: {
   label: string;
+  icon?: ReactNode;
   url: UrlObject;
   isActive: boolean;
   sublabel?: string;
@@ -61,12 +64,13 @@ function HeaderTab({
   const labelComponent = () => {
     if (labelHref !== undefined) {
       return (
-        <Link href={labelHref} className="px-4 hover:underline">
+        <Link href={labelHref} className="flex flex-row gap-2 px-4 hover:underline">
+          {icon}
           {label}
         </Link>
       );
     } else {
-      return <span className="px-4">{label}</span>;
+      return <span className="flex flex-row gap-2 px-4">{icon}{label}</span>;
     }
   };
 
@@ -132,10 +136,12 @@ function HeaderTabGameType({
 
 function HeaderTabPage({
   label,
+  icon,
   pathname,
   extraPathnames,
 }: {
   label: string;
+  icon?: ReactNode;
   pathname: string;
   extraPathnames?: string[];
 }) {
@@ -144,7 +150,7 @@ function HeaderTabPage({
     pathname === urlPathname ||
     (extraPathnames !== undefined && extraPathnames.includes(urlPathname));
 
-  return <HeaderTab label={label} url={{ pathname }} isActive={isActive} />;
+  return <HeaderTab label={label} url={{ pathname }} isActive={isActive} icon={icon} />;
 }
 
 export function HeaderTabs({
@@ -172,11 +178,13 @@ export function HeaderTabs({
     <header className="flex flex-row gap-2 -mt-1.5 px-2 md:px-4 lg:px-8 overflow-x-auto">
       <HeaderTabPage
         label="Home"
+        icon={<img src="/home.svg" />}
         pathname="/"
       />
 
       <HeaderTabPage
         label="Rankings"
+        icon={<img src="/ranking.png" />}
         pathname="/all"
         extraPathnames={['/clans', '/servers']}
       />

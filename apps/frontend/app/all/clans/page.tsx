@@ -15,26 +15,28 @@ export default async function Index({
 }) {
   const { page } = searchParamSchema.parse(searchParams);
 
-  const clans = await prisma.clan.findMany({
-    select: {
-      name: true,
-      playTime: true,
-      _count: {
-        select: {
-          players: true,
+  const [clans, { clanCount }] = await Promise.all([
+    prisma.clan.findMany({
+      select: {
+        name: true,
+        playTime: true,
+        _count: {
+          select: {
+            players: true,
+          },
         },
       },
-    },
-    orderBy: [
-      {
-        playTime: 'desc',
-      },
-    ],
-    take: 100,
-    skip: (page - 1) * 100,
-  });
+      orderBy: [
+        {
+          playTime: 'desc',
+        },
+      ],
+      take: 100,
+      skip: (page - 1) * 100,
+    }),
 
-  const { clanCount } = await getGlobalCounts();
+    getGlobalCounts(),
+  ]);
 
   return (
     <ClanList

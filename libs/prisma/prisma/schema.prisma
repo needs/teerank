@@ -214,7 +214,8 @@ model GameServerSnapshot {
   @@index([rankingStartedAt])
   @@index([playTimedAt])
   @@index([playTimingStartedAt])
-  @@index([gameServerPlayTimingStartedAt, gameServerPlayTimedAt])
+  @@index([gameServerPlayTimedAt])
+  @@index([gameServerPlayTimingStartedAt])
   @@index([createdAt(sort: Desc), playTimingStartedAt(sort: Desc)])
   // TODO: To be removed when all empty snapshots are removed.
   @@index([version])

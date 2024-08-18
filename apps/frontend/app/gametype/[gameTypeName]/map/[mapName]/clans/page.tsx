@@ -39,13 +39,6 @@ export default async function Index({
           {
             playTime: 'desc',
           },
-          {
-            clan: {
-              players: {
-                _count: 'desc',
-              },
-            },
-          },
         ],
         take: 100,
         skip: (page - 1) * 100,

@@ -99,11 +99,6 @@ export default async function Index() {
         {
           playTime: 'desc',
         },
-        {
-          players: {
-            _count: 'desc',
-          },
-        },
       ],
       take: 3,
     }),

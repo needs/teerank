@@ -38,8 +38,8 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className="bg-[url('/background.png')] bg-repeat-x bg-left-top flex flex-col items-center m-0 bg-[#9EB5D6] text-[#666] px-4">
-        <header className="max-w-5xl w-full flex flex-col lg:flex-row relative">
+      <body className="bg-[url('/background.png')] bg-repeat-x bg-left-top flex flex-col items-center m-0 bg-[#9EB5D6] text-[#666] md:px-4">
+        <header className="max-w-5xl w-full flex flex-col lg:flex-row relative px-4">
           <Link
             href="https://github.com/needs/teerank"
             target="_blank"

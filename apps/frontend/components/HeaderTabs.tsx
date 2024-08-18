@@ -87,7 +87,7 @@ function HeaderTab({
     </div>
   );
 
-  return isActive ? content : <Link href={url}>{content}</Link>;
+  return isActive ? content : <Link href={url} className='shrink-0'>{content}</Link>;
 }
 
 function HeaderTabSeparator() {

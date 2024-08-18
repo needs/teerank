@@ -186,7 +186,7 @@ export function HeaderTabs({
         label="Rankings"
         icon={<img src="/ranking.png" />}
         pathname="/all"
-        extraPathnames={['/clans', '/servers']}
+        extraPathnames={['/all/clans', '/all/servers']}
       />
 
       {defaultGameTypes.map((gameType) => (

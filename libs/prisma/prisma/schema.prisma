@@ -43,7 +43,6 @@ model GameServer {
   lastSnapshotId Int?                @unique
 
   @@unique([ip, port])
-  @@index([createdAt(sort: Desc)])
   @@index([polledAt])
 }
 
@@ -94,7 +93,6 @@ model GameType {
   playerInfoGameTypes PlayerInfoGameType[]
   clanInfoGameTypes   ClanInfoGameType[]
 
-  @@index([playTime(sort: Desc)])
   @@index([countedAt])
 }
 
@@ -118,7 +116,6 @@ model Map {
   clanInfoMaps   ClanInfoMap[]
 
   @@unique([name, gameTypeName])
-  @@index([playTime(sort: Desc)])
   @@index([countedAt])
 }
 
@@ -137,7 +134,6 @@ model PlayerInfoGameType {
   gameTypeName String
 
   @@unique([playerName, gameTypeName])
-  @@index([playTime(sort: Desc)])
 }
 
 model PlayerInfoMap {
@@ -219,9 +215,6 @@ model GameServerSnapshot {
   @@index([playTimedAt])
   @@index([playTimingStartedAt])
   @@index([gameServerPlayTimingStartedAt, gameServerPlayTimedAt])
-  @@index([createdAt(sort: Desc), rankedAt])
-  @@index([createdAt(sort: Desc), playTimedAt])
-  @@index([createdAt(sort: Desc), rankingStartedAt(sort: Desc)])
   @@index([createdAt(sort: Desc), playTimingStartedAt(sort: Desc)])
   // TODO: To be removed when all empty snapshots are removed.
   @@index([version])
@@ -241,7 +234,6 @@ model ClanInfoGameType {
   gameTypeName String
 
   @@unique([clanName, gameTypeName])
-  @@index([playTime(sort: Desc)])
 }
 
 model ClanInfoMap {

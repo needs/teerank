@@ -43,7 +43,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES }}
 
       - name: Build
-        run: npx nx run-many -t build --parallel=3
+        run: npx nx run-many -t build --configuration=production --parallel=3
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 

@@ -2,7 +2,7 @@ import { intervalToDuration } from 'date-fns';
 import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
 import { formatDurationShort } from '../utils/format';
-import { encodeIp, encodeString } from '../utils/encoding';
+import { encodeIp } from '../utils/encoding';
 
 export function LastSeen({
   lastSnapshot,

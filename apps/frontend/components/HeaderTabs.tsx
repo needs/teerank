@@ -178,13 +178,13 @@ export function HeaderTabs({
     <header className="flex flex-row gap-2 -mt-1.5 px-2 md:px-4 lg:px-8 overflow-x-auto">
       <HeaderTabPage
         label="Home"
-        icon={<img src="/home.svg" />}
+        icon={<img src="/home.svg" alt="Home" />}
         pathname="/"
       />
 
       <HeaderTabPage
         label="Rankings"
-        icon={<img src="/ranking.png" />}
+        icon={<img src="/ranking.png" alt="Rankings" />}
         pathname="/all"
         extraPathnames={['/all/clans', '/all/servers']}
       />

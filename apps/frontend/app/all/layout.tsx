@@ -1,5 +1,4 @@
 import { getGlobalCounts } from '../../utils/globalCounts';
-import prisma from '../../utils/prisma';
 import { LayoutTabs } from './LayoutTabs';
 
 export default async function Index({

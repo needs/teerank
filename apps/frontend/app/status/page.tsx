@@ -26,14 +26,6 @@ export default async function Index() {
     ],
   });
 
-  const masterServerPollingJobs = await prisma.masterServer.count({
-    where: {
-      pollingStartedAt: {
-        not: null,
-      },
-    },
-  });
-
   const lastPolledGameServer = await prisma.gameServer.findFirst({
     select: {
       polledAt: true,
@@ -43,14 +35,6 @@ export default async function Index() {
         polledAt: 'desc',
       },
     ],
-  });
-
-  const gameServerPollingJobs = await prisma.gameServer.count({
-    where: {
-      pollingStartedAt: {
-        not: null,
-      },
-    },
   });
 
   const lastRankedSnapshot = await prisma.gameServerSnapshot.findFirst({
@@ -83,24 +67,6 @@ export default async function Index() {
         playTimedAt: 'desc',
       },
     ],
-  });
-
-  const snapshotRankingJobs = await prisma.gameServerSnapshot.count({
-    where: {
-      rankingStartedAt: {
-        not: null,
-      },
-      rankedAt: null,
-    },
-  });
-
-  const snapshotPlayTimingJobs = await prisma.gameServerSnapshot.count({
-    where: {
-      playTimingStartedAt: {
-        not: null,
-      },
-      playTimedAt: null,
-    },
   });
 
   const masterServers = await prisma.masterServer.findMany({
@@ -137,26 +103,18 @@ export default async function Index() {
     {
       title: 'Polling Master Servers',
       date: lastPolledMasterServer?.polledAt ?? null,
-      jobCount: masterServerPollingJobs,
-      jobCountWording: 'master servers to be polled',
     },
     {
       title: 'Polling Game Servers',
       date: lastPolledGameServer?.polledAt ?? null,
-      jobCount: gameServerPollingJobs,
-      jobCountWording: 'game servers to be polled',
     },
     {
       title: 'Ranking',
       date: lastRankedSnapshot?.rankedAt ?? null,
-      jobCount: snapshotRankingJobs,
-      jobCountWording: 'snapshots to be ranked',
     },
     {
       title: 'Playtiming',
       date: lastPlayTimedSnapshot?.playTimedAt ?? null,
-      jobCount: snapshotPlayTimingJobs,
-      jobCountWording: 'snapshots to be playtimed',
     },
   ];
 
@@ -172,11 +130,6 @@ export default async function Index() {
             <div key={section.title} className="flex flex-row items-center p-2">
               <span className="grow px-4">{section.title}</span>
               <div className="flex flex-row divide-x">
-                {section.jobCount > 0 && (
-                  <span className="text-sm text-[#d1a4a4] px-4">
-                    {section.jobCount} {section.jobCountWording}
-                  </span>
-                )}
                 {section.date !== null && (
                   <span className="text-sm text-[#aaa] px-4">
                     {formatDistanceToNow(section.date, {

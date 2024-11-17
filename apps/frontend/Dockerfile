@@ -16,7 +16,6 @@ RUN addgroup --system frontend && \
 
 COPY dist/apps/frontend .
 COPY dist/apps/frontend/.nx-helpers .
-COPY dist/apps/frontend/.next .
 RUN chown -R frontend:frontend .
 
 # You can remove this install step if you build with `--bundle` option.

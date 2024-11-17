@@ -10,6 +10,8 @@ export const metadata = {
   description: 'Teerank is a simple and fast ranking system for Teeworlds.',
 };
 
+export const dynamic = 'force-dynamic';
+
 function rankColor(rank: number) {
   switch (rank) {
     case 1:

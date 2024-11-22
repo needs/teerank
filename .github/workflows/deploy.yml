@@ -55,11 +55,11 @@ jobs:
           DATABASE_URL: postgres://postgres-test:postgres-test@localhost:5433/teerank-test
 
       - name: Deploy frontend
-        run: flyctl deploy --config apps/frontend/fly.toml --dockerfile apps/frontend/Dockerfile --no-cache
+        run: flyctl deploy --config apps/frontend/fly.toml --dockerfile apps/frontend/Dockerfile
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_FRONTEND }}
 
       - name: Deploy worker
-        run: flyctl deploy --config apps/worker/fly.toml --dockerfile apps/worker/Dockerfile --no-cache
+        run: flyctl deploy --config apps/worker/fly.toml --dockerfile apps/worker/Dockerfile
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WORKER }}

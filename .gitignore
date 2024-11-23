@@ -47,6 +47,7 @@ Thumbs.db
 
 # NX cache
 .nx/cache
+.nx/workspace-data
 
 # Playground
 playground/*

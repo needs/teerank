@@ -60,5 +60,6 @@
         "linter": "eslint"
       }
     }
-  }
+  },
+  "useLegacyCache": true
 }

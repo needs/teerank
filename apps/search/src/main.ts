@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import { app } from './app/app';
+import { startBackgroundIndexing } from './indexer';
 
 const host = process.env.HOST ?? 'localhost';
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
@@ -11,6 +12,8 @@ const server = Fastify({
 
 // Register your application as a normal plugin.
 server.register(app);
+
+startBackgroundIndexing();
 
 // Start listening.
 server.listen({ port, host }, (err) => {

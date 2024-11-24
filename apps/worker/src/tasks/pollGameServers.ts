@@ -1,8 +1,8 @@
 import { prisma } from "../prisma";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
-import { wait } from "../utils";
 import { differenceInMinutes, subMinutes } from "date-fns";
+import { wait } from "@teerank/teerank";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));

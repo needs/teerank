@@ -1,6 +1,12 @@
-import Image from 'next/image';
+"use client";
 
-export async function SearchForm() {
+import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+
+export function SearchForm() {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('query') ?? '';
+
   return (
     <form
       className="flex flex-row rounded-md border divide-x overflow-hidden self-center border-[#ccc] text-md"
@@ -9,6 +15,7 @@ export async function SearchForm() {
       <input
         name="query"
         type="text"
+        defaultValue={query}
         className="px-4 bg-white focus:outline-none"
         placeholder="Search"
       />

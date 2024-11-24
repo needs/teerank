@@ -44,6 +44,7 @@ model GameServer {
 
   @@unique([ip, port])
   @@index([polledAt])
+  @@index([updatedAt])
 }
 
 model Player {
@@ -69,6 +70,7 @@ model Player {
   gameServerSnapshotId Int?
 
   @@index([playTime(sort: Desc)])
+  @@index([updatedAt])
 }
 
 enum RankMethod {
@@ -271,6 +273,7 @@ model Clan {
   clanInfoMaps      ClanInfoMap[]
 
   @@index([playTime(sort: Desc)])
+  @@index([updatedAt])
 }
 
 model ClanPlayerInfo {

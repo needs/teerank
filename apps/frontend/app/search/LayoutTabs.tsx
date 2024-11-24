@@ -1,45 +1,21 @@
 import React from 'react';
 import { Tabs, Tab } from '../../components/Tabs';
-import prisma from '../../utils/prisma';
 
-export async function LayoutTabs({
+export function LayoutTabs({
   children,
-  query,
   selectedTab,
+  query,
+  playerCount,
+  clanCount,
+  gameServerCount,
 }: {
-  children: (counts: { playerCount: number, clanCount: number, gameServerCount: number }) => React.ReactNode;
-  query: string;
+  children: React.ReactNode;
   selectedTab: 'players' | 'clans' | 'servers';
+  query: string;
+  playerCount: number;
+  clanCount: number;
+  gameServerCount: number;
 }) {
-  const [playerCount, clanCount, gameServerCount] = await Promise.all([
-    prisma.player.count({
-      where: {
-        name: {
-          contains: query,
-          mode: 'insensitive',
-        },
-      },
-    }),
-    prisma.clan.count({
-      where: {
-        name: {
-          contains: query,
-          mode: 'insensitive',
-        },
-      },
-    }),
-    prisma.gameServer.count({
-      where: {
-        lastSnapshot: {
-          name: {
-            contains: query,
-            mode: 'insensitive',
-          },
-        },
-      },
-    }),
-  ]);
-
   return (
     <div className="flex flex-col gap-4 py-8">
       <Tabs>
@@ -65,7 +41,7 @@ export async function LayoutTabs({
           href={{ pathname: '/search/servers', query: { query } }}
         />
       </Tabs>
-      {children({ playerCount, clanCount, gameServerCount })}
+      {children}
     </div>
   );
 }

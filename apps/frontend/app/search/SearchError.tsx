@@ -1,5 +1,3 @@
-"use client";
-
 export function Error({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-stretch justify-center p-8">

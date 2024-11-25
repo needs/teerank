@@ -14,11 +14,14 @@ WORKDIR /app
 RUN addgroup --system search && \
           adduser --system -G search search
 
-COPY dist/apps/search search/
+COPY dist/apps/search .
 RUN chown -R search:search .
 
 # You can remove this install step if you build with `--bundle` option.
 # The bundled output will include external dependencies.
-RUN npm --prefix search --omit=dev -f install
+RUN npm --omit=dev -f install
 
-CMD [ "node", "search" ]
+COPY libs/prisma/prisma/schema.prisma prisma/schema.prisma
+RUN npx prisma generate
+
+CMD [ "node", "." ]

@@ -106,8 +106,6 @@ model Player {
 
   playerInfoMaps       PlayerInfoMap[]
   playerInfoGameTypes  PlayerInfoGameType[]
-  GameServerSnapshot   GameServerSnapshot?  @relation(fields: [gameServerSnapshotId], references: [id])
-  gameServerSnapshotId Int?
 
   @@index([playTime(sort: Desc)])
   @@index([updatedAt])
@@ -243,8 +241,6 @@ model GameServerSnapshot {
   maxClients Int
 
   clients GameServerClient[]
-
-  players Player[]
 
   gameServerId Int
   gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)

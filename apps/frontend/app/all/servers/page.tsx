@@ -18,17 +18,17 @@ export default async function Index({
 
   const gameServers = await prisma.gameServer.findMany({
     where: {
-      lastSnapshot: {
-        isNot: null,
+      gameServerStateId: {
+        not: null,
       },
     },
     orderBy: {
-      lastSnapshot: {
+      gameServerState: {
         numClients: 'desc',
       },
     },
     include: {
-      lastSnapshot: {
+      gameServerState: {
         include: {
           clients: true,
           map: true,
@@ -44,14 +44,14 @@ export default async function Index({
   const servers = gameServers.reduce<
     ComponentProps<typeof ServerList>['servers']
   >((arr, gameServer) => {
-    if (gameServer.lastSnapshot !== null) {
+    if (gameServer.gameServerState !== null) {
       arr.push({
         rank: (page - 1) * 100 + arr.length + 1,
-        name: gameServer.lastSnapshot.name,
-        gameTypeName: gameServer.lastSnapshot.map.gameTypeName,
-        mapName: gameServer.lastSnapshot.map.name,
-        numClients: gameServer.lastSnapshot.numClients,
-        maxClients: gameServer.lastSnapshot.maxClients,
+        name: gameServer.gameServerState.name,
+        gameTypeName: gameServer.gameServerState.map.gameTypeName,
+        mapName: gameServer.gameServerState.map.name,
+        numClients: gameServer.gameServerState.numClients,
+        maxClients: gameServer.gameServerState.maxClients,
         ip: gameServer.ip,
         port: gameServer.port,
       });

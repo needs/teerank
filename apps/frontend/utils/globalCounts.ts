@@ -23,7 +23,7 @@ export async function getGlobalCounts() {
     prisma.clan.count(),
     prisma.gameServer.count({
       where: {
-        lastSnapshot: {
+        gameServerState: {
           isNot: null,
         },
       },

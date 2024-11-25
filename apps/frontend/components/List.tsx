@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
 import { UrlObject } from 'url';
 import { Pagination } from './Pagination';
+import { Suspense } from 'react';
 
 type Column = {
   title: string;
@@ -51,7 +52,9 @@ export function List({
           gridColumn,
         }}
       >
-        {pageCount !== undefined && <Pagination pageCount={pageCount} />}
+        <Suspense>
+          {pageCount !== undefined && <Pagination pageCount={pageCount} />}
+        </Suspense>
       </footer>
     </main>
   );
@@ -61,7 +64,7 @@ export function ListCell({
   label,
   href,
   alignRight,
-  className="",
+  className = '',
 }: {
   label: string;
   href?: UrlObject;
@@ -69,7 +72,9 @@ export function ListCell({
   className?: string;
 }) {
   return (
-    <span className={twMerge('truncate', alignRight && 'text-right', className)}>
+    <span
+      className={twMerge('truncate', alignRight && 'text-right', className)}
+    >
       {href !== undefined ? (
         <Link href={href} prefetch={false} className="hover:underline">
           {label}

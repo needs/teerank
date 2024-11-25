@@ -24,7 +24,7 @@ model GameServer {
   id           Int       @id @default(autoincrement())
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  offlineSince DateTime?
+  lastSeenAt   DateTime  @default(now())
   playTime     BigInt    @default(0)
 
   polledAt         DateTime?
@@ -37,20 +37,62 @@ model GameServer {
   masterServer   MasterServer? @relation(fields: [masterServerId], references: [id])
   masterServerId Int?
 
-  snapshots GameServerSnapshot[] @relation(name: "GameServerSnapshotGameServerId")
-
-  lastSnapshot   GameServerSnapshot? @relation(fields: [lastSnapshotId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  lastSnapshotId Int?                @unique
+  snapshots         GameServerSnapshot[] @relation(name: "GameServerSnapshotGameServerId")
+  gameServerState   GameServerState?     @relation(name: "GameServerStateGameServerId", fields: [gameServerStateId], references: [id])
+  gameServerStateId Int?                 @unique
 
   @@unique([ip, port])
   @@index([polledAt])
   @@index([updatedAt])
 }
 
-model Player {
-  name      String   @id
+model GameServerState {
+  id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  version String
+  name    String
+
+  map   Map @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  mapId Int
+
+  numPlayers Int
+  maxPlayers Int
+
+  numClients Int
+  maxClients Int
+
+  clients    GameServerStateClient[]
+  gameServer GameServer?             @relation(name: "GameServerStateGameServerId")
+}
+
+model GameServerStateClient {
+  id Int @id @default(autoincrement())
+
+  gameServerState   GameServerState @relation(fields: [gameServerStateId], references: [id], onDelete: Cascade)
+  gameServerStateId Int
+
+  player     Player @relation(fields: [playerName], references: [name], onDelete: Cascade)
+  playerName String
+
+  clan     Clan?   @relation(fields: [clanName], references: [name], onDelete: Cascade)
+  clanName String?
+
+  score   Int
+  country Int
+  inGame  Boolean
+
+  @@index([gameServerStateId])
+  @@index([score, inGame])
+  @@index([playerName])
+}
+
+model Player {
+  name       String   @id
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastSeenAt DateTime @default(now())
 
   clan                  Clan?    @relation(fields: [clanName], references: [name])
   clanName              String?
@@ -58,11 +100,9 @@ model Player {
 
   playTime BigInt @default(0)
 
-  lastGameServerClient   GameServerClient? @relation(name: "PlayerLastGameServerClientId", fields: [lastGameServerClientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  lastGameServerClientId Int?              @unique
-
-  gameServerClients GameServerClient[]
-  clanPlayerInfos   ClanPlayerInfo[]
+  gameServerClients      GameServerClient[]
+  gameServerStateClients GameServerStateClient[]
+  clanPlayerInfos        ClanPlayerInfo[]
 
   playerInfoMaps       PlayerInfoMap[]
   playerInfoGameTypes  PlayerInfoGameType[]
@@ -113,9 +153,10 @@ model Map {
 
   countedAt DateTime @default(now())
 
-  snapshots      GameServerSnapshot[]
-  playerInfoMaps PlayerInfoMap[]
-  clanInfoMaps   ClanInfoMap[]
+  snapshots        GameServerSnapshot[]
+  playerInfoMaps   PlayerInfoMap[]
+  clanInfoMaps     ClanInfoMap[]
+  gameServerStates GameServerState[]
 
   @@unique([name, gameTypeName])
   @@index([countedAt])
@@ -173,8 +214,6 @@ model GameServerClient {
   country Int
   inGame  Boolean
 
-  playerLast Player? @relation(name: "PlayerLastGameServerClientId")
-
   @@index([snapshotId])
   @@index([score, inGame])
   @@index([playerName])
@@ -205,8 +244,7 @@ model GameServerSnapshot {
 
   clients GameServerClient[]
 
-  gameServerLast GameServer?
-  players        Player[]
+  players Player[]
 
   gameServerId Int
   gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
@@ -269,8 +307,9 @@ model Clan {
 
   clanPlayerInfos ClanPlayerInfo[]
 
-  clanInfoGameTypes ClanInfoGameType[]
-  clanInfoMaps      ClanInfoMap[]
+  clanInfoGameTypes      ClanInfoGameType[]
+  clanInfoMaps           ClanInfoMap[]
+  gameServerStateClients GameServerStateClient[]
 
   @@index([playTime(sort: Desc)])
   @@index([updatedAt])

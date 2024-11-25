@@ -3,6 +3,7 @@ import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPack
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { differenceInMinutes, subMinutes } from "date-fns";
 import { wait } from "@teerank/teerank";
+import { GameServer } from "@prisma/client";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -36,15 +37,15 @@ const PACKET_GETINFO64 = Buffer.from([
   0
 ]);
 
-function skipPolling(offlineSince: Date | null) {
-  if (offlineSince !== null) {
+function skipPolling(gameServer: GameServer) {
+  if (gameServer.gameServerStateId === null) {
     const now = new Date();
 
     const maxMinutes = 24 * 60;
-    const offlineSinceMinutes = Math.min(maxMinutes, differenceInMinutes(now, offlineSince));
+    const lastSeenAtMinutes = Math.min(maxMinutes, differenceInMinutes(now, gameServer.lastSeenAt));
 
     // The longer offline, the less odds to poll, range from 0.95 to 0.05
-    const odds = 0.05 + 0.9 * (offlineSinceMinutes / maxMinutes);
+    const odds = 0.05 + 0.9 * (lastSeenAtMinutes / maxMinutes);
 
     return Math.random() >= odds;
   } else {
@@ -100,7 +101,7 @@ export async function pollGameServers() {
     return true;
   }
 
-  if (skipPolling(gameServer.offlineSince)) {
+  if (skipPolling(gameServer)) {
     await markAsPolled(gameServer.id);
     return true;
   }
@@ -245,7 +246,36 @@ export async function pollGameServers() {
               },
             },
 
-            gameServerLast: {
+            version: gameServerInfo.version,
+            name: gameServerInfo.name,
+
+            map: {
+              connect: {
+                id: map.id,
+              },
+            },
+            numPlayers: gameServerInfo.numPlayers,
+            maxPlayers: gameServerInfo.maxPlayers,
+            numClients: gameServerInfo.numClients,
+            maxClients: gameServerInfo.maxClients,
+
+            clients: {
+              createMany: {
+                data: gameServerInfo.clients.map((client) => ({
+                  playerName: client.name,
+                  clanName: client.clan === "" ? undefined : client.clan,
+                  country: client.country,
+                  score: client.score,
+                  inGame: client.inGame,
+                })),
+              },
+            }
+          },
+        });
+
+        await prisma.gameServerState.create({
+          data: {
+            gameServer: {
               connect: {
                 id: gameServer.id,
               },
@@ -278,6 +308,14 @@ export async function pollGameServers() {
           },
         });
 
+        if (gameServer.gameServerStateId !== null) {
+          await prisma.gameServerState.delete({
+            where: {
+              id: gameServer.gameServerStateId,
+            },
+          });
+        }
+
         await Promise.all(
           snapshot.clients.map((client) =>
             prisma.player.update({
@@ -285,11 +323,7 @@ export async function pollGameServers() {
                 name: client.playerName,
               },
               data: {
-                lastGameServerClient: {
-                  connect: {
-                    id: client.id,
-                  }
-                }
+                lastSeenAt: new Date(),
               },
             })
           )
@@ -300,19 +334,16 @@ export async function pollGameServers() {
             id: gameServer.id,
           },
           data: {
-            offlineSince: null,
+            lastSeenAt: new Date(),
           },
         });
       } catch (e) {
         console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
       }
-    } else if (gameServer.offlineSince === null) {
-      await prisma.gameServer.update({
+    } else if (gameServer.gameServerStateId !== null) {
+      await prisma.gameServerState.delete({
         where: {
-          id: gameServer.id,
-        },
-        data: {
-          offlineSince: new Date(),
+          id: gameServer.gameServerStateId,
         },
       });
     }

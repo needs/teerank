@@ -6,6 +6,7 @@ import prisma from '../utils/prisma';
 import { SearchForm } from '../components/SearchForm';
 import packageJson from 'package.json';
 import { GoogleAnalytics } from '@next/third-parties/google';
+import { Suspense } from 'react';
 
 const gaId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
 
@@ -73,7 +74,9 @@ export default async function RootLayout({
             />
           </Link>
           <div className="flex grow pb-4 lg:pt-4 shrink-0 lg:justify-end">
-            <SearchForm />
+            <Suspense>
+              <SearchForm />
+            </Suspense>
           </div>
         </header>
 

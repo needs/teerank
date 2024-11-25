@@ -9,9 +9,7 @@ const searchDataSchema = z.object({
 });
 
 export async function search(query: string) {
-  return await fetch(`${SEARCH_API_URL}/search?query=${query}`, {
-    cache: 'no-store'
-  })
+  return await fetch(`${SEARCH_API_URL}/search?query=${query}`)
     .then((res) => res.json())
     .then((data) => searchDataSchema.parse(data));
 }

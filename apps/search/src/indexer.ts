@@ -1,17 +1,13 @@
-import { Clan, Player, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { max } from "lodash";
 import Fuse, { FuseResult } from "fuse.js";
-import { randomRange, wait } from "@teerank/teerank";
+import { IndexedPlayer, IndexedClan, randomRange, wait } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 
 const prisma = new PrismaClient();
 
-type IndexedPlayer = Player & { playTime: number };
-
 const indexedPlayers: Record<string, IndexedPlayer> = {};
 const fusePlayers = new Fuse(Object.values(indexedPlayers), { keys: ['name'], includeScore: true });
-
-type IndexedClan = Clan & { playTime: number };
 
 const indexedClans: Record<string, IndexedClan> = {};
 const fuseClans = new Fuse(Object.values(indexedClans), { keys: ['name'], includeScore: true });
@@ -30,13 +26,34 @@ async function updatePlayers() {
         gt: playersUpdatedAt,
       },
     },
+    include: {
+      gameServerStateClients: {
+        select: {
+          gameServerState: {
+            select: {
+              gameServer: true,
+            },
+          },
+        },
+      },
+    },
     orderBy: {
       updatedAt: 'asc',
     },
     take: 100,
   });
 
-  Object.assign(indexedPlayers, Object.fromEntries(players.map(player => ([player.name, { ...player, playTime: Number(player.playTime) }]))))
+  Object.assign(indexedPlayers, Object.fromEntries(players.map(player => ([player.name, {
+    name: player.name,
+    clanName: player.clanName,
+    playTime: Number(player.playTime),
+    updatedAt: player.updatedAt,
+    lastSeenAt: player.lastSeenAt,
+    gameServers: player.gameServerStateClients.map(client => ({
+      ip: client.gameServerState.gameServer.ip,
+      port: client.gameServerState.gameServer.port
+    })),
+  }]))))
 
   return players.length < 100 ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
 }
@@ -72,7 +89,7 @@ async function indexClans() {
   console.log(`Indexed ${Object.keys(indexedClans).length} clans`);
 }
 
-function processResults<T extends { playTime: number }>(results: FuseResult<T>[]) {
+function processResults(results: FuseResult<IndexedPlayer | IndexedClan>[]) {
   return results.filter(result => result.score < 0.3).sort((a, b) => a.score - b.score || b.item.playTime - a.item.playTime).map(result => result.item);
 }
 

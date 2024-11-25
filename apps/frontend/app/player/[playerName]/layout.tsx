@@ -23,13 +23,14 @@ export default async function Index({
       name: true,
       playTime: true,
       clanName: true,
+      lastSeenAt: true,
 
-      lastGameServerClient: {
+      gameServerStateClients: {
         select: {
-          snapshot: {
+          gameServerState: {
             select: {
               createdAt: true,
-              gameServerLast: {
+              gameServer: {
                 select: {
                   ip: true,
                   port: true,
@@ -106,12 +107,10 @@ export default async function Index({
             <b>Playtime</b>: {formatPlayTime(player.playTime)}
           </p>
           <LastSeen
-            lastSnapshot={
-              player.lastGameServerClient?.snapshot.gameServerLast ?? null
-            }
-            lastSeen={
-              player.lastGameServerClient?.snapshot.createdAt ?? new Date()
-            }
+            gameServers={player.gameServerStateClients
+              .map((client) => client.gameServerState.gameServer)
+              .filter((gameServer) => gameServer !== null)}
+            lastSeenAt={player.lastSeenAt}
           />
         </aside>
       </header>

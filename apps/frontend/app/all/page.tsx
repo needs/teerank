@@ -20,13 +20,13 @@ export default async function Index({
       name: true,
       playTime: true,
       clanName: true,
+      lastSeenAt: true,
 
-      lastGameServerClient: {
+      gameServerStateClients: {
         select: {
-          snapshot: {
+          gameServerState: {
             select: {
-              createdAt: true,
-              gameServerLast: {
+              gameServer: {
                 select: {
                   ip: true,
                   port: true,
@@ -35,7 +35,7 @@ export default async function Index({
             },
           },
         },
-      }
+      },
     },
     orderBy: {
       playTime: 'desc',
@@ -48,25 +48,26 @@ export default async function Index({
 
   return (
     <>
-    <p className="hidden">
-      {`Teerank is a simple and fast ranking system for Teeworlds.`}
-    </p>
-    <PlayerList
-      playerCount={playerCount}
-      rankMethod={null}
-      showLastSeen={true}
-      players={players.map((player, index) => ({
-        rank: (page - 1) * 100 + index + 1,
-        name: player.name,
-        clan: player.clanName ?? undefined,
-        rating: undefined,
-        playTime: player.playTime,
-        lastSeen: player.lastGameServerClient === null ? undefined : {
-          at: player.lastGameServerClient.snapshot.createdAt,
-          lastSnapshot: player.lastGameServerClient.snapshot.gameServerLast,
-        },
-      }))}
-    />
+      <p className="hidden">
+        {`Teerank is a simple and fast ranking system for Teeworlds.`}
+      </p>
+      <PlayerList
+        playerCount={playerCount}
+        rankMethod={null}
+        showLastSeen={true}
+        players={players.map((player, index) => ({
+          rank: (page - 1) * 100 + index + 1,
+          name: player.name,
+          clan: player.clanName ?? undefined,
+          rating: undefined,
+          playTime: player.playTime,
+          lastSeenAt: player.lastSeenAt,
+          gameServers: player.gameServerStateClients.map((client) => ({
+            ip: client.gameServerState.gameServer?.ip ?? '',
+            port: client.gameServerState.gameServer?.port ?? 0,
+          })),
+        }))}
+      />
     </>
   );
 }

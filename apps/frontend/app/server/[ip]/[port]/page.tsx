@@ -47,7 +47,7 @@ export default async function Index({
       },
     },
     include: {
-      lastSnapshot: {
+      gameServerState: {
         include: {
           clients: {
             orderBy: {
@@ -67,7 +67,7 @@ export default async function Index({
     },
   });
 
-  if (gameServer === null || gameServer.lastSnapshot === null) {
+  if (gameServer === null || gameServer.gameServerState === null) {
     return notFound();
   }
 
@@ -75,18 +75,18 @@ export default async function Index({
     <main className="flex flex-col gap-8 py-12">
       <header className="flex flex-row px-20 gap-8">
         <section className="flex flex-col gap-2 grow">
-          <h1 className="text-2xl font-bold">{gameServer.lastSnapshot.name}</h1>
+          <h1 className="text-2xl font-bold">{gameServer.gameServerState.name}</h1>
           <div className="flex flex-row divide-x">
             <span className="pr-4">
               <Link
                 className="hover:underline"
                 href={{
                   pathname: `/gametype/${encodeString(
-                    gameServer.lastSnapshot.map.gameTypeName
+                    gameServer.gameServerState.map.gameTypeName
                   )}`,
                 }}
               >
-                {gameServer.lastSnapshot.map.gameTypeName}
+                {gameServer.gameServerState.map.gameTypeName}
               </Link>
             </span>
             <span className="px-4">
@@ -94,14 +94,14 @@ export default async function Index({
                 className="hover:underline"
                 href={{
                   pathname: `/gametype/${encodeString(
-                    gameServer.lastSnapshot.map.gameTypeName
-                  )}/map/${encodeString(gameServer.lastSnapshot.map.name)}`,
+                    gameServer.gameServerState.map.gameTypeName
+                  )}/map/${encodeString(gameServer.gameServerState.map.name)}`,
                 }}
               >
-                {gameServer.lastSnapshot.map.name}
+                {gameServer.gameServerState.map.name}
               </Link>
             </span>
-            <span className="px-4">{`${gameServer.lastSnapshot.numClients} / ${gameServer.lastSnapshot.maxClients} clients`}</span>
+            <span className="px-4">{`${gameServer.gameServerState.numClients} / ${gameServer.gameServerState.maxClients} clients`}</span>
             <span className="px-4">
               Playtime: {formatPlayTime(gameServer.playTime)}
             </span>
@@ -118,7 +118,7 @@ export default async function Index({
       </header>
 
       <List
-        pageCount={Math.ceil(gameServer.lastSnapshot._count.clients / 100)}
+        pageCount={Math.ceil(gameServer.gameServerState._count.clients / 100)}
         columns={[
           {
             title: '',
@@ -138,7 +138,7 @@ export default async function Index({
           },
         ]}
       >
-        {gameServer.lastSnapshot.clients.map((client, index) => (
+        {gameServer.gameServerState.clients.map((client, index) => (
           <>
             <ListCell alignRight label={`${index + 1}`} />
             <ListCell

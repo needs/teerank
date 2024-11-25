@@ -11,6 +11,8 @@ export default async function (fastify: FastifyInstance) {
     const { query } = querySchema.parse(request.query);
     const players = searchPlayers(query);
     const clans = searchClans(query);
+
+    console.log(players, clans);
     return { players, clans };
   });
 }

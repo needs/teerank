@@ -17,13 +17,11 @@ export function PlayerList({
     clan?: string;
     rating?: number;
     playTime: bigint;
-    lastSeen?: {
-      at: Date;
-      lastSnapshot: {
-        ip: string;
-        port: number;
-      } | null;
-    };
+    lastSeenAt: Date;
+    gameServers: {
+      ip: string;
+      port: number;
+    }[];
   }[];
   rankMethod: RankMethod | null;
   playerCount?: number;
@@ -112,14 +110,11 @@ export function PlayerList({
             />
           )}
           <ListCell alignRight label={formatPlayTime(player.playTime)} />
-          {showLastSeen && player.lastSeen !== undefined && (
+          {showLastSeen && (
             <LastSeen
-              lastSeen={player.lastSeen.at}
-              lastSnapshot={player.lastSeen.lastSnapshot}
+              lastSeenAt={player.lastSeenAt}
+              gameServers={player.gameServers}
             />
-          )}
-          {showLastSeen && player.lastSeen === undefined && (
-            <ListCell alignRight label={''} />
           )}
         </Fragment>
       ))}

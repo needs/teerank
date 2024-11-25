@@ -48,9 +48,9 @@ export async function updateGameTypeCountsIfOutdated(prisma: PrismaClient, gameT
     prisma.gameServer.count({
       where: {
         AND: [
-          { lastSnapshot: { isNot: null } },
+          { gameServerState: { isNot: null } },
           {
-            lastSnapshot: {
+            gameServerState: {
               map: {
                 gameTypeName: gameType.name,
               },

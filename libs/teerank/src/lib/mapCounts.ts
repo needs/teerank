@@ -47,9 +47,9 @@ export async function updateMapCountsIfOutdated(prisma: PrismaClient, map: Map) 
     prisma.gameServer.count({
       where: {
         AND: [
-          { lastSnapshot: { isNot: null } },
+          { gameServerState: { isNot: null } },
           {
-            lastSnapshot: {
+            gameServerState: {
               mapId: map.id
             },
           },

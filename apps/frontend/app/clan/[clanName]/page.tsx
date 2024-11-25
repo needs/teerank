@@ -33,12 +33,13 @@ export default async function Index({
           player: {
             select: {
               name: true,
-              lastGameServerClient: {
+              lastSeenAt: true,
+              gameServerStateClients: {
                 select: {
-                  snapshot: {
+                  gameServerState: {
                     select: {
                       createdAt: true,
-                      gameServerLast: {
+                      gameServer: {
                         select: {
                           ip: true,
                           port: true,
@@ -82,15 +83,11 @@ export default async function Index({
         name: playerInfo.player.name,
         clan: clanName,
         playTime: playerInfo.playTime,
-        lastSeen:
-          playerInfo.player.lastGameServerClient === null
-            ? undefined
-            : {
-                at: playerInfo.player.lastGameServerClient.snapshot.createdAt,
-                lastSnapshot:
-                  playerInfo.player.lastGameServerClient.snapshot
-                    .gameServerLast,
-              },
+        lastSeenAt: playerInfo.player.lastSeenAt,
+        gameServers: playerInfo.player.gameServerStateClients.map((client) => ({
+          ip: client.gameServerState.gameServer?.ip ?? '',
+          port: client.gameServerState.gameServer?.port ?? 0,
+        })),
       }))}
     />
   );

@@ -33,8 +33,9 @@ export default async function Index({
           name: player.name,
           clan: player.clanName ?? undefined,
           rating: undefined,
-          lastSeen: undefined,
           playTime: BigInt(player.playTime),
+          lastSeenAt: player.lastSeenAt,
+          gameServers: player.gameServers,
         }))}
       />
     </LayoutTabs>

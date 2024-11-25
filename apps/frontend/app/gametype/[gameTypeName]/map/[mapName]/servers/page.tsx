@@ -17,7 +17,7 @@ export default async function Index({
   const { page } = searchParamsSchema.parse(searchParams);
   const { gameTypeName, mapName } = paramsSchema.parse(params);
 
-  const snapshots = await prisma.gameServerSnapshot.findMany({
+  const gameServerStates = await prisma.gameServerState.findMany({
     select: {
       name: true,
       numClients: true,
@@ -28,7 +28,7 @@ export default async function Index({
           gameTypeName: true,
         },
       },
-      gameServerLast: {
+      gameServer: {
         select: {
           ip: true,
           port: true,
@@ -36,9 +36,6 @@ export default async function Index({
       },
     },
     where: {
-      gameServerLast: {
-        isNot: null,
-      },
       map: {
         name: {
           equals: mapName,
@@ -60,11 +57,8 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
-  const serverCount = await prisma.gameServerSnapshot.count({
+  const serverCount = await prisma.gameServerState.count({
     where: {
-      gameServerLast: {
-        isNot: null,
-      },
       map: {
         name: {
           equals: mapName,
@@ -79,15 +73,15 @@ export default async function Index({
   return (
     <ServerList
       serverCount={serverCount}
-      servers={snapshots.map((snapshot, index) => ({
+      servers={gameServerStates.map((gameServerState, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: snapshot.name,
-        gameTypeName: snapshot.map.gameTypeName,
-        mapName: snapshot.map.name ?? '',
-        numClients: snapshot.numClients,
-        maxClients: snapshot.maxClients,
-        ip: snapshot.gameServerLast!.ip,
-        port: snapshot.gameServerLast!.port,
+        name: gameServerState.name,
+        gameTypeName: gameServerState.map.gameTypeName,
+        mapName: gameServerState.map.name ?? '',
+        numClients: gameServerState.numClients,
+        maxClients: gameServerState.maxClients,
+        ip: gameServerState.gameServer?.ip ?? '',
+        port: gameServerState.gameServer?.port ?? 0,
       }))}
     />
   );

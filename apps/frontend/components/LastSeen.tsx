@@ -5,22 +5,21 @@ import { formatDurationShort } from '../utils/format';
 import { encodeIp } from '../utils/encoding';
 
 export function LastSeen({
-  lastSnapshot,
-  lastSeen,
+  lastSeenAt,
+  gameServers,
 }: {
-  lastSnapshot: {
+  lastSeenAt: Date;
+  gameServers: {
     ip: string;
     port: number;
-  } | null;
-
-  lastSeen: Date;
+  }[];
 }) {
-  if (lastSnapshot !== null) {
+  if (gameServers.length > 0) {
     return (
       <Link
         prefetch={false}
         href={{
-          pathname: `/server/${encodeIp(lastSnapshot.ip)}/${lastSnapshot.port}`,
+          pathname: `/server/${encodeIp(gameServers[0].ip)}/${gameServers[0].port}`,
         }}
         className="text-[#43a700] font-bold hover:underline"
       >
@@ -29,7 +28,7 @@ export function LastSeen({
     );
   } else {
     const { years, months, weeks, days, hours } = intervalToDuration({
-      start: lastSeen,
+      start: lastSeenAt,
       end: new Date(),
     });
 
@@ -48,7 +47,7 @@ export function LastSeen({
     return (
       <span className={twMerge('truncate', className)}>
         {formatDurationShort(
-          intervalToDuration({ start: lastSeen, end: new Date() })
+          intervalToDuration({ start: lastSeenAt, end: new Date() })
         )}
       </span>
     );

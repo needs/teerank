@@ -2,24 +2,20 @@ import { searchParamSchema } from '../schema';
 import { LayoutTabs } from '../LayoutTabs';
 import { Error } from '../SearchError';
 import { ServerList } from '../../../components/ServerList';
-import { GameServer, GameServerSnapshot, Map } from '@prisma/client';
+import { search } from '../../../utils/search';
 
 export const metadata = {
   title: 'Search - Servers',
   description: 'Search for servers',
 };
 
-export default function Index({
+export default async function Index({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const { query } = searchParamSchema.parse(searchParams);
-
-  const gameServerSnapshots: (GameServerSnapshot & {
-    map: Map;
-    gameServerLast: GameServer;
-  })[] = [];
+  const { players, clans, gameServers } = await search(query);
 
   if (query.length < 2) {
     return <Error message="Please enter at least 2 characters." />;
@@ -29,21 +25,21 @@ export default function Index({
     <LayoutTabs
       query={query}
       selectedTab="servers"
-      playerCount={0}
-      clanCount={0}
-      gameServerCount={gameServerSnapshots.length}
+      playerCount={players.length}
+      clanCount={clans.length}
+      gameServerCount={gameServers.length}
     >
       <ServerList
-        serverCount={gameServerSnapshots.length}
-        servers={gameServerSnapshots.map((gameServerSnapshot, index) => ({
+        serverCount={gameServers.length}
+        servers={gameServers.map((gameServer, index) => ({
           rank: index + 1,
-          name: gameServerSnapshot.name,
-          gameTypeName: gameServerSnapshot.map.gameTypeName,
-          mapName: gameServerSnapshot.map.name,
-          ip: gameServerSnapshot.gameServerLast!.ip,
-          port: gameServerSnapshot.gameServerLast!.port,
-          numClients: gameServerSnapshot.numClients,
-          maxClients: gameServerSnapshot.maxClients,
+          name: gameServer.name,
+          gameTypeName: gameServer.gameType,
+          mapName: gameServer.map,
+          ip: gameServer.ip,
+          port: gameServer.port,
+          numClients: gameServer.clientCount,
+          maxClients: gameServer.clientMax,
         }))}
       />
     </LayoutTabs>

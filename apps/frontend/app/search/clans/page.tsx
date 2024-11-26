@@ -15,14 +15,14 @@ export default async function Index({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const { query } = searchParamSchema.parse(searchParams);
-  const { players, clans } = await search(query);
+  const { players, clans, gameServers } = await search(query);
 
   if (query.length < 2) {
     return <Error message="Please enter at least 2 characters." />;
   }
 
   return (
-    <LayoutTabs query={query} selectedTab="clans" playerCount={players.length} clanCount={clans.length} gameServerCount={0}>
+    <LayoutTabs query={query} selectedTab="clans" playerCount={players.length} clanCount={clans.length} gameServerCount={gameServers.length}>
       <ClanList
         clanCount={clans.length}
         clans={clans.map((clan, index) => ({

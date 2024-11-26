@@ -20,10 +20,10 @@ export default async function Index({
     return <Error message="Please enter at least 2 characters." />;
   }
 
-  const { players, clans } = await search(query);
+  const { players, clans, gameServers } = await search(query);
 
   return (
-    <LayoutTabs query={query} selectedTab="players" playerCount={players.length} clanCount={clans.length} gameServerCount={0}>
+    <LayoutTabs query={query} selectedTab="players" playerCount={players.length} clanCount={clans.length} gameServerCount={gameServers.length}>
       <PlayerList
         playerCount={players.length}
         rankMethod={null}

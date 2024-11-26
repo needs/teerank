@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { max } from "lodash";
 import Fuse, { FuseResult } from "fuse.js";
-import { IndexedPlayer, IndexedClan, randomRange, wait } from "@teerank/teerank";
+import { IndexedPlayer, IndexedClan, randomRange, wait, IndexedGameServer } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 
 const prisma = new PrismaClient();
@@ -11,6 +11,9 @@ const fusePlayers = new Fuse(Object.values(indexedPlayers), { keys: ['name'], in
 
 const indexedClans: Record<string, IndexedClan> = {};
 const fuseClans = new Fuse(Object.values(indexedClans), { keys: ['name'], includeScore: true });
+
+const indexedGameServers: Record<string, IndexedGameServer> = {};
+const fuseGameServers = new Fuse(Object.values(indexedGameServers), { keys: ['name'], includeScore: true });
 
 enum IndexStatus {
   IN_PROGRESS,
@@ -103,16 +106,68 @@ async function indexClans() {
   console.log(`Indexed ${Object.keys(indexedClans).length} clans`);
 }
 
-function processResults(results: FuseResult<IndexedPlayer | IndexedClan>[]) {
-  return results.filter(result => result.score < 0.3).sort((a, b) => a.score - b.score || b.item.playTime - a.item.playTime).map(result => result.item);
+async function updateGameServers() {
+  const gameServersUpdatedAt = max(Object.values(indexedGameServers).map(gameServer => gameServer.updatedAt)) ?? new Date(0);
+
+  const gameServers = await prisma.gameServerState.findMany({
+    select: {
+      gameServer: {
+        select: {
+          ip: true,
+          port: true,
+        },
+      },
+      numClients: true,
+      maxClients: true,
+      updatedAt: true,
+      name: true,
+      map: {
+        select: {
+          name: true,
+          gameTypeName: true,
+        },
+      },
+    },
+    where: {
+      updatedAt: {
+        gt: gameServersUpdatedAt,
+      },
+    },
+  });
+
+  Object.assign(indexedGameServers, Object.fromEntries(gameServers.map(gameServer => ([gameServer.name, {
+    ip: gameServer.gameServer.ip,
+    port: gameServer.gameServer.port,
+    name: gameServer.name,
+    gameType: gameServer.map.gameTypeName,
+    map: gameServer.map.name,
+    clientCount: gameServer.numClients,
+    clientMax: gameServer.maxClients,
+    updatedAt: gameServer.updatedAt,
+  }]))))
+
+  return gameServers.length < 100 ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
+}
+
+async function indexGameServers() {
+  fuseGameServers.setCollection(Object.values(indexedGameServers));
+  console.log(`Indexed ${Object.keys(indexedGameServers).length} game servers`);
+}
+
+function processResults<T>(results: FuseResult<T>[], sortBy: (item: T) => number) {
+  return results.filter(result => result.score < 0.7).sort((a, b) => a.score - b.score || sortBy(b.item) - sortBy(a.item)).map(result => result.item);
 }
 
 export function searchPlayers(query: string) {
-  return processResults(fusePlayers.search(query, { limit: 30 }));
+  return processResults(fusePlayers.search(query, { limit: 30 }), player => player.playTime);
 }
 
 export function searchClans(query: string) {
-  return processResults(fuseClans.search(query, { limit: 30 }));
+  return processResults(fuseClans.search(query, { limit: 30 }), clan => clan.playTime);
+}
+
+export function searchGameServers(query: string) {
+  return processResults(fuseGameServers.search(query, { limit: 30 }), gameServer => gameServer.clientCount);
 }
 
 async function runInBackground(update: () => Promise<IndexStatus>, index: () => Promise<void>) {
@@ -122,6 +177,9 @@ async function runInBackground(update: () => Promise<IndexStatus>, index: () => 
       await index();
       const spread = randomRange(minutesToMilliseconds(4), minutesToMilliseconds(6));
       await wait(spread);
+    } else {
+      // Don't overload the database
+      await wait(50);
     }
   }
 }
@@ -129,4 +187,5 @@ async function runInBackground(update: () => Promise<IndexStatus>, index: () => 
 export function startBackgroundIndexing() {
   runInBackground(updatePlayers, indexPlayers);
   runInBackground(updateClans, indexClans);
+  runInBackground(updateGameServers, indexGameServers);
 }

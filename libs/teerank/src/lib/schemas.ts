@@ -24,3 +24,16 @@ export const indexClanSchema = z.object({
 }).required();
 
 export type IndexedClan = z.infer<typeof indexClanSchema>;
+
+export const indexGameServerSchema = z.object({
+  ip: z.string(),
+  port: z.number(),
+  name: z.string(),
+  gameType: z.string(),
+  map: z.string(),
+  clientCount: z.number(),
+  clientMax: z.number(),
+  updatedAt: z.coerce.date(),
+}).required();
+
+export type IndexedGameServer = z.infer<typeof indexGameServerSchema>;

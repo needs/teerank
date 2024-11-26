@@ -1,4 +1,4 @@
-import { indexClanSchema, indexPlayerSchema } from "@teerank/teerank";
+import { indexClanSchema, indexGameServerSchema, indexPlayerSchema } from "@teerank/teerank";
 import { z } from "zod";
 
 const SEARCH_API_URL = process.env.SEARCH_API_URL ?? 'http://localhost:3001';
@@ -6,6 +6,7 @@ const SEARCH_API_URL = process.env.SEARCH_API_URL ?? 'http://localhost:3001';
 const searchDataSchema = z.object({
   players: z.array(indexPlayerSchema),
   clans: z.array(indexClanSchema),
+  gameServers: z.array(indexGameServerSchema),
 });
 
 export async function search(query: string) {

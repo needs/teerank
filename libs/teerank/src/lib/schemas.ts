@@ -20,6 +20,7 @@ export const indexClanSchema = z.object({
   name: z.string(),
   playTime: z.number(),
   updatedAt: z.coerce.date(),
+  playerCount: z.number(),
 }).required();
 
 export type IndexedClan = z.infer<typeof indexClanSchema>;

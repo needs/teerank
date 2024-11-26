@@ -67,6 +67,16 @@ async function updateClans() {
   const clansUpdatedAt = max(Object.values(indexedClans).map(clan => clan.updatedAt)) ?? new Date(0);
 
   const clans = await prisma.clan.findMany({
+    select: {
+      name: true,
+      playTime: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          players: true,
+        },
+      },
+    },
     where: {
       updatedAt: {
         gt: clansUpdatedAt,
@@ -78,7 +88,11 @@ async function updateClans() {
     take: 100,
   });
 
-  Object.assign(indexedClans, Object.fromEntries(clans.map(clan => ([clan.name, { ...clan, playTime: Number(clan.playTime) }]))))
+  Object.assign(indexedClans, Object.fromEntries(clans.map(clan => ([clan.name, {
+    ...clan,
+    playTime: Number(clan.playTime),
+    playerCount: clan._count.players,
+  }]))))
   fuseClans.setCollection(Object.values(indexedClans));
 
   return clans.length < 100 ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;

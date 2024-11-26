@@ -168,6 +168,16 @@ export default async function Index() {
             or in the &quot;Rankings&quot; tab.
           </p>
         </section>
+
+        <section className="flex flex-col gap-4">
+          <header className="flex flex-row justify-between items-baseline">
+            <h1 className="text-2xl font-bold clear-both">New search!</h1>
+            <p className="text-md clear-both text-[#888]">November 26th 2024</p>
+          </header>
+          <p>
+            Search has been reworked to be faster and more tolerant to typos.
+          </p>
+        </section>
       </main>
     </>
   );

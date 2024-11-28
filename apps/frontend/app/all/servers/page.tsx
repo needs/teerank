@@ -16,24 +16,13 @@ export default async function Index({
 }) {
   const { page } = searchParamSchema.parse(searchParams);
 
-  const gameServers = await prisma.gameServer.findMany({
-    where: {
-      gameServerStateId: {
-        not: null,
-      },
-    },
+  const gameServerStates = await prisma.gameServerState.findMany({
     orderBy: {
-      gameServerState: {
-        numClients: 'desc',
-      },
+      numClients: 'desc',
     },
     include: {
-      gameServerState: {
-        include: {
-          clients: true,
-          map: true,
-        },
-      },
+      gameServer: true,
+      map: true,
     },
     take: 100,
     skip: (page - 1) * 100,
@@ -41,24 +30,16 @@ export default async function Index({
 
   const { gameServerCount } = await getGlobalCounts();
 
-  const servers = gameServers.reduce<
-    ComponentProps<typeof ServerList>['servers']
-  >((arr, gameServer) => {
-    if (gameServer.gameServerState !== null) {
-      arr.push({
-        rank: (page - 1) * 100 + arr.length + 1,
-        name: gameServer.gameServerState.name,
-        gameTypeName: gameServer.gameServerState.map.gameTypeName,
-        mapName: gameServer.gameServerState.map.name,
-        numClients: gameServer.gameServerState.numClients,
-        maxClients: gameServer.gameServerState.maxClients,
-        ip: gameServer.ip,
-        port: gameServer.port,
-      });
-    }
-
-    return arr;
-  }, []);
+  const servers = gameServerStates.map((gameServerState, index) => ({
+    rank: (page - 1) * 100 + index + 1,
+    name: gameServerState.name,
+    gameTypeName: gameServerState.map.gameTypeName,
+    mapName: gameServerState.map.name,
+    numClients: gameServerState.numClients,
+    maxClients: gameServerState.maxClients,
+    ip: gameServerState.gameServer.ip,
+    port: gameServerState.gameServer.port,
+  }));
 
   return <ServerList serverCount={gameServerCount} servers={servers} />;
 }

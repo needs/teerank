@@ -21,11 +21,11 @@ model MasterServer {
 }
 
 model GameServer {
-  id           Int       @id @default(autoincrement())
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  lastSeenAt   DateTime  @default(now())
-  playTime     BigInt    @default(0)
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastSeenAt DateTime @default(now())
+  playTime   BigInt   @default(0)
 
   polledAt         DateTime?
   pollingStartedAt DateTime?
@@ -37,9 +37,8 @@ model GameServer {
   masterServer   MasterServer? @relation(fields: [masterServerId], references: [id])
   masterServerId Int?
 
-  snapshots         GameServerSnapshot[] @relation(name: "GameServerSnapshotGameServerId")
-  gameServerState   GameServerState?     @relation(name: "GameServerStateGameServerId", fields: [gameServerStateId], references: [id])
-  gameServerStateId Int?                 @unique
+  snapshots       GameServerSnapshot[] @relation(name: "GameServerSnapshotGameServerId")
+  gameServerState GameServerState?     @relation(name: "GameServerStateGameServerId")
 
   @@unique([ip, port])
   @@index([polledAt])
@@ -63,8 +62,10 @@ model GameServerState {
   numClients Int
   maxClients Int
 
-  clients    GameServerStateClient[]
-  gameServer GameServer?             @relation(name: "GameServerStateGameServerId")
+  clients GameServerStateClient[]
+
+  gameServer   GameServer @relation(name: "GameServerStateGameServerId", fields: [gameServerId], references: [id])
+  gameServerId Int        @unique
 }
 
 model GameServerStateClient {
@@ -104,8 +105,8 @@ model Player {
   gameServerStateClients GameServerStateClient[]
   clanPlayerInfos        ClanPlayerInfo[]
 
-  playerInfoMaps       PlayerInfoMap[]
-  playerInfoGameTypes  PlayerInfoGameType[]
+  playerInfoMaps      PlayerInfoMap[]
+  playerInfoGameTypes PlayerInfoGameType[]
 
   @@index([playTime(sort: Desc)])
   @@index([updatedAt])

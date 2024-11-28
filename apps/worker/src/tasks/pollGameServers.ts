@@ -3,7 +3,7 @@ import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPack
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { differenceInMinutes, subMinutes } from "date-fns";
 import { wait } from "@teerank/teerank";
-import { GameServer } from "@prisma/client";
+import { GameServer, GameServerState } from "@prisma/client";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -37,8 +37,8 @@ const PACKET_GETINFO64 = Buffer.from([
   0
 ]);
 
-function skipPolling(gameServer: GameServer) {
-  if (gameServer.gameServerStateId === null) {
+function skipPolling(gameServer: GameServer & { gameServerState: GameServerState | null }) {
+  if (gameServer.gameServerState === null) {
     const now = new Date();
 
     const maxMinutes = 24 * 60;
@@ -94,6 +94,9 @@ export async function pollGameServers() {
       },
       data: {
         pollingStartedAt: new Date(),
+      },
+      include: {
+        gameServerState: true,
       },
     }).catch(() => null);
 
@@ -308,10 +311,10 @@ export async function pollGameServers() {
           },
         });
 
-        if (gameServer.gameServerStateId !== null) {
+        if (gameServer.gameServerState !== null) {
           await prisma.gameServerState.delete({
             where: {
-              id: gameServer.gameServerStateId,
+              id: gameServer.gameServerState.id,
             },
           });
         }
@@ -340,10 +343,10 @@ export async function pollGameServers() {
       } catch (e) {
         console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
       }
-    } else if (gameServer.gameServerStateId !== null) {
+    } else if (gameServer.gameServerState !== null) {
       await prisma.gameServerState.delete({
         where: {
-          id: gameServer.gameServerStateId,
+          id: gameServer.gameServerState.id,
         },
       });
     }

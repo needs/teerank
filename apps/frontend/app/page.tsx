@@ -59,14 +59,22 @@ function RankCard({
       }}
     >
       <span />
-      <Link className="flex flex-row divide-x py-3 items-center justify-center col-span-2 group" href={titleHref}>
-        <h3 className="text-lg font-bold text-center px-4 group-hover:underline">{title}</h3>
+      <Link
+        className="flex flex-row divide-x py-3 items-center justify-center col-span-2 group"
+        href={titleHref}
+      >
+        <h3 className="text-lg font-bold text-center px-4 group-hover:underline">
+          {title}
+        </h3>
         <p className="px-4 text-[#999]">{formatInteger(count)}</p>
       </Link>
       {rankings.map((ranking, index) => (
         <>
           <RankBadge rank={index + 1} />
-          <Link href={formatRankingHref(ranking)} className="px-4 py-2 hover:underline">
+          <Link
+            href={formatRankingHref(ranking)}
+            className="px-4 py-2 hover:underline"
+          >
             {ranking}
           </Link>
         </>
@@ -135,7 +143,9 @@ export default async function Index() {
           titleHref="/all"
           count={playerCount}
           rankings={players.map((player) => player.name)}
-          formatRankingHref={(playerName) => `/player/${encodeString(playerName)}`}
+          formatRankingHref={(playerName) =>
+            `/player/${encodeString(playerName)}`
+          }
         />
         <RankCard
           title="Clans"
@@ -149,11 +159,49 @@ export default async function Index() {
           titleHref="/gametypes"
           count={gameTypesCount}
           rankings={gameTypes.map((gameTypes) => gameTypes.name)}
-          formatRankingHref={(gameType) => `/gametype/${encodeString(gameType)}`}
+          formatRankingHref={(gameType) =>
+            `/gametype/${encodeString(gameType)}`
+          }
         />
       </header>
 
       <main className="py-12 px-4 md:px-12 xl:px-20 text-[#666] flex flex-col gap-8">
+        <section className="flex flex-col gap-4">
+          <header className="flex flex-row justify-between items-baseline">
+            <h1 className="text-2xl font-bold clear-both">About the recent outages</h1>
+            <p className="text-md clear-both text-[#888]">November 28th 2024</p>
+          </header>
+          <p>
+            Teerank was down for a few hours on November 28th 2024 due to a
+            database outage. The database has been restored and the data should
+            be consistent again.
+          </p>
+          <p>
+            An ongoing effort to shrink the database down and improve the
+            performance is also being worked on. The current database is 110GB
+            and growing as much every year. For a pet project, that&apos;s not
+            sustainable.
+          </p>
+          <p>
+            The plan is to move all server snapshots to a cheap object storage,
+            and to use BullMQ + redis for the queue logic.
+          </p>
+          <p>
+            All this performance work and database management is being done to
+            prepare for upcoming features. More details will be announced soon.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <header className="flex flex-row justify-between items-baseline">
+            <h1 className="text-2xl font-bold clear-both">New search!</h1>
+            <p className="text-md clear-both text-[#888]">November 26th 2024</p>
+          </header>
+          <p>
+            Search has been reworked to be faster and more tolerant to typos.
+          </p>
+        </section>
+
         <section className="flex flex-col gap-4">
           <header className="flex flex-row justify-between items-baseline">
             <h1 className="text-2xl font-bold clear-both">New home page!</h1>
@@ -166,16 +214,6 @@ export default async function Index() {
               here
             </Link>{' '}
             or in the &quot;Rankings&quot; tab.
-          </p>
-        </section>
-
-        <section className="flex flex-col gap-4">
-          <header className="flex flex-row justify-between items-baseline">
-            <h1 className="text-2xl font-bold clear-both">New search!</h1>
-            <p className="text-md clear-both text-[#888]">November 26th 2024</p>
-          </header>
-          <p>
-            Search has been reworked to be faster and more tolerant to typos.
           </p>
         </section>
       </main>

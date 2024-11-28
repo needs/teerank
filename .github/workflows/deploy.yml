@@ -40,7 +40,7 @@ jobs:
           npx nx run-many -t prisma-deploy --parallel=4
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES2 }}
 
       - name: Build
         run: npx nx run-many -t build --configuration=production --parallel=4

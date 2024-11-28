@@ -13,7 +13,6 @@ export default async function (fastify: FastifyInstance) {
     const clans = searchClans(query);
     const gameServers = searchGameServers(query);
 
-    console.log(players, clans, gameServers);
     return { players, clans, gameServers };
   });
 }

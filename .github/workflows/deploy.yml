@@ -35,9 +35,9 @@ jobs:
 
       - name: Migrate database
         run: |
-          flyctl proxy 5434:5432 --app teerankio-postgres &
-          npx nx run-many -t prisma-generate --parallel=3
-          npx nx run-many -t prisma-deploy --parallel=3
+          flyctl proxy 5434:5432 --app teerankio-postgres2 &
+          npx nx run-many -t prisma-generate --parallel=4
+          npx nx run-many -t prisma-deploy --parallel=4
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES }}

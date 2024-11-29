@@ -64,7 +64,7 @@ model GameServerState {
 
   clients GameServerStateClient[]
 
-  gameServer   GameServer @relation(name: "GameServerStateGameServerId", fields: [gameServerId], references: [id])
+  gameServer   GameServer @relation(name: "GameServerStateGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
   gameServerId Int        @unique
 }
 

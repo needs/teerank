@@ -276,48 +276,54 @@ export async function pollGameServers() {
           },
         });
 
-        await prisma.gameServerState.create({
-          data: {
-            gameServer: {
-              connect: {
-                id: gameServer.id,
+        await prisma.$transaction(async (tx) => {
+          // I couldn't find an elegant way to do replace all clients for an
+          // existing game server state so we delete the existing one and create
+          // a new one.  Do it in a transaction to avoid race conditions.
+
+          if (gameServer.gameServerState !== null) {
+            await tx.gameServerState.delete({
+              where: {
+                id: gameServer.gameServerState.id,
               },
-            },
+            });
+          }
 
-            version: gameServerInfo.version,
-            name: gameServerInfo.name,
-
-            map: {
-              connect: {
-                id: map.id,
+          await tx.gameServerState.create({
+            data: {
+              gameServer: {
+                connect: {
+                  id: gameServer.id,
+                },
               },
-            },
-            numPlayers: gameServerInfo.numPlayers,
-            maxPlayers: gameServerInfo.maxPlayers,
-            numClients: gameServerInfo.numClients,
-            maxClients: gameServerInfo.maxClients,
 
-            clients: {
-              createMany: {
-                data: gameServerInfo.clients.map((client) => ({
-                  playerName: client.name,
-                  clanName: client.clan === "" ? undefined : client.clan,
-                  country: client.country,
-                  score: client.score,
-                  inGame: client.inGame,
-                })),
+              version: gameServerInfo.version,
+              name: gameServerInfo.name,
+
+              map: {
+                connect: {
+                  id: map.id,
+                },
               },
-            }
-          },
-        });
+              numPlayers: gameServerInfo.numPlayers,
+              maxPlayers: gameServerInfo.maxPlayers,
+              numClients: gameServerInfo.numClients,
+              maxClients: gameServerInfo.maxClients,
 
-        if (gameServer.gameServerState !== null) {
-          await prisma.gameServerState.delete({
-            where: {
-              id: gameServer.gameServerState.id,
+              clients: {
+                createMany: {
+                  data: gameServerInfo.clients.map((client) => ({
+                    playerName: client.name,
+                    clanName: client.clan === "" ? undefined : client.clan,
+                    country: client.country,
+                    score: client.score,
+                    inGame: client.inGame,
+                  })),
+                },
+              }
             },
           });
-        }
+        });
 
         await Promise.all(
           snapshot.clients.map((client) =>

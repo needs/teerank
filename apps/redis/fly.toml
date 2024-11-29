@@ -7,15 +7,7 @@ app = 'teerankio-redis'
 primary_region = 'cdg'
 
 [build]
-  image = 'redis:alpine'
-
-[http_service]
-  internal_port = 6379
-  force_https = true
-  auto_stop_machines = 'stop'
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ['app']
+  image = 'flyio/redis:6.2'
 
 [[vm]]
   memory = '512mb'

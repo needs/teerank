@@ -6,9 +6,6 @@
 app = 'teerankio-redis'
 primary_region = 'cdg'
 
-[build]
-  image = 'flyio/redis:6.2'
-
 [[vm]]
   memory = '512mb'
   cpu_kind = 'shared'

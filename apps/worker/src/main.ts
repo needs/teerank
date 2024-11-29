@@ -2,7 +2,6 @@ import { addDefaultGameTypes } from "./tasks/addDefaultGameTypes";
 import { addDefaultMasterServers } from "./tasks/addDefaultMasterServers";
 import { cleanStuckJobs } from "./tasks/cleanStuckJobs";
 import { pollGameServers } from "./tasks/pollGameServers";
-import { pollMasterServers } from "./tasks/pollMasterServers";
 import { rankPlayers } from "./tasks/rankPlayers";
 import { updatePlayTimes } from "./tasks/updatePlayTime";
 import { reportPerformances, monitorJobPerformance } from "./tasks/reportPerformances";
@@ -10,6 +9,9 @@ import { cancellableWait } from "./utils";
 import { updateGameTypesCounts } from "./tasks/updateGameTypesCounts";
 import { updateMapsCounts } from "./tasks/updateMapsCounts";
 import { updateGameServerPlayTimes } from "./tasks/updateGameServerPlayTimes";
+import { startPollMasterServerWorker } from "./workers/pollMasterServer";
+import { bullmqConnection } from "./bullmq";
+import { Worker } from "bullmq";
 
 let stopGracefully = false;
 const cancellableWaits = new Set<() => void>();
@@ -46,9 +48,10 @@ async function main() {
   await addDefaultGameTypes();
   await addDefaultMasterServers();
 
+  await startPollMasterServerWorker();
+
   await Promise.all([
     runJob(cleanStuckJobs, 'cleanStuckJobs', 5000, 60000),
-    runJob(pollMasterServers, 'pollMasterServers', 100, 60000),
     runJob(pollGameServers, 'pollGameServers', 100, 5000),
     runJob(rankPlayers, 'rankPlayers', 0, 5000),
     runJob(updatePlayTimes, 'updatePlayTimes', 0, 5000),

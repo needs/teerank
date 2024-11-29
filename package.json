@@ -68,6 +68,7 @@
     "@sentry/utils": "^7.107.0",
     "@types/lodash": "^4.17.13",
     "base64url": "^3.0.1",
+    "bullmq": "^5.29.1",
     "date-fns": "^2.30.0",
     "fastify": "~4.13.0",
     "fastify-plugin": "~4.5.0",

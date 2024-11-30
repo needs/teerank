@@ -115,7 +115,7 @@ export async function startPollMasterServerWorker() {
     )
   );
 
-  new Worker('poll-master-server', processor, {
+  new Worker(queue.name, processor, {
     connection: bullmqConnection,
   });
 }

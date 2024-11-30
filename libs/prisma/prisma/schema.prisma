@@ -43,6 +43,7 @@ model GameServer {
   @@unique([ip, port])
   @@index([polledAt])
   @@index([updatedAt])
+  @@index([createdAt])
 }
 
 model GameServerState {

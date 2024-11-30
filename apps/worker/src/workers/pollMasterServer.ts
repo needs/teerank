@@ -2,10 +2,9 @@ import { prisma } from "../prisma";
 import { lookup } from "dns/promises";
 import { unpackMasterPackets } from "../packets/masterServerInfo";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
-import { wait } from "@teerank/teerank";
-import { Job, Queue, Worker } from "bullmq";
-import { bullmqConnection } from "../bullmq";
-import { minutesToMilliseconds } from "date-fns";
+import { QUEUE_NAME_POLL_MASTER_SERVER, wait } from "@teerank/teerank";
+import { Job, Worker } from "bullmq";
+import { bullmqConnection } from "@teerank/teerank";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -91,31 +90,8 @@ async function processor(job: Job) {
   resetPackets(sockets, ip.address, masterServer.port);
 }
 
-const queue = new Queue('poll-master-server', { connection: bullmqConnection });
-
 export async function startPollMasterServerWorker() {
-  const masterServers = await prisma.masterServer.findMany();
-  console.log(`Found ${masterServers.length} master servers`);
-
-  await Promise.all(
-    masterServers.map((masterServer) =>
-      queue.upsertJobScheduler(
-        `${masterServer.address}:${masterServer.port}`,
-        {
-          every: minutesToMilliseconds(5),
-          immediately: true,
-        },
-        {
-          data: {
-            address: masterServer.address,
-            port: masterServer.port,
-          },
-        }
-      )
-    )
-  );
-
-  new Worker(queue.name, processor, {
+  new Worker(QUEUE_NAME_POLL_MASTER_SERVER, processor, {
     connection: bullmqConnection,
   });
 }

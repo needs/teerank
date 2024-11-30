@@ -1,11 +1,11 @@
 import { prisma } from "../prisma";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
-import { differenceInMinutes, minutesToMilliseconds } from "date-fns";
-import { wait } from "@teerank/teerank";
+import { differenceInMinutes } from "date-fns";
+import { QUEUE_NAME_POLL_GAME_SERVER, wait } from "@teerank/teerank";
 import { GameServer, GameServerState } from "@prisma/client";
-import { Job, Queue, Worker } from "bullmq";
-import { bullmqConnection } from "../bullmq";
+import { Job, Worker } from "bullmq";
+import { bullmqConnection } from "@teerank/teerank";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -326,50 +326,8 @@ async function processor(job: Job) {
   resetPackets(sockets, gameServer.ip, gameServer.port);
 }
 
-const queue = new Queue('poll-game-server', { connection: bullmqConnection });
-
 export async function startPollGameServerWorker() {
-  let maxCreatedAt = new Date(0);
-
-  setTimeout(async () => {
-    const gameServers = await prisma.gameServer.findMany({
-      where: {
-        createdAt: {
-          gt: maxCreatedAt,
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    await Promise.all(
-      gameServers.map((gameServer) =>
-        queue.upsertJobScheduler(
-          `${gameServer.ip} - ${gameServer.port}`,
-          {
-            every: minutesToMilliseconds(5),
-            immediately: true,
-          },
-          {
-            data: {
-              ip: gameServer.ip,
-              port: gameServer.port,
-            },
-            opts: {
-              removeOnComplete: 10000,
-              removeOnFail: 10000,
-            }
-          }
-        )
-      )
-    );
-
-    console.log(`Scheduled ${gameServers.length} new game servers`);
-    maxCreatedAt = gameServers[gameServers.length - 1].createdAt;
-  }, minutesToMilliseconds(1));
-
-  new Worker(queue.name, processor, {
+  new Worker(QUEUE_NAME_POLL_GAME_SERVER, processor, {
     connection: bullmqConnection,
     concurrency: 20,
   });

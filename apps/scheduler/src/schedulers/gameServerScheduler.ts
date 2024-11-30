@@ -8,6 +8,7 @@ export async function gameServerScheduler() {
   const queue = queuePollGameServer();
 
   await removeAllSchedulers(queue);
+  await queue.drain();
 
   const schedule = async () => {
     const gameServers = await prisma.gameServer.findMany({

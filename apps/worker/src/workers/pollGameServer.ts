@@ -2,7 +2,7 @@ import { prisma } from "../prisma";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { differenceInMinutes } from "date-fns";
-import { QUEUE_NAME_POLL_GAME_SERVER, wait } from "@teerank/teerank";
+import { getQueueUpdatePlayTime, QUEUE_NAME_POLL_GAME_SERVER, wait } from "@teerank/teerank";
 import { GameServer, GameServerState } from "@prisma/client";
 import { Job, Worker } from "bullmq";
 import { bullmqConnection } from "@teerank/teerank";
@@ -54,6 +54,8 @@ function skipPolling(gameServer: GameServer & { gameServerState: GameServerState
     return false;
   }
 }
+
+const queueUpdatePlayTime = getQueueUpdatePlayTime();
 
 async function processor(job: Job) {
   const gameServer =
@@ -201,6 +203,7 @@ async function processor(job: Job) {
 
       const snapshot = await prisma.gameServerSnapshot.create({
         select: {
+          id: true,
           clients: {
             select: {
               playerName: true,
@@ -311,6 +314,13 @@ async function processor(job: Job) {
         data: {
           lastSeenAt: new Date(),
         },
+      });
+
+      await queueUpdatePlayTime.add(`${gameServer.ip} - ${gameServer.port} - ${snapshot.id}`, {
+        snapshotId: snapshot.id,
+      }, {
+        removeOnComplete: 1000,
+        removeOnFail: 1000,
       });
     } catch (e) {
       console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)

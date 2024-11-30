@@ -29,7 +29,7 @@ services:
 
   bullboard:
     container_name: bullboard
-    image: deadly0/bull-board
+    image: venatum/bull-board
     restart: always
     ports:
       - 3000:3000

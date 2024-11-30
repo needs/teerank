@@ -2,14 +2,13 @@ import { addDefaultGameTypes } from "./tasks/addDefaultGameTypes";
 import { addDefaultMasterServers } from "./tasks/addDefaultMasterServers";
 import { cleanStuckJobs } from "./tasks/cleanStuckJobs";
 import { rankPlayers } from "./tasks/rankPlayers";
-import { updatePlayTimes } from "./tasks/updatePlayTime";
 import { reportPerformances, monitorJobPerformance } from "./tasks/reportPerformances";
 import { cancellableWait } from "./utils";
 import { updateGameTypesCounts } from "./tasks/updateGameTypesCounts";
 import { updateMapsCounts } from "./tasks/updateMapsCounts";
-import { updateGameServerPlayTimes } from "./tasks/updateGameServerPlayTimes";
 import { startPollMasterServerWorker } from "./workers/pollMasterServer";
 import { startPollGameServerWorker } from "./workers/pollGameServer";
+import { startUpdatePlayTimeWorker } from "./workers/updatePlayTime";
 
 let stopGracefully = false;
 const cancellableWaits = new Set<() => void>();
@@ -48,12 +47,11 @@ async function main() {
 
   await startPollMasterServerWorker();
   await startPollGameServerWorker();
+  await startUpdatePlayTimeWorker();
 
   await Promise.all([
     runJob(cleanStuckJobs, 'cleanStuckJobs', 5000, 60000),
     runJob(rankPlayers, 'rankPlayers', 0, 5000),
-    runJob(updatePlayTimes, 'updatePlayTimes', 0, 5000),
-    runJob(updateGameServerPlayTimes, 'updateGameServerPlayTimes', 0, 5000),
     runJob(updateGameTypesCounts, 'updateGameTypesCounts', 0, 5 * 1000),
     runJob(updateMapsCounts, 'updateMapsCounts', 0, 5 * 1000),
     runJob(reportPerformances, 'reportPerformances', 60000, 60000),

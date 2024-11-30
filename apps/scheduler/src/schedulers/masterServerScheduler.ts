@@ -1,9 +1,9 @@
 import { prisma } from '../prisma';
 import { minutesToMilliseconds } from 'date-fns';
-import { queuePollMasterServer, removeAllSchedulers } from '@teerank/teerank';
+import { getQueuePollMasterServer, removeAllSchedulers } from '@teerank/teerank';
 
 export async function masterServerScheduler() {
-  const queue = queuePollMasterServer();
+  const queue = getQueuePollMasterServer();
   await removeAllSchedulers(queue);
   await queue.drain();
 

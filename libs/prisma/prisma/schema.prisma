@@ -224,12 +224,6 @@ model GameServerSnapshot {
   createdAt           DateTime  @default(now())
   rankedAt            DateTime?
   rankingStartedAt    DateTime?
-  playTimedAt         DateTime?
-  playTimingStartedAt DateTime?
-
-  // Can be removed once all game servers are playtimed.
-  gameServerPlayTimedAt         DateTime?
-  gameServerPlayTimingStartedAt DateTime?
 
   version String
   name    String
@@ -250,12 +244,6 @@ model GameServerSnapshot {
   @@index([createdAt])
   @@index([rankedAt])
   @@index([rankingStartedAt])
-  @@index([playTimedAt])
-  @@index([playTimingStartedAt])
-  @@index([gameServerPlayTimedAt])
-  @@index([gameServerPlayTimingStartedAt])
-  @@index([createdAt(sort: Desc), playTimingStartedAt(sort: Desc)])
-  // TODO: To be removed when all empty snapshots are removed.
   @@index([version])
 }
 

@@ -9,13 +9,18 @@ export const bullmqConnection: RedisOptions = {
 
 export const QUEUE_NAME_POLL_MASTER_SERVER = 'poll-master-server';
 export const QUEUE_NAME_POLL_GAME_SERVER = 'poll-game-server';
+export const QUEUE_NAME_UPDATE_PLAY_TIME = 'update-play-time';
 
-export function queuePollMasterServer() {
+export function getQueuePollMasterServer() {
   return new Queue(QUEUE_NAME_POLL_MASTER_SERVER, { connection: bullmqConnection });
 }
 
-export function queuePollGameServer() {
+export function getQueuePollGameServer() {
   return new Queue(QUEUE_NAME_POLL_GAME_SERVER, { connection: bullmqConnection });
+}
+
+export function getQueueUpdatePlayTime() {
+  return new Queue(QUEUE_NAME_UPDATE_PLAY_TIME, { connection: bullmqConnection });
 }
 
 export async function removeAllSchedulers(queue: Queue) {
@@ -28,4 +33,9 @@ export async function removeAllSchedulers(queue: Queue) {
       }
     }),
   );
+}
+
+export async function lastCompletedJobDate(queue: Queue) {
+  const lastCompletedJob = await queue.getCompleted();
+  return lastCompletedJob.length > 0 ? lastCompletedJob[0].processedOn : null;
 }

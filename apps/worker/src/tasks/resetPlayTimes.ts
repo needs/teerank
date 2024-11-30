@@ -54,10 +54,4 @@ export async function resetPlayTimes() {
       playTime: 0,
     },
   });
-
-  await prisma.gameServerSnapshot.updateMany({
-    data: {
-      playTimedAt: null,
-    },
-  });
 }

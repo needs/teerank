@@ -50,41 +50,7 @@ export async function cleanStuckJobs() {
     console.warn(`Unstuck ${unstuckSnapshotRankingJobs.count} snapshot ranking jobs`);
   }
 
-  const unstuckSnapshotPlayTimingJobs = await prisma.gameServerSnapshot.updateMany({
-    where: {
-      playTimingStartedAt: {
-        lt: subMinutes(new Date(), jobTimeoutMinutes),
-      },
-      playTimedAt: null,
-    },
-    data: {
-      playTimingStartedAt: null,
-    },
-  });
-
-  if (unstuckSnapshotPlayTimingJobs.count > 0 && process.env.NODE_ENV !== 'test') {
-    console.warn(`Unstuck ${unstuckSnapshotPlayTimingJobs.count} snapshot play timing jobs`);
-  }
-
-  const unstuckSnapshotGameServerPlayTimingJobs = await prisma.gameServerSnapshot.updateMany({
-    where: {
-      gameServerPlayTimingStartedAt: {
-        lt: subMinutes(new Date(), jobTimeoutMinutes),
-      },
-      gameServerPlayTimedAt: null,
-    },
-    data: {
-      gameServerPlayTimingStartedAt: null,
-    },
-  });
-
-  if (unstuckSnapshotGameServerPlayTimingJobs.count > 0 && process.env.NODE_ENV !== 'test') {
-    console.warn(`Unstuck ${unstuckSnapshotGameServerPlayTimingJobs.count} snapshot game server play timing jobs`);
-  }
-
   return unstuckGameServerPollingJobs.count > 0
     || unstuckSnapshotRankingJobs.count > 0
-    || unstuckSnapshotPlayTimingJobs.count > 0
     || unstuckMasterServerPollingJobs.count > 0
-    || unstuckSnapshotGameServerPlayTimingJobs.count > 0;
 }

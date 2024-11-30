@@ -3,6 +3,10 @@ import {
   mapCountOldestDate,
   nextGameTypeToCount,
   nextMapToCount,
+  getQueueUpdatePlayTime,
+  lastCompletedJobDate,
+  getQueuePollMasterServer,
+  getQueuePollGameServer,
 } from '@teerank/teerank';
 import prisma from '../../utils/prisma';
 import { formatDistanceToNow, subMinutes } from 'date-fns';
@@ -15,28 +19,6 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function Index() {
-  const lastPolledMasterServer = await prisma.masterServer.findFirst({
-    select: {
-      polledAt: true,
-    },
-    orderBy: [
-      {
-        polledAt: 'desc',
-      },
-    ],
-  });
-
-  const lastPolledGameServer = await prisma.gameServer.findFirst({
-    select: {
-      polledAt: true,
-    },
-    orderBy: [
-      {
-        polledAt: 'desc',
-      },
-    ],
-  });
-
   const lastRankedSnapshot = await prisma.gameServerSnapshot.findFirst({
     where: {
       rankedAt: {
@@ -53,21 +35,15 @@ export default async function Index() {
     ],
   });
 
-  const lastPlayTimedSnapshot = await prisma.gameServerSnapshot.findFirst({
-    where: {
-      playTimedAt: {
-        not: null,
-      },
-    },
-    select: {
-      playTimedAt: true,
-    },
-    orderBy: [
-      {
-        playTimedAt: 'desc',
-      },
-    ],
-  });
+  const lastPollMasterServerDate = await lastCompletedJobDate(
+    getQueuePollMasterServer()
+  );
+  const lastPollGameServerDate = await lastCompletedJobDate(
+    getQueuePollGameServer()
+  );
+  const lastPlayTimedSnapshotDate = await lastCompletedJobDate(
+    getQueueUpdatePlayTime()
+  );
 
   const masterServers = await prisma.masterServer.findMany({
     select: {
@@ -102,11 +78,11 @@ export default async function Index() {
   const sections = [
     {
       title: 'Polling Master Servers',
-      date: lastPolledMasterServer?.polledAt ?? null,
+      date: lastPollMasterServerDate,
     },
     {
       title: 'Polling Game Servers',
-      date: lastPolledGameServer?.polledAt ?? null,
+      date: lastPollGameServerDate,
     },
     {
       title: 'Ranking',
@@ -114,7 +90,7 @@ export default async function Index() {
     },
     {
       title: 'Playtiming',
-      date: lastPlayTimedSnapshot?.playTimedAt ?? null,
+      date: lastPlayTimedSnapshotDate,
     },
   ];
 

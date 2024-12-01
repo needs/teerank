@@ -50,5 +50,5 @@ export async function gameTypeScheduler() {
   }
 
   schedule();
-  setInterval(schedule, minutesToMilliseconds(5));
+  setInterval(schedule, minutesToMilliseconds(1));
 }

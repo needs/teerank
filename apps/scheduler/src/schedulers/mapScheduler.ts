@@ -17,6 +17,11 @@ export async function mapScheduler() {
           gt: maxCreatedAt,
         },
       },
+      select: {
+        gameTypeName: true,
+        name: true,
+        createdAt: true,
+      },
       orderBy: {
         createdAt: 'asc',
       },
@@ -27,7 +32,7 @@ export async function mapScheduler() {
         queue.upsertJobScheduler(
           `${map.gameTypeName} - ${map.name}`,
           {
-            every: minutesToMilliseconds(10),
+            every: hoursToMilliseconds(1),
             immediately: true,
           },
           {
@@ -51,5 +56,5 @@ export async function mapScheduler() {
   }
 
   schedule();
-  setInterval(schedule, hoursToMilliseconds(1));
+  setInterval(schedule, minutesToMilliseconds(1));
 }

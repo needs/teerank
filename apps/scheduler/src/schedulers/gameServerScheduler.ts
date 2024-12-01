@@ -17,6 +17,11 @@ export async function gameServerScheduler() {
           gt: maxCreatedAt,
         },
       },
+      select: {
+        ip: true,
+        port: true,
+        createdAt: true,
+      },
       orderBy: {
         createdAt: 'asc',
       },

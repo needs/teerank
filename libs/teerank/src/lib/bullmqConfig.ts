@@ -12,6 +12,7 @@ export const QUEUE_NAME_POLL_GAME_SERVER = 'poll-game-server';
 export const QUEUE_NAME_UPDATE_PLAY_TIME = 'update-play-time';
 export const QUEUE_NAME_RANK_PLAYER = 'rank-player';
 export const QUEUE_NAME_GAME_TYPE_COUNT = 'game-type-count';
+export const QUEUE_NAME_MAP_COUNT = 'map-count';
 
 export function getQueuePollMasterServer() {
   return new Queue(QUEUE_NAME_POLL_MASTER_SERVER, { connection: bullmqConnection });
@@ -31,6 +32,10 @@ export function getQueueRankPlayer() {
 
 export function getQueueGameTypeCount() {
   return new Queue(QUEUE_NAME_GAME_TYPE_COUNT, { connection: bullmqConnection });
+}
+
+export function getQueueMapCount() {
+  return new Queue(QUEUE_NAME_MAP_COUNT, { connection: bullmqConnection });
 }
 
 export async function removeAllSchedulers(queue: Queue) {

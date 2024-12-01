@@ -1,12 +1,11 @@
 import {
-  mapCountOldestDate,
-  nextMapToCount,
   getQueueUpdatePlayTime,
   lastCompletedJobDate,
   getQueuePollMasterServer,
   getQueuePollGameServer,
   getQueueRankPlayer,
   getQueueGameTypeCount,
+  getQueueMapCount,
 } from '@teerank/teerank';
 import prisma from '../../utils/prisma';
 import { formatDistanceToNow, subMinutes } from 'date-fns';
@@ -19,50 +18,48 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function Index() {
-  const lastPollMasterServerDate = await lastCompletedJobDate(
-    getQueuePollMasterServer()
-  );
-  const lastPollGameServerDate = await lastCompletedJobDate(
-    getQueuePollGameServer()
-  );
-  const lastPlayTimedSnapshotDate = await lastCompletedJobDate(
-    getQueueUpdatePlayTime()
-  );
-  const lastRankedSnapshotDate = await lastCompletedJobDate(
-    getQueueRankPlayer()
-  );
-  const lastGameTypeCountDate = await lastCompletedJobDate(
-    getQueueGameTypeCount()
-  );
+  const [
+    lastPollMasterServerDate,
+    lastPollGameServerDate,
+    lastPlayTimedSnapshotDate,
+    lastRankedSnapshotDate,
+    lastGameTypeCountDate,
+    lastMapCountDate,
+    masterServers,
+    unreferencedGameServersCount,
+  ] = await Promise.all([
+    lastCompletedJobDate(getQueuePollMasterServer()),
+    lastCompletedJobDate(getQueuePollGameServer()),
+    lastCompletedJobDate(getQueueUpdatePlayTime()),
+    lastCompletedJobDate(getQueueRankPlayer()),
+    lastCompletedJobDate(getQueueGameTypeCount()),
+    lastCompletedJobDate(getQueueMapCount()),
+    prisma.masterServer.findMany({
+      select: {
+        address: true,
+        port: true,
 
-  const masterServers = await prisma.masterServer.findMany({
-    select: {
-      address: true,
-      port: true,
-
-      _count: {
-        select: {
-          gameServers: true,
+        _count: {
+          select: {
+            gameServers: true,
+          },
         },
       },
-    },
-    orderBy: [
-      {
-        address: 'asc',
+      orderBy: [
+        {
+          address: 'asc',
+        },
+        {
+          port: 'asc',
+        },
+      ],
+    }),
+    prisma.gameServer.count({
+      where: {
+        masterServer: null,
       },
-      {
-        port: 'asc',
-      },
-    ],
-  });
-
-  const unreferencedGameServersCount = await prisma.gameServer.count({
-    where: {
-      masterServer: null,
-    },
-  });
-
-  const nextMapWithOutdatedCounts = await nextMapToCount(prisma);
+    })
+  ]);
 
   const sections = [
     {
@@ -84,6 +81,10 @@ export default async function Index() {
     {
       title: 'Game type count',
       date: lastGameTypeCountDate,
+    },
+    {
+      title: 'Map count',
+      date: lastMapCountDate,
     },
   ];
 
@@ -116,19 +117,6 @@ export default async function Index() {
             </div>
           );
         })}
-
-        <div className="flex flex-row items-center p-2">
-          <span className="grow px-4">Map count latency</span>
-          <div className="flex flex-row divide-x">
-            <span className="text-sm text-[#aaa] px-4">
-              {formatDistanceToNow(
-                nextMapWithOutdatedCounts === null
-                  ? mapCountOldestDate()
-                  : nextMapWithOutdatedCounts.countedAt
-              )}
-            </span>
-          </div>
-        </div>
       </div>
 
       <h1 className="text-2xl font-bold clear-both">Teeworlds</h1>

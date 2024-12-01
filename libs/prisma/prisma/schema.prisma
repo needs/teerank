@@ -149,15 +149,13 @@ model Map {
   clanCount       Int @default(0)
   gameServerCount Int @default(0)
 
-  countedAt DateTime @default(now())
-
   snapshots        GameServerSnapshot[]
   playerInfoMaps   PlayerInfoMap[]
   clanInfoMaps     ClanInfoMap[]
   gameServerStates GameServerState[]
 
   @@unique([name, gameTypeName])
-  @@index([countedAt])
+  @@index([createdAt])
 }
 
 model PlayerInfoGameType {

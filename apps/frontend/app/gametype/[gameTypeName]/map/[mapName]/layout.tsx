@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import prisma from '../../../../../utils/prisma';
 import { LayoutTabs } from '../../LayoutTabs';
 import { paramsSchema } from './schema';
-import { updateMapCountsIfOutdated } from "@teerank/teerank";
 
 export default async function Index({
   children,
@@ -13,7 +12,7 @@ export default async function Index({
 }) {
   const { gameTypeName, mapName } = paramsSchema.parse(params);
 
-  let map = await prisma.map.findUnique({
+  const map = await prisma.map.findUnique({
     where: {
       name_gameTypeName: {
         name: mapName,
@@ -26,11 +25,15 @@ export default async function Index({
     notFound();
   }
 
-  map = await updateMapCountsIfOutdated(prisma, map);
-
   return (
     <div className="flex flex-col gap-4 py-8">
-      <LayoutTabs gameTypeName={gameTypeName} mapName={mapName} playerCount={map.playerCount} clanCount={map.clanCount} serverCount={map.gameServerCount} />
+      <LayoutTabs
+        gameTypeName={gameTypeName}
+        mapName={mapName}
+        playerCount={map.playerCount}
+        clanCount={map.clanCount}
+        serverCount={map.gameServerCount}
+      />
 
       {children}
     </div>

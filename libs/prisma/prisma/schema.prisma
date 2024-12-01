@@ -236,7 +236,6 @@ model GameServerSnapshot {
   gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
-  @@index([version])
 }
 
 model ClanInfoGameType {

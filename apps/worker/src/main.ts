@@ -24,6 +24,7 @@ async function main() {
     console.log('(SIGINT) Stopping gracefully...');
     await Promise.all(workers.map(worker => worker.close()));
     console.log('Stopped gracefully');
+    process.exit(0);
   });
 }
 

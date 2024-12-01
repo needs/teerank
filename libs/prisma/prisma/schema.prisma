@@ -130,12 +130,10 @@ model GameType {
   gameServerCount Int @default(0)
   mapCount        Int @default(0)
 
-  countedAt DateTime @default(now())
-
   playerInfoGameTypes PlayerInfoGameType[]
   clanInfoGameTypes   ClanInfoGameType[]
 
-  @@index([countedAt])
+  @@index([createdAt])
 }
 
 model Map {

@@ -1,13 +1,12 @@
 import {
-  gameTypeCountOldestDate,
   mapCountOldestDate,
-  nextGameTypeToCount,
   nextMapToCount,
   getQueueUpdatePlayTime,
   lastCompletedJobDate,
   getQueuePollMasterServer,
   getQueuePollGameServer,
   getQueueRankPlayer,
+  getQueueGameTypeCount,
 } from '@teerank/teerank';
 import prisma from '../../utils/prisma';
 import { formatDistanceToNow, subMinutes } from 'date-fns';
@@ -31,6 +30,9 @@ export default async function Index() {
   );
   const lastRankedSnapshotDate = await lastCompletedJobDate(
     getQueueRankPlayer()
+  );
+  const lastGameTypeCountDate = await lastCompletedJobDate(
+    getQueueGameTypeCount()
   );
 
   const masterServers = await prisma.masterServer.findMany({
@@ -60,7 +62,6 @@ export default async function Index() {
     },
   });
 
-  const nextGameTypeWithOutdatedCounts = await nextGameTypeToCount(prisma);
   const nextMapWithOutdatedCounts = await nextMapToCount(prisma);
 
   const sections = [
@@ -79,6 +80,10 @@ export default async function Index() {
     {
       title: 'Playtiming',
       date: lastPlayTimedSnapshotDate,
+    },
+    {
+      title: 'Game type count',
+      date: lastGameTypeCountDate,
     },
   ];
 
@@ -112,18 +117,6 @@ export default async function Index() {
           );
         })}
 
-        <div className="flex flex-row items-center p-2">
-          <span className="grow px-4">Game type count latency</span>
-          <div className="flex flex-row divide-x">
-            <span className="text-sm text-[#aaa] px-4">
-              {formatDistanceToNow(
-                nextGameTypeWithOutdatedCounts === null
-                  ? gameTypeCountOldestDate()
-                  : nextGameTypeWithOutdatedCounts.countedAt
-              )}
-            </span>
-          </div>
-        </div>
         <div className="flex flex-row items-center p-2">
           <span className="grow px-4">Map count latency</span>
           <div className="flex flex-row divide-x">

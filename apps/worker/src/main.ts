@@ -2,7 +2,7 @@ import { addDefaultGameTypes } from "./tasks/addDefaultGameTypes";
 import { addDefaultMasterServers } from "./tasks/addDefaultMasterServers";
 import { reportPerformances, monitorJobPerformance } from "./tasks/reportPerformances";
 import { cancellableWait } from "./utils";
-import { updateGameTypesCounts } from "./tasks/updateGameTypesCounts";
+import { startUpdateGameTypesCountsWorker } from "./workers/updateGameTypesCounts";
 import { updateMapsCounts } from "./tasks/updateMapsCounts";
 import { startPollMasterServerWorker } from "./workers/pollMasterServer";
 import { startPollGameServerWorker } from "./workers/pollGameServer";
@@ -48,9 +48,9 @@ async function main() {
   await startPollGameServerWorker();
   await startRankPlayerWorker();
   await startUpdatePlayTimeWorker();
+  await startUpdateGameTypesCountsWorker();
 
   await Promise.all([
-    runJob(updateGameTypesCounts, 'updateGameTypesCounts', 0, 5 * 1000),
     runJob(updateMapsCounts, 'updateMapsCounts', 0, 5 * 1000),
     runJob(reportPerformances, 'reportPerformances', 60000, 60000),
   ]);

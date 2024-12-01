@@ -2,7 +2,7 @@ import { prisma } from "../prisma";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { differenceInMinutes } from "date-fns";
-import { getQueueUpdatePlayTime, QUEUE_NAME_POLL_GAME_SERVER, wait } from "@teerank/teerank";
+import { getQueueRankPlayer, getQueueUpdatePlayTime, QUEUE_NAME_POLL_GAME_SERVER, wait } from "@teerank/teerank";
 import { GameServer, GameServerState } from "@prisma/client";
 import { Job, Worker } from "bullmq";
 import { bullmqConnection } from "@teerank/teerank";
@@ -56,6 +56,7 @@ function skipPolling(gameServer: GameServer & { gameServerState: GameServerState
 }
 
 const queueUpdatePlayTime = getQueueUpdatePlayTime();
+const queueRankPlayer = getQueueRankPlayer();
 
 async function processor(job: Job) {
   const gameServer =
@@ -316,12 +317,23 @@ async function processor(job: Job) {
         },
       });
 
-      await queueUpdatePlayTime.add(`${gameServer.ip} - ${gameServer.port} - ${snapshot.id}`, {
-        snapshotId: snapshot.id,
-      }, {
-        removeOnComplete: 1000,
-        removeOnFail: 1000,
-      });
+      const jobName = `${gameServer.ip} - ${gameServer.port} - ${snapshot.id}`;
+
+      await Promise.all([
+        queueUpdatePlayTime.add(jobName, {
+          snapshotId: snapshot.id,
+        }, {
+          removeOnComplete: 1000,
+          removeOnFail: 1000,
+        }),
+
+        queueRankPlayer.add(jobName, {
+          snapshotId: snapshot.id,
+        }, {
+          removeOnComplete: 1000,
+          removeOnFail: 1000,
+        })
+      ]);
     } catch (e) {
       console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
     }

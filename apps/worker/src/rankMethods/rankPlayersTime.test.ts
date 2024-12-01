@@ -1,7 +1,7 @@
 import { prisma } from '../prisma';
-import { clearDatabase, runJobNTimes } from '../../testSetup';
-import { rankPlayers } from '../tasks/rankPlayers';
+import { clearDatabase } from '../../testSetup';
 import { RankMethod } from '@prisma/client';
+import { rankPlayer } from '../workers/rankPlayer';
 
 beforeEach(async () => {
   await clearDatabase();
@@ -76,7 +76,7 @@ async function createSnapshot(scores: number[]) {
   });
 }
 
-async function checkRatings(expectedRatings: number[]) {
+async function checkRatings(expectedRatings: (number | null)[]) {
   const mapPlayerInfos = await prisma.playerInfoMap.findMany({
     select: {
       rating: true,
@@ -95,34 +95,36 @@ async function checkRatings(expectedRatings: number[]) {
     },
   });
 
-  expect(mapPlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual(expectedRatings);
-  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual([]);
+  expect(mapPlayerInfos.map(playerInfo => playerInfo.rating)).toEqual(expectedRatings);
+  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.rating)).toEqual([]);
 }
 
 test('Positive and negative time', async () => {
-  await createSnapshot([10, -10]);
-  await runJobNTimes(2, rankPlayers);
+  const snapshot = await createSnapshot([10, -10]);
+  await rankPlayer(snapshot.id);
   await checkRatings([-10, -10]);
 });
 
 test('Time increase', async () => {
-  await createSnapshot([10]);
-  await createSnapshot([30]);
-  await runJobNTimes(3, rankPlayers);
+  const snapshot1 = await createSnapshot([10]);
+  const snapshot2 = await createSnapshot([30]);
+  await rankPlayer(snapshot1.id);
+  await rankPlayer(snapshot2.id);
   await checkRatings([-10]);
 });
 
 test('Time decrease', async () => {
-  await createSnapshot([30]);
-  await createSnapshot([10]);
-  await runJobNTimes(3, rankPlayers);
+  const snapshot1 = await createSnapshot([30]);
+  const snapshot2 = await createSnapshot([10]);
+  await rankPlayer(snapshot1.id);
+  await rankPlayer(snapshot2.id);
   await checkRatings([-10]);
 });
 
 test('Maximum time', async () => {
-  await createSnapshot([9999, -9999]);
-  await runJobNTimes(2, rankPlayers);
-  await checkRatings([]);
+  const snapshot = await createSnapshot([9999, -9999]);
+  await rankPlayer(snapshot.id);
+  await checkRatings([null, null]);
 });
 
 test('Connecting player', async () => {
@@ -148,6 +150,6 @@ test('Connecting player', async () => {
     },
   });
 
-  await runJobNTimes(2, rankPlayers);
-  await checkRatings([]);
+  await rankPlayer(snapshot.id);
+  await checkRatings([null]);
 });

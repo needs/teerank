@@ -7,6 +7,7 @@ import {
   lastCompletedJobDate,
   getQueuePollMasterServer,
   getQueuePollGameServer,
+  getQueueRankPlayer,
 } from '@teerank/teerank';
 import prisma from '../../utils/prisma';
 import { formatDistanceToNow, subMinutes } from 'date-fns';
@@ -19,22 +20,6 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function Index() {
-  const lastRankedSnapshot = await prisma.gameServerSnapshot.findFirst({
-    where: {
-      rankedAt: {
-        not: null,
-      },
-    },
-    select: {
-      rankedAt: true,
-    },
-    orderBy: [
-      {
-        rankedAt: 'desc',
-      },
-    ],
-  });
-
   const lastPollMasterServerDate = await lastCompletedJobDate(
     getQueuePollMasterServer()
   );
@@ -43,6 +28,9 @@ export default async function Index() {
   );
   const lastPlayTimedSnapshotDate = await lastCompletedJobDate(
     getQueueUpdatePlayTime()
+  );
+  const lastRankedSnapshotDate = await lastCompletedJobDate(
+    getQueueRankPlayer()
   );
 
   const masterServers = await prisma.masterServer.findMany({
@@ -86,7 +74,7 @@ export default async function Index() {
     },
     {
       title: 'Ranking',
-      date: lastRankedSnapshot?.rankedAt ?? null,
+      date: lastRankedSnapshotDate,
     },
     {
       title: 'Playtiming',

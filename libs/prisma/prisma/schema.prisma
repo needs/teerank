@@ -220,10 +220,8 @@ model GameServerClient {
 }
 
 model GameServerSnapshot {
-  id                  Int       @id @default(autoincrement())
-  createdAt           DateTime  @default(now())
-  rankedAt            DateTime?
-  rankingStartedAt    DateTime?
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
 
   version String
   name    String
@@ -242,8 +240,6 @@ model GameServerSnapshot {
   gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
-  @@index([rankedAt])
-  @@index([rankingStartedAt])
   @@index([version])
 }
 

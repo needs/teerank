@@ -10,6 +10,7 @@ export const bullmqConnection: RedisOptions = {
 export const QUEUE_NAME_POLL_MASTER_SERVER = 'poll-master-server';
 export const QUEUE_NAME_POLL_GAME_SERVER = 'poll-game-server';
 export const QUEUE_NAME_UPDATE_PLAY_TIME = 'update-play-time';
+export const QUEUE_NAME_RANK_PLAYER = 'rank-player';
 
 export function getQueuePollMasterServer() {
   return new Queue(QUEUE_NAME_POLL_MASTER_SERVER, { connection: bullmqConnection });
@@ -21,6 +22,10 @@ export function getQueuePollGameServer() {
 
 export function getQueueUpdatePlayTime() {
   return new Queue(QUEUE_NAME_UPDATE_PLAY_TIME, { connection: bullmqConnection });
+}
+
+export function getQueueRankPlayer() {
+  return new Queue(QUEUE_NAME_RANK_PLAYER, { connection: bullmqConnection });
 }
 
 export async function removeAllSchedulers(queue: Queue) {

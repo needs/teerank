@@ -22,6 +22,10 @@ export async function masterServerScheduler() {
             address: masterServer.address,
             port: masterServer.port,
           },
+          opts: {
+            removeOnComplete: 1000,
+            removeOnFail: 1000,
+          }
         }
       )
     )

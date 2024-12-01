@@ -11,51 +11,56 @@ export async function gameServerScheduler() {
   await queue.drain();
 
   const schedule = async () => {
-    const gameServers = await prisma.gameServer.findMany({
-      where: {
-        createdAt: {
-          gt: maxCreatedAt,
-        },
-      },
-      select: {
-        ip: true,
-        port: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-
-    await Promise.all(
-      gameServers.map((gameServer) =>
-        queue.upsertJobScheduler(
-          `${gameServer.ip} - ${gameServer.port}`,
-          {
-            every: minutesToMilliseconds(5),
-            immediately: true,
+    for (; ;) {
+      const gameServers = await prisma.gameServer.findMany({
+        where: {
+          createdAt: {
+            gt: maxCreatedAt,
           },
-          {
-            data: {
-              ip: gameServer.ip,
-              port: gameServer.port,
+        },
+        select: {
+          ip: true,
+          port: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+        take: 50,
+      });
+
+      await Promise.all(
+        gameServers.map((gameServer) =>
+          queue.upsertJobScheduler(
+            `${gameServer.ip} - ${gameServer.port}`,
+            {
+              every: minutesToMilliseconds(5),
+              immediately: true,
             },
-            opts: {
-              removeOnComplete: 1000,
-              removeOnFail: 10000,
+            {
+              data: {
+                ip: gameServer.ip,
+                port: gameServer.port,
+              },
+              opts: {
+                removeOnComplete: 1000,
+                removeOnFail: 10000,
+              }
             }
-          }
+          )
         )
-      )
-    );
+      );
 
-    console.log(`Scheduled ${gameServers.length} new game servers`);
+      console.log(`Scheduled ${gameServers.length} new game servers`);
 
-    if (gameServers.length > 0) {
-      maxCreatedAt = gameServers[gameServers.length - 1].createdAt;
+      if (gameServers.length > 0) {
+        maxCreatedAt = gameServers[gameServers.length - 1].createdAt;
+      } else {
+        break;
+      }
     }
   }
 
-  schedule();
+  await schedule();
   setInterval(schedule, minutesToMilliseconds(1));
 }

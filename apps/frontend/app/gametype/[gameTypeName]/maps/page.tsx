@@ -4,6 +4,7 @@ import prisma from '../../../../utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../schema';
 import { notFound } from 'next/navigation';
 import { encodeString } from '../../../../utils/encoding';
+import { Fragment } from 'react';
 
 export const metadata = {
   title: 'Maps',
@@ -95,7 +96,7 @@ export default async function Index({
         pageCount={Math.ceil(mapCount / 100)}
       >
         {maps.map((map, index) => (
-          <>
+          <Fragment key={map.name}>
             <ListCell
               alignRight
               label={formatInteger((page - 1) * 100 + index + 1)}
@@ -136,7 +137,7 @@ export default async function Index({
               }}
             />
             <ListCell alignRight label={formatPlayTime(map.playTime)} />
-          </>
+          </Fragment>
         ))}
       </List>
     </div>

@@ -349,7 +349,7 @@ async function processor(job: Job) {
 }
 
 export async function startPollGameServerWorker() {
-  new Worker(QUEUE_NAME_POLL_GAME_SERVER, processor, {
+  return new Worker(QUEUE_NAME_POLL_GAME_SERVER, processor, {
     connection: bullmqConnection,
     concurrency: 20,
   });

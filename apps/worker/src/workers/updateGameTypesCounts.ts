@@ -42,7 +42,7 @@ export async function updateGameTypeCount(gameTypeName: string) {
 }
 
 export async function startUpdateGameTypesCountsWorker() {
-  new Worker(QUEUE_NAME_GAME_TYPE_COUNT, job => updateGameTypeCount(job.data.gameTypeName), {
+  return new Worker(QUEUE_NAME_GAME_TYPE_COUNT, job => updateGameTypeCount(job.data.gameTypeName), {
     connection: bullmqConnection,
     concurrency: 5,
   });

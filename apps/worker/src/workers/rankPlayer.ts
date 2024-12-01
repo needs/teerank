@@ -35,7 +35,7 @@ export async function rankPlayer(snapshotId: number) {
 }
 
 export async function startRankPlayerWorker() {
-  new Worker(QUEUE_NAME_RANK_PLAYER, (job) => rankPlayer(job.data.snapshotId), {
+  return new Worker(QUEUE_NAME_RANK_PLAYER, (job) => rankPlayer(job.data.snapshotId), {
     connection: bullmqConnection,
   });
 }

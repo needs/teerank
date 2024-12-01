@@ -1,61 +1,30 @@
-import { addDefaultGameTypes } from "./tasks/addDefaultGameTypes";
-import { addDefaultMasterServers } from "./tasks/addDefaultMasterServers";
-import { reportPerformances, monitorJobPerformance } from "./tasks/reportPerformances";
-import { cancellableWait } from "./utils";
-import { startUpdateGameTypesCountsWorker } from "./workers/updateGameTypesCounts";
+import { addDefaultGameTypes } from "./addDefaultGameTypes";
+import { addDefaultMasterServers } from "./addDefaultMasterServers";
 import { startUpdateMapsCountsWorker } from "./workers/updateMapsCounts";
 import { startPollMasterServerWorker } from "./workers/pollMasterServer";
 import { startPollGameServerWorker } from "./workers/pollGameServer";
 import { startUpdatePlayTimeWorker } from "./workers/updatePlayTime";
 import { startRankPlayerWorker } from "./workers/rankPlayer";
-
-let stopGracefully = false;
-const cancellableWaits = new Set<() => void>();
-
-function cancelGracefully() {
-  cancellableWaits.forEach(cancel => cancel());
-}
-
-process.on('SIGINT', () => {
-  console.log('(SIGINT) Stopping gracefully...');
-  stopGracefully = true;
-  cancelGracefully();
-});
-
-async function runJob(job: () => Promise<boolean>, jobName: string, delayOnBusy: number, delayOnIdle: number) {
-  console.log(`Starting ${jobName}`);
-
-  while (!stopGracefully) {
-    const isBusy = await monitorJobPerformance(jobName, job);
-
-    const { wait, cancel } = cancellableWait(isBusy ? delayOnBusy : delayOnIdle);
-
-    cancellableWaits.add(cancel);
-    if (!stopGracefully) {
-      await wait;
-    }
-    cancellableWaits.delete(cancel);
-  }
-
-  console.log(`Stopped ${jobName} gracefully`);
-}
+import { startUpdateGameTypesCountsWorker } from "./workers/updateGameTypesCounts";
 
 async function main() {
   await addDefaultGameTypes();
   await addDefaultMasterServers();
 
-  await startPollMasterServerWorker();
-  await startPollGameServerWorker();
-  await startRankPlayerWorker();
-  await startUpdatePlayTimeWorker();
-  await startUpdateGameTypesCountsWorker();
-  await startUpdateMapsCountsWorker();
-
-  await Promise.all([
-    runJob(reportPerformances, 'reportPerformances', 60000, 60000),
+  const workers = await Promise.all([
+    startPollMasterServerWorker(),
+    startPollGameServerWorker(),
+    startRankPlayerWorker(),
+    startUpdatePlayTimeWorker(),
+    startUpdateGameTypesCountsWorker(),
+    startUpdateMapsCountsWorker()
   ]);
 
-  console.log('Stopped gracefully');
+  process.on('SIGINT', async () => {
+    console.log('(SIGINT) Stopping gracefully...');
+    await Promise.all(workers.map(worker => worker.close()));
+    console.log('Stopped gracefully');
+  });
 }
 
 main()

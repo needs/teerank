@@ -1,5 +1,5 @@
 import { RankMethod } from "@prisma/client";
-import { prisma } from "../prisma";
+import { prisma } from "./prisma";
 
 export async function addDefaultGameTypes() {
   const gameTypesElo = [

@@ -47,7 +47,7 @@ export async function updateMapsCount(gameTypeName: string, mapName: string) {
 }
 
 export async function startUpdateMapsCountsWorker() {
-  new Worker(QUEUE_NAME_MAP_COUNT, job => updateMapsCount(job.data.gameTypeName, job.data.mapName), {
+  return new Worker(QUEUE_NAME_MAP_COUNT, job => updateMapsCount(job.data.gameTypeName, job.data.mapName), {
     connection: bullmqConnection,
     concurrency: 5,
   });

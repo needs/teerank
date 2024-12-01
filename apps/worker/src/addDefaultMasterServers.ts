@@ -1,4 +1,4 @@
-import { prisma } from "../prisma";
+import { prisma } from "./prisma";
 
 export async function addDefaultMasterServers() {
   await prisma.masterServer.createMany({

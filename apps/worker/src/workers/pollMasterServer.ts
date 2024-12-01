@@ -91,7 +91,7 @@ async function processor(job: Job) {
 }
 
 export async function startPollMasterServerWorker() {
-  new Worker(QUEUE_NAME_POLL_MASTER_SERVER, processor, {
+  return new Worker(QUEUE_NAME_POLL_MASTER_SERVER, processor, {
     connection: bullmqConnection,
   });
 }

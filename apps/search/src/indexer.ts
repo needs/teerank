@@ -3,6 +3,7 @@ import { max } from "lodash";
 import Fuse, { FuseResult } from "fuse.js";
 import { IndexedPlayer, IndexedClan, randomRange, wait, IndexedGameServer } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
+import { captureException } from "@sentry/node";
 
 const prisma = new PrismaClient();
 
@@ -174,7 +175,13 @@ async function runInBackground(update: () => Promise<IndexStatus>, index: () => 
   for (; ;) {
     const status = await update();
     if (status === IndexStatus.COMPLETED) {
-      await index();
+      try {
+        await index();
+      } catch (error) {
+        console.error(error);
+        captureException(error);
+      }
+
       const spread = randomRange(minutesToMilliseconds(4), minutesToMilliseconds(6));
       await wait(spread);
     } else {

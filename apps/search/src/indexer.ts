@@ -173,14 +173,17 @@ export function searchGameServers(query: string) {
 
 async function runInBackground(update: () => Promise<IndexStatus>, index: () => Promise<void>) {
   for (; ;) {
-    const status = await update();
+    const status = await update().catch(error => {
+      console.error("updating failed", error);
+      captureException(error);
+      return IndexStatus.IN_PROGRESS;
+    });
+
     if (status === IndexStatus.COMPLETED) {
-      try {
-        await index();
-      } catch (error) {
-        console.error(error);
+      await index().catch(error => {
+        console.error("indexing failed", error);
         captureException(error);
-      }
+      });
 
       const spread = randomRange(minutesToMilliseconds(4), minutesToMilliseconds(6));
       await wait(spread);

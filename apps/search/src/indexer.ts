@@ -4,7 +4,7 @@ import Fuse, { FuseResult } from "fuse.js";
 import { IndexedPlayer, IndexedClan, randomRange, wait, IndexedGameServer, indexGameServerSchema, indexClanSchema, indexPlayerSchema } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 import { captureException } from "@sentry/node";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, statSync, writeFileSync } from "fs";
 import { z } from "zod";
 
 const DUMP_VERSION = 1;
@@ -200,6 +200,10 @@ async function dump() {
 
 async function restore() {
   try {
+    console.log(`Restoring from ${DUMP_PATH}`);
+    const fileSize = statSync(DUMP_PATH).size;
+    console.log(`File size: ${fileSize}`);
+
     const data = dumpSchema.parse(JSON.parse(readFileSync(DUMP_PATH, 'utf8')));
 
     if (data.version !== DUMP_VERSION) {

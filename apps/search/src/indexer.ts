@@ -194,6 +194,8 @@ async function dump() {
   } satisfies Dump;
 
   writeFileSync(DUMP_PATH, JSON.stringify(data, null, 2));
+
+  console.log(`Dumped ${Object.keys(indexedPlayers).length} players, ${Object.keys(indexedClans).length} clans, ${Object.keys(indexedGameServers).length} game servers`);
 }
 
 async function restore() {

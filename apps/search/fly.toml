@@ -17,3 +17,7 @@ primary_region = 'cdg'
   cpu_kind = "shared"
   cpus = 2
   memory_mb = 512
+
+[mounts]
+  source = "teerankio_search_data"
+  destination = "/data"

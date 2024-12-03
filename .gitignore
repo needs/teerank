@@ -53,3 +53,6 @@ Thumbs.db
 playground/*
 !playground/example.ts
 !playground/setup-playground.sh
+
+# Search index
+search-index.json

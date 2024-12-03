@@ -1,9 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import { max } from "lodash";
 import Fuse, { FuseResult } from "fuse.js";
-import { IndexedPlayer, IndexedClan, randomRange, wait, IndexedGameServer } from "@teerank/teerank";
+import { IndexedPlayer, IndexedClan, randomRange, wait, IndexedGameServer, indexGameServerSchema, indexClanSchema, indexPlayerSchema } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 import { captureException } from "@sentry/node";
+import { readFileSync, writeFileSync } from "fs";
+import { z } from "zod";
+
+const DUMP_VERSION = 1;
+const DUMP_PATH = process.env.DUMP_PATH ?? 'search-index.json';
 
 const prisma = new PrismaClient();
 
@@ -171,6 +176,50 @@ export function searchGameServers(query: string) {
   return processResults(fuseGameServers.search(query, { limit: 30 }), gameServer => gameServer.clientCount);
 }
 
+const dumpSchema = z.object({
+  version: z.number(),
+  players: z.record(indexPlayerSchema),
+  clans: z.record(indexClanSchema),
+  gameServers: z.record(indexGameServerSchema),
+}).required();
+
+type Dump = z.infer<typeof dumpSchema>;
+
+async function dump() {
+  const data = {
+    version: DUMP_VERSION,
+    players: indexedPlayers,
+    clans: indexedClans,
+    gameServers: indexedGameServers
+  } satisfies Dump;
+
+  writeFileSync(DUMP_PATH, JSON.stringify(data, null, 2));
+}
+
+async function restore() {
+  try {
+    const data = dumpSchema.parse(JSON.parse(readFileSync(DUMP_PATH, 'utf8')));
+
+    if (data.version !== DUMP_VERSION) {
+      console.log(`Invalid dump version ${data.version}, expected ${DUMP_VERSION}`);
+      return;
+    }
+
+    Object.assign(indexedPlayers, data.players);
+    Object.assign(indexedClans, data.clans);
+    Object.assign(indexedGameServers, data.gameServers);
+    console.log(`Restored from dump, indexed ${Object.keys(indexedPlayers).length} players, ${Object.keys(indexedClans).length} clans, ${Object.keys(indexedGameServers).length} game servers`);
+
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      console.log('No dump file found, starting fresh');
+    } else {
+      console.error("Failed to restore from dump", error);
+      captureException(error);
+    }
+  }
+}
+
 async function runInBackground(update: () => Promise<IndexStatus>, index: () => Promise<void>) {
   for (; ;) {
     const status = await update().catch(error => {
@@ -194,8 +243,12 @@ async function runInBackground(update: () => Promise<IndexStatus>, index: () => 
   }
 }
 
-export function startBackgroundIndexing() {
+export async function startBackgroundIndexing() {
+  await restore();
+
   runInBackground(updatePlayers, indexPlayers);
   runInBackground(updateClans, indexClans);
   runInBackground(updateGameServers, indexGameServers);
+
+  setInterval(dump, minutesToMilliseconds(10));
 }

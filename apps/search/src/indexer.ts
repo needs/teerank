@@ -12,18 +12,14 @@ const DUMP_PATH = process.env.DUMP_PATH ?? 'search-index.json';
 
 const prisma = new PrismaClient();
 
-type FusePlayer = Pick<IndexedPlayer, 'name'>;
-type FuseClan = Pick<IndexedClan, 'name'>;
-type FuseGameServer = Pick<IndexedGameServer, 'name'>;
-
 const indexedPlayers: Record<string, IndexedPlayer> = {};
-const fusePlayers = new Fuse<FusePlayer>(Object.values({}), { keys: ['name'], includeScore: true });
+const fusePlayers = new Fuse<IndexedPlayer["name"]>([], { includeScore: true });
 
 const indexedClans: Record<string, IndexedClan> = {};
-const fuseClans = new Fuse<FuseClan>(Object.values({}), { keys: ['name'], includeScore: true });
+const fuseClans = new Fuse<IndexedClan["name"]>([], { includeScore: true });
 
 const indexedGameServers: Record<string, IndexedGameServer> = {};
-const fuseGameServers = new Fuse<FuseGameServer>(Object.values({}), { keys: ['name'], includeScore: true });
+const fuseGameServers = new Fuse<IndexedGameServer>([], { keys: ['name'], includeScore: true });
 
 enum IndexStatus {
   IN_PROGRESS,
@@ -66,13 +62,14 @@ async function updatePlayers() {
     })),
   })));
 
-  const newPlayers = players.filter(player => !(player.name in indexedPlayers));
-
-  for (const player of newPlayers) {
-    fusePlayers.add(player);
+  for (const player of players) {
+    if (!(player.name in indexedPlayers)) {
+      fusePlayers.add(player.name);
+    }
   }
 
   Object.assign(indexedPlayers, Object.fromEntries(players.map(player => ([player.name, player]))))
+  console.log(`Reindexed ${players.length} players out of ${Object.keys(indexedPlayers).length}`);
 
   return players.length < 100 ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
 }
@@ -106,14 +103,14 @@ async function updateClans() {
     playerCount: clan._count.players,
   })));
 
-  const newClans = clans.filter(clan => !(clan.name in indexedClans));
-
-  for (const clan of newClans) {
-    fuseClans.add(clan);
+  for (const clan of clans) {
+    if (!(clan.name in indexedClans)) {
+      fuseClans.add(clan.name);
+    }
   }
 
   Object.assign(indexedClans, Object.fromEntries(clans.map(clan => ([clan.name, clan]))))
-
+  console.log(`Reindexed ${clans.length} clans out of ${Object.keys(indexedClans).length}`);
   return clans.length < 100 ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
 }
 
@@ -155,13 +152,10 @@ async function updateGameServers() {
     updatedAt: gameServer.updatedAt,
   })));
 
-  const newGameServers = gameServers.filter(gameServer => !(gameServer.name in indexedGameServers));
+  Object.assign(indexedGameServers, Object.fromEntries(gameServers.map(gameServer => ([`[${gameServer.ip}]:${gameServer.port}`, gameServer]))))
+  fuseGameServers.setCollection(Object.values(indexedGameServers));
 
-  for (const gameServer of newGameServers) {
-    fuseGameServers.add(gameServer);
-  }
-
-  Object.assign(indexedGameServers, Object.fromEntries(gameServers.map(gameServer => ([gameServer.name, gameServer]))))
+  console.log(`Reindexed ${gameServers.length} game servers out of ${Object.keys(indexedGameServers).length}`);
 
   return gameServers.length < 100 ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
 }
@@ -177,7 +171,7 @@ function processResults<T, U>(results: FuseResult<T>[], convert: (item: T) => U,
 export function searchPlayers(query: string) {
   return processResults(
     fusePlayers.search(query, { limit: 30 }),
-    player => indexedPlayers[player.name],
+    playerName => indexedPlayers[playerName],
     player => player.playTime
   );
 }
@@ -185,7 +179,7 @@ export function searchPlayers(query: string) {
 export function searchClans(query: string) {
   return processResults(
     fuseClans.search(query, { limit: 30 }),
-    clan => indexedClans[clan.name],
+    clanName => indexedClans[clanName],
     clan => clan.playTime
   );
 }
@@ -193,7 +187,7 @@ export function searchClans(query: string) {
 export function searchGameServers(query: string) {
   return processResults(
     fuseGameServers.search(query, { limit: 30 }),
-    gameServer => indexedGameServers[gameServer.name],
+    gameServer => gameServer,
     gameServer => gameServer.clientCount
   );
 }
@@ -239,8 +233,8 @@ async function restore() {
     Object.assign(indexedClans, data.clans);
     Object.assign(indexedGameServers, data.gameServers);
 
-    fusePlayers.setCollection(Object.values(indexedPlayers));
-    fuseClans.setCollection(Object.values(indexedClans));
+    fusePlayers.setCollection(Object.keys(indexedPlayers));
+    fuseClans.setCollection(Object.keys(indexedClans));
     fuseGameServers.setCollection(Object.values(indexedGameServers));
 
     console.log(`Restored from dump, indexed ${Object.keys(indexedPlayers).length} players, ${Object.keys(indexedClans).length} clans, ${Object.keys(indexedGameServers).length} game servers`);

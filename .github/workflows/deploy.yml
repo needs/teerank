@@ -46,6 +46,7 @@ jobs:
         run: npx nx run-many -t build --configuration=production --parallel=4
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Test
         run: |

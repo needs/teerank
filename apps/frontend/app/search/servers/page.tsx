@@ -34,10 +34,10 @@ export default async function Index({
         servers={gameServers.map((gameServer, index) => ({
           rank: index + 1,
           name: gameServer.name,
-          gameTypeName: gameServer.map.gameTypeName,
-          mapName: gameServer.map.name,
-          ip: gameServer.gameServer.ip,
-          port: gameServer.gameServer.port,
+          gameTypeName: gameServer.gameTypeName,
+          mapName: gameServer.mapName,
+          ip: gameServer.ip,
+          port: gameServer.port,
           numClients: gameServer.numClients,
           maxClients: gameServer.maxClients,
         }))}

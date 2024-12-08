@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import prisma from './prisma';
-import { searchClans, searchPlayers } from '@prisma/client/sql';
+import { searchClans, searchGameServers, searchPlayers } from '@prisma/client/sql';
 
 const resultServerSchema = z.object({
   ip: z.string(),
@@ -32,19 +32,7 @@ export async function search(query: string) {
   console.timeEnd('search clans');
   console.time('search game servers');
 
-  const gameServers = await prisma.gameServerState.findMany({
-    where: {
-      name: {
-        contains: query,
-        mode: 'insensitive',
-      },
-    },
-    take: 30,
-    include: {
-      gameServer: true,
-      map: true,
-    },
-  });
+  const gameServers = await prisma.$queryRawTyped(searchGameServers(`%${query}%`));
 
   console.timeEnd('search game servers');
 

@@ -28,7 +28,7 @@ export default async function Index({
         clans={clans.map((clan, index) => ({
           rank: index + 1,
           name: clan.name,
-          playerCount: clan._count.players,
+          playerCount: clan.playerCount,
           playTime: BigInt(clan.playTime),
         }))}
       />

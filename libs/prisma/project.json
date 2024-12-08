@@ -28,7 +28,8 @@
     "prisma-generate": {
       "executor": "@nx-tools/nx-prisma:generate",
       "options": {
-        "schema": "libs/prisma/prisma/schema.prisma"
+        "schema": "libs/prisma/prisma/schema.prisma",
+        "previewFeatures": ["typedSql"]
       }
     },
     "prisma-migrate": {

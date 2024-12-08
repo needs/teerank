@@ -1,64 +1,36 @@
+import { z } from 'zod';
 import prisma from './prisma';
+import { searchClans, searchPlayers } from '@prisma/client/sql';
+
+const resultServerSchema = z.object({
+  ip: z.string(),
+  port: z.number(),
+});
 
 export async function search(query: string) {
   query = query.replace(/_/g, '\\_').replace(/%/g, '\\%');
 
   console.time('search players');
 
-  const players = await prisma.player.findMany({
-    where: {
-      name: {
-        contains: query,
-        mode: 'insensitive',
-      },
-    },
-
-    include: {
-      gameServerStateClients: {
-        include: {
-          gameServerState: {
-            include: {
-              gameServer: true,
-            },
-          },
-        },
-      }
-    },
-
-    orderBy: {
-      playTime: 'desc',
-    },
+  const players = await prisma.$queryRawTyped(searchPlayers(`%${query}%`)).then((players) => {
+    return players.map((player) => ({
+      ...player,
+      servers: player.servers?.map((server) => resultServerSchema.parse(server)) ?? [],
+    }));
   });
 
   console.timeEnd('search players');
+  console.time('search clans');
 
-  players.sort((a, b) => {
-    const diffName = a.name.length - b.name.length;
-    return diffName || Number(b.playTime) - Number(a.playTime);
+  const clans = await prisma.$queryRawTyped(searchClans(`%${query}%`)).then((clans) => {
+    return clans.map((clan) => ({
+      ...clan,
+      playerCount: Number(clan.playerCount) || 0,
+    }));
   });
 
-  //const query2 = `%${query}%`
-  //const player2 = await prisma.$queryRaw`SELECT "public"."Player"."name", "public"."Player"."createdAt", "public"."Player"."updatedAt", "public"."Player"."lastSeenAt", "public"."Player"."clanName", "public"."Player"."clanSnapshotCreatedAt", "public"."Player"."playTime" FROM "public"."Player" WHERE "public"."Player"."name" ILIKE ${query2} ORDER BY LENGTH("public"."Player"."name"), "public"."Player"."playTime" DESC OFFSET 0`;
-  //console.log(player2.map(p => p.name));
-
-  const clans = await prisma.clan.findMany({
-    where: {
-      name: {
-        contains: query,
-        mode: 'insensitive',
-      },
-    },
-    select: {
-      name: true,
-      _count: {
-        select: {
-          players: true,
-        },
-      },
-      playTime: true,
-    },
-    take: 30,
-  });
+  console.timeEnd('search clans');
+  console.time('search game servers');
 
   const gameServers = await prisma.gameServerState.findMany({
     where: {
@@ -73,6 +45,8 @@ export async function search(query: string) {
       map: true,
     },
   });
+
+  console.timeEnd('search game servers');
 
   return { players, clans, gameServers };
 }

@@ -1,11 +1,12 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["typedSql"]
+  previewFeatures = ["typedSql", "postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [pg_trgm]
 }
 
 model MasterServer {
@@ -43,8 +44,6 @@ model GameServer {
 
   @@unique([ip, port])
   @@index([polledAt])
-  @@index([updatedAt])
-  @@index([createdAt])
 }
 
 model GameServerState {
@@ -68,6 +67,8 @@ model GameServerState {
 
   gameServer   GameServer @relation(name: "GameServerStateGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
   gameServerId Int        @unique
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 model GameServerStateClient {
@@ -111,7 +112,7 @@ model Player {
   playerInfoGameTypes PlayerInfoGameType[]
 
   @@index([playTime(sort: Desc)])
-  @@index([updatedAt])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 enum RankMethod {
@@ -290,7 +291,7 @@ model Clan {
   gameServerStateClients GameServerStateClient[]
 
   @@index([playTime(sort: Desc)])
-  @@index([updatedAt])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 model ClanPlayerInfo {

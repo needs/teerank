@@ -32,7 +32,11 @@ export async function search(query: string) {
   console.timeEnd('search clans');
   console.time('search game servers');
 
-  const gameServers = await prisma.$queryRawTyped(searchGameServers(`%${query}%`));
+  const gameServers = await prisma.$queryRawTyped(searchGameServers(`%${query}%`)).then((gameServers) => {
+    return gameServers.map((gameServer) => ({
+      ...gameServer,
+    }));
+  });
 
   console.timeEnd('search game servers');
 

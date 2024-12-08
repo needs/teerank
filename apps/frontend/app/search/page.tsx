@@ -35,7 +35,7 @@ export default async function Index({
           rating: undefined,
           playTime: BigInt(player.playTime),
           lastSeenAt: player.lastSeenAt,
-          gameServers: player.gameServers,
+          gameServers: player.gameServerStateClients.map((client) => client.gameServerState.gameServer),
         }))}
       />
     </LayoutTabs>

@@ -9,6 +9,7 @@ import { z } from "zod";
 
 const DUMP_VERSION = 1;
 const DUMP_PATH = process.env.DUMP_PATH ?? 'search-index.json';
+const BATCH_SIZE = 1000;
 
 const prisma = new PrismaClient();
 
@@ -49,7 +50,7 @@ async function updatePlayers() {
     orderBy: {
       updatedAt: 'asc',
     },
-    take: 100,
+    take: BATCH_SIZE,
   }).then(players => players.map(player => ({
     name: player.name,
     clanName: player.clanName,
@@ -71,7 +72,7 @@ async function updatePlayers() {
   Object.assign(indexedPlayers, Object.fromEntries(players.map(player => ([player.name, player]))))
   console.log(`Reindexed ${players.length} players out of ${Object.keys(indexedPlayers).length}`);
 
-  return players.length < 100 ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
+  return players.length < BATCH_SIZE ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
 }
 
 async function updateClans() {
@@ -96,7 +97,7 @@ async function updateClans() {
     orderBy: {
       updatedAt: 'asc',
     },
-    take: 100,
+    take: BATCH_SIZE,
   }).then(clans => clans.map(clan => ({
     ...clan,
     playTime: Number(clan.playTime),
@@ -111,7 +112,7 @@ async function updateClans() {
 
   Object.assign(indexedClans, Object.fromEntries(clans.map(clan => ([clan.name, clan]))))
   console.log(`Reindexed ${clans.length} clans out of ${Object.keys(indexedClans).length}`);
-  return clans.length < 100 ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
+  return clans.length < BATCH_SIZE ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
 }
 
 async function updateGameServers() {
@@ -141,6 +142,7 @@ async function updateGameServers() {
         gt: gameServersUpdatedAt,
       },
     },
+    take: BATCH_SIZE,
   }).then(gameServers => gameServers.map(gameServer => ({
     ip: gameServer.gameServer.ip,
     port: gameServer.gameServer.port,
@@ -157,7 +159,7 @@ async function updateGameServers() {
 
   console.log(`Reindexed ${gameServers.length} game servers out of ${Object.keys(indexedGameServers).length}`);
 
-  return gameServers.length < 100 ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
+  return gameServers.length < BATCH_SIZE ? IndexStatus.COMPLETED : IndexStatus.IN_PROGRESS;
 }
 
 function processResults<T, U>(results: FuseResult<T>[], convert: (item: T) => U, sortBy: (item: U) => number) {

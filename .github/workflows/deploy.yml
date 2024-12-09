@@ -42,7 +42,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES2 }}
-          PRISMA_BINARY_TARGETS: '["linux-musl-arm64-openssl-3.0.x"]'
+          PRISMA_BINARY_TARGETS: '["native", "linux-musl-arm64-openssl-3.0.x"]'
 
       - name: Build
         run: npx nx run-many -t build --configuration=production --parallel=4

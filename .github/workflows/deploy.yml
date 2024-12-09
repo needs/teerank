@@ -56,6 +56,7 @@ jobs:
           npx nx run-many -t test --runInBand
         env:
           DATABASE_URL: postgres://postgres-test:postgres-test@localhost:5433/teerank-test
+          PRISMA_BINARY_TARGETS: '["native", "linux-musl-arm64-openssl-3.0.x"]'
 
       - name: Deploy frontend
         run: flyctl deploy --config apps/frontend/fly.toml --dockerfile apps/frontend/Dockerfile

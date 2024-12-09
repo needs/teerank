@@ -1,4 +1,4 @@
-import { getQueueGameTypeCount, removeAllSchedulers } from "@teerank/teerank";
+import { cleanQueue, getQueueGameTypeCount } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 
@@ -7,8 +7,7 @@ let maxCreatedAt = new Date(0);
 export async function gameTypeScheduler() {
   const queue = getQueueGameTypeCount();
 
-  await removeAllSchedulers(queue);
-  await queue.drain(true);
+  await cleanQueue(queue);
 
   const schedule = async () => {
     for (; ;) {

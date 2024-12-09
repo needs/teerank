@@ -1,4 +1,4 @@
-import { getQueuePollGameServer, removeAllSchedulers } from "@teerank/teerank";
+import { cleanQueue, getQueuePollGameServer } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 
@@ -7,8 +7,7 @@ let maxCreatedAt = new Date(0);
 export async function gameServerScheduler() {
   const queue = getQueuePollGameServer();
 
-  await removeAllSchedulers(queue);
-  await queue.drain(true);
+  await cleanQueue(queue);
 
   const schedule = async () => {
     for (; ;) {

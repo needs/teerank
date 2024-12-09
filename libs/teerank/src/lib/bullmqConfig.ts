@@ -38,16 +38,12 @@ export function getQueueMapCount() {
   return new Queue(QUEUE_NAME_MAP_COUNT, { connection: bullmqConnection });
 }
 
-export async function removeAllSchedulers(queue: Queue) {
-  const schedulers = await queue.getJobSchedulers();
-
-  await Promise.all(
-    schedulers.map((scheduler) => {
-      if (scheduler.id) {
-        queue.removeJobScheduler(scheduler.id);
-      }
-    }),
-  );
+export async function cleanQueue(queue: Queue) {
+  console.log('Cleaning queue', queue.name);
+  await queue.obliterate({
+    force: true,
+  });
+  console.log('Queue cleaned', queue.name);
 }
 
 export async function lastCompletedJobDate(queue: Queue) {

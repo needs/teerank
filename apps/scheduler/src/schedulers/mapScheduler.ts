@@ -1,4 +1,4 @@
-import { getQueueMapCount, removeAllSchedulers } from "@teerank/teerank";
+import { cleanQueue, getQueueMapCount } from "@teerank/teerank";
 import { hoursToMilliseconds, minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 
@@ -7,8 +7,7 @@ let maxCreatedAt = new Date(0);
 export async function mapScheduler() {
   const queue = getQueueMapCount();
 
-  await removeAllSchedulers(queue);
-  await queue.drain(true);
+  await cleanQueue(queue);
 
   const schedule = async () => {
     for (; ;) {

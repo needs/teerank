@@ -21,7 +21,6 @@ RUN chown -R worker:worker .
 # The bundled output will include external dependencies.
 RUN npm --omit=dev -f install
 
-COPY libs/prisma/prisma/schema.prisma prisma/schema.prisma
-RUN npx prisma generate
+COPY node_modules/.prisma node_modules/.prisma
 
 CMD [ "node", "." ]

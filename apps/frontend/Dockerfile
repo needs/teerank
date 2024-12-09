@@ -25,8 +25,4 @@ RUN npm install sharp
 
 COPY node_modules/.prisma node_modules/.prisma
 
-# COPY libs/prisma/prisma/schema.prisma prisma/schema.prisma
-# COPY libs/prisma/prisma/sql prisma/sql
-# RUN npx prisma generate --sql
-
 CMD [ "npm", "start" ]

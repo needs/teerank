@@ -8,7 +8,7 @@ export async function mapScheduler() {
   const queue = getQueueMapCount();
 
   await removeAllSchedulers(queue);
-  await queue.drain();
+  await queue.drain(true);
 
   const schedule = async () => {
     for (; ;) {

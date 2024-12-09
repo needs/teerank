@@ -5,7 +5,7 @@ import { getQueuePollMasterServer, removeAllSchedulers } from '@teerank/teerank'
 export async function masterServerScheduler() {
   const queue = getQueuePollMasterServer();
   await removeAllSchedulers(queue);
-  await queue.drain();
+  await queue.drain(true);
 
   const masterServers = await prisma.masterServer.findMany();
 

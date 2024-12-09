@@ -1,6 +1,7 @@
 generator client {
   provider = "prisma-client-js"
   previewFeatures = ["typedSql", "postgresqlExtensions"]
+  binaryTargets = env("PRISMA_BINARY_TARGETS")
 }
 
 datasource db {

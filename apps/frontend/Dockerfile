@@ -23,8 +23,10 @@ RUN chown -R frontend:frontend .
 RUN npm --omit=dev -f install
 RUN npm install sharp
 
-COPY libs/prisma/prisma/schema.prisma prisma/schema.prisma
-COPY libs/prisma/prisma/sql prisma/sql
-RUN npx prisma generate
+COPY node_modules/.prisma node_modules/.prisma
+
+# COPY libs/prisma/prisma/schema.prisma prisma/schema.prisma
+# COPY libs/prisma/prisma/sql prisma/sql
+# RUN npx prisma generate --sql
 
 CMD [ "npm", "start" ]

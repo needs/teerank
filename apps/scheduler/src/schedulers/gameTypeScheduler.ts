@@ -1,58 +1,45 @@
-import { cleanQueue, getQueueGameTypeCount } from "@teerank/teerank";
+import { getQueueGameTypeCount } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
+import { schedule, scheduleWithSpread } from "../utils";
 
 let maxCreatedAt = new Date(0);
 
 export async function gameTypeScheduler() {
   const queue = getQueueGameTypeCount();
 
-  await cleanQueue(queue);
+  schedule(minutesToMilliseconds(5), async () => {
+    const gameTypes = await prisma.gameType.findMany({
+      where: {
+        createdAt: {
+          gt: maxCreatedAt,
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
 
-  const schedule = async () => {
-    for (; ;) {
-      const gameTypes = await prisma.gameType.findMany({
-        where: {
-          createdAt: {
-            gt: maxCreatedAt,
+    for (const gameType of gameTypes) {
+      scheduleWithSpread(minutesToMilliseconds(30), async () => {
+        await queue.add(
+          gameType.name,
+          {
+            gameTypeName: gameType.name,
           },
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-        take: 50,
-      });
-
-      await Promise.all(
-        gameTypes.map((gameType) =>
-          queue.upsertJobScheduler(
-            gameType.name,
-            {
-              every: minutesToMilliseconds(10),
-              immediately: true,
-            },
-            {
-              data: {
-                gameTypeName: gameType.name,
-              },
-              opts: {
-                removeOnComplete: 1000,
-                removeOnFail: 1000,
-              }
+          {
+            deduplication: {
+              id: gameType.name,
             }
-          )
+          }
         )
-      );
-      console.log(`Scheduled ${gameTypes.length} new game types`);
-
-      if (gameTypes.length > 0) {
-        maxCreatedAt = gameTypes[gameTypes.length - 1].createdAt;
-      } else {
-        break;
-      }
+      });
     }
-  }
 
-  await schedule();
-  setInterval(schedule, minutesToMilliseconds(1));
+    console.log(`Scheduled ${gameTypes.length} new game types`);
+
+    if (gameTypes.length > 0) {
+      maxCreatedAt = gameTypes[gameTypes.length - 1].createdAt;
+    }
+  });
 }

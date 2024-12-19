@@ -1,65 +1,51 @@
-import { cleanQueue, getQueuePollGameServer } from "@teerank/teerank";
+import { getQueuePollGameServer } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
+import { schedule, scheduleWithSpread } from "../utils";
 
 let maxCreatedAt = new Date(0);
 
 export async function gameServerScheduler() {
   const queue = getQueuePollGameServer();
 
-  await cleanQueue(queue);
+  schedule(minutesToMilliseconds(5), async () => {
+    const gameServers = await prisma.gameServer.findMany({
+      where: {
+        createdAt: {
+          gt: maxCreatedAt,
+        },
+      },
+      select: {
+        ip: true,
+        port: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
 
-  const schedule = async () => {
-    for (; ;) {
-      const gameServers = await prisma.gameServer.findMany({
-        where: {
-          createdAt: {
-            gt: maxCreatedAt,
+    for (const gameServer of gameServers) {
+      scheduleWithSpread(minutesToMilliseconds(5), async () => {
+        await queue.add(
+          `${gameServer.ip} - ${gameServer.port}`,
+          {
+            ip: gameServer.ip,
+            port: gameServer.port,
           },
-        },
-        select: {
-          ip: true,
-          port: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-        take: 50,
-      });
-
-      await Promise.all(
-        gameServers.map((gameServer) =>
-          queue.upsertJobScheduler(
-            `${gameServer.ip} - ${gameServer.port}`,
-            {
-              every: minutesToMilliseconds(5),
-              immediately: true,
-            },
-            {
-              data: {
-                ip: gameServer.ip,
-                port: gameServer.port,
-              },
-              opts: {
-                removeOnComplete: 1000,
-                removeOnFail: 10000,
-              }
+          {
+            deduplication: {
+              id: `${gameServer.ip} - ${gameServer.port}`,
             }
-          )
+          }
         )
-      );
-
-      console.log(`Scheduled ${gameServers.length} new game servers`);
-
-      if (gameServers.length > 0) {
-        maxCreatedAt = gameServers[gameServers.length - 1].createdAt;
-      } else {
-        break;
-      }
+      });
     }
-  }
 
-  await schedule();
-  setInterval(schedule, minutesToMilliseconds(1));
+    console.log(`Scheduled ${gameServers.length} new game servers`);
+
+    if (gameServers.length > 0) {
+      maxCreatedAt = gameServers[gameServers.length - 1].createdAt;
+    }
+  });
 }

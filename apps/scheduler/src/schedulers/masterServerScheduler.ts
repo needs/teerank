@@ -1,35 +1,29 @@
 import { prisma } from '../prisma';
 import { minutesToMilliseconds } from 'date-fns';
-import { cleanQueue, getQueuePollMasterServer } from '@teerank/teerank';
+import { getQueuePollMasterServer } from '@teerank/teerank';
+import { schedule } from '../utils';
 
 export async function masterServerScheduler() {
   const queue = getQueuePollMasterServer();
 
-  await cleanQueue(queue);
+  schedule(minutesToMilliseconds(10), async () => {
+    const masterServers = await prisma.masterServer.findMany();
 
-  const masterServers = await prisma.masterServer.findMany();
-
-  await Promise.all(
-    masterServers.map((masterServer) =>
-      queue.upsertJobScheduler(
+    for (const masterServer of masterServers) {
+      await queue.add(
         `${masterServer.address}:${masterServer.port}`,
         {
-          every: minutesToMilliseconds(5),
-          immediately: true,
+          address: masterServer.address,
+          port: masterServer.port,
         },
         {
-          data: {
-            address: masterServer.address,
-            port: masterServer.port,
-          },
-          opts: {
-            removeOnComplete: 1000,
-            removeOnFail: 1000,
+          deduplication: {
+            id: `${masterServer.address}:${masterServer.port}`,
           }
         }
       )
-    )
-  );
+    }
 
-  console.log(`Scheduled ${masterServers.length} master servers`);
+    console.log(`Scheduled ${masterServers.length} master servers`);
+  });
 }

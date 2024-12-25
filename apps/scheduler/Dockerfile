@@ -22,5 +22,6 @@ RUN chown -R scheduler:scheduler .
 RUN npm --omit=dev -f install
 
 COPY node_modules/.prisma node_modules/.prisma
+RUN apk add --no-cache openssl
 
 CMD [ "node", "." ]

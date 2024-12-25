@@ -24,5 +24,6 @@ RUN npm --omit=dev -f install
 RUN npm install sharp
 
 COPY node_modules/.prisma node_modules/.prisma
+RUN apk add --no-cache openssl
 
 CMD [ "npm", "start" ]

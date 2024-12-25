@@ -42,7 +42,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES2 }}
-          PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x"]'
+          PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x", "linux-musl"]'
 
       - name: Build
         run: npx nx run-many -t build --configuration=production --parallel=4
@@ -56,7 +56,7 @@ jobs:
           npx nx run-many -t test --runInBand
         env:
           DATABASE_URL: postgres://postgres-test:postgres-test@localhost:5433/teerank-test
-          PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x"]'
+          PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x", "linux-musl"]'
 
       - name: Deploy frontend
         run: flyctl deploy --config apps/frontend/fly.toml --dockerfile apps/frontend/Dockerfile

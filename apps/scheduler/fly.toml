@@ -8,11 +8,6 @@ primary_region = 'cdg'
 
 [build]
 
-[http_service]
-  internal_port = 3000
-  force_https = true
-  processes = ['app']
-
 [[vm]]
   cpu_kind = "shared"
   cpus = 1

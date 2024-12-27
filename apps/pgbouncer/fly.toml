@@ -1,0 +1,22 @@
+# fly.toml app configuration file generated for teerankio-pgbouncer on 2024-12-26T12:54:15+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'teerankio-pgbouncer'
+primary_region = 'cdg'
+
+[build]
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 5432
+  processes = ["app"]
+
+  [[services.ports]]
+    port = 5432
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

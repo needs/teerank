@@ -267,5 +267,6 @@ export async function updatePlayTime(snapshotId: number) {
 export async function startUpdatePlayTimeWorker() {
   return new Worker(QUEUE_NAME_UPDATE_PLAY_TIME, (job) => updatePlayTime(job.data.snapshotId), {
     connection: bullmqConnection,
+    concurrency: 3,
   });
 }

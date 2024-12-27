@@ -14,8 +14,6 @@ model MasterServer {
   id               Int          @id @default(autoincrement())
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-  polledAt         DateTime?
-  pollingStartedAt DateTime?
   address          String
   port             Int
   gameServers      GameServer[]
@@ -30,10 +28,6 @@ model GameServer {
   lastSeenAt DateTime @default(now())
   playTime   BigInt   @default(0)
 
-  polledAt         DateTime?
-  pollingStartedAt DateTime?
-  pollBatchUuid    String?   @db.Uuid()
-
   ip   String
   port Int
 
@@ -44,7 +38,6 @@ model GameServer {
   gameServerState GameServerState?     @relation(name: "GameServerStateGameServerId")
 
   @@unique([ip, port])
-  @@index([polledAt])
 }
 
 model GameServerState {

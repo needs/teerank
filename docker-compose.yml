@@ -3,28 +3,12 @@ version: '3.8'
 services:
   postgres:
     image: postgres:latest
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: teerank
     command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
-    restart: always
-
-  pgbouncer:
-    image: bitnami/pgbouncer:latest
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRESQL_USER=postgres
-      - POSTGRESQL_PASSWORD=postgres
-      - POSTGRESQL_HOST=postgres
-      - PGBOUNCER_DATABASE=teerank
-      - PGBOUNCER_PORT=5432
-      - PGBOUNCER_POOL_MODE=transaction
-      - PGBOUNCER_AUTH_TYPE=scram-sha-256
-      - PGBOUNCER_MAX_CLIENT_CONN=1000
-      - PGBOUNCER_DEFAULT_POOL_SIZE=100
-    depends_on:
-      - postgres
     restart: always
 
   postgres-test:

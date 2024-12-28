@@ -1,5 +1,5 @@
 import { getQueueGameTypeCount } from "@teerank/teerank";
-import { minutesToMilliseconds } from "date-fns";
+import { hoursToMilliseconds, minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 import { schedule, scheduleWithSpread } from "../utils";
 
@@ -21,7 +21,7 @@ export async function gameTypeScheduler() {
     });
 
     for (const gameType of gameTypes) {
-      scheduleWithSpread(minutesToMilliseconds(30), async () => {
+      scheduleWithSpread(hoursToMilliseconds(1), async () => {
         await queue.add(
           gameType.name,
           {

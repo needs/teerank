@@ -26,7 +26,7 @@ export async function mapScheduler() {
     });
 
     for (const map of maps) {
-      scheduleWithSpread(hoursToMilliseconds(1), async () => {
+      scheduleWithSpread(hoursToMilliseconds(24), async () => {
         await queue.add(
           `${map.gameTypeName} - ${map.name}`,
           {

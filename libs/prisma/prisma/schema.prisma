@@ -1,32 +1,33 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["typedSql", "postgresqlExtensions"]
-  binaryTargets = env("PRISMA_BINARY_TARGETS")
+  binaryTargets   = env("PRISMA_BINARY_TARGETS")
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
   extensions = [pg_trgm]
 }
 
 model MasterServer {
-  id               Int          @id @default(autoincrement())
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  address          String
-  port             Int
-  gameServers      GameServer[]
+  id          Int          @id @default(autoincrement())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  address     String
+  port        Int
+  gameServers GameServer[]
 
   @@unique([address, port])
 }
 
 model GameServer {
-  id         Int      @id @default(autoincrement())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  lastSeenAt DateTime @default(now())
-  playTime   BigInt   @default(0)
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastSeenAt   DateTime @default(now())
+  playTime     BigInt   @default(0)
+  failureCount Int      @default(0)
 
   ip   String
   port Int

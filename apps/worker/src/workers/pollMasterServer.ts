@@ -77,7 +77,6 @@ async function processor(job: Job) {
         id: masterServer.id,
       },
       data: {
-        polledAt: new Date(),
         gameServers: {
           set: ids,
         },

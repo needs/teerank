@@ -40,19 +40,11 @@ const PACKET_GETINFO64 = Buffer.from([
 ]);
 
 function skipPolling(gameServer: GameServer & { gameServerState: GameServerState | null }) {
-  if (gameServer.gameServerState === null) {
-    const now = new Date();
-
-    const maxMinutes = 24 * 60;
-    const lastSeenAtMinutes = Math.min(maxMinutes, differenceInMinutes(now, gameServer.lastSeenAt));
-
-    // The longer offline, the less odds to poll, range from 0.95 to 0.05
-    const odds = 0.05 + 0.9 * (lastSeenAtMinutes / maxMinutes);
-
-    return Math.random() >= odds;
-  } else {
+  if (gameServer.failureCount === 0) {
     return false;
   }
+
+  return Math.random() >= (1.0 / Math.min(gameServer.failureCount, 10));
 }
 
 const queueUpdatePlayTime = getQueueUpdatePlayTime();
@@ -314,6 +306,7 @@ async function processor(job: Job) {
         },
         data: {
           lastSeenAt: new Date(),
+          failureCount: 0,
         },
       });
 
@@ -341,6 +334,17 @@ async function processor(job: Job) {
     await prisma.gameServerState.delete({
       where: {
         id: gameServer.gameServerState.id,
+      },
+    });
+
+    await prisma.gameServer.update({
+      where: {
+        id: gameServer.id,
+      },
+      data: {
+        failureCount: {
+          increment: 1,
+        },
       },
     });
   }

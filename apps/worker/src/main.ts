@@ -15,12 +15,15 @@ async function main() {
     startUpdateMapsCountsWorker()
   ]);
 
-  process.on('SIGINT', async () => {
-    console.log('(SIGINT) Stopping gracefully...');
+  async function gracefulShutdown(signal: string) {
+    console.log(`(${signal}) Stopping gracefully...`);
     await Promise.all(workers.map(worker => worker.close()));
     console.log('Stopped gracefully');
     process.exit(0);
-  });
+  }
+
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 }
 
 main()

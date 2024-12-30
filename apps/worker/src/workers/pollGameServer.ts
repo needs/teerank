@@ -332,12 +332,14 @@ async function processor(job: Job) {
     } catch (e) {
       console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
     }
-  } else if (gameServer.gameServerState !== null) {
-    await prisma.gameServerState.delete({
-      where: {
-        id: gameServer.gameServerState.id,
-      },
-    });
+  } else {
+    if (gameServer.gameServerState !== null) {
+      await prisma.gameServerState.delete({
+        where: {
+          id: gameServer.gameServerState.id,
+        },
+      });
+    }
 
     await prisma.gameServer.update({
       where: {

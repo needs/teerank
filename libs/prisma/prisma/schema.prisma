@@ -188,6 +188,7 @@ model PlayerInfoMap {
 
   @@unique([playerName, mapId])
   @@index([playTime(sort: Desc)])
+  @@index([rating(sort: Desc, nulls: last), playTime(sort: Desc)])
   @@index([rating])
 }
 

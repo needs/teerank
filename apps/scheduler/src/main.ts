@@ -14,6 +14,7 @@ cleanQueues().then(() => {
     masterServerScheduler();
     gameServerScheduler();
     gameTypeScheduler();
-    mapScheduler();
+    // Disable map scheduler for now as it consume too much resources
+    // mapScheduler();
   });
 });

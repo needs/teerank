@@ -187,6 +187,7 @@ model PlayerInfoMap {
   mapId Int
 
   @@unique([playerName, mapId])
+  @@index([mapId])
   @@index([playTime(sort: Desc)])
   @@index([rating(sort: Desc, nulls: last), playTime(sort: Desc)])
   @@index([rating])
@@ -266,6 +267,7 @@ model ClanInfoMap {
   mapId Int
 
   @@unique([clanName, mapId])
+  @@index([mapId])
   @@index([playTime(sort: Desc)])
 }
 

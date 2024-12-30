@@ -41,12 +41,14 @@ const PACKET_GETINFO64 = Buffer.from([
   0
 ]);
 
+const MAX_FAILURE_COUNT = getEnvInt('MAX_FAILURE_COUNT', 30);
+
 function skipPolling(gameServer: GameServer & { gameServerState: GameServerState | null }) {
   if (gameServer.failureCount === 0) {
     return false;
   }
 
-  return Math.random() >= (1.0 / Math.min(gameServer.failureCount, 10));
+  return Math.random() >= (1.0 / Math.min(gameServer.failureCount, MAX_FAILURE_COUNT));
 }
 
 const queueUpdatePlayTime = getQueueUpdatePlayTime();

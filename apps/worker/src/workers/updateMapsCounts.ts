@@ -1,6 +1,9 @@
 import { Worker } from "bullmq";
 import { prisma } from "../prisma";
 import { bullmqConnection, QUEUE_NAME_MAP_COUNT } from "@teerank/teerank"
+import { getEnvInt } from "@teerank/teerank";
+
+const UPDATE_MAPS_COUNTS_CONCURRENCY = getEnvInt('UPDATE_MAPS_COUNTS_CONCURRENCY', 5);
 
 export async function updateMapsCount(gameTypeName: string, mapName: string) {
   const [map, gameServerCount] = await Promise.all([
@@ -49,6 +52,6 @@ export async function updateMapsCount(gameTypeName: string, mapName: string) {
 export async function startUpdateMapsCountsWorker() {
   return new Worker(QUEUE_NAME_MAP_COUNT, job => updateMapsCount(job.data.gameTypeName, job.data.mapName), {
     connection: bullmqConnection,
-    concurrency: 5,
+    concurrency: UPDATE_MAPS_COUNTS_CONCURRENCY,
   });
 }

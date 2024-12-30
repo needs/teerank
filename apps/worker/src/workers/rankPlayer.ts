@@ -4,6 +4,9 @@ import { rankPlayersElo } from "../rankMethods/rankPlayersElo";
 import { rankPlayersTime } from "../rankMethods/rankPlayersTime";
 import { Worker } from "bullmq";
 import { bullmqConnection, QUEUE_NAME_RANK_PLAYER } from "@teerank/teerank";
+import { getEnvInt } from "@teerank/teerank";
+
+const RANK_PLAYER_CONCURRENCY = getEnvInt('RANK_PLAYER_CONCURRENCY', 20);
 
 export async function rankPlayer(snapshotId: number) {
   const snapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
@@ -37,6 +40,6 @@ export async function rankPlayer(snapshotId: number) {
 export async function startRankPlayerWorker() {
   return new Worker(QUEUE_NAME_RANK_PLAYER, (job) => rankPlayer(job.data.snapshotId), {
     connection: bullmqConnection,
-    concurrency: 3,
+    concurrency: RANK_PLAYER_CONCURRENCY,
   });
 }

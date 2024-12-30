@@ -1,11 +1,13 @@
 import { prisma } from "../prisma";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { unpackGameServerInfoPackets } from "../packets/gameServerInfo";
-import { differenceInMinutes } from "date-fns";
 import { getQueueRankPlayer, getQueueUpdatePlayTime, QUEUE_NAME_POLL_GAME_SERVER, wait } from "@teerank/teerank";
 import { GameServer, GameServerState } from "@prisma/client";
 import { Job, Worker } from "bullmq";
 import { bullmqConnection } from "@teerank/teerank";
+import { getEnvInt } from "@teerank/teerank";
+
+const POLL_GAME_SERVER_CONCURRENCY = getEnvInt('POLL_GAME_SERVER_CONCURRENCY', 100);
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -355,6 +357,6 @@ async function processor(job: Job) {
 export async function startPollGameServerWorker() {
   return new Worker(QUEUE_NAME_POLL_GAME_SERVER, processor, {
     connection: bullmqConnection,
-    concurrency: 100,
+    concurrency: POLL_GAME_SERVER_CONCURRENCY,
   });
 }

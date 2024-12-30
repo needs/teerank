@@ -3,6 +3,9 @@ import { differenceInSeconds } from "date-fns";
 import { removeDuplicatedClients } from "../utils";
 import { Worker } from "bullmq";
 import { bullmqConnection, QUEUE_NAME_UPDATE_PLAY_TIME } from "@teerank/teerank";
+import { getEnvInt } from "@teerank/teerank";
+
+const UPDATE_PLAY_TIME_CONCURRENCY = getEnvInt('UPDATE_PLAY_TIME_CONCURRENCY', 20);
 
 export async function updatePlayTime(snapshotId: number) {
   const snapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
@@ -267,6 +270,6 @@ export async function updatePlayTime(snapshotId: number) {
 export async function startUpdatePlayTimeWorker() {
   return new Worker(QUEUE_NAME_UPDATE_PLAY_TIME, (job) => updatePlayTime(job.data.snapshotId), {
     connection: bullmqConnection,
-    concurrency: 3,
+    concurrency: UPDATE_PLAY_TIME_CONCURRENCY,
   });
 }

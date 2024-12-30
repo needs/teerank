@@ -24,6 +24,8 @@ async function main() {
 
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+  console.log('Worker started');
 }
 
 main()

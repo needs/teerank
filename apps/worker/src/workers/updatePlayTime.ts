@@ -25,11 +25,6 @@ export async function updatePlayTime(snapshotId: number) {
       clients: {
         select: {
           playerName: true,
-          player: {
-            select: {
-              clanSnapshotCreatedAt: true,
-            }
-          },
           clanName: true,
         },
       },
@@ -119,19 +114,6 @@ export async function updatePlayTime(snapshotId: number) {
           playTime: {
             increment: deltaPlayTime,
           },
-        },
-      }),
-
-      prisma.player.updateMany({
-        where: {
-          name: client.playerName,
-          clanSnapshotCreatedAt: {
-            lt: snapshot.createdAt,
-          }
-        },
-        data: {
-          clanSnapshotCreatedAt: snapshot.createdAt,
-          clanName: client.clanName
         },
       }),
 

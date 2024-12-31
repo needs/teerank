@@ -95,7 +95,6 @@ model Player {
 
   clan                  Clan?    @relation(fields: [clanName], references: [name])
   clanName              String?
-  clanSnapshotCreatedAt DateTime @default(now())
 
   playTime BigInt @default(0)
 

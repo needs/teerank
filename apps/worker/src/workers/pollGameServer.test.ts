@@ -46,20 +46,20 @@ async function createAndProcessGameServerInfo(
   return { gameServer, gameServerInfo, snapshotId };
 }
 
-test('Header data', async () => {
-  const { gameServer, gameServerInfo, snapshotId } = await createAndProcessGameServerInfo([]);
-
+async function testSnapshot(snapshotId: number, gameServerInfo: GameServerInfoPacket) {
   const snapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
     where: {
       id: snapshotId,
     },
     include: {
       map: true,
+      clients: true,
       gameServer: {
         include: {
           gameServerState: {
             include: {
               clients: true,
+              map: true,
             }
           }
         }
@@ -67,27 +67,54 @@ test('Header data', async () => {
     }
   });
 
-  const gameServerState = snapshot.gameServer.gameServerState;
-
-  expect(snapshot.gameServerId).toBe(gameServer.id);
   expect(snapshot.map.name).toBe(gameServerInfo.map);
   expect(snapshot.map.gameTypeName).toBe(gameServerInfo.gameType);
   expect(snapshot.numPlayers).toBe(gameServerInfo.numPlayers);
   expect(snapshot.maxPlayers).toBe(gameServerInfo.maxPlayers);
   expect(snapshot.numClients).toBe(gameServerInfo.numClients);
   expect(snapshot.maxClients).toBe(gameServerInfo.maxClients);
-  expect(gameServerState).not.toBeNull();
+  expect(snapshot.clients.length).toBe(gameServerInfo.clients.length);
 
-  if (gameServerState !== null) {
-    expect(gameServerState.version).toBe(gameServerInfo.version);
-    expect(gameServerState.name).toBe(gameServerInfo.name);
-    expect(gameServerState.mapId).toBe(snapshot.map.id);
-    expect(gameServerState.numPlayers).toBe(gameServerInfo.numPlayers);
-    expect(gameServerState.maxPlayers).toBe(gameServerInfo.maxPlayers);
-    expect(gameServerState.numClients).toBe(gameServerInfo.numClients);
-    expect(gameServerState.maxClients).toBe(gameServerInfo.maxClients);
-    expect(gameServerState.clients.length).toBe(0);
+  for (let i = 0; i < snapshot.clients.length; i++) {
+    const snapshotClient = snapshot.clients[i];
+    const infoClient = gameServerInfo.clients[i];
+    expect(snapshotClient.playerName).toBe(infoClient.name);
+    expect(snapshotClient.clanName ?? undefined).toBe(infoClient.clan === '' ? undefined : infoClient.clan);
+    expect(snapshotClient.country).toBe(infoClient.country);
+    expect(snapshotClient.score).toBe(infoClient.score);
+    expect(snapshotClient.inGame).toBe(infoClient.inGame);
   }
+
+  const gameServerState = snapshot.gameServer.gameServerState;
+
+  if (gameServerState === null) {
+    throw new Error('Game server state is null');
+  }
+
+  expect(gameServerState.version).toBe(gameServerInfo.version);
+  expect(gameServerState.name).toBe(gameServerInfo.name);
+  expect(gameServerState.map.name).toBe(gameServerInfo.map);
+  expect(gameServerState.map.gameTypeName).toBe(gameServerInfo.gameType);
+  expect(gameServerState.numPlayers).toBe(gameServerInfo.numPlayers);
+  expect(gameServerState.maxPlayers).toBe(gameServerInfo.maxPlayers);
+  expect(gameServerState.numClients).toBe(gameServerInfo.numClients);
+  expect(gameServerState.maxClients).toBe(gameServerInfo.maxClients);
+  expect(gameServerState.clients.length).toBe(gameServerInfo.clients.length);
+
+  for (let i = 0; i < gameServerState.clients.length; i++) {
+    const stateClient = gameServerState.clients[i];
+    const infoClient = gameServerInfo.clients[i];
+    expect(stateClient.playerName).toBe(infoClient.name);
+    expect(stateClient.clanName ?? undefined).toBe(infoClient.clan === '' ? undefined : infoClient.clan);
+    expect(stateClient.country).toBe(infoClient.country);
+    expect(stateClient.score).toBe(infoClient.score);
+    expect(stateClient.inGame).toBe(infoClient.inGame);
+  }
+}
+
+test('Header data', async () => {
+  const { gameServerInfo, snapshotId } = await createAndProcessGameServerInfo([]);
+  await testSnapshot(snapshotId, gameServerInfo);
 });
 
 test('Different clients', async () => {
@@ -412,7 +439,7 @@ test('Clan changes with race condition', async () => {
     },
   ]);
 
-  const { gameServerInfo } = await createAndProcessGameServerInfo([
+  const { gameServerInfo, snapshotId } = await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: 'clan3',
@@ -467,4 +494,6 @@ test('Clan changes with race condition', async () => {
   });
 
   expect(clan3.activePlayerCount).toBe(1);
+
+  await testSnapshot(snapshotId, gameServerInfo);
 });

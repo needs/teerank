@@ -2,13 +2,16 @@ import { clearDatabase } from "../../testSetup";
 import { ServerHeader } from "../packet";
 import { GameServerInfoPacket } from "../packets/gameServerInfo";
 import { prisma } from "../prisma";
-import { processGameServerInfo } from "./pollGameServer";
+import { OnUpdatePlayerClanHook, processGameServerInfo } from "./pollGameServer";
 
 beforeEach(async () => {
   await clearDatabase();
 });
 
-async function createGameServerInfo(clients: GameServerInfoPacket['clients']) {
+async function createAndProcessGameServerInfo(
+  clients: GameServerInfoPacket['clients'],
+  onUpdatePlayerClanHook: OnUpdatePlayerClanHook | undefined = undefined
+) {
   const gameServer = await prisma.gameServer.upsert({
     where: {
       ip_port: {
@@ -26,7 +29,7 @@ async function createGameServerInfo(clients: GameServerInfoPacket['clients']) {
     }
   });
 
-  const gameServerInfo: GameServerInfoPacket = {
+  const gameServerInfo = {
     version: 'version',
     name: 'name',
     gameType: 'gameType',
@@ -38,13 +41,13 @@ async function createGameServerInfo(clients: GameServerInfoPacket['clients']) {
     clients,
   };
 
-  const snapshotId = await processGameServerInfo(gameServer, gameServerInfo);
+  const snapshotId = await processGameServerInfo(gameServer, gameServerInfo, onUpdatePlayerClanHook);
 
   return { gameServer, gameServerInfo, snapshotId };
 }
 
 test('Header data', async () => {
-  const { gameServer, gameServerInfo, snapshotId } = await createGameServerInfo([]);
+  const { gameServer, gameServerInfo, snapshotId } = await createAndProcessGameServerInfo([]);
 
   const snapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
     where: {
@@ -88,7 +91,7 @@ test('Header data', async () => {
 });
 
 test('Different clients', async () => {
-  const { gameServerInfo } = await createGameServerInfo([
+  const { gameServerInfo } = await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: 'clan1',
@@ -132,7 +135,7 @@ test('Different clients', async () => {
 });
 
 test('Duplicated clients', async () => {
-  const { gameServerInfo, snapshotId } = await createGameServerInfo([
+  const { gameServerInfo, snapshotId } = await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: 'clan1',
@@ -187,7 +190,7 @@ test('Duplicated clients', async () => {
 });
 
 test('Empty clan', async () => {
-  const { gameServerInfo } = await createGameServerInfo([
+  const { gameServerInfo } = await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: '',
@@ -216,7 +219,7 @@ test('Empty clan', async () => {
 });
 
 test('Clan changes', async () => {
-  await createGameServerInfo([
+  await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: 'clan1',
@@ -227,7 +230,7 @@ test('Clan changes', async () => {
     },
   ]);
 
-  const { gameServerInfo } = await createGameServerInfo([
+  const { gameServerInfo } = await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: 'clan2',
@@ -245,10 +248,26 @@ test('Clan changes', async () => {
   });
 
   expect(player.clanName).toBe(gameServerInfo.clients[0].clan);
+
+  const clan1 = await prisma.clan.findUniqueOrThrow({
+    where: {
+      name: 'clan1',
+    },
+  });
+
+  expect(clan1.activePlayerCount).toBe(0);
+
+  const clan2 = await prisma.clan.findUniqueOrThrow({
+    where: {
+      name: 'clan2',
+    },
+  });
+
+  expect(clan2.activePlayerCount).toBe(1);
 });
 
 test('Clan swap', async () => {
-  await createGameServerInfo([
+  await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: 'clan1',
@@ -267,7 +286,7 @@ test('Clan swap', async () => {
     },
   ]);
 
-  const { gameServerInfo } = await createGameServerInfo([
+  const { gameServerInfo } = await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: 'clan2',
@@ -300,10 +319,26 @@ test('Clan swap', async () => {
 
   expect(player1.clanName).toBe(gameServerInfo.clients[0].clan);
   expect(player2.clanName).toBe(gameServerInfo.clients[1].clan);
+
+  const clan1 = await prisma.clan.findUniqueOrThrow({
+    where: {
+      name: gameServerInfo.clients[0].clan,
+    },
+  });
+
+  expect(clan1.activePlayerCount).toBe(1);
+
+  const clan2 = await prisma.clan.findUniqueOrThrow({
+    where: {
+      name: gameServerInfo.clients[1].clan,
+    },
+  });
+
+  expect(clan2.activePlayerCount).toBe(1);
 });
 
 test('Clan removal', async () => {
-  await createGameServerInfo([
+  await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: 'clan1',
@@ -322,7 +357,7 @@ test('Clan removal', async () => {
     },
   ]);
 
-  const { gameServerInfo } = await createGameServerInfo([
+  const { gameServerInfo } = await createAndProcessGameServerInfo([
     {
       name: 'name1',
       clan: '',
@@ -355,4 +390,81 @@ test('Clan removal', async () => {
 
   expect(player1.clanName).toBeNull();
   expect(player2.clanName).toBeNull();
+
+  const clan1 = await prisma.clan.findUniqueOrThrow({
+    where: {
+      name: 'clan1',
+    },
+  });
+
+  expect(clan1.activePlayerCount).toBe(0);
+});
+
+test('Clan changes with race condition', async () => {
+  await createAndProcessGameServerInfo([
+    {
+      name: 'name1',
+      clan: 'clan1',
+      country: 1,
+      score: 100,
+      inGame: false,
+      _origin: ServerHeader.Vanilla,
+    },
+  ]);
+
+  const { gameServerInfo } = await createAndProcessGameServerInfo([
+    {
+      name: 'name1',
+      clan: 'clan3',
+      country: 1,
+      score: 100,
+      inGame: false,
+      _origin: ServerHeader.Vanilla,
+    },
+  ], async (playerName, oldClanName) => {
+    if (oldClanName !== 'clan2') {
+      await createAndProcessGameServerInfo([
+        {
+          name: playerName,
+          clan: 'clan2',
+          country: 1,
+          score: 100,
+          inGame: false,
+          _origin: ServerHeader.Vanilla,
+        },
+      ]);
+    }
+  });
+
+  const player1 = await prisma.player.findUniqueOrThrow({
+    where: {
+      name: gameServerInfo.clients[0].name,
+    },
+  });
+
+  expect(player1.clanName).toBe('clan3');
+
+  const clan1 = await prisma.clan.findUniqueOrThrow({
+    where: {
+      name: 'clan1',
+    },
+  });
+
+  expect(clan1.activePlayerCount).toBe(0);
+
+  const clan2 = await prisma.clan.findUniqueOrThrow({
+    where: {
+      name: 'clan2',
+    },
+  });
+
+  expect(clan2.activePlayerCount).toBe(0);
+
+  const clan3 = await prisma.clan.findUniqueOrThrow({
+    where: {
+      name: 'clan3',
+    },
+  });
+
+  expect(clan3.activePlayerCount).toBe(1);
 });

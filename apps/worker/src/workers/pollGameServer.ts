@@ -55,7 +55,81 @@ function skipPolling(gameServer: GameServer & { gameServerState: GameServerState
 const queueUpdatePlayTime = getQueueUpdatePlayTime();
 const queueRankPlayer = getQueueRankPlayer();
 
-export async function processGameServerInfo(gameServer: GameServer & { gameServerState: GameServerState | null }, gameServerInfo: GameServerInfoPacket) {
+export type OnUpdatePlayerClanHook = ((playerName: string, oldClanName: string | null, newClanName: string | null) => Promise<void>);
+
+async function changePlayerClans(
+  playerClans: Record<string, string | null>,
+  onUpdate: OnUpdatePlayerClanHook | undefined
+) {
+  const totalPlayerCount = Object.keys(playerClans).length;
+  const clanDelta: Record<string, number> = {};
+
+  // When changing clans, clan `activePlayerCount` needs to be updated for both
+  // the old and new clans.  To avoid race conditions, when updating a player's
+  // clan, make sure old player clan is accurate.
+
+  for (let i = 0; i < 10; i++) {
+    await Promise.all(Object.entries(playerClans).map(async ([playerName, newClanName_]) => {
+      const newClanName = newClanName_ || null;
+
+      const currentPlayer = await prisma.player.findUnique({
+        where: { name: playerName },
+        select: { clanName: true },
+      });
+
+      const oldClanName = currentPlayer?.clanName || null;
+
+      // Used by tests to simulate race conditions.
+      if (onUpdate !== undefined) {
+        await onUpdate(playerName, oldClanName, newClanName);
+      }
+
+      const ret = await prisma.player.updateMany({
+        where: { name: playerName, clanName: oldClanName },
+        data: { clanName: newClanName },
+      });
+
+      if (ret.count !== 0) {
+        if (oldClanName !== null) {
+          clanDelta[oldClanName] = (clanDelta[oldClanName] ?? 0) - 1;
+        }
+
+        if (newClanName !== null) {
+          clanDelta[newClanName] = (clanDelta[newClanName] ?? 0) + 1;
+        }
+
+        delete playerClans[playerName];
+      }
+    }));
+
+    const remainingPlayerCount = Object.keys(playerClans).length;
+    if (remainingPlayerCount > 0) {
+      console.log(`${remainingPlayerCount}/${totalPlayerCount} players left to update (${i})`);
+    } else {
+      break;
+    }
+  }
+
+  const remainingPlayerCount = Object.keys(playerClans).length;
+  if (remainingPlayerCount > 0) {
+    console.error(`${remainingPlayerCount}/${totalPlayerCount} players failed to update`);
+  }
+
+  await Promise.all(Object.entries(clanDelta).map(async ([clanName, delta]) => {
+    if (delta !== 0) {
+      await prisma.clan.update({
+        where: { name: clanName },
+        data: { activePlayerCount: { increment: delta } },
+      });
+    }
+  }));
+}
+
+export async function processGameServerInfo(
+  gameServer: GameServer & { gameServerState: GameServerState | null },
+  gameServerInfo: GameServerInfoPacket,
+  onUpdatePlayerClanHook: OnUpdatePlayerClanHook | undefined = undefined
+) {
   const map = await prisma.map.upsert({
     select: {
       id: true,
@@ -93,18 +167,17 @@ export async function processGameServerInfo(gameServer: GameServer & { gameServe
 
   const uniqClients = uniqBy(gameServerInfo.clients, 'name');
 
-  await Promise.all(uniqClients.map((client) => prisma.player.upsert({
-    where: {
+  await prisma.player.createMany({
+    data: uniqClients.map((client) => ({
       name: client.name,
-    },
-    update: {
-      clanName: client.clan === "" ? null : client.clan,
-    },
-    create: {
-      name: client.name,
-      clanName: client.clan === "" ? null : client.clan,
-    },
-  })));
+    })),
+    skipDuplicates: true,
+  });
+
+  await changePlayerClans(
+    Object.fromEntries(uniqClients.map((client) => [client.name, client.clan])),
+    onUpdatePlayerClanHook
+  );
 
   await Promise.all(uniqClients.map((client) => prisma.playerInfoGameType.upsert({
     select: {
@@ -223,13 +296,11 @@ export async function processGameServerInfo(gameServer: GameServer & { gameServe
     // existing game server state so we delete the existing one and create
     // a new one.  Do it in a transaction to avoid race conditions.
 
-    if (gameServer.gameServerState !== null) {
-      await tx.gameServerState.delete({
-        where: {
-          id: gameServer.gameServerState.id,
-        },
-      });
-    }
+    await tx.gameServerState.deleteMany({
+      where: {
+        gameServerId: gameServer.id,
+      },
+    });
 
     await tx.gameServerState.create({
       data: {
@@ -349,13 +420,11 @@ async function processor(job: Job) {
       console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
     }
   } else {
-    if (gameServer.gameServerState !== null) {
-      await prisma.gameServerState.delete({
-        where: {
-          id: gameServer.gameServerState.id,
-        },
-      });
-    }
+    await prisma.gameServerState.deleteMany({
+      where: {
+        gameServerId: gameServer.id,
+      },
+    });
 
     await prisma.gameServer.update({
       where: {

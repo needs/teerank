@@ -93,8 +93,8 @@ model Player {
   updatedAt  DateTime @updatedAt
   lastSeenAt DateTime @default(now())
 
-  clan                  Clan?    @relation(fields: [clanName], references: [name])
-  clanName              String?
+  clan     Clan?   @relation(fields: [clanName], references: [name])
+  clanName String?
 
   playTime BigInt @default(0)
 
@@ -276,8 +276,10 @@ model Clan {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  playTime BigInt   @default(0)
-  players  Player[]
+  playTime          BigInt @default(0)
+  activePlayerCount Int    @default(0)
+
+  players Player[]
 
   clients GameServerClient[]
 

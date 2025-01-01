@@ -5,7 +5,7 @@ import { rankPlayersTime } from "../rankMethods/rankPlayersTime";
 import { Worker } from "bullmq";
 import { bullmqConnection, QUEUE_NAME_RANK_PLAYER } from "@teerank/teerank";
 import { getEnvInt } from "@teerank/teerank";
-import { minutesToMilliseconds } from "date-fns";
+import { minutesToSeconds } from "date-fns";
 
 const RANK_PLAYER_CONCURRENCY = getEnvInt('RANK_PLAYER_CONCURRENCY', 20);
 
@@ -43,7 +43,7 @@ export async function startRankPlayerWorker() {
     connection: bullmqConnection,
     concurrency: RANK_PLAYER_CONCURRENCY,
     removeOnComplete: {
-      age: minutesToMilliseconds(10),
+      age: minutesToSeconds(10),
     },
   });
 }

@@ -3,6 +3,7 @@ import { prisma } from "../prisma";
 import { QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT } from "@teerank/teerank";
 import { bullmqConnection } from "@teerank/teerank";
 import { redisClient } from "../redis";
+import { minutesToSeconds } from "date-fns";
 
 const MIN_CREATED_AT_KEY = 'fill-clan-active-player-count-min-created-at';
 
@@ -59,5 +60,11 @@ export async function startFillClanActivePlayerCountWorker() {
   return new Worker(QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT, processor, {
     connection: bullmqConnection,
     concurrency: 1,
+    removeOnComplete: {
+      age: minutesToSeconds(10),
+    },
+    removeOnFail: {
+      count: 1000,
+    }
   });
 }

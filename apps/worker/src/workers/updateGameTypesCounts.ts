@@ -2,7 +2,7 @@ import { Worker } from "bullmq";
 import { prisma } from "../prisma";
 import { bullmqConnection, QUEUE_NAME_GAME_TYPE_COUNT } from "@teerank/teerank"
 import { getEnvInt } from "@teerank/teerank";
-import { minutesToMilliseconds } from "date-fns";
+import { minutesToSeconds } from "date-fns";
 
 const UPDATE_GAME_TYPES_COUNTS_CONCURRENCY = getEnvInt('UPDATE_GAME_TYPES_COUNTS_CONCURRENCY', 5);
 
@@ -50,7 +50,7 @@ export async function startUpdateGameTypesCountsWorker() {
     connection: bullmqConnection,
     concurrency: UPDATE_GAME_TYPES_COUNTS_CONCURRENCY,
     removeOnComplete: {
-      age: minutesToMilliseconds(10),
+      age: minutesToSeconds(10),
     },
     removeOnFail: {
       count: 1000,

@@ -7,6 +7,7 @@ import { Job, Worker } from "bullmq";
 import { bullmqConnection } from "@teerank/teerank";
 import { getEnvInt } from "@teerank/teerank";
 import { uniqBy } from "lodash";
+import { minutesToMilliseconds } from "date-fns";
 
 const POLL_GAME_SERVER_CONCURRENCY = getEnvInt('POLL_GAME_SERVER_CONCURRENCY', 100);
 
@@ -445,5 +446,11 @@ export async function startPollGameServerWorker() {
   return new Worker(QUEUE_NAME_POLL_GAME_SERVER, processor, {
     connection: bullmqConnection,
     concurrency: POLL_GAME_SERVER_CONCURRENCY,
+    removeOnComplete: {
+      age: minutesToMilliseconds(10),
+    },
+    removeOnFail: {
+      count: 1000,
+    }
   });
 }

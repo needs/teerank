@@ -5,6 +5,7 @@ import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPack
 import { QUEUE_NAME_POLL_MASTER_SERVER, wait } from "@teerank/teerank";
 import { Job, Worker } from "bullmq";
 import { bullmqConnection } from "@teerank/teerank";
+import { minutesToMilliseconds } from "date-fns";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -92,5 +93,11 @@ async function processor(job: Job) {
 export async function startPollMasterServerWorker() {
   return new Worker(QUEUE_NAME_POLL_MASTER_SERVER, processor, {
     connection: bullmqConnection,
+    removeOnComplete: {
+      age: minutesToMilliseconds(10),
+    },
+    removeOnFail: {
+      count: 1000,
+    }
   });
 }

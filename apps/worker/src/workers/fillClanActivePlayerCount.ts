@@ -6,8 +6,6 @@ import { redisClient } from "../redis";
 
 const MIN_CREATED_AT_KEY = 'fill-clan-active-player-count-min-created-at';
 
-// TODO: Process clans one by one to release pressure on the database.
-
 async function processor() {
   const minCreatedAt = new Date(await redisClient.get(MIN_CREATED_AT_KEY) ?? 0);
   console.log(`Min created at: ${minCreatedAt}`);

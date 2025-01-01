@@ -1,5 +1,5 @@
 import { prisma } from "../prisma";
-import { differenceInSeconds } from "date-fns";
+import { differenceInSeconds, minutesToMilliseconds } from "date-fns";
 import { removeDuplicatedClients } from "../utils";
 import { Worker } from "bullmq";
 import { bullmqConnection, QUEUE_NAME_UPDATE_PLAY_TIME } from "@teerank/teerank";
@@ -253,5 +253,8 @@ export async function startUpdatePlayTimeWorker() {
   return new Worker(QUEUE_NAME_UPDATE_PLAY_TIME, (job) => updatePlayTime(job.data.snapshotId), {
     connection: bullmqConnection,
     concurrency: UPDATE_PLAY_TIME_CONCURRENCY,
+    removeOnComplete: {
+      age: minutesToMilliseconds(10),
+    },
   });
 }

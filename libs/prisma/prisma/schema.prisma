@@ -39,6 +39,7 @@ model GameServer {
   gameServerState GameServerState?     @relation(name: "GameServerStateGameServerId")
 
   @@unique([ip, port])
+  @@index([createdAt])
 }
 
 model GameServerState {
@@ -83,7 +84,6 @@ model GameServerStateClient {
   inGame  Boolean
 
   @@index([gameServerStateId])
-  @@index([score, inGame])
   @@index([playerName])
 }
 
@@ -107,6 +107,7 @@ model Player {
 
   @@index([playTime(sort: Desc)])
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([clanName])
 }
 
 enum RankMethod {
@@ -169,6 +170,7 @@ model PlayerInfoGameType {
   gameTypeName String
 
   @@unique([playerName, gameTypeName])
+  @@index([gameTypeName, rating(sort: Desc, nulls: last)])
 }
 
 model PlayerInfoMap {
@@ -188,8 +190,7 @@ model PlayerInfoMap {
   @@unique([playerName, mapId])
   @@index([mapId])
   @@index([playTime(sort: Desc)])
-  @@index([rating(sort: Desc, nulls: last), playTime(sort: Desc)])
-  @@index([rating])
+  @@index([mapId, rating(sort: Desc, nulls: last)])
 }
 
 model GameServerClient {
@@ -209,8 +210,6 @@ model GameServerClient {
   inGame  Boolean
 
   @@index([snapshotId])
-  @@index([score, inGame])
-  @@index([playerName])
 }
 
 model GameServerSnapshot {
@@ -233,6 +232,7 @@ model GameServerSnapshot {
   gameServerId Int
   gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
 
+  @@index([gameServerId, createdAt])
   @@index([createdAt])
 }
 
@@ -250,6 +250,7 @@ model ClanInfoGameType {
   gameTypeName String
 
   @@unique([clanName, gameTypeName])
+  @@index([gameTypeName, playTime(sort: Desc)])
 }
 
 model ClanInfoMap {
@@ -268,6 +269,7 @@ model ClanInfoMap {
   @@unique([clanName, mapId])
   @@index([mapId])
   @@index([playTime(sort: Desc)])
+  @@index([mapId, playTime(sort: Desc)])
 }
 
 model Clan {
@@ -307,6 +309,7 @@ model ClanPlayerInfo {
 
   @@unique([clanName, playerName])
   @@index([playTime(sort: Desc)])
+  @@index([playerName])
 }
 
 model GlobalCounts {

@@ -40,3 +40,12 @@ services:
       BULL_PREFIX: bull
     depends_on:
       - redis
+
+  pghero:
+    image: ankane/pghero
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/teerank
+    depends_on:
+      - postgres

@@ -1,0 +1,21 @@
+# fly.toml app configuration file generated for teerankio-pghero on 2025-01-01T20:44:55+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'teerankio-pghero'
+primary_region = 'cdg'
+
+[build]
+  image = 'ankane/pghero'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  size = 'shared-cpu-1x'

@@ -10,7 +10,8 @@ const MIN_CREATED_AT_KEY = 'fill-clan-active-player-count-min-created-at';
 async function processor() {
   const redisClient = await redisClientPromise;
 
-  const minCreatedAt = new Date(await redisClient.get(MIN_CREATED_AT_KEY) ?? 0);
+  const storedMinCreatedAt = await redisClient.get(MIN_CREATED_AT_KEY);
+  const minCreatedAt = new Date(storedMinCreatedAt || 0);
   console.log(`Min created at: ${minCreatedAt}`);
 
   const clans = await prisma.clan.findMany({

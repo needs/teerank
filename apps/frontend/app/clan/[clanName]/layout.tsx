@@ -18,16 +18,7 @@ export default async function Index({
     select: {
       name: true,
       playTime: true,
-      _count: {
-        select: {
-          players: true,
-        },
-      },
-      players: {
-        select: {
-          playTime: true,
-        },
-      },
+      activePlayerCount: true,
     },
     where: {
       name: clanName,
@@ -60,7 +51,7 @@ export default async function Index({
       <header className="flex flex-row px-20 gap-4 items-center">
         <section className="flex flex-col gap-2 grow">
           <h1 className="text-2xl font-bold">{clan.name}</h1>
-          <span className="pr-4">{`${clan.players.length} players`}</span>
+          <span className="pr-4">{`${clan.activePlayerCount} players`}</span>
         </section>
         <aside className="flex flex-col gap-2 text-right">
           <p>
@@ -71,7 +62,7 @@ export default async function Index({
 
       <LayoutTabs
         clanName={clanName}
-        playerCount={clan.players.length}
+        playerCount={clan.activePlayerCount}
         gameTypeCount={gameTypeCount}
         mapCount={mapCount}
       />

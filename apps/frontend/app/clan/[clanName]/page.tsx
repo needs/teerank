@@ -22,11 +22,7 @@ export default async function Index({
 
   const clan = await prisma.clan.findUnique({
     select: {
-      _count: {
-        select: {
-          players: true,
-        },
-      },
+      activePlayerCount: true,
       clanPlayerInfos: {
         select: {
           playTime: true,
@@ -75,7 +71,7 @@ export default async function Index({
 
   return (
     <PlayerList
-      playerCount={clan._count.players}
+      playerCount={clan.activePlayerCount}
       rankMethod={null}
       showLastSeen={true}
       players={clan.clanPlayerInfos.map((playerInfo, index) => ({

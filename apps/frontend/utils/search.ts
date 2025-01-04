@@ -25,7 +25,7 @@ export async function search(query: string) {
   const clans = await prisma.$queryRawTyped(searchClans(`%${query}%`)).then((clans) => {
     return clans.map((clan) => ({
       ...clan,
-      playerCount: Number(clan.playerCount) || 0,
+      playerCount: Number(clan.activePlayerCount) || 0,
     }));
   });
 

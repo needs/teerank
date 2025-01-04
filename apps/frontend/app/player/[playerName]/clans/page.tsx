@@ -38,11 +38,7 @@ export default async function Index({
           playTime: true,
           clan: {
             select: {
-              _count: {
-                select: {
-                  players: true,
-                },
-              },
+              activePlayerCount: true,
             },
           },
         },
@@ -71,7 +67,7 @@ export default async function Index({
       clans={player.clanPlayerInfos.map((clanPlayerInfo, index) => ({
         rank: (page - 1) * 100 + index + 1,
         name: clanPlayerInfo.clanName,
-        playerCount: clanPlayerInfo.clan._count.players,
+        playerCount: clanPlayerInfo.clan.activePlayerCount,
         playTime: clanPlayerInfo.playTime,
       }))}
     />

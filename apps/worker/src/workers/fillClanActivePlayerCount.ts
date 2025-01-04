@@ -39,7 +39,11 @@ async function processor() {
 
   if (clans.length === 0) {
     console.log('No clans to fill');
-    return;
+
+    return {
+      minCreatedAt,
+      clansCount: 0,
+    };
   }
 
   console.log(`Filling clan active player count for ${clans.length} clans`);
@@ -56,6 +60,11 @@ async function processor() {
   const newMinCreatedAt = clans[clans.length - 1].createdAt;
   await redisClient.set(MIN_CREATED_AT_KEY, newMinCreatedAt.getTime());
   console.log(`Updated min created at to ${newMinCreatedAt.toISOString()}`);
+
+  return {
+    minCreatedAt: newMinCreatedAt,
+    clansCount: clans.length,
+  };
 }
 
 export async function startFillClanActivePlayerCountWorker() {

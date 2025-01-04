@@ -170,7 +170,7 @@ model PlayerInfoGameType {
   gameTypeName String
 
   @@unique([playerName, gameTypeName])
-  @@index([gameTypeName, rating(sort: Desc, nulls: last)])
+  @@index([gameTypeName, rating(sort: Desc, nulls: last), playTime(sort: Desc)])
 }
 
 model PlayerInfoMap {
@@ -189,7 +189,7 @@ model PlayerInfoMap {
 
   @@unique([playerName, mapId])
   @@index([playTime(sort: Desc)])
-  @@index([mapId, rating(sort: Desc, nulls: last)])
+  @@index([mapId, rating(sort: Desc, nulls: last), playTime(sort: Desc)])
 }
 
 model GameServerClient {

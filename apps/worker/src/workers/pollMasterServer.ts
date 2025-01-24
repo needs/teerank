@@ -52,26 +52,26 @@ async function processor(job: Job) {
   if (receivedPackets !== undefined) {
     const masterServerInfo = unpackMasterPackets(receivedPackets.packets)
 
-    const ids = await Promise.all(
-      masterServerInfo.gameServers.map(({ ip, port }) =>
-        prisma.gameServer.upsert({
-          where: {
-            ip_port: {
-              ip,
-              port,
-            },
-          },
-          select: {
-            id: true,
-          },
-          update: {},
-          create: {
+    const ids = [];
+    for (const { ip, port } of masterServerInfo.gameServers) {
+      const result = await prisma.gameServer.upsert({
+        where: {
+          ip_port: {
             ip,
             port,
           },
-        })
-      )
-    );
+        },
+        select: {
+          id: true,
+        },
+        update: {},
+        create: {
+          ip,
+          port,
+        },
+      });
+      ids.push(result);
+    }
 
     await prisma.masterServer.update({
       where: {

@@ -17,13 +17,15 @@ export const rankPlayersTime = async (snapshotId: number) => {
     },
   });
 
-  const playerInfoMaps = await Promise.all(
-    snapshot.clients.map((client) => prisma.playerInfoMap.upsert({
+  const playerInfoMaps = [];
+
+  for (const client of snapshot.clients) {
+    const playerInfoMap = await prisma.playerInfoMap.upsert({
       where: {
         playerName_mapId: {
           playerName: client.playerName,
           mapId: snapshot.mapId,
-        },
+        }
       },
       select: {
         id: true,
@@ -35,8 +37,9 @@ export const rankPlayersTime = async (snapshotId: number) => {
         playerName: client.playerName,
         mapId: snapshot.mapId,
       },
-    })),
-  );
+    });
+    playerInfoMaps.push(playerInfoMap);
+  }
 
   const playerTimes = new Map(playerInfoMaps.map(({ playerName, rating }) => [playerName, rating]));
   const newPlayerTimes = new Map<string, number>();
@@ -54,8 +57,8 @@ export const rankPlayersTime = async (snapshotId: number) => {
     }
   }
 
-  await Promise.all(Array.from(newPlayerTimes.entries()).map(([playerName, newTime]) =>
-    prisma.playerInfoMap.update({
+  for (const [playerName, newTime] of newPlayerTimes.entries()) {
+    await prisma.playerInfoMap.update({
       where: {
         playerName_mapId: {
           playerName,
@@ -65,6 +68,6 @@ export const rankPlayersTime = async (snapshotId: number) => {
       data: {
         rating: newTime,
       },
-    })
-  ));
+    });
+  }
 }

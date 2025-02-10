@@ -70,7 +70,7 @@ async function changePlayerClans(
   // clan, make sure old player clan is accurate.
 
   for (let i = 0; i < 10; i++) {
-    await Promise.all(Object.entries(playerClans).map(async ([playerName, newClanName_]) => {
+    for (const [playerName, newClanName_] of Object.entries(playerClans)) {
       const newClanName = newClanName_ || null;
 
       const currentPlayer = await prisma.player.findUnique({
@@ -101,7 +101,7 @@ async function changePlayerClans(
 
         delete playerClans[playerName];
       }
-    }));
+    }
 
     const remainingPlayerCount = Object.keys(playerClans).length;
     if (remainingPlayerCount > 0) {
@@ -116,14 +116,14 @@ async function changePlayerClans(
     console.error(`${remainingPlayerCount}/${totalPlayerCount} players failed to update`);
   }
 
-  await Promise.all(Object.entries(clanDelta).map(async ([clanName, delta]) => {
+  for (const [clanName, delta] of Object.entries(clanDelta)) {
     if (delta !== 0) {
       await prisma.clan.update({
         where: { name: clanName },
         data: { activePlayerCount: { increment: delta } },
       });
     }
-  }));
+  }
 }
 
 export async function processGameServerInfo(
@@ -180,73 +180,81 @@ export async function processGameServerInfo(
     onUpdatePlayerClanHook
   );
 
-  await Promise.all(uniqClients.map((client) => prisma.playerInfoGameType.upsert({
-    select: {
-      id: true,
-    },
-    where: {
-      playerName_gameTypeName: {
+  for (const client of uniqClients) {
+    await prisma.playerInfoGameType.upsert({
+      select: {
+        id: true,
+      },
+      where: {
+        playerName_gameTypeName: {
+          playerName: client.name,
+          gameTypeName: gameServerInfo.gameType,
+        },
+      },
+      update: {},
+      create: {
         playerName: client.name,
         gameTypeName: gameServerInfo.gameType,
       },
-    },
-    update: {},
-    create: {
-      playerName: client.name,
-      gameTypeName: gameServerInfo.gameType,
-    },
-  })));
+    });
+  }
 
-  await Promise.all(uniqClans.map((clan) => prisma.clanInfoGameType.upsert({
-    select: {
-      id: true,
-    },
-    where: {
-      clanName_gameTypeName: {
+  for (const clan of uniqClans) {
+    await prisma.clanInfoGameType.upsert({
+      select: {
+        id: true,
+      },
+      where: {
+        clanName_gameTypeName: {
+          clanName: clan,
+          gameTypeName: gameServerInfo.gameType,
+        },
+      },
+      update: {},
+      create: {
         clanName: clan,
         gameTypeName: gameServerInfo.gameType,
       },
-    },
-    update: {},
-    create: {
-      clanName: clan,
-      gameTypeName: gameServerInfo.gameType,
-    },
-  })));
+    });
+  }
 
-  await Promise.all(uniqClients.map((client) => prisma.playerInfoMap.upsert({
-    select: {
-      id: true,
-    },
-    where: {
-      playerName_mapId: {
+  for (const client of uniqClients) {
+    await prisma.playerInfoMap.upsert({
+      select: {
+        id: true,
+      },
+      where: {
+        playerName_mapId: {
+          playerName: client.name,
+          mapId: map.id,
+        },
+      },
+      update: {},
+      create: {
         playerName: client.name,
         mapId: map.id,
       },
-    },
-    update: {},
-    create: {
-      playerName: client.name,
-      mapId: map.id,
-    },
-  })));
+    });
+  }
 
-  await Promise.all(uniqClans.map((clan) => prisma.clanInfoMap.upsert({
-    select: {
-      id: true,
-    },
-    where: {
-      clanName_mapId: {
+  for (const clan of uniqClans) {
+    await prisma.clanInfoMap.upsert({
+      select: {
+        id: true,
+      },
+      where: {
+        clanName_mapId: {
+          clanName: clan,
+          mapId: map.id,
+        },
+      },
+      update: {},
+      create: {
         clanName: clan,
         mapId: map.id,
       },
-    },
-    update: {},
-    create: {
-      clanName: clan,
-      mapId: map.id,
-    },
-  })));
+    });
+  }
 
   const snapshot = await prisma.gameServerSnapshot.create({
     select: {
@@ -339,18 +347,16 @@ export async function processGameServerInfo(
     });
   });
 
-  await Promise.all(
-    snapshot.clients.map((client) =>
-      prisma.player.update({
-        where: {
-          name: client.playerName,
-        },
-        data: {
-          lastSeenAt: new Date(),
-        },
-      })
-    )
-  );
+  for (const client of snapshot.clients) {
+    await prisma.player.update({
+      where: {
+        name: client.playerName,
+      },
+      data: {
+        lastSeenAt: new Date(),
+      },
+    });
+  }
 
   await prisma.gameServer.update({
     where: {

@@ -7,30 +7,28 @@ import { minutesToSeconds } from "date-fns";
 const UPDATE_GAME_TYPES_COUNTS_CONCURRENCY = getEnvInt('UPDATE_GAME_TYPES_COUNTS_CONCURRENCY', 5);
 
 export async function updateGameTypeCount(gameTypeName: string) {
-  const [gameType, gameServerCount] = await Promise.all([
-    prisma.gameType.findUniqueOrThrow({
-      select: {
-        _count: {
-          select: {
-            playerInfoGameTypes: true,
-            map: true,
-            clanInfoGameTypes: true,
-          },
+  const gameType = await prisma.gameType.findUniqueOrThrow({
+    select: {
+      _count: {
+        select: {
+          playerInfoGameTypes: true,
+          map: true,
+          clanInfoGameTypes: true,
         },
       },
-      where: {
-        name: gameTypeName,
-      },
-    }),
+    },
+    where: {
+      name: gameTypeName,
+    },
+  });
 
-    prisma.gameServerState.count({
-      where: {
-        map: {
-          gameTypeName,
-        },
+  const gameServerCount = await prisma.gameServerState.count({
+    where: {
+      map: {
+        gameTypeName,
       },
-    })
-  ]);
+    },
+  });
 
   await prisma.gameType.update({
     where: {

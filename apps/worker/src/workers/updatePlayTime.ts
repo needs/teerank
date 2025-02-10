@@ -51,12 +51,77 @@ export async function updatePlayTime(snapshotId: number) {
   const clients = removeDuplicatedClients(snapshot.clients);
 
   for (const client of clients) {
-    await Promise.all([
-      prisma.playerInfoMap.upsert({
+    await prisma.playerInfoMap.upsert({
+      where: {
+        playerName_mapId: {
+          mapId: snapshot.mapId,
+          playerName: client.playerName,
+        },
+      },
+      update: {
+        playTime: {
+          increment: deltaPlayTime,
+        },
+      },
+      create: {
+        player: {
+          connect: {
+            name: client.playerName
+          }
+        },
+        map: {
+          connect: {
+            id: snapshot.mapId,
+          },
+        },
+        playTime: deltaPlayTime,
+      },
+    });
+
+    await prisma.playerInfoGameType.upsert({
+      where: {
+        playerName_gameTypeName: {
+          gameTypeName: snapshot.map.gameTypeName,
+          playerName: client.playerName,
+        },
+      },
+      update: {
+        playTime: {
+          increment: deltaPlayTime,
+        },
+      },
+      create: {
+        player: {
+          connect: {
+            name: client.playerName
+          }
+        },
+        gameType: {
+          connect: {
+            name: snapshot.map.gameTypeName,
+          },
+        },
+        playTime: deltaPlayTime,
+      },
+    });
+
+    await prisma.player.update({
+      where: {
+        name: client.playerName,
+      },
+      data: {
+        playTime: {
+          increment: deltaPlayTime,
+        },
+      },
+    });
+
+    if (client.clanName !== null) {
+      await prisma.clanInfoMap.upsert({
         where: {
-          playerName_mapId: {
+          clanName_mapId: {
             mapId: snapshot.mapId,
-            playerName: client.playerName,
+            clanName: client.clanName,
           },
         },
         update: {
@@ -65,9 +130,9 @@ export async function updatePlayTime(snapshotId: number) {
           },
         },
         create: {
-          player: {
+          clan: {
             connect: {
-              name: client.playerName
+              name: client.clanName
             }
           },
           map: {
@@ -77,13 +142,13 @@ export async function updatePlayTime(snapshotId: number) {
           },
           playTime: deltaPlayTime,
         },
-      }),
+      });
 
-      prisma.playerInfoGameType.upsert({
+      await prisma.clanInfoGameType.upsert({
         where: {
-          playerName_gameTypeName: {
+          clanName_gameTypeName: {
             gameTypeName: snapshot.map.gameTypeName,
-            playerName: client.playerName,
+            clanName: client.clanName,
           },
         },
         update: {
@@ -92,9 +157,9 @@ export async function updatePlayTime(snapshotId: number) {
           },
         },
         create: {
-          player: {
+          clan: {
             connect: {
-              name: client.playerName
+              name: client.clanName
             }
           },
           gameType: {
@@ -104,149 +169,80 @@ export async function updatePlayTime(snapshotId: number) {
           },
           playTime: deltaPlayTime,
         },
-      }),
+      });
 
-      prisma.player.update({
+      await prisma.clan.update({
         where: {
-          name: client.playerName,
+          name: client.clanName,
         },
         data: {
           playTime: {
             increment: deltaPlayTime,
           },
         },
-      }),
+      });
 
-      ...(client.clanName === null ? [] : [
-        prisma.clanInfoMap.upsert({
-          where: {
-            clanName_mapId: {
-              mapId: snapshot.mapId,
-              clanName: client.clanName,
-            },
+      await prisma.clanPlayerInfo.upsert({
+        where: {
+          clanName_playerName: {
+            clanName: client.clanName,
+            playerName: client.playerName,
           },
-          update: {
-            playTime: {
-              increment: deltaPlayTime,
-            },
+        },
+        update: {
+          playTime: {
+            increment: deltaPlayTime,
           },
-          create: {
-            clan: {
-              connect: {
-                name: client.clanName
-              }
-            },
-            map: {
-              connect: {
-                id: snapshot.mapId,
-              },
-            },
-            playTime: deltaPlayTime,
+        },
+        create: {
+          clan: {
+            connect: {
+              name: client.clanName
+            }
           },
-        }),
-
-        prisma.clanInfoGameType.upsert({
-          where: {
-            clanName_gameTypeName: {
-              gameTypeName: snapshot.map.gameTypeName,
-              clanName: client.clanName,
-            },
+          player: {
+            connect: {
+              name: client.playerName
+            }
           },
-          update: {
-            playTime: {
-              increment: deltaPlayTime,
-            },
-          },
-          create: {
-            clan: {
-              connect: {
-                name: client.clanName
-              }
-            },
-            gameType: {
-              connect: {
-                name: snapshot.map.gameTypeName,
-              },
-            },
-            playTime: deltaPlayTime,
-          },
-        }),
-
-        prisma.clan.update({
-          where: {
-            name: client.clanName,
-          },
-          data: {
-            playTime: {
-              increment: deltaPlayTime,
-            },
-          },
-        }),
-
-        prisma.clanPlayerInfo.upsert({
-          where: {
-            clanName_playerName: {
-              clanName: client.clanName,
-              playerName: client.playerName,
-            },
-          },
-          update: {
-            playTime: {
-              increment: deltaPlayTime,
-            },
-          },
-          create: {
-            clan: {
-              connect: {
-                name: client.clanName
-              }
-            },
-            player: {
-              connect: {
-                name: client.playerName
-              }
-            },
-            playTime: deltaPlayTime,
-          },
-        }),
-      ])
-    ])
+          playTime: deltaPlayTime,
+        },
+      });
+    }
   }
 
-  await Promise.all([
-    prisma.gameType.update({
-      where: {
-        name: snapshot.map.gameTypeName,
+  await prisma.gameType.update({
+    where: {
+      name: snapshot.map.gameTypeName,
+    },
+    data: {
+      playTime: {
+        increment: deltaPlayTime * clients.length,
       },
-      data: {
-        playTime: {
-          increment: deltaPlayTime * clients.length,
-        },
-      },
-    }),
+    },
+  });
 
-    prisma.map.update({
-      where: {
-        id: snapshot.mapId,
+  await prisma.map.update({
+    where: {
+      id: snapshot.mapId,
+    },
+    data: {
+      playTime: {
+        increment: deltaPlayTime * clients.length,
       },
-      data: {
-        playTime: {
-          increment: deltaPlayTime * clients.length,
-        },
-      },
-    }),
+    },
+  });
 
-    prisma.gameServer.update({
-      where: {
-        id: snapshot.gameServerId,
+  await prisma.gameServer.update({
+    where: {
+      id: snapshot.gameServerId,
+    },
+    data: {
+      playTime: {
+        increment: deltaPlayTime * clients.length,
       },
-      data: {
-        playTime: {
-          increment: deltaPlayTime * clients.length,
-        },
-      },
-    }),
-  ]);
+    },
+  });
 }
 
 export async function startUpdatePlayTimeWorker() {

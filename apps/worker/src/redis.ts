@@ -9,3 +9,5 @@ export const redisClientPromise = createClient({
 })
   .on('error', err => console.log('Redis Client Error', err))
   .connect();
+
+export type RedisClient = Awaited<typeof redisClientPromise>;

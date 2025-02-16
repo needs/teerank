@@ -1,35 +1,112 @@
-import { updateCount } from "./updateGlobalCounts";
-import redis from "redis-mock";
+import { updateClansCount, updateGameServersCount, updateGameTypesCount, updateMapsCount, updatePlayersCount } from "./updateGlobalCounts";
+import Redis from "ioredis-mock";
+import { prismaMock } from "../../test/mockPrisma";
+import { Clan, GameServer, GameType, Map, Player, RankMethod } from "@prisma/client";
+import { getGlobalCounts } from "@teerank/teerank";
 
-describe("updateCounts", () => {
-  test("create a new count", async () => {
-    const redisClient = redis.createClient();
+const mockPlayer: Player = {
+  createdAt: new Date(),
+  name: "test",
+  updatedAt: new Date(),
+  lastSeenAt: new Date(),
+  clanName: "test",
+  playTime: BigInt(1),
+}
 
-    await updateCount({
-      redisClient,
-      getNewEntities: async () => [{ createdAt: new Date() }],
-      lastUpdatedAtKey: "test-0-lastUpdatedAt",
-      countKey: "test-0-count",
-    });
+const mockClan: Clan = {
+  createdAt: new Date(),
+  name: "test",
+  updatedAt: new Date(),
+  playTime: BigInt(1),
+  activePlayerCount: 1,
+}
 
-    expect(await redisClient.get("test-0-count")).toBe("1");
-    expect(await redisClient.get("test-0-lastUpdatedAt")).toBe(new Date().toISOString());
-  });
+const mockMap: Map = {
+  createdAt: new Date(),
+  name: "test",
+  playTime: BigInt(1),
+  playerCount: 1,
+  clanCount: 1,
+  gameServerCount: 1,
+  id: 1,
+  gameTypeName: "test",
+}
 
-  test("update an existing count", async () => {
-    const redisClient = redis.createClient();
+const mockGameType: GameType = {
+  createdAt: new Date(),
+  name: "test",
+  playTime: BigInt(1),
+  playerCount: 1,
+  clanCount: 1,
+  gameServerCount: 1,
+  rankMethod: RankMethod.ELO,
+  mapCount: 1,
+}
 
-    await redisClient.set("test-1-count", "1");
-    await redisClient.set("test-1-lastUpdatedAt", new Date().toISOString());
+const mockGameServer: GameServer = {
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  lastSeenAt: new Date(),
+  playTime: BigInt(1),
+  failureCount: 1,
+  ip: "127.0.0.1",
+  port: 1,
+  masterServerId: 1,
+  id: 1,
+}
 
-    await updateCount({
-      redisClient,
-      getNewEntities: async () => [{ createdAt: new Date() }],
-      lastUpdatedAtKey: "test-1-lastUpdatedAt",
-      countKey: "test-1-count",
-    });
+const redis = new Redis();
 
-    expect(await redisClient.get("test-1-count")).toBe("2");
-    expect(await redisClient.get("test-1-lastUpdatedAt")).toBe(new Date().toISOString());
-  });
+beforeEach(async () => {
+  await redis.flushall();
+});
+
+test("updatePlayersCount", async () => {
+  prismaMock.player.findMany.mockResolvedValue([mockPlayer]);
+
+  await updatePlayersCount(redis, new Date(0));
+  await updatePlayersCount(redis, new Date(0));
+
+  const globalCounts = await getGlobalCounts(redis);
+  expect(globalCounts.players).toBe(2);
+});
+
+test("updateClansCount", async () => {
+  prismaMock.clan.findMany.mockResolvedValue([mockClan]);
+
+  await updateClansCount(redis, new Date(0));
+  await updateClansCount(redis, new Date(0));
+
+  const globalCounts = await getGlobalCounts(redis);
+  expect(globalCounts.clans).toBe(2);
+});
+
+test("updateGameServersCount", async () => {
+  prismaMock.gameServer.findMany.mockResolvedValue([mockGameServer]);
+
+  await updateGameServersCount(redis, new Date(0));
+  await updateGameServersCount(redis, new Date(0));
+
+  const globalCounts = await getGlobalCounts(redis);
+  expect(globalCounts.gameServers).toBe(2);
+});
+
+test("updateMapsCount", async () => {
+  prismaMock.map.findMany.mockResolvedValue([mockMap]);
+
+  await updateMapsCount(redis, new Date(0));
+  await updateMapsCount(redis, new Date(0));
+
+  const globalCounts = await getGlobalCounts(redis);
+  expect(globalCounts.maps).toBe(2);
+});
+
+test("updateGameTypesCount", async () => {
+  prismaMock.gameType.findMany.mockResolvedValue([mockGameType]);
+
+  await updateGameTypesCount(redis, new Date(0));
+  await updateGameTypesCount(redis, new Date(0));
+
+  const globalCounts = await getGlobalCounts(redis);
+  expect(globalCounts.gameTypes).toBe(2);
 });

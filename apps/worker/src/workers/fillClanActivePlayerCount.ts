@@ -2,15 +2,13 @@ import { Worker } from "bullmq";
 import { prisma } from "../prisma";
 import { QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT } from "@teerank/teerank";
 import { bullmqConnection } from "@teerank/teerank";
-import { redisClientPromise } from "../redis";
+import { redis } from "../redis";
 import { minutesToSeconds } from "date-fns";
 
 const MIN_CREATED_AT_KEY = 'fill-clan-active-player-count-min-created-at';
 
 async function processor() {
-  const redisClient = await redisClientPromise;
-
-  const minCreatedAt = new Date(Number(await redisClient.get(MIN_CREATED_AT_KEY) || "0"));
+  const minCreatedAt = new Date(Number(await redis.get(MIN_CREATED_AT_KEY) || "0"));
   console.log(`Min created at: ${minCreatedAt}`);
 
   const clans = await prisma.clan.findMany({
@@ -58,7 +56,7 @@ async function processor() {
   console.log(`Filled clan active player count for ${clans.length} clans`);
 
   const newMinCreatedAt = clans[clans.length - 1].createdAt;
-  await redisClient.set(MIN_CREATED_AT_KEY, newMinCreatedAt.getTime());
+  await redis.set(MIN_CREATED_AT_KEY, newMinCreatedAt.getTime());
   console.log(`Updated min created at to ${newMinCreatedAt.toISOString()}`);
 
   return {

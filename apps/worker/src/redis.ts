@@ -1,13 +1,10 @@
-import { createClient } from 'redis';
 import { REDIS_HOST, REDIS_PORT, REDIS_FAMILY } from '@teerank/teerank';
+import { Redis } from 'ioredis';
 
-export const redisClientPromise = createClient({
-  url: `redis://${REDIS_HOST}:${REDIS_PORT}`,
-  socket: {
-    family: REDIS_FAMILY,
-  },
-})
-  .on('error', err => console.log('Redis Client Error', err))
-  .connect();
+export const redis = new Redis({
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+  family: REDIS_FAMILY,
+});
 
-export type RedisClient = Awaited<typeof redisClientPromise>;
+redis.on('error', err => console.error('Redis Client Error', err));

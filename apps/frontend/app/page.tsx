@@ -168,6 +168,27 @@ export default async function Index() {
       <main className="py-12 px-4 md:px-12 xl:px-20 text-[#666] flex flex-col gap-8">
         <section className="flex flex-col gap-4">
           <header className="flex flex-row justify-between items-baseline">
+            <h1 className="text-2xl font-bold clear-both">Faster search</h1>
+            <p className="text-md clear-both text-[#888]">February 16th 2025</p>
+          </header>
+          <p>
+            The search has been improved to be instant and more tolerant to
+            typos.
+          </p>
+          <p>
+            The search is now using a new database index and a new algorithm to
+            find the best matches.  The database has been greatly cleaned up
+            and optimized for this to not bring down the whole project.
+          </p>
+          <p>
+            The effort to shrink database down, migrate to BullMQ, add more
+            monitoring and improve performance is almost over, opening the way
+            for upcoming features.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <header className="flex flex-row justify-between items-baseline">
             <h1 className="text-2xl font-bold clear-both">About the recent outages</h1>
             <p className="text-md clear-both text-[#888]">November 28th 2024</p>
           </header>

@@ -1,7 +1,8 @@
 import { PlayerList } from '../../components/PlayerList';
-import { getGlobalCounts } from '../../utils/globalCounts';
+import { getGlobalCounts } from '@teerank/teerank';
 import prisma from '../../utils/prisma';
 import { searchParamSchema } from './schema';
+import redis from '../../utils/redis';
 
 export const metadata = {
   title: 'All Players - Teerank',
@@ -44,7 +45,7 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
-  const { playerCount } = await getGlobalCounts();
+  const globalCounts = await getGlobalCounts(redis);
 
   return (
     <>
@@ -52,7 +53,7 @@ export default async function Index({
         {`Teerank is a simple and fast ranking system for Teeworlds.`}
       </p>
       <PlayerList
-        playerCount={playerCount}
+        playerCount={globalCounts.players}
         rankMethod={null}
         showLastSeen={true}
         players={players.map((player, index) => ({

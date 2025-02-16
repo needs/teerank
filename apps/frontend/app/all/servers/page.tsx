@@ -1,8 +1,9 @@
 import { ServerList } from '../../../components/ServerList';
-import { getGlobalCounts } from '../../../utils/globalCounts';
+import { getGlobalCounts } from '@teerank/teerank';
 import prisma from '../../../utils/prisma';
 import { searchParamSchema } from '../schema';
 import { ComponentProps } from 'react';
+import redis from '../../../utils/redis';
 
 export const metadata = {
   title: 'All Servers - Teerank',
@@ -28,7 +29,7 @@ export default async function Index({
     skip: (page - 1) * 100,
   });
 
-  const { gameServerCount } = await getGlobalCounts();
+  const globalCounts = await getGlobalCounts(redis);
 
   const servers = gameServerStates.map((gameServerState, index) => ({
     rank: (page - 1) * 100 + index + 1,
@@ -41,5 +42,10 @@ export default async function Index({
     port: gameServerState.gameServer.port,
   }));
 
-  return <ServerList serverCount={gameServerCount} servers={servers} />;
+  return (
+    <ServerList
+      serverCount={globalCounts.gameServers}
+      servers={servers}
+    />
+  );
 }

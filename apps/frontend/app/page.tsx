@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { twMerge } from 'tailwind-merge';
 import prisma from '../utils/prisma';
-import { getGlobalCounts } from '../utils/globalCounts';
+import { getGlobalCounts } from '@teerank/teerank';
 import { formatInteger } from '../utils/format';
 import { encodeString } from '../utils/encoding';
+import redis from '../utils/redis';
 
 export const metadata = {
   title: 'Teerank',
@@ -88,8 +89,7 @@ export default async function Index() {
     players,
     clans,
     gameTypes,
-    gameTypesCount,
-    { playerCount, clanCount },
+    globalCounts,
   ] = await Promise.all([
     prisma.player.findMany({
       select: {
@@ -128,8 +128,7 @@ export default async function Index() {
       take: 3,
     }),
 
-    prisma.gameType.count(),
-    getGlobalCounts(),
+    getGlobalCounts(redis),
   ]);
 
   return (
@@ -141,7 +140,7 @@ export default async function Index() {
         <RankCard
           title="Players"
           titleHref="/all"
-          count={playerCount}
+          count={globalCounts.players}
           rankings={players.map((player) => player.name)}
           formatRankingHref={(playerName) =>
             `/player/${encodeString(playerName)}`
@@ -150,15 +149,15 @@ export default async function Index() {
         <RankCard
           title="Clans"
           titleHref="/all/clans"
-          count={clanCount}
+          count={globalCounts.clans}
           rankings={clans.map((clan) => clan.name)}
           formatRankingHref={(clanName) => `/clan/${encodeString(clanName)}`}
         />
         <RankCard
           title="Gametypes"
           titleHref="/gametypes"
-          count={gameTypesCount}
-          rankings={gameTypes.map((gameTypes) => gameTypes.name)}
+          count={globalCounts.gameTypes}
+          rankings={gameTypes.map((gameType) => gameType.name)}
           formatRankingHref={(gameType) =>
             `/gametype/${encodeString(gameType)}`
           }

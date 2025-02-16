@@ -1,6 +1,7 @@
 import { ClanList } from '../../../components/ClanList';
-import { getGlobalCounts } from '../../../utils/globalCounts';
+import { getGlobalCounts } from '@teerank/teerank';
 import prisma from '../../../utils/prisma';
+import redis from '../../../utils/redis';
 import { searchParamSchema } from '../schema';
 
 export const metadata = {
@@ -15,7 +16,7 @@ export default async function Index({
 }) {
   const { page } = searchParamSchema.parse(searchParams);
 
-  const [clans, { clanCount }] = await Promise.all([
+  const [clans, globalCounts] = await Promise.all([
     prisma.clan.findMany({
       select: {
         name: true,
@@ -31,12 +32,12 @@ export default async function Index({
       skip: (page - 1) * 100,
     }),
 
-    getGlobalCounts(),
+    getGlobalCounts(redis),
   ]);
 
   return (
     <ClanList
-      clanCount={clanCount}
+      clanCount={globalCounts.clans}
       clans={clans.map((clan, index) => ({
         rank: (page - 1) * 100 + index + 1,
         name: clan.name,

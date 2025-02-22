@@ -58,7 +58,7 @@ const queueRankPlayer = getQueueRankPlayer();
 
 export type OnUpdatePlayerClanHook = ((playerName: string, oldClanName: string | null, newClanName: string | null) => Promise<void>);
 
-async function changePlayerClans(
+export async function changePlayerClans(
   playerClans: Record<string, string | null>,
   onUpdate: OnUpdatePlayerClanHook | undefined
 ) {
@@ -300,57 +300,10 @@ export async function processGameServerInfo(
     },
   });
 
-  await prisma.$transaction(async (tx) => {
-    // I couldn't find an elegant way to do replace all clients for an
-    // existing game server state so we delete the existing one and create
-    // a new one.  Do it in a transaction to avoid race conditions.
-
-    await tx.gameServerState.deleteMany({
-      where: {
-        gameServerId: gameServer.id,
-      },
-    });
-
-    await tx.gameServerState.create({
-      data: {
-        gameServer: {
-          connect: {
-            id: gameServer.id,
-          },
-        },
-
-        version: gameServerInfo.version,
-        name: gameServerInfo.name,
-
-        map: {
-          connect: {
-            id: map.id,
-          },
-        },
-        numPlayers: gameServerInfo.numPlayers,
-        maxPlayers: gameServerInfo.maxPlayers,
-        numClients: gameServerInfo.numClients,
-        maxClients: gameServerInfo.maxClients,
-
-        clients: {
-          createMany: {
-            data: gameServerInfo.clients.map((client) => ({
-              playerName: client.name,
-              clanName: client.clan === "" ? undefined : client.clan,
-              country: client.country,
-              score: client.score,
-              inGame: client.inGame,
-            })),
-          },
-        }
-      },
-    });
-  });
-
-  for (const client of snapshot.clients) {
+  for (const client of uniqClients) {
     await prisma.player.update({
       where: {
-        name: client.playerName,
+        name: client.name,
       },
       data: {
         lastSeenAt: new Date(),
@@ -365,6 +318,42 @@ export async function processGameServerInfo(
     data: {
       lastSeenAt: new Date(),
       failureCount: 0,
+
+      gameServerState: {
+        create: {
+          version: gameServerInfo.version,
+          name: gameServerInfo.name,
+
+          map: {
+            connect: {
+              id: map.id,
+            },
+          },
+          numPlayers: gameServerInfo.numPlayers,
+          maxPlayers: gameServerInfo.maxPlayers,
+          numClients: gameServerInfo.numClients,
+          maxClients: gameServerInfo.maxClients,
+
+          clients: {
+            createMany: {
+              data: gameServerInfo.clients.map((client) => ({
+                playerName: client.name,
+                clanName: client.clan === "" ? undefined : client.clan,
+                country: client.country,
+                score: client.score,
+                inGame: client.inGame,
+              })),
+            },
+          }
+        },
+      },
+    },
+  });
+
+  // Delete any game server states that don't have a game server anymore.
+  await prisma.gameServerState.deleteMany({
+    where: {
+      gameServerId: null,
     },
   });
 

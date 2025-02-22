@@ -61,8 +61,8 @@ model GameServerState {
 
   clients GameServerStateClient[]
 
-  gameServer   GameServer @relation(name: "GameServerStateGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
-  gameServerId Int        @unique
+  gameServer   GameServer? @relation(name: "GameServerStateGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
+  gameServerId Int?        @unique
 
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
 }

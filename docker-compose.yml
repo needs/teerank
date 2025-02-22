@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:latest
     ports:
-      - "5432:5432"
+      - "5452:5432"
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: teerank
@@ -18,13 +18,13 @@ services:
       POSTGRES_PASSWORD: postgres-test
       POSTGRES_DB: teerank-test
     ports:
-      - "5433:5432"
+      - "5453:5432"
     command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
 
   redis:
     image: redis:latest
     ports:
-      - "6379:6379"
+      - "6399:6379"
     restart: always
 
   bullboard:

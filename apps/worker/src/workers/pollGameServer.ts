@@ -56,11 +56,8 @@ function skipPolling(gameServer: GameServer & { gameServerState: GameServerState
 const queueUpdatePlayTime = getQueueUpdatePlayTime();
 const queueRankPlayer = getQueueRankPlayer();
 
-export type OnUpdatePlayerClanHook = ((playerName: string, oldClanName: string | null, newClanName: string | null) => Promise<void>);
-
 export async function changePlayerClans(
   playerClans: Record<string, string | null>,
-  onUpdate: OnUpdatePlayerClanHook | undefined
 ) {
   const totalPlayerCount = Object.keys(playerClans).length;
   const clanDelta: Record<string, number> = {};
@@ -79,11 +76,6 @@ export async function changePlayerClans(
       });
 
       const oldClanName = currentPlayer?.clanName || null;
-
-      // Used by tests to simulate race conditions.
-      if (onUpdate !== undefined) {
-        await onUpdate(playerName, oldClanName, newClanName);
-      }
 
       const ret = await prisma.player.updateMany({
         where: { name: playerName, clanName: oldClanName },
@@ -127,7 +119,6 @@ export async function changePlayerClans(
 export async function processGameServerInfo(
   gameServer: GameServer & { gameServerState: GameServerState | null },
   gameServerInfo: GameServerInfoPacket,
-  onUpdatePlayerClanHook: OnUpdatePlayerClanHook | undefined = undefined
 ) {
   const map = await prisma.map.upsert({
     select: {
@@ -175,7 +166,6 @@ export async function processGameServerInfo(
 
   await changePlayerClans(
     Object.fromEntries(uniqClients.map((client) => [client.name, client.clan])),
-    onUpdatePlayerClanHook
   );
 
   for (const client of uniqClients) {

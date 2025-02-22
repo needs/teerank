@@ -126,7 +126,7 @@ describe('changePlayerClan', () => {
 
     await changePlayerClans({
       'name1': null,
-    }, undefined);
+    });
 
     expect(prismaMock.player.updateMany).toHaveBeenCalledWith({
       where: { name: 'name1', clanName: 'clan1' },
@@ -145,7 +145,7 @@ describe('changePlayerClan', () => {
 
     await changePlayerClans({
       'name1': 'clan2',
-    }, undefined);
+    });
 
     expect(prismaMock.player.updateMany).toHaveBeenCalledWith({
       where: { name: 'name1', clanName: 'clan1' },
@@ -171,7 +171,7 @@ describe('changePlayerClan', () => {
 
     await changePlayerClans({
       'name1': 'clan2',
-    }, undefined);
+    });
 
     expect(prismaMock.player.updateMany).toHaveBeenCalledWith({
       where: { name: 'name1', clanName: 'clan1' },

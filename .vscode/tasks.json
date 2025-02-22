@@ -94,14 +94,6 @@
       }
     },
     {
-      "label": "Setup databases",
-      "type": "shell",
-      "command": "npx nx run prisma:prisma-push --accept-data-loss && DATABASE_URL=postgres://postgres-test:postgres-test@localhost:5433/teerank-test npx nx run prisma:prisma-push --accept-data-loss",
-      "presentation": {
-        "close": true
-      }
-    },
-    {
       "label": "Start Serve",
       "dependsOn": [
         "Start docker",

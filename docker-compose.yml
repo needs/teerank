@@ -11,16 +11,6 @@ services:
     command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
     restart: always
 
-  postgres-test:
-    image: postgres:latest
-    environment:
-      POSTGRES_USER: postgres-test
-      POSTGRES_PASSWORD: postgres-test
-      POSTGRES_DB: teerank-test
-    ports:
-      - "5453:5432"
-    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
-
   redis:
     image: redis:latest
     ports:

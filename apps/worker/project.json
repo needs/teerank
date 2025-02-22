@@ -60,7 +60,6 @@
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "jestConfig": "apps/worker/jest.config.ts",
-        "runInBand": true
       }
     },
     "docker-build": {

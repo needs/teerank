@@ -104,9 +104,7 @@ export async function changePlayerClans(
     }
 
     const remainingPlayerCount = Object.keys(playerClans).length;
-    if (remainingPlayerCount > 0) {
-      console.log(`${remainingPlayerCount}/${totalPlayerCount} players left to update (${i})`);
-    } else {
+    if (remainingPlayerCount === 0) {
       break;
     }
   }

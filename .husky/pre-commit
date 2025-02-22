@@ -3,4 +3,4 @@
 
 npx nx run-many -t lint --parallel=3
 npx nx run-many -t build --parallel=3
-npx nx run-many -t test --runInBand --parallel=1
+npx nx run-many -t test

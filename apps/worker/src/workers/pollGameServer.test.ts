@@ -40,10 +40,6 @@ const mockMap = {
   gameServerCount: 0,
 };
 
-beforeEach(() => {
-  jest.clearAllMocks();
-});
-
 test('processGameServerInfo', async () => {
   const clients = [
     {

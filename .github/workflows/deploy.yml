@@ -54,7 +54,7 @@ jobs:
       - name: Test
         run: |
           npx nx run prisma:prisma-push
-          npx nx run-many -t test --runInBand
+          npx nx run-many -t test
         env:
           PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x", "linux-musl"]'
 

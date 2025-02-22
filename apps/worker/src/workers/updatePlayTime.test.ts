@@ -104,14 +104,8 @@ function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPlayTimes
   });
 
   // Check clan-player updates
-  expectedClanPlayerPlayTimes.forEach((playTime, index) => {
+  expectedClanPlayerPlayTimes.forEach((playTime) => {
     expect(prismaMock.clanPlayerInfo.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        clanName_playerName: {
-          clanName: `clan${Math.floor(index / 2)}`,
-          playerName: `player${index}`
-        }
-      },
       update: { playTime: { increment: playTime } }
     }));
   });

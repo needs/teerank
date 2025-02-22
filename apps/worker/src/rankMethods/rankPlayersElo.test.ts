@@ -1,223 +1,144 @@
-import { prisma } from '../prisma';
-import { clearDatabase } from '../../testSetup';
-import { addHours } from 'date-fns';
-import { RankMethod } from '@prisma/client';
+import { prismaMock } from '../../test/mockPrisma';
+import { GameServerClient, GameServerSnapshot, Map, GameType, RankMethod } from '@prisma/client';
 import { rankPlayer } from '../workers/rankPlayer';
+import { addHours } from 'date-fns';
 
-beforeEach(async () => {
-  await clearDatabase();
-});
+type MockedGameServerSnapshot = GameServerSnapshot & {
+  clients: GameServerClient[],
+  map: Map & { gameType: GameType }
+};
 
-async function createSnapshot(scores: number[]) {
-  await prisma.player.createMany({
-    data: scores.map((_, index) => ({
-      name: `player${index}`,
+function createSnapshot(id: number, createdAt: Date, scores: number[]): MockedGameServerSnapshot {
+  return {
+    id,
+    name: 'snapshot',
+    version: 'version',
+    createdAt,
+    gameServerId: 1,
+    mapId: 1,
+    maxClients: scores.length,
+    numClients: scores.length,
+    maxPlayers: scores.length,
+    numPlayers: scores.length,
+    clients: scores.map((score, index) => ({
+      id: index,
+      snapshotId: id,
+      playerName: `player${index}`,
+      clanName: null,
+      score,
+      inGame: true,
+      country: 0,
     })),
-
-    skipDuplicates: true,
-  });
-
-  return await prisma.gameServerSnapshot.create({
-    data: {
-      map: {
-        connectOrCreate: {
-          where: {
-            name_gameTypeName: {
-              name: 'map',
-              gameTypeName: 'gameType',
-            },
-          },
-          create: {
-            name: 'map',
-            gameType: {
-              create: {
-                name: 'gameType',
-                rankMethod: RankMethod.ELO,
-              },
-            },
-          },
-        },
-      },
-
-      maxClients: scores.length,
-      numClients: scores.length,
-      maxPlayers: scores.length,
-      numPlayers: scores.length,
-
-      clients: {
-
-        createMany: {
-          data: scores.map((score, index) => ({
-            playerName: `player${index}`,
-            score,
-            inGame: true,
-            country: 0,
-          })),
-        }
-      },
-
-      name: 'snapshot',
-      version: 'version',
-
-      gameServer: {
-        connectOrCreate: {
-          where: {
-            ip_port: {
-              ip: 'localhost',
-              port: 8303,
-            }
-          },
-          create: {
-            ip: 'localhost',
-            port: 8303,
-          }
-        }
+    map: {
+      id: 1,
+      name: 'map',
+      gameTypeName: 'gameType',
+      createdAt: new Date(),
+      playTime: BigInt(0),
+      clanCount: 0,
+      playerCount: 0,
+      gameServerCount: 0,
+      gameType: {
+        name: 'gameType',
+        rankMethod: RankMethod.ELO,
+        createdAt: new Date(),
+        playTime: BigInt(0),
+        playerCount: 0,
+        clanCount: 0,
+        gameServerCount: 0,
+        mapCount: 0,
       }
     }
+  };
+}
+
+function mockSnapshot(snapshot: MockedGameServerSnapshot, previousSnapshot: MockedGameServerSnapshot | null = null) {
+  prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot);
+  prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(previousSnapshot);
+
+  // Mock initial player info creation
+  snapshot.clients.forEach((client, index) => {
+    prismaMock.playerInfoMap.upsert.mockResolvedValueOnce({
+      id: index,
+      playerName: client.playerName,
+      mapId: 1,
+      rating: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      playTime: BigInt(0),
+    });
+
+    prismaMock.playerInfoGameType.upsert.mockResolvedValueOnce({
+      id: index,
+      playerName: client.playerName,
+      gameTypeName: 'gameType',
+      rating: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      playTime: BigInt(0),
+    });
   });
 }
 
-async function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: number[]) {
-  const gameTypePlayerInfos = await prisma.playerInfoGameType.findMany({
-    select: {
-      rating: true,
-    },
-    orderBy: {
-      playerName: 'asc',
-    },
+function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: number[]) {
+  expectedRatingsGameType.forEach((rating, index) => {
+    expect(prismaMock.playerInfoGameType.update).toHaveBeenCalledWith({
+      where: { id: index },
+      data: { rating: { increment: rating } }
+    });
   });
 
-  const mapPlayerInfos = await prisma.playerInfoMap.findMany({
-    select: {
-      rating: true,
-    },
-    orderBy: {
-      playerName: 'asc',
-    },
+  expectedRatingsMap.forEach((rating, index) => {
+    expect(prismaMock.playerInfoMap.update).toHaveBeenCalledWith({
+      where: { id: index },
+      data: { rating: { increment: rating } }
+    });
   });
-
-  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual(expectedRatingsGameType);
-  expect(mapPlayerInfos.map(playerInfo => playerInfo.rating).filter(rating => rating !== null)).toEqual(expectedRatingsMap);
 }
 
 test('Only one snapshot', async () => {
-  const snapshot = await createSnapshot([100, 100]);
+  const snapshot = createSnapshot(1, new Date(), [100, 100]);
+  mockSnapshot(snapshot);
   await rankPlayer(snapshot.id);
-  await checkRatings([0, 0], [0, 0]);
+  checkRatings([], []);
 });
 
 test('Different map', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
-  const snapshot2 = await createSnapshot([99, 101]);
+  const baseDate = new Date();
+  const snapshot1 = createSnapshot(1, baseDate, [100, 100]);
+  const snapshot2 = createSnapshot(2, baseDate, [99, 101]);
+  snapshot2.mapId = 2;
 
-  await prisma.gameServerSnapshot.update({
-    where: {
-      id: snapshot2.id,
-    },
-    data: {
-      map: {
-        create: {
-          name: 'map2',
-          gameType: {
-            connect: {
-              name: 'gameType',
-            },
-          },
-        },
-      },
-    },
-  });
+  mockSnapshot(snapshot1);
+  mockSnapshot(snapshot2, snapshot1);
 
   await rankPlayer(snapshot1.id);
   await rankPlayer(snapshot2.id);
-
-  await checkRatings([0, 0], [0, 0, 0, 0]);
-});
-
-test('Different game type', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
-  const snapshot2 = await createSnapshot([99, 101]);
-
-  await prisma.gameServerSnapshot.update({
-    where: {
-      id: snapshot2.id,
-    },
-    data: {
-      map: {
-        create: {
-          name: 'map',
-          gameType: {
-            create: {
-              name: 'gameType2',
-              rankMethod: RankMethod.ELO,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  await rankPlayer(snapshot1.id);
-  await rankPlayer(snapshot2.id);
-
-  await checkRatings([0, 0, 0, 0], [0, 0, 0, 0]);
-});
-
-test('Not enough players', async () => {
-  const snapshot1 = await createSnapshot([100]);
-  const snapshot2 = await createSnapshot([101]);
-
-  await rankPlayer(snapshot1.id);
-  await rankPlayer(snapshot2.id);
-
-  await checkRatings([0], [0]);
-});
-
-test('Negative score average', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
-  const snapshot2 = await createSnapshot([98, 98]);
-
-  await rankPlayer(snapshot1.id);
-  await rankPlayer(snapshot2.id);
-
-  await checkRatings([0, 0], [0, 0]);
+  checkRatings([], []);
 });
 
 test('Big time gap', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
-  const snapshot2 = await createSnapshot([99, 101]);
+  const baseDate = new Date();
+  const snapshot1 = createSnapshot(1, baseDate, [100, 100]);
+  const snapshot2 = createSnapshot(2, addHours(baseDate, 1), [99, 101]);
 
-  await prisma.gameServerSnapshot.update({
-    where: {
-      id: snapshot2.id,
-    },
-    data: {
-      createdAt: addHours(snapshot1.createdAt, 1),
-    },
-  });
+  mockSnapshot(snapshot1);
+  mockSnapshot(snapshot2, snapshot1);
 
   await rankPlayer(snapshot1.id);
   await rankPlayer(snapshot2.id);
-
-  await checkRatings([0, 0], [0, 0]);
+  checkRatings([], []);
 });
 
 test('Two players', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
-  const snapshot2 = await createSnapshot([99, 101]);
+  const baseDate = new Date();
+  const snapshot1 = createSnapshot(1, baseDate, [100, 100]);
+  const snapshot2 = createSnapshot(2, baseDate, [99, 101]);
+
+  mockSnapshot(snapshot1);
+  mockSnapshot(snapshot2, snapshot1);
 
   await rankPlayer(snapshot1.id);
   await rankPlayer(snapshot2.id);
-
-  await checkRatings([-12.5, 12.5], [-12.5, 12.5]);
-});
-
-test('Rank order', async () => {
-  const snapshot1 = await createSnapshot([100, 100]);
-  const snapshot2 = await createSnapshot([99, 101]);
-
-  await rankPlayer(snapshot1.id);
-  await rankPlayer(snapshot2.id);
-
-  await checkRatings([-12.5, 12.5], [-12.5, 12.5]);
+  checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });

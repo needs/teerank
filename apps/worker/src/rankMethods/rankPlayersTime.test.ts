@@ -1,34 +1,62 @@
 import { prismaMock } from '../../test/mockPrisma';
-import { GameServerSnapshot, RankMethod } from '@prisma/client';
+import { GameServerClient, GameServerSnapshot, GameType, Map, RankMethod } from '@prisma/client';
 import { rankPlayer } from '../workers/rankPlayer';
 
-// Helper to create a mock snapshot
-function createMockSnapshot(scores: number[]) {
-  const snapshot = {
+type MockedGameServerSnapshot = GameServerSnapshot & { clients: GameServerClient[], map: Map & { gameType: GameType } };
+
+function createSnapshot(scores: number[]): MockedGameServerSnapshot {
+  return {
     id: 1,
+    name: 'snapshot',
+    version: 'version',
+    createdAt: new Date(),
+    gameServerId: 1,
+    mapId: 1,
+    numPlayers: 0,
+    maxPlayers: 0,
+    numClients: 0,
+    maxClients: 0,
     clients: scores.map((score, index) => ({
+      id: index,
+      snapshotId: 1,
       playerName: `player${index}`,
+      clanName: null,
       score,
+      country: 0,
       inGame: true,
     })),
-    mapId: 1,
     map: {
       name: 'map',
+      id: 1,
+      createdAt: new Date(),
+      clanCount: 0,
+      gameServerCount: 0,
+      playerCount: 0,
+      playTime: BigInt(0),
+      gameTypeName: 'gameType',
       gameType: {
         name: 'gameType',
         rankMethod: RankMethod.TIME,
+        createdAt: new Date(),
+        playTime: BigInt(0),
+        playerCount: 0,
+        clanCount: 0,
+        gameServerCount: 0,
+        mapCount: 0,
       }
     }
   };
+}
 
-  prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot as unknown as GameServerSnapshot);
+function mockSnapshot(snapshot: MockedGameServerSnapshot) {
+  prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot);
 
-  scores.forEach((_, index) => {
+  snapshot.clients.forEach((client, index) => {
     prismaMock.playerInfoMap.upsert.mockResolvedValueOnce({
       id: index,
-      playerName: `player${index}`,
+      playerName: client.playerName,
       rating: null,
-      mapId: 1,
+      mapId: snapshot.mapId,
       createdAt: new Date(),
       updatedAt: new Date(),
       playTime: BigInt(0),
@@ -38,22 +66,7 @@ function createMockSnapshot(scores: number[]) {
   return snapshot;
 }
 
-// Helper to mock existing player info and verify updates
-async function checkRatings(expectedRatings: (number | null)[]) {
-  // For each player, mock the upsert response
-  expectedRatings.forEach((_, index) => {
-    prismaMock.playerInfoMap.upsert.mockResolvedValueOnce({
-      id: index,
-      playerName: `player${index}`,
-      rating: null,
-      mapId: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      playTime: BigInt(0),
-    });
-  });
-
-  // Verify the update calls were made with correct values
+function checkRatings(expectedRatings: (number | null)[]) {
   expectedRatings.forEach((rating, index) => {
     if (rating !== null) {
       expect(prismaMock.playerInfoMap.update).toHaveBeenCalledWith({
@@ -72,46 +85,55 @@ async function checkRatings(expectedRatings: (number | null)[]) {
 }
 
 test('Positive and negative time', async () => {
-  const snapshot = createMockSnapshot([10, -10]);
+  const snapshot = createSnapshot([10, -10]);
+  mockSnapshot(snapshot);
   await rankPlayer(snapshot.id);
-  await checkRatings([-10, -10]);
+  checkRatings([-10, -10]);
 });
 
 test('Time increase', async () => {
-  const snapshot1 = createMockSnapshot([10]);
+  const snapshot1 = createSnapshot([10]);
+  mockSnapshot(snapshot1);
   await rankPlayer(snapshot1.id);
-  await checkRatings([-10]);
+  checkRatings([-10]);
 
-  const snapshot2 = createMockSnapshot([30]);
+  const snapshot2 = createSnapshot([30]);
+  mockSnapshot(snapshot2);
   await rankPlayer(snapshot2.id);
-  await checkRatings([-10]);
+  checkRatings([-30]);
 });
 
 test('Time decrease', async () => {
-  const snapshot1 = createMockSnapshot([30]);
+  const snapshot1 = createSnapshot([30]);
+  mockSnapshot(snapshot1);
   await rankPlayer(snapshot1.id);
-  await checkRatings([-30]);
+  checkRatings([-30]);
 
-  const snapshot2 = createMockSnapshot([10]);
+  const snapshot2 = createSnapshot([10]);
+  mockSnapshot(snapshot2);
   await rankPlayer(snapshot2.id);
-  await checkRatings([-10]);
+  checkRatings([-10]);
 });
 
 test('Maximum time', async () => {
-  const snapshot = createMockSnapshot([9999, -9999]);
+  const snapshot = createSnapshot([9999, -9999]);
+  mockSnapshot(snapshot);
   await rankPlayer(snapshot.id);
-  await checkRatings([null, null]);
+  checkRatings([null, null]);
 });
 
 test('Connecting player', async () => {
-  const snapshot = createMockSnapshot([]);
-  // Update the snapshot to include a connecting player
+  const snapshot = createSnapshot([]);
   snapshot.clients.push({
+    id: 1,
+    snapshotId: 1,
     playerName: '(connecting)',
+    clanName: null,
     score: 10,
+    country: 0,
     inGame: true,
   });
-
+  mockSnapshot(snapshot);
   await rankPlayer(snapshot.id);
-  await checkRatings([null]);
+  checkRatings([null]);
 });

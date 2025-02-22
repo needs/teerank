@@ -49,7 +49,7 @@ export async function getGlobalCountsLastUpdatedAt(redis: Redis) {
     GLOBAL_COUNTS_MAPS_LAST_UPDATED_AT_KEY,
     GLOBAL_COUNTS_GAME_TYPES_LAST_UPDATED_AT_KEY,
     GLOBAL_COUNTS_GAME_SERVERS_LAST_UPDATED_AT_KEY
-  ]);
+  ])
 
   return {
     playersLastUpdatedAt: new Date(Number(playersLastUpdatedAt || '0')),

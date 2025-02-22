@@ -29,6 +29,8 @@ export async function updatePlayersCount(lastUpdateDate: Date) {
     },
   });
 
+  console.log(`Found ${players.length} players to update (${lastUpdateDate.toISOString()} - ${new Date().toISOString()})`);
+
   if (players.length > 0) {
     const newLastUpdatedAt = getNewLastUpdatedAt(players);
     await incrementGlobalPlayerCount(redis, players.length, newLastUpdatedAt);
@@ -108,8 +110,6 @@ export async function updateGameTypesCount(lastUpdateDate: Date) {
 }
 
 async function processor() {
-  console.log('Updating global counts');
-
   const {
     playersLastUpdatedAt,
     clansLastUpdatedAt,

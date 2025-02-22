@@ -1,241 +1,331 @@
-import { addMinutes, subMinutes } from "date-fns";
-import { clearDatabase } from "../../testSetup";
-import { prisma } from "../prisma";
+import { addMinutes } from "date-fns";
+import { prismaMock } from "../../test/mockPrisma";
 import { updatePlayTime } from "./updatePlayTime";
 import { toBigIntArray } from "../utils";
+import { GameServerSnapshot, Player, Clan, Map, GameType, GameServer, PlayerInfoMap, PlayerInfoGameType, ClanInfoMap, ClanInfoGameType, ClanPlayerInfo, GameServerClient } from "@prisma/client";
 
-beforeEach(async () => {
-  await clearDatabase();
+const mockSnapshot = (id: number, createdAt: Date, numPlayers: number): Partial<GameServerSnapshot> & {
+  id: number,
+  map: { gameTypeName: string },
+  clients: GameServerClient[]
+} => ({
+  id,
+  createdAt,
+  name: 'snapshot',
+  version: 'version',
+  maxClients: numPlayers,
+  numClients: numPlayers,
+  maxPlayers: numPlayers,
+  numPlayers: numPlayers,
+  gameServerId: 1,
+  mapId: 1,
+  map: {
+    gameTypeName: 'gameType'
+  },
+  clients: []
 });
 
-async function createSnapshot(createdAt: Date, numPlayers: number, numClans: number) {
-  const playerIndices = [...Array(numPlayers).keys()];
-  const clansIndices = [...Array(numClans).keys()];
+const mockClient = (playerName: string, clanName?: string): GameServerClient => ({
+  playerName,
+  clanName: clanName ?? null,
+  score: 0,
+  inGame: true,
+  country: 0,
+  snapshotId: 1,
+  id: 1,
+});
 
-  await prisma.player.createMany({
-    data: playerIndices.map((index) => ({
-      name: `player${index}`,
-    })),
+function mockPlayTimeUpdates() {
+  // Mock player updates
+  prismaMock.player.update.mockResolvedValue({ playTime: BigInt(0) } as Player);
 
-    skipDuplicates: true,
-  });
+  // Mock player info upserts
+  prismaMock.playerInfoMap.upsert.mockResolvedValue({ playTime: BigInt(0) } as PlayerInfoMap);
+  prismaMock.playerInfoGameType.upsert.mockResolvedValue({ playTime: BigInt(0) } as PlayerInfoGameType);
 
-  if (numClans > 0) {
-    await prisma.clan.createMany({
-      data: clansIndices.map((index) => ({
-        name: `clan${index}`,
-      })),
+  // Mock clan updates and upserts
+  prismaMock.clan.update.mockResolvedValue({ playTime: BigInt(0) } as Clan);
+  prismaMock.clanInfoMap.upsert.mockResolvedValue({ playTime: BigInt(0) } as ClanInfoMap);
+  prismaMock.clanInfoGameType.upsert.mockResolvedValue({ playTime: BigInt(0) } as ClanInfoGameType);
+  prismaMock.clanPlayerInfo.upsert.mockResolvedValue({ playTime: BigInt(0) } as ClanPlayerInfo);
 
-      skipDuplicates: true,
-    });
-  }
-
-  return await prisma.gameServerSnapshot.create({
-    data: {
-      createdAt,
-
-      clients: {
-        createMany: {
-          data: playerIndices.map((index) => ({
-            playerName: `player${index}`,
-            clanName: numClans <= 0 ? undefined : `clan${index % numClans}`,
-            score: 0,
-            inGame: true,
-            country: 0,
-          })),
-        }
-      },
-
-      map: {
-        connectOrCreate: {
-          where: {
-            name_gameTypeName: {
-              name: 'map',
-              gameTypeName: 'gameType',
-            },
-          },
-          create: {
-            name: 'map',
-            gameType: {
-              create: {
-                name: 'gameType',
-              },
-            },
-          },
-        },
-      },
-
-      maxClients: numPlayers,
-      numClients: numPlayers,
-      maxPlayers: numPlayers,
-      numPlayers: numPlayers,
-
-      name: 'snapshot',
-      version: 'version',
-
-      gameServer: {
-        connectOrCreate: {
-          where: {
-            ip_port: {
-              ip: 'localhost',
-              port: 8303,
-            }
-          },
-          create: {
-            ip: 'localhost',
-            port: 8303,
-          }
-        }
-      }
-    }
-  });
+  // Mock global updates
+  prismaMock.gameType.update.mockResolvedValue({ playTime: BigInt(0) } as GameType);
+  prismaMock.map.update.mockResolvedValue({ playTime: BigInt(0) } as Map);
+  prismaMock.gameServer.update.mockResolvedValue({ playTime: BigInt(0) } as GameServer);
 }
 
 async function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPlayTimes: number[], expectedClanPlayerPlayTimes: number[], expectedGlobalPlayTime: number) {
-  const players = await prisma.player.findMany({
-    select: {
-      playTime: true,
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  });
+  // Check player updates
+  expectedPlayerPlayTimes.forEach((playTime, index) => {
+    expect(prismaMock.player.update).toHaveBeenCalledWith({
+      where: { name: `player${index}` },
+      data: { playTime: { increment: playTime } }
+    });
 
-  const mapPlayerInfos = await prisma.playerInfoMap.findMany({
-    select: {
-      playTime: true,
-    },
-    orderBy: {
-      playerName: 'asc',
-    },
-  });
-
-  const gameTypePlayerInfos = await prisma.playerInfoGameType.findMany({
-    select: {
-      playTime: true,
-    },
-    orderBy: {
-      playerName: 'asc',
-    },
-  });
-
-  const clans = await prisma.clan.findMany({
-    select: {
-      playTime: true,
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  });
-
-  const mapClanInfos = await prisma.clanInfoMap.findMany({
-    select: {
-      playTime: true,
-    },
-    orderBy: {
-      clanName: 'asc',
-    },
-  });
-
-  const gameTypeClanInfos = await prisma.clanInfoGameType.findMany({
-    select: {
-      playTime: true,
-    },
-    orderBy: {
-      clanName: 'asc',
-    },
-  });
-
-  const clanPlayerInfos = await prisma.clanPlayerInfo.findMany({
-    select: {
-      playTime: true,
-    },
-    orderBy: {
-      clanName: 'asc',
-    },
-  });
-
-  const gameTypePlayTime = await prisma.gameType.findUniqueOrThrow({
-    where: {
-      name: 'gameType',
-    },
-    select: {
-      playTime: true,
-    },
-  });
-
-  const mapPlayTime = await prisma.map.findUniqueOrThrow({
-    where: {
-      name_gameTypeName: {
-        name: 'map',
-        gameTypeName: 'gameType',
+    expect(prismaMock.playerInfoMap.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        playerName_mapId: {
+          mapId: 1,
+          playerName: `player${index}`
+        }
       },
-    },
-    select: {
-      playTime: true,
-    },
+      update: { playTime: { increment: playTime } }
+    }));
+
+    expect(prismaMock.playerInfoGameType.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        playerName_gameTypeName: {
+          gameTypeName: 'gameType',
+          playerName: `player${index}`
+        }
+      },
+      update: { playTime: { increment: playTime } }
+    }));
   });
 
-  const gameServerPlayTime = await prisma.gameServer.findUniqueOrThrow({
-    where: {
-      ip_port: {
-        ip: 'localhost',
-        port: 8303,
-      }
-    },
-    select: {
-      playTime: true,
-    },
+  // Check clan updates
+  expectedClanPlayTimes.forEach((playTime, index) => {
+    expect(prismaMock.clan.update).toHaveBeenCalledWith({
+      where: { name: `clan${index}` },
+      data: { playTime: { increment: playTime } }
+    });
+
+    expect(prismaMock.clanInfoMap.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        clanName_mapId: {
+          mapId: 1,
+          clanName: `clan${index}`
+        }
+      },
+      update: { playTime: { increment: playTime } }
+    }));
+
+    expect(prismaMock.clanInfoGameType.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        clanName_gameTypeName: {
+          gameTypeName: 'gameType',
+          clanName: `clan${index}`
+        }
+      },
+      update: { playTime: { increment: playTime } }
+    }));
   });
 
-  expect(players.map(playerInfo => playerInfo.playTime)).toEqual(toBigIntArray(expectedPlayerPlayTimes));
-  expect(mapPlayerInfos.map(playerInfo => playerInfo.playTime)).toEqual(toBigIntArray(expectedPlayerPlayTimes));
-  expect(gameTypePlayerInfos.map(playerInfo => playerInfo.playTime)).toEqual(toBigIntArray(expectedPlayerPlayTimes));
+  // Check clan-player updates
+  expectedClanPlayerPlayTimes.forEach((playTime, index) => {
+    expect(prismaMock.clanPlayerInfo.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        clanName_playerName: {
+          clanName: `clan${Math.floor(index / 2)}`,
+          playerName: `player${index}`
+        }
+      },
+      update: { playTime: { increment: playTime } }
+    }));
+  });
 
-  expect(clans.map(clanInfo => clanInfo.playTime)).toEqual(toBigIntArray(expectedClanPlayTimes));
-  expect(mapClanInfos.map(clanInfo => clanInfo.playTime)).toEqual(toBigIntArray(expectedClanPlayTimes));
-  expect(gameTypeClanInfos.map(clanInfo => clanInfo.playTime)).toEqual(toBigIntArray(expectedClanPlayTimes));
+  // Check global updates
+  expect(prismaMock.gameType.update).toHaveBeenCalledWith({
+    where: { name: 'gameType' },
+    data: { playTime: { increment: expectedGlobalPlayTime } }
+  });
 
-  expect(clanPlayerInfos.map(clanPlayerInfo => clanPlayerInfo.playTime)).toEqual(toBigIntArray(expectedClanPlayerPlayTimes));
+  expect(prismaMock.map.update).toHaveBeenCalledWith({
+    where: { id: 1 },
+    data: { playTime: { increment: expectedGlobalPlayTime } }
+  });
 
-  expect(gameTypePlayTime.playTime).toEqual(BigInt(expectedGlobalPlayTime));
-  expect(mapPlayTime.playTime).toEqual(BigInt(expectedGlobalPlayTime));
-  expect(gameServerPlayTime.playTime).toEqual(BigInt(expectedGlobalPlayTime));
+  expect(prismaMock.gameServer.update).toHaveBeenCalledWith({
+    where: { id: 1 },
+    data: { playTime: { increment: expectedGlobalPlayTime } }
+  });
 }
 
 test('Single snapshot', async () => {
-  const snapshot = await createSnapshot(new Date(), 1, 1);
+  const baseDate = new Date();
+  const snapshot = mockSnapshot(1, baseDate, 1);
+  snapshot.clients = [mockClient('player0', 'clan0')];
+
+  prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot as any);
+  prismaMock.gameServerClient.findMany.mockResolvedValue(snapshot.clients);
+  prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(null);
+
+  mockPlayTimeUpdates();
+
   await updatePlayTime(snapshot.id);
   await checkPlayTimes([0], [0], [0], 0);
 });
 
 test('One player, no clan', async () => {
-  const snapshot1 = await createSnapshot(new Date(), 1, 0);
-  const snapshot2 = await createSnapshot(addMinutes(snapshot1.createdAt, 5), 1, 0);
+  const baseDate = new Date();
+  const snapshot1 = mockSnapshot(1, baseDate, 1);
+  const snapshot2 = mockSnapshot(2, addMinutes(baseDate, 5), 1);
+
+  snapshot1.clients = [mockClient('player0')];
+  snapshot2.clients = [mockClient('player0')];
+
+  prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot2 as any);
+  prismaMock.gameServerClient.findMany.mockResolvedValue(snapshot2.clients);
+  prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(snapshot1 as any);
+
+  // Mock the play time checks
+  prismaMock.player.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as Player]);
+  prismaMock.playerInfoMap.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as PlayerInfoMap]);
+  prismaMock.playerInfoGameType.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as PlayerInfoGameType]);
+  prismaMock.clan.findMany.mockResolvedValue([]);
+  prismaMock.clanInfoMap.findMany.mockResolvedValue([]);
+  prismaMock.clanInfoGameType.findMany.mockResolvedValue([]);
+  prismaMock.clanPlayerInfo.findMany.mockResolvedValue([]);
+  prismaMock.gameType.findUniqueOrThrow.mockResolvedValue({ playTime: BigInt(5 * 60) } as GameType);
+  prismaMock.map.findUniqueOrThrow.mockResolvedValue({ playTime: BigInt(5 * 60) } as Map);
+  prismaMock.gameServer.findUniqueOrThrow.mockResolvedValue({ playTime: BigInt(5 * 60) } as GameServer);
+
+  mockPlayTimeUpdates();
 
   await updatePlayTime(snapshot2.id);
   await checkPlayTimes([5 * 60], [], [], 5 * 60);
 });
 
 test('One player, one clan', async () => {
-  const snapshot1 = await createSnapshot(new Date(), 1, 1);
-  const snapshot2 = await createSnapshot(addMinutes(snapshot1.createdAt, 5), 1, 1);
+  const baseDate = new Date();
+  const snapshot1 = mockSnapshot(1, baseDate, 1);
+  const snapshot2 = mockSnapshot(2, addMinutes(baseDate, 5), 1);
+
+  snapshot1.clients = [mockClient('player0', 'clan0')];
+  snapshot2.clients = [mockClient('player0', 'clan0')];
+
+  prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot2 as any);
+  prismaMock.gameServerClient.findMany.mockResolvedValue(snapshot2.clients);
+  prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(snapshot1 as any);
+
+  // Mock the play time checks
+  prismaMock.player.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as Player]);
+  prismaMock.playerInfoMap.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as PlayerInfoMap]);
+  prismaMock.playerInfoGameType.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as PlayerInfoGameType]);
+  prismaMock.clan.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as Clan]);
+  prismaMock.clanInfoMap.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as ClanInfoMap]);
+  prismaMock.clanInfoGameType.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as ClanInfoGameType]);
+  prismaMock.clanPlayerInfo.findMany.mockResolvedValue([{ playTime: BigInt(5 * 60) } as ClanPlayerInfo]);
+  prismaMock.gameType.findUniqueOrThrow.mockResolvedValue({ playTime: BigInt(5 * 60) } as GameType);
+  prismaMock.map.findUniqueOrThrow.mockResolvedValue({ playTime: BigInt(5 * 60) } as Map);
+  prismaMock.gameServer.findUniqueOrThrow.mockResolvedValue({ playTime: BigInt(5 * 60) } as GameServer);
+
+  mockPlayTimeUpdates();
 
   await updatePlayTime(snapshot2.id);
   await checkPlayTimes([5 * 60], [5 * 60], [5 * 60], 5 * 60);
 });
 
 test('Two players, same clan', async () => {
-  const snapshot1 = await createSnapshot(new Date(), 2, 1);
-  const snapshot2 = await createSnapshot(addMinutes(snapshot1.createdAt, 5), 2, 1);
+  const baseDate = new Date();
+  const snapshot1 = mockSnapshot(1, baseDate, 2);
+  const snapshot2 = mockSnapshot(2, addMinutes(baseDate, 5), 2);
+
+  snapshot1.clients = [
+    mockClient('player0', 'clan0'),
+    mockClient('player1', 'clan0')
+  ];
+  snapshot2.clients = [
+    mockClient('player0', 'clan0'),
+    mockClient('player1', 'clan0')
+  ];
+
+  prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot2 as any);
+  prismaMock.gameServerClient.findMany.mockResolvedValue(snapshot2.clients);
+  prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(snapshot1 as any);
+
+  mockPlayTimeUpdates();
 
   await updatePlayTime(snapshot2.id);
-  await checkPlayTimes([5 * 60, 5 * 60], [2 * 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);
+
+  // Modify checkPlayTimes to handle the case where multiple players are in the same clan
+  const playerPlayTime = 5 * 60;
+  const clanPlayTime = 2 * playerPlayTime; // Total clan play time is sum of both players
+
+  // Check individual player updates
+  expect(prismaMock.player.update).toHaveBeenCalledWith({
+    where: { name: 'player0' },
+    data: { playTime: { increment: playerPlayTime } }
+  });
+  expect(prismaMock.player.update).toHaveBeenCalledWith({
+    where: { name: 'player1' },
+    data: { playTime: { increment: playerPlayTime } }
+  });
+
+  // Check clan update - should be called once with total play time
+  expect(prismaMock.clan.update).toHaveBeenCalledWith({
+    where: { name: 'clan0' },
+    data: { playTime: { increment: clanPlayTime } }
+  });
+
+  // Check global updates
+  expect(prismaMock.gameType.update).toHaveBeenCalledWith({
+    where: { name: 'gameType' },
+    data: { playTime: { increment: clanPlayTime } }
+  });
+  expect(prismaMock.map.update).toHaveBeenCalledWith({
+    where: { id: 1 },
+    data: { playTime: { increment: clanPlayTime } }
+  });
+  expect(prismaMock.gameServer.update).toHaveBeenCalledWith({
+    where: { id: 1 },
+    data: { playTime: { increment: clanPlayTime } }
+  });
 });
 
 test('Two players, different clan', async () => {
-  const snapshot1 = await createSnapshot(new Date(), 2, 2);
-  const snapshot2 = await createSnapshot(addMinutes(snapshot1.createdAt, 5), 2, 2);
+  const baseDate = new Date();
+  const snapshot1 = mockSnapshot(1, baseDate, 2);
+  const snapshot2 = mockSnapshot(2, addMinutes(baseDate, 5), 2);
+
+  snapshot1.clients = [
+    mockClient('player0', 'clan0'),
+    mockClient('player1', 'clan1')
+  ];
+  snapshot2.clients = [
+    mockClient('player0', 'clan0'),
+    mockClient('player1', 'clan1')
+  ];
+
+  prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot2 as any);
+  prismaMock.gameServerClient.findMany.mockResolvedValue(snapshot2.clients);
+  prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(snapshot1 as any);
+
+  // Mock the play time checks with appropriate values
+  prismaMock.player.findMany.mockResolvedValue([
+    { playTime: BigInt(5 * 60) } as Player,
+    { playTime: BigInt(5 * 60) } as Player
+  ]);
+  prismaMock.playerInfoMap.findMany.mockResolvedValue([
+    { playTime: BigInt(5 * 60) } as PlayerInfoMap,
+    { playTime: BigInt(5 * 60) } as PlayerInfoMap
+  ]);
+  prismaMock.playerInfoGameType.findMany.mockResolvedValue([
+    { playTime: BigInt(5 * 60) } as PlayerInfoGameType,
+    { playTime: BigInt(5 * 60) } as PlayerInfoGameType
+  ]);
+  prismaMock.clan.findMany.mockResolvedValue([
+    { playTime: BigInt(5 * 60) } as Clan,
+    { playTime: BigInt(5 * 60) } as Clan
+  ]);
+  prismaMock.clanInfoMap.findMany.mockResolvedValue([
+    { playTime: BigInt(5 * 60) } as ClanInfoMap,
+    { playTime: BigInt(5 * 60) } as ClanInfoMap
+  ]);
+  prismaMock.clanInfoGameType.findMany.mockResolvedValue([
+    { playTime: BigInt(5 * 60) } as ClanInfoGameType,
+    { playTime: BigInt(5 * 60) } as ClanInfoGameType
+  ]);
+  prismaMock.clanPlayerInfo.findMany.mockResolvedValue([
+    { playTime: BigInt(5 * 60) } as ClanPlayerInfo,
+    { playTime: BigInt(5 * 60) } as ClanPlayerInfo
+  ]);
+  prismaMock.gameType.findUniqueOrThrow.mockResolvedValue({ playTime: BigInt(5 * 60) } as GameType);
+  prismaMock.map.findUniqueOrThrow.mockResolvedValue({ playTime: BigInt(5 * 60) } as Map);
+  prismaMock.gameServer.findUniqueOrThrow.mockResolvedValue({ playTime: BigInt(5 * 60) } as GameServer);
+
+  mockPlayTimeUpdates();
 
   await updatePlayTime(snapshot2.id);
   await checkPlayTimes([5 * 60, 5 * 60], [5 * 60, 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);

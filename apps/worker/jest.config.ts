@@ -8,6 +8,5 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/apps/worker',
-  setupFiles: ['./testSetup.ts'],
-  setupFilesAfterEnv: ['./src/mockPrisma.ts'],
+  setupFilesAfterEnv: ['./test/mockPrisma.ts'],
 };

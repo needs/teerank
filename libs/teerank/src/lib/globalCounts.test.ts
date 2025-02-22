@@ -1,7 +1,9 @@
 import { getGlobalCounts, getGlobalCountsLastUpdatedAt } from "./globalCounts";
 import Redis from "ioredis-mock";
 import { incrementGlobalClanCount, incrementGlobalGameServerCount, incrementGlobalGameTypeCount, incrementGlobalMapCount, incrementGlobalPlayerCount } from "./globalCounts";
-const redis = new Redis();
+import { REDIS_HOST, REDIS_PORT } from './redisConfig';
+
+const redis = new Redis(REDIS_PORT, REDIS_HOST);
 
 beforeEach(async () => {
   await redis.flushall();

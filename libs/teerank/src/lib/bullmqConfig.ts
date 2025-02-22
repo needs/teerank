@@ -44,6 +44,10 @@ export function getQueueFillClanActivePlayerCount() {
   return new Queue(QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT, { connection: bullmqConnection });
 }
 
+export function getQueueUpdateGlobalCounts() {
+  return new Queue(QUEUE_NAME_UPDATE_GLOBAL_COUNTS, { connection: bullmqConnection });
+}
+
 export async function cleanQueue(queue: Queue) {
   console.log('Cleaning queue', queue.name);
   await queue.obliterate({

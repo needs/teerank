@@ -1,8 +1,8 @@
 import { updateClansCount, updateGameServersCount, updateGameTypesCount, updateMapsCount, updatePlayersCount } from "./updateGlobalCounts";
-import Redis from "ioredis-mock";
 import { prismaMock } from "../../test/mockPrisma";
 import { Clan, GameServer, GameType, Map, Player, RankMethod } from "@prisma/client";
 import { getGlobalCounts } from "@teerank/teerank";
+import { redis } from "../redis";
 
 const mockPlayer: Player = {
   createdAt: new Date(),
@@ -55,8 +55,6 @@ const mockGameServer: GameServer = {
   id: 1,
 }
 
-const redis = new Redis();
-
 beforeEach(async () => {
   await redis.flushall();
 });
@@ -64,8 +62,8 @@ beforeEach(async () => {
 test("updatePlayersCount", async () => {
   prismaMock.player.findMany.mockResolvedValue([mockPlayer]);
 
-  await updatePlayersCount(redis, new Date(0));
-  await updatePlayersCount(redis, new Date(0));
+  await updatePlayersCount(new Date(0));
+  await updatePlayersCount(new Date(0));
 
   const globalCounts = await getGlobalCounts(redis);
   expect(globalCounts.players).toBe(2);
@@ -74,8 +72,8 @@ test("updatePlayersCount", async () => {
 test("updateClansCount", async () => {
   prismaMock.clan.findMany.mockResolvedValue([mockClan]);
 
-  await updateClansCount(redis, new Date(0));
-  await updateClansCount(redis, new Date(0));
+  await updateClansCount(new Date(0));
+  await updateClansCount(new Date(0));
 
   const globalCounts = await getGlobalCounts(redis);
   expect(globalCounts.clans).toBe(2);
@@ -84,8 +82,8 @@ test("updateClansCount", async () => {
 test("updateGameServersCount", async () => {
   prismaMock.gameServer.findMany.mockResolvedValue([mockGameServer]);
 
-  await updateGameServersCount(redis, new Date(0));
-  await updateGameServersCount(redis, new Date(0));
+  await updateGameServersCount(new Date(0));
+  await updateGameServersCount(new Date(0));
 
   const globalCounts = await getGlobalCounts(redis);
   expect(globalCounts.gameServers).toBe(2);
@@ -94,8 +92,8 @@ test("updateGameServersCount", async () => {
 test("updateMapsCount", async () => {
   prismaMock.map.findMany.mockResolvedValue([mockMap]);
 
-  await updateMapsCount(redis, new Date(0));
-  await updateMapsCount(redis, new Date(0));
+  await updateMapsCount(new Date(0));
+  await updateMapsCount(new Date(0));
 
   const globalCounts = await getGlobalCounts(redis);
   expect(globalCounts.maps).toBe(2);
@@ -104,8 +102,8 @@ test("updateMapsCount", async () => {
 test("updateGameTypesCount", async () => {
   prismaMock.gameType.findMany.mockResolvedValue([mockGameType]);
 
-  await updateGameTypesCount(redis, new Date(0));
-  await updateGameTypesCount(redis, new Date(0));
+  await updateGameTypesCount(new Date(0));
+  await updateGameTypesCount(new Date(0));
 
   const globalCounts = await getGlobalCounts(redis);
   expect(globalCounts.gameTypes).toBe(2);

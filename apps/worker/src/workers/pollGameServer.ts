@@ -53,9 +53,6 @@ function skipPolling(gameServer: GameServer & { gameServerState: GameServerState
   return Math.random() >= (1.0 / Math.min(gameServer.failureCount, MAX_FAILURE_COUNT));
 }
 
-const queueUpdatePlayTime = getQueueUpdatePlayTime();
-const queueRankPlayer = getQueueRankPlayer();
-
 export async function changePlayerClans(
   playerClans: Record<string, string | null>,
 ) {
@@ -349,6 +346,9 @@ export async function processGameServerInfo(
 }
 
 async function processor(job: Job) {
+  const queueUpdatePlayTime = getQueueUpdatePlayTime();
+  const queueRankPlayer = getQueueRankPlayer();
+
   const gameServer =
     await prisma.gameServer.findUniqueOrThrow({
       where: {
@@ -367,7 +367,7 @@ async function processor(job: Job) {
     return;
   }
 
-  const sockets = await setupSockets;
+  const sockets = await setupSockets();
 
   listenForPackets(sockets, gameServer.ip, gameServer.port);
 

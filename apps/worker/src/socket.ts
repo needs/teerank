@@ -15,7 +15,9 @@ function ipAndPortToString(ip: string, port: number) {
   return `${ip} | ${port}`;
 }
 
-export const setupSockets = new Promise<Sockets>((resolve) => {
+let socketsInstance: Promise<Sockets> | null = null;
+
+async function createSockets() {
   const sockets: Sockets = {
     socket4: createSocket({ type: "udp4" }),
     socket6: createSocket({ type: "udp6" }),
@@ -36,8 +38,16 @@ export const setupSockets = new Promise<Sockets>((resolve) => {
   sockets.socket4.on('message', handleMessages);
   sockets.socket6.on('message', handleMessages);
 
-  resolve(sockets);
-});
+  return sockets;
+}
+
+export async function setupSockets() {
+  if (!socketsInstance) {
+    socketsInstance = createSockets();
+  }
+
+  return socketsInstance;
+}
 
 function getSocket(sockets: Sockets, ip: string) {
   switch (isIP(ip)) {

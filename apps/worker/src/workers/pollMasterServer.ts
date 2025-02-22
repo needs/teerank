@@ -37,7 +37,7 @@ async function processor(job: Job) {
     },
   });
 
-  const sockets = await setupSockets;
+  const sockets = await setupSockets();
 
   console.log(`Polling ${masterServer.address}:${masterServer.port}`);
   const ip = await lookup(masterServer.address);

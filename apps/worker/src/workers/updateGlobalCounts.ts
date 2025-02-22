@@ -10,7 +10,6 @@ import {
   incrementGlobalGameTypeCount
 } from "@teerank/teerank";
 import { bullmqConnection } from "@teerank/teerank";
-import { Redis } from "ioredis";
 import { redis } from "../redis";
 import { minutesToSeconds } from "date-fns";
 
@@ -18,7 +17,7 @@ function getNewLastUpdatedAt(entities: { createdAt: Date }[]) {
   return new Date(Math.max(...entities.map(entity => entity.createdAt.getTime())));
 }
 
-export async function updatePlayersCount(redis: Redis, lastUpdateDate: Date) {
+export async function updatePlayersCount(lastUpdateDate: Date) {
   const players = await prisma.player.findMany({
     select: {
       createdAt: true,
@@ -35,7 +34,7 @@ export async function updatePlayersCount(redis: Redis, lastUpdateDate: Date) {
   await incrementGlobalPlayerCount(redis, players.length, newLastUpdatedAt);
 }
 
-export async function updateClansCount(redis: Redis, lastUpdateDate: Date) {
+export async function updateClansCount(lastUpdateDate: Date) {
   const clans = await prisma.clan.findMany({
     select: {
       createdAt: true,
@@ -52,7 +51,7 @@ export async function updateClansCount(redis: Redis, lastUpdateDate: Date) {
   await incrementGlobalClanCount(redis, clans.length, newLastUpdatedAt);
 }
 
-export async function updateGameServersCount(redis: Redis, lastUpdateDate: Date) {
+export async function updateGameServersCount(lastUpdateDate: Date) {
   const gameServers = await prisma.gameServer.findMany({
     select: {
       createdAt: true,
@@ -69,7 +68,7 @@ export async function updateGameServersCount(redis: Redis, lastUpdateDate: Date)
   await incrementGlobalGameServerCount(redis, gameServers.length, newLastUpdatedAt);
 }
 
-export async function updateMapsCount(redis: Redis, lastUpdateDate: Date) {
+export async function updateMapsCount(lastUpdateDate: Date) {
   const maps = await prisma.map.findMany({
     select: {
       createdAt: true,
@@ -86,7 +85,7 @@ export async function updateMapsCount(redis: Redis, lastUpdateDate: Date) {
   await incrementGlobalMapCount(redis, maps.length, newLastUpdatedAt);
 }
 
-export async function updateGameTypesCount(redis: Redis, lastUpdateDate: Date) {
+export async function updateGameTypesCount(lastUpdateDate: Date) {
   const gameTypes = await prisma.gameType.findMany({
     select: {
       createdAt: true,
@@ -104,6 +103,8 @@ export async function updateGameTypesCount(redis: Redis, lastUpdateDate: Date) {
 }
 
 async function processor() {
+  console.log('Updating global counts');
+
   const {
     playersLastUpdatedAt,
     clansLastUpdatedAt,
@@ -112,11 +113,11 @@ async function processor() {
     gameServersLastUpdatedAt
   } = await getGlobalCountsLastUpdatedAt(redis);
 
-  await updatePlayersCount(redis, playersLastUpdatedAt);
-  await updateClansCount(redis, clansLastUpdatedAt);
-  await updateGameServersCount(redis, gameServersLastUpdatedAt);
-  await updateMapsCount(redis, mapsLastUpdatedAt);
-  await updateGameTypesCount(redis, gameTypesLastUpdatedAt);
+  await updatePlayersCount(playersLastUpdatedAt);
+  await updateClansCount(clansLastUpdatedAt);
+  await updateGameServersCount(gameServersLastUpdatedAt);
+  await updateMapsCount(mapsLastUpdatedAt);
+  await updateGameTypesCount(gameTypesLastUpdatedAt);
 }
 
 export async function startUpdateGlobalCountsWorker() {

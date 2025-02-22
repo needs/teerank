@@ -5,6 +5,7 @@ import { startUpdatePlayTimeWorker } from "./workers/updatePlayTime";
 import { startRankPlayerWorker } from "./workers/rankPlayer";
 import { startUpdateGameTypesCountsWorker } from "./workers/updateGameTypesCounts";
 import { startFillClanActivePlayerCountWorker } from "./workers/fillClanActivePlayerCount";
+import { startUpdateGlobalCountsWorker } from "./workers/updateGlobalCounts";
 
 async function main() {
   const workers = await Promise.all([
@@ -15,6 +16,7 @@ async function main() {
     startUpdateGameTypesCountsWorker(),
     startUpdateMapsCountsWorker(),
     startFillClanActivePlayerCountWorker(),
+    startUpdateGlobalCountsWorker(),
   ]);
 
   async function gracefulShutdown(signal: string) {

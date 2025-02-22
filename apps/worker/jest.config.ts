@@ -9,5 +9,5 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/apps/worker',
-  setupFilesAfterEnv: ['./test/mockPrisma.ts'],
+  setupFilesAfterEnv: ['./test/mockPrisma.ts', './test/mockRedis.ts'],
 };

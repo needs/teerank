@@ -29,9 +29,10 @@ export async function updatePlayersCount(lastUpdateDate: Date) {
     },
   });
 
-  const newLastUpdatedAt = getNewLastUpdatedAt(players);
-
-  await incrementGlobalPlayerCount(redis, players.length, newLastUpdatedAt);
+  if (players.length > 0) {
+    const newLastUpdatedAt = getNewLastUpdatedAt(players);
+    await incrementGlobalPlayerCount(redis, players.length, newLastUpdatedAt);
+  }
 }
 
 export async function updateClansCount(lastUpdateDate: Date) {
@@ -46,9 +47,10 @@ export async function updateClansCount(lastUpdateDate: Date) {
     },
   });
 
-  const newLastUpdatedAt = getNewLastUpdatedAt(clans);
-
-  await incrementGlobalClanCount(redis, clans.length, newLastUpdatedAt);
+  if (clans.length > 0) {
+    const newLastUpdatedAt = getNewLastUpdatedAt(clans);
+    await incrementGlobalClanCount(redis, clans.length, newLastUpdatedAt);
+  }
 }
 
 export async function updateGameServersCount(lastUpdateDate: Date) {
@@ -63,9 +65,10 @@ export async function updateGameServersCount(lastUpdateDate: Date) {
     },
   });
 
-  const newLastUpdatedAt = getNewLastUpdatedAt(gameServers);
-
-  await incrementGlobalGameServerCount(redis, gameServers.length, newLastUpdatedAt);
+  if (gameServers.length > 0) {
+    const newLastUpdatedAt = getNewLastUpdatedAt(gameServers);
+    await incrementGlobalGameServerCount(redis, gameServers.length, newLastUpdatedAt);
+  }
 }
 
 export async function updateMapsCount(lastUpdateDate: Date) {
@@ -80,9 +83,10 @@ export async function updateMapsCount(lastUpdateDate: Date) {
     },
   });
 
-  const newLastUpdatedAt = getNewLastUpdatedAt(maps);
-
-  await incrementGlobalMapCount(redis, maps.length, newLastUpdatedAt);
+  if (maps.length > 0) {
+    const newLastUpdatedAt = getNewLastUpdatedAt(maps);
+    await incrementGlobalMapCount(redis, maps.length, newLastUpdatedAt);
+  }
 }
 
 export async function updateGameTypesCount(lastUpdateDate: Date) {
@@ -97,9 +101,10 @@ export async function updateGameTypesCount(lastUpdateDate: Date) {
     },
   });
 
-  const newLastUpdatedAt = getNewLastUpdatedAt(gameTypes);
-
-  await incrementGlobalGameTypeCount(redis, gameTypes.length, newLastUpdatedAt);
+  if (gameTypes.length > 0) {
+    const newLastUpdatedAt = getNewLastUpdatedAt(gameTypes);
+    await incrementGlobalGameTypeCount(redis, gameTypes.length, newLastUpdatedAt);
+  }
 }
 
 async function processor() {

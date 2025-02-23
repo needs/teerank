@@ -35,6 +35,7 @@ function createSnapshot(scores: number[]): MockedGameServerSnapshot {
       playTime: BigInt(0),
       gameTypeName: 'gameType',
       gameType: {
+        id: 1,
         name: 'gameType',
         rankMethod: RankMethod.TIME,
         createdAt: new Date(),

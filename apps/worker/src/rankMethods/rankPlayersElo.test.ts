@@ -39,6 +39,7 @@ function createSnapshot(id: number, createdAt: Date, scores: number[]): MockedGa
       playerCount: 0,
       gameServerCount: 0,
       gameType: {
+        id: 1,
         name: 'gameType',
         rankMethod: RankMethod.ELO,
         createdAt: new Date(),

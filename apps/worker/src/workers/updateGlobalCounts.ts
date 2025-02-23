@@ -2,7 +2,7 @@ import { Worker } from "bullmq";
 import { prisma } from "../prisma";
 import {
   QUEUE_NAME_UPDATE_GLOBAL_COUNTS,
-  getGlobalCountsLastUpdatedAt,
+  getGlobalCountsLastId,
   incrementGlobalPlayerCount,
   incrementGlobalClanCount,
   incrementGlobalGameServerCount,
@@ -13,90 +13,84 @@ import { bullmqConnection } from "@teerank/teerank";
 import { redis } from "../redis";
 import { minutesToSeconds } from "date-fns";
 
-function getNewLastUpdatedAt(entities: { createdAt: Date }[]) {
-  return new Date(Math.max(...entities.map(entity => entity.createdAt.getTime())));
-}
-
 function getNewLastId(entities: { id: number }[]) {
   return Math.max(...entities.map(entity => entity.id));
 }
 
-export async function updatePlayersCount(lastUpdateDate: Date) {
+export async function updatePlayersCount(lastId: number) {
   const players = await prisma.player.findMany({
     select: {
-      createdAt: true,
+      id: true,
     },
     where: {
-      createdAt: {
-        gt: lastUpdateDate,
+      id: {
+        gt: lastId,
       },
     },
     orderBy: {
-      createdAt: 'asc',
+      id: 'asc',
     },
     take: 1000,
   });
 
-  console.log(`Found ${players.length} players to update (${lastUpdateDate.toISOString()} - ${new Date().toISOString()})`);
-
   if (players.length > 0) {
-    const newLastUpdatedAt = getNewLastUpdatedAt(players);
-    await incrementGlobalPlayerCount(redis, players.length, newLastUpdatedAt);
+    const newLastUpdatedId = getNewLastId(players);
+    await incrementGlobalPlayerCount(redis, players.length, newLastUpdatedId);
   }
 }
 
-export async function updateClansCount(lastUpdateDate: Date) {
+export async function updateClansCount(lastId: number) {
   const clans = await prisma.clan.findMany({
     select: {
-      createdAt: true,
+      id: true,
     },
     where: {
-      createdAt: {
-        gt: lastUpdateDate,
+      id: {
+        gt: lastId,
       },
     },
     orderBy: {
-      createdAt: 'asc',
+      id: 'asc',
     },
     take: 1000,
   });
 
   if (clans.length > 0) {
-    const newLastUpdatedAt = getNewLastUpdatedAt(clans);
-    await incrementGlobalClanCount(redis, clans.length, newLastUpdatedAt);
+    const newLastUpdatedId = getNewLastId(clans);
+    await incrementGlobalClanCount(redis, clans.length, newLastUpdatedId);
   }
 }
 
-export async function updateGameTypesCount(lastUpdateDate: Date) {
+export async function updateGameTypesCount(lastId: number) {
   const gameTypes = await prisma.gameType.findMany({
     select: {
-      createdAt: true,
+      id: true,
     },
     where: {
-      createdAt: {
-        gt: lastUpdateDate,
+      id: {
+        gt: lastId,
       },
     },
     orderBy: {
-      createdAt: 'asc',
+      id: 'asc',
     },
     take: 1000,
   });
 
   if (gameTypes.length > 0) {
-    const newLastUpdatedAt = getNewLastUpdatedAt(gameTypes);
-    await incrementGlobalGameTypeCount(redis, gameTypes.length, newLastUpdatedAt);
+    const newLastUpdatedId = getNewLastId(gameTypes);
+    await incrementGlobalGameTypeCount(redis, gameTypes.length, newLastUpdatedId);
   }
 }
 
-export async function updateGameServersCount(lastUpdateId: number) {
+export async function updateGameServersCount(lastId: number) {
   const gameServers = await prisma.gameServer.findMany({
     select: {
       id: true,
     },
     where: {
       id: {
-        gt: lastUpdateId,
+        gt: lastId,
       },
     },
     orderBy: {
@@ -111,14 +105,14 @@ export async function updateGameServersCount(lastUpdateId: number) {
   }
 }
 
-export async function updateMapsCount(lastUpdateId: number) {
+export async function updateMapsCount(lastId: number) {
   const maps = await prisma.map.findMany({
     select: {
       id: true,
     },
     where: {
       id: {
-        gt: lastUpdateId,
+        gt: lastId,
       },
     },
     orderBy: {
@@ -135,18 +129,18 @@ export async function updateMapsCount(lastUpdateId: number) {
 
 async function processor() {
   const {
-    playersLastUpdatedAt,
-    clansLastUpdatedAt,
-    gameTypesLastUpdatedAt,
-    mapsLastUpdatedId,
-    gameServersLastUpdatedId
-  } = await getGlobalCountsLastUpdatedAt(redis);
+    playersLastId,
+    clansLastId,
+    gameTypesLastId,
+    mapsLastId,
+    gameServersLastId
+  } = await getGlobalCountsLastId(redis);
 
-  await updatePlayersCount(playersLastUpdatedAt);
-  await updateClansCount(clansLastUpdatedAt);
-  await updateGameTypesCount(gameTypesLastUpdatedAt);
-  await updateGameServersCount(gameServersLastUpdatedId);
-  await updateMapsCount(mapsLastUpdatedId);
+  await updatePlayersCount(playersLastId);
+  await updateClansCount(clansLastId);
+  await updateGameTypesCount(gameTypesLastId);
+  await updateGameServersCount(gameServersLastId);
+  await updateMapsCount(mapsLastId);
 }
 
 export async function startUpdateGlobalCountsWorker() {

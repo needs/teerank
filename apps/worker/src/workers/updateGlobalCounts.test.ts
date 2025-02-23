@@ -1,10 +1,11 @@
 import { updateClansCount, updateGameServersCount, updateGameTypesCount, updateMapsCount, updatePlayersCount } from "./updateGlobalCounts";
 import { prismaMock } from "../../test/mockPrisma";
 import { Clan, GameServer, GameType, Map, Player, RankMethod } from "@prisma/client";
-import { getGlobalCounts, getGlobalCountsLastUpdatedAt } from "@teerank/teerank";
+import { getGlobalCounts, getGlobalCountsLastId } from "@teerank/teerank";
 import { redis } from "../redis";
 
 const mockPlayer: Player = {
+  id: 1,
   createdAt: new Date(),
   name: "test",
   updatedAt: new Date(),
@@ -14,6 +15,7 @@ const mockPlayer: Player = {
 }
 
 const mockClan: Clan = {
+  id: 1,
   createdAt: new Date(),
   name: "test",
   updatedAt: new Date(),
@@ -22,17 +24,18 @@ const mockClan: Clan = {
 }
 
 const mockMap: Map = {
+  id: 1,
   createdAt: new Date(),
   name: "test",
   playTime: BigInt(1),
   playerCount: 1,
   clanCount: 1,
   gameServerCount: 1,
-  id: 1,
   gameTypeName: "test",
 }
 
 const mockGameType: GameType = {
+  id: 1,
   createdAt: new Date(),
   name: "test",
   playTime: BigInt(1),
@@ -44,6 +47,7 @@ const mockGameType: GameType = {
 }
 
 const mockGameServer: GameServer = {
+  id: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSeenAt: new Date(),
@@ -52,7 +56,6 @@ const mockGameServer: GameServer = {
   ip: "127.0.0.1",
   port: 1,
   masterServerId: 1,
-  id: 1,
 }
 
 beforeEach(async () => {
@@ -63,25 +66,25 @@ describe("updatePlayersCount", () => {
   test("single player", async () => {
     prismaMock.player.findMany.mockResolvedValue([mockPlayer]);
 
-    await updatePlayersCount(new Date(0));
+    await updatePlayersCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.players).toBe(1);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.playersLastUpdatedAt).toEqual(mockPlayer.createdAt);
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.playersLastId).toEqual(mockPlayer.id);
   });
 
   test("no players", async () => {
     prismaMock.player.findMany.mockResolvedValue([]);
 
-    await updatePlayersCount(new Date(0));
+    await updatePlayersCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.players).toBe(0);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.playersLastUpdatedAt).toEqual(new Date(0));
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.playersLastId).toEqual(0);
   });
 });
 
@@ -89,25 +92,25 @@ describe("updateClansCount", () => {
   test("single clan", async () => {
     prismaMock.clan.findMany.mockResolvedValue([mockClan]);
 
-    await updateClansCount(new Date(0));
+    await updateClansCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.clans).toBe(1);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.clansLastUpdatedAt).toEqual(mockClan.createdAt);
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.clansLastId).toEqual(mockClan.id);
   });
 
   test("no clans", async () => {
     prismaMock.clan.findMany.mockResolvedValue([]);
 
-    await updateClansCount(new Date(0));
+    await updateClansCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.clans).toBe(0);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.clansLastUpdatedAt).toEqual(new Date(0));
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.clansLastId).toEqual(0);
   });
 });
 
@@ -120,8 +123,8 @@ describe("updateGameServersCount", () => {
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.gameServers).toBe(1);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.gameServersLastUpdatedId).toEqual(mockGameServer.id);
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.gameServersLastId).toEqual(mockGameServer.id);
   });
 
   test("no game servers", async () => {
@@ -132,8 +135,8 @@ describe("updateGameServersCount", () => {
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.gameServers).toBe(0);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.gameServersLastUpdatedId).toEqual(0);
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.gameServersLastId).toEqual(0);
   });
 });
 
@@ -146,8 +149,8 @@ describe("updateMapsCount", () => {
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.maps).toBe(1);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.mapsLastUpdatedId).toEqual(mockMap.id);
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.mapsLastId).toEqual(mockMap.id);
   });
 
   test("no maps", async () => {
@@ -158,8 +161,8 @@ describe("updateMapsCount", () => {
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.maps).toBe(0);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.mapsLastUpdatedId).toEqual(0);
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.mapsLastId).toEqual(0);
   });
 });
 
@@ -167,24 +170,24 @@ describe("updateGameTypesCount", () => {
   test("single game type", async () => {
     prismaMock.gameType.findMany.mockResolvedValue([mockGameType]);
 
-    await updateGameTypesCount(new Date(0));
+    await updateGameTypesCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.gameTypes).toBe(1);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.gameTypesLastUpdatedAt).toEqual(mockGameType.createdAt);
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.gameTypesLastId).toEqual(mockGameType.id);
   });
 
   test("no game types", async () => {
     prismaMock.gameType.findMany.mockResolvedValue([]);
 
-    await updateGameTypesCount(new Date(0));
+    await updateGameTypesCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.gameTypes).toBe(0);
 
-    const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.gameTypesLastUpdatedAt).toEqual(new Date(0));
+    const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
+    expect(globalCountsLastUpdatedAt.gameTypesLastId).toEqual(0);
   });
 });

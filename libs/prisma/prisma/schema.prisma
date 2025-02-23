@@ -89,6 +89,7 @@ model GameServerStateClient {
 
 model Player {
   name       String   @id
+  id         Int      @default(autoincrement()) @unique
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   lastSeenAt DateTime @default(now())
@@ -117,6 +118,7 @@ enum RankMethod {
 
 model GameType {
   name       String      @id
+  id         Int         @default(autoincrement()) @unique
   createdAt  DateTime    @default(now())
   map        Map[]
   rankMethod RankMethod?
@@ -272,6 +274,7 @@ model ClanInfoMap {
 
 model Clan {
   name String @id
+  id   Int    @default(autoincrement()) @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

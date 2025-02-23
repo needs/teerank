@@ -1,4 +1,4 @@
-import { getGlobalCounts, getGlobalCountsLastUpdatedAt } from "./globalCounts";
+import { getGlobalCounts, getGlobalCountsLastId } from "./globalCounts";
 import Redis from "ioredis-mock";
 import { incrementGlobalClanCount, incrementGlobalGameServerCount, incrementGlobalGameTypeCount, incrementGlobalMapCount, incrementGlobalPlayerCount } from "./globalCounts";
 import { REDIS_HOST, REDIS_PORT } from './redisConfig';
@@ -10,35 +10,35 @@ beforeEach(async () => {
 });
 
 test("returns the lowest possible date the first time", async () => {
-  const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
+  const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
 
-  expect(globalCountsLastUpdatedAt.playersLastUpdatedAt).toEqual(new Date(0));
-  expect(globalCountsLastUpdatedAt.clansLastUpdatedAt).toEqual(new Date(0));
-  expect(globalCountsLastUpdatedAt.gameTypesLastUpdatedAt).toEqual(new Date(0));
-  expect(globalCountsLastUpdatedAt.mapsLastUpdatedId).toEqual(0);
-  expect(globalCountsLastUpdatedAt.gameServersLastUpdatedId).toEqual(0);
+  expect(globalCountsLastUpdatedAt.playersLastId).toEqual(0);
+  expect(globalCountsLastUpdatedAt.clansLastId).toEqual(0);
+  expect(globalCountsLastUpdatedAt.gameTypesLastId).toEqual(0);
+  expect(globalCountsLastUpdatedAt.mapsLastId).toEqual(0);
+  expect(globalCountsLastUpdatedAt.gameServersLastId).toEqual(0);
 });
 
 test("should return the last updated at date for each count", async () => {
-  const lastUpdatedAtPlayers = new Date();
-  const lastUpdatedAtClans = new Date();
-  const lastUpdatedAtGameTypes = new Date();
-  const lastUpdatedAtMaps = 1;
-  const lastUpdatedAtGameServers = 1;
+  const lastPlayerId = 1;
+  const lastClanId = 1;
+  const lastGameTypeId = 1;
+  const lastMapId = 1;
+  const lastGameServerId = 1;
 
-  await incrementGlobalPlayerCount(redis, 1, lastUpdatedAtPlayers);
-  await incrementGlobalClanCount(redis, 1, lastUpdatedAtClans);
-  await incrementGlobalGameTypeCount(redis, 1, lastUpdatedAtGameTypes);
-  await incrementGlobalMapCount(redis, 1, lastUpdatedAtMaps);
-  await incrementGlobalGameServerCount(redis, 1, lastUpdatedAtGameServers);
+  await incrementGlobalPlayerCount(redis, 1, lastPlayerId);
+  await incrementGlobalClanCount(redis, 1, lastClanId);
+  await incrementGlobalGameTypeCount(redis, 1, lastGameTypeId);
+  await incrementGlobalMapCount(redis, 1, lastMapId);
+  await incrementGlobalGameServerCount(redis, 1, lastGameServerId);
 
-  const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
+  const globalCountsLastUpdatedAt = await getGlobalCountsLastId(redis);
 
-  expect(globalCountsLastUpdatedAt.playersLastUpdatedAt).toEqual(lastUpdatedAtPlayers);
-  expect(globalCountsLastUpdatedAt.clansLastUpdatedAt).toEqual(lastUpdatedAtClans);
-  expect(globalCountsLastUpdatedAt.gameTypesLastUpdatedAt).toEqual(lastUpdatedAtGameTypes);
-  expect(globalCountsLastUpdatedAt.mapsLastUpdatedId).toEqual(lastUpdatedAtMaps);
-  expect(globalCountsLastUpdatedAt.gameServersLastUpdatedId).toEqual(lastUpdatedAtGameServers);
+  expect(globalCountsLastUpdatedAt.playersLastId).toEqual(lastPlayerId);
+  expect(globalCountsLastUpdatedAt.clansLastId).toEqual(lastClanId);
+  expect(globalCountsLastUpdatedAt.gameTypesLastId).toEqual(lastGameTypeId);
+  expect(globalCountsLastUpdatedAt.mapsLastId).toEqual(lastMapId);
+  expect(globalCountsLastUpdatedAt.gameServersLastId).toEqual(lastGameServerId);
 
   const globalCounts = await getGlobalCounts(redis);
 

@@ -16,36 +16,70 @@ export const QUEUE_NAME_MAP_COUNT = 'map-count';
 export const QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT = 'fill-clan-active-player-count';
 export const QUEUE_NAME_UPDATE_GLOBAL_COUNTS = 'update-global-counts';
 
+// Queue instances
+let pollMasterServerQueue: Queue | null = null;
+let pollGameServerQueue: Queue | null = null;
+let updatePlayTimeQueue: Queue | null = null;
+let rankPlayerQueue: Queue | null = null;
+let gameTypeCountQueue: Queue | null = null;
+let mapCountQueue: Queue | null = null;
+let fillClanActivePlayerCountQueue: Queue | null = null;
+let updateGlobalCountsQueue: Queue | null = null;
+
 export function getQueuePollMasterServer() {
-  return new Queue(QUEUE_NAME_POLL_MASTER_SERVER, { connection: bullmqConnection });
+  if (!pollMasterServerQueue) {
+    pollMasterServerQueue = new Queue(QUEUE_NAME_POLL_MASTER_SERVER, { connection: bullmqConnection });
+  }
+  return pollMasterServerQueue;
 }
 
 export function getQueuePollGameServer() {
-  return new Queue(QUEUE_NAME_POLL_GAME_SERVER, { connection: bullmqConnection });
+  if (!pollGameServerQueue) {
+    pollGameServerQueue = new Queue(QUEUE_NAME_POLL_GAME_SERVER, { connection: bullmqConnection });
+  }
+  return pollGameServerQueue;
 }
 
 export function getQueueUpdatePlayTime() {
-  return new Queue(QUEUE_NAME_UPDATE_PLAY_TIME, { connection: bullmqConnection });
+  if (!updatePlayTimeQueue) {
+    updatePlayTimeQueue = new Queue(QUEUE_NAME_UPDATE_PLAY_TIME, { connection: bullmqConnection });
+  }
+  return updatePlayTimeQueue;
 }
 
 export function getQueueRankPlayer() {
-  return new Queue(QUEUE_NAME_RANK_PLAYER, { connection: bullmqConnection });
+  if (!rankPlayerQueue) {
+    rankPlayerQueue = new Queue(QUEUE_NAME_RANK_PLAYER, { connection: bullmqConnection });
+  }
+  return rankPlayerQueue;
 }
 
 export function getQueueGameTypeCount() {
-  return new Queue(QUEUE_NAME_GAME_TYPE_COUNT, { connection: bullmqConnection });
+  if (!gameTypeCountQueue) {
+    gameTypeCountQueue = new Queue(QUEUE_NAME_GAME_TYPE_COUNT, { connection: bullmqConnection });
+  }
+  return gameTypeCountQueue;
 }
 
 export function getQueueMapCount() {
-  return new Queue(QUEUE_NAME_MAP_COUNT, { connection: bullmqConnection });
+  if (!mapCountQueue) {
+    mapCountQueue = new Queue(QUEUE_NAME_MAP_COUNT, { connection: bullmqConnection });
+  }
+  return mapCountQueue;
 }
 
 export function getQueueFillClanActivePlayerCount() {
-  return new Queue(QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT, { connection: bullmqConnection });
+  if (!fillClanActivePlayerCountQueue) {
+    fillClanActivePlayerCountQueue = new Queue(QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT, { connection: bullmqConnection });
+  }
+  return fillClanActivePlayerCountQueue;
 }
 
 export function getQueueUpdateGlobalCounts() {
-  return new Queue(QUEUE_NAME_UPDATE_GLOBAL_COUNTS, { connection: bullmqConnection });
+  if (!updateGlobalCountsQueue) {
+    updateGlobalCountsQueue = new Queue(QUEUE_NAME_UPDATE_GLOBAL_COUNTS, { connection: bullmqConnection });
+  }
+  return updateGlobalCountsQueue;
 }
 
 export async function cleanQueue(queue: Queue) {

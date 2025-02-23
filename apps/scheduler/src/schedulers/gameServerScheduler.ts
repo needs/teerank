@@ -1,4 +1,4 @@
-import { getQueuePollGameServer, getQueueRankPlayer, getQueueUpdatePlayTime } from "@teerank/teerank";
+import { getQueueRankPlayer, getQueueUpdatePlayTime, schedulePollGameServer } from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 import { schedule, scheduleWithSpread } from "../utils";
@@ -8,7 +8,6 @@ let lastId = 0;
 let queuesFull = false;
 
 export async function gameServerScheduler() {
-  const queue = getQueuePollGameServer();
   const queueRankPlayer = getQueueRankPlayer();
   const queueUpdatePlayTime = getQueueUpdatePlayTime();
 
@@ -44,19 +43,11 @@ export async function gameServerScheduler() {
           return;
         }
 
-        await queue.add(
-          `${gameServer.ip} - ${gameServer.port} (${gameServer.id})`,
-          {
-            ip: gameServer.ip,
-            port: gameServer.port,
-            gameServerId: gameServer.id,
-          },
-          {
-            deduplication: {
-              id: gameServer.id.toString(),
-            }
-          }
-        )
+        await schedulePollGameServer({
+          ip: gameServer.ip,
+          port: gameServer.port,
+          gameServerId: gameServer.id,
+        });
       });
     }
 

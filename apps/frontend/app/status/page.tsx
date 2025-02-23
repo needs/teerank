@@ -1,7 +1,7 @@
 import {
   getQueueUpdatePlayTime,
   lastCompletedJobDate,
-  getQueuePollGameServer,
+  getLastPollGameServerDate,
   getQueueRankPlayer,
   getQueueGameTypeCount,
   getQueueMapCount,
@@ -29,7 +29,7 @@ export default async function Index() {
     unreferencedGameServersCount,
   ] = await Promise.all([
     getLastPollMasterServerDate(),
-    lastCompletedJobDate(getQueuePollGameServer()),
+    getLastPollGameServerDate(),
     lastCompletedJobDate(getQueueUpdatePlayTime()),
     lastCompletedJobDate(getQueueRankPlayer()),
     lastCompletedJobDate(getQueueGameTypeCount()),

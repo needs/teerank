@@ -1,15 +1,10 @@
 import { prisma } from "../prisma";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { GameServerInfoPacket, unpackGameServerInfoPackets } from "../packets/gameServerInfo";
-import { getQueueRankPlayer, getQueueUpdatePlayTime, QUEUE_NAME_POLL_GAME_SERVER, wait } from "@teerank/teerank";
+import { getQueueRankPlayer, getQueueUpdatePlayTime, PollGameServerJobData, processPollGameServerJobs, wait } from "@teerank/teerank";
 import { GameServer, GameServerState } from "@prisma/client";
-import { Job, Worker } from "bullmq";
-import { bullmqConnection } from "@teerank/teerank";
 import { getEnvInt } from "@teerank/teerank";
 import { uniqBy } from "lodash";
-import { minutesToSeconds } from "date-fns";
-
-const POLL_GAME_SERVER_CONCURRENCY = getEnvInt('POLL_GAME_SERVER_CONCURRENCY', 100);
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -345,27 +340,22 @@ export async function processGameServerInfo(
   return snapshot.id;
 }
 
-async function processor(job: Job) {
-  const queueUpdatePlayTime = getQueueUpdatePlayTime();
-  const queueRankPlayer = getQueueRankPlayer();
-
-  let gameServer: GameServer & { gameServerState: GameServerState | null };
-
-  if (job.data.gameServerId) {
-    gameServer = await prisma.gameServer.findUniqueOrThrow({
+async function getGameServer(jobData: PollGameServerJobData) {
+  if (jobData.gameServerId) {
+    return await prisma.gameServer.findUniqueOrThrow({
       where: {
-        id: job.data.gameServerId,
+        id: jobData.gameServerId,
       },
       include: {
         gameServerState: true,
       },
     });
-  } else {
-    gameServer = await prisma.gameServer.findUniqueOrThrow({
+  } else if (jobData.ip && jobData.port) {
+    return await prisma.gameServer.findUniqueOrThrow({
       where: {
         ip_port: {
-          ip: job.data.ip,
-          port: job.data.port,
+          ip: jobData.ip,
+          port: jobData.port,
         }
       },
       include: {
@@ -373,6 +363,15 @@ async function processor(job: Job) {
       },
     });
   }
+
+  throw new Error(`Game server not found: ${jobData.ip}:${jobData.port} (${jobData.gameServerId})`);
+}
+
+async function processor(jobData: PollGameServerJobData) {
+  const queueUpdatePlayTime = getQueueUpdatePlayTime();
+  const queueRankPlayer = getQueueRankPlayer();
+
+  const gameServer = await getGameServer(jobData);
 
   if (skipPolling(gameServer)) {
     return;
@@ -437,14 +436,5 @@ async function processor(job: Job) {
 }
 
 export async function startPollGameServerWorker() {
-  return new Worker(QUEUE_NAME_POLL_GAME_SERVER, processor, {
-    connection: bullmqConnection,
-    concurrency: POLL_GAME_SERVER_CONCURRENCY,
-    removeOnComplete: {
-      age: minutesToSeconds(10),
-    },
-    removeOnFail: {
-      count: 1000,
-    }
-  });
+  return processPollGameServerJobs(processor);
 }

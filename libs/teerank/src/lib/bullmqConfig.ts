@@ -90,6 +90,19 @@ export async function cleanQueue(queue: Queue) {
   console.log('Queue cleaned', queue.name);
 }
 
+export async function cleanAllQueues() {
+  await Promise.all([
+    cleanQueue(getQueuePollMasterServer()),
+    cleanQueue(getQueuePollGameServer()),
+    cleanQueue(getQueueGameTypeCount()),
+    cleanQueue(getQueueMapCount()),
+    cleanQueue(getQueueFillClanActivePlayerCount()),
+    cleanQueue(getQueueUpdateGlobalCounts()),
+    cleanQueue(getQueueUpdatePlayTime()),
+    cleanQueue(getQueueRankPlayer()),
+  ]);
+}
+
 export async function lastCompletedJobDate(queue: Queue) {
   const lastCompletedJob = await queue.getCompleted();
   return lastCompletedJob.length > 0 ? lastCompletedJob[0].processedOn : null;

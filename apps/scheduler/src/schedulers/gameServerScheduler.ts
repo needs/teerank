@@ -4,7 +4,7 @@ import { prisma } from "../prisma";
 import { schedule, scheduleWithSpread } from "../utils";
 import { captureMessage } from "@sentry/node";
 
-let maxCreatedAt = new Date(0);
+let lastId = 0;
 let queuesFull = false;
 
 export async function gameServerScheduler() {
@@ -22,17 +22,17 @@ export async function gameServerScheduler() {
   schedule(minutesToMilliseconds(5), async () => {
     const gameServers = await prisma.gameServer.findMany({
       where: {
-        createdAt: {
-          gt: maxCreatedAt,
+        id: {
+          gt: lastId,
         },
       },
       select: {
+        id: true,
         ip: true,
         port: true,
-        createdAt: true,
       },
       orderBy: {
-        createdAt: 'asc',
+        id: 'asc',
       },
     });
 
@@ -45,14 +45,15 @@ export async function gameServerScheduler() {
         }
 
         await queue.add(
-          `${gameServer.ip} - ${gameServer.port}`,
+          `${gameServer.ip} - ${gameServer.port} (${gameServer.id})`,
           {
             ip: gameServer.ip,
             port: gameServer.port,
+            gameServerId: gameServer.id,
           },
           {
             deduplication: {
-              id: `${gameServer.ip} - ${gameServer.port}`,
+              id: gameServer.id.toString(),
             }
           }
         )
@@ -62,7 +63,7 @@ export async function gameServerScheduler() {
     console.log(`Scheduled ${gameServers.length} new game servers`);
 
     if (gameServers.length > 0) {
-      maxCreatedAt = gameServers[gameServers.length - 1].createdAt;
+      lastId = gameServers[gameServers.length - 1].id;
     }
   });
 }

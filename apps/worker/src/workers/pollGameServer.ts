@@ -349,8 +349,19 @@ async function processor(job: Job) {
   const queueUpdatePlayTime = getQueueUpdatePlayTime();
   const queueRankPlayer = getQueueRankPlayer();
 
-  const gameServer =
-    await prisma.gameServer.findUniqueOrThrow({
+  let gameServer: GameServer & { gameServerState: GameServerState | null };
+
+  if (job.data.gameServerId) {
+    gameServer = await prisma.gameServer.findUniqueOrThrow({
+      where: {
+        id: job.data.gameServerId,
+      },
+      include: {
+        gameServerState: true,
+      },
+    });
+  } else {
+    gameServer = await prisma.gameServer.findUniqueOrThrow({
       where: {
         ip_port: {
           ip: job.data.ip,
@@ -361,7 +372,7 @@ async function processor(job: Job) {
         gameServerState: true,
       },
     });
-
+  }
 
   if (skipPolling(gameServer)) {
     return;

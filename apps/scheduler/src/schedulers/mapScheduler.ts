@@ -3,7 +3,7 @@ import { hoursToMilliseconds, minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 import { schedule, scheduleWithSpread } from "../utils";
 
-let maxCreatedAt = new Date(0);
+let lastId = 0;
 
 export async function mapScheduler() {
   const queue = getQueueMapCount();
@@ -11,17 +11,17 @@ export async function mapScheduler() {
   schedule(minutesToMilliseconds(5), async () => {
     const maps = await prisma.map.findMany({
       where: {
-        createdAt: {
-          gt: maxCreatedAt,
+        id: {
+          gt: lastId,
         },
       },
       select: {
         gameTypeName: true,
         name: true,
-        createdAt: true,
+        id: true,
       },
       orderBy: {
-        createdAt: 'asc',
+        id: 'asc',
       },
     });
 
@@ -32,10 +32,11 @@ export async function mapScheduler() {
           {
             gameTypeName: map.gameTypeName,
             mapName: map.name,
+            mapId: map.id,
           },
           {
             deduplication: {
-              id: `${map.gameTypeName} - ${map.name}`,
+              id: map.id.toString(),
             }
           }
         );
@@ -45,7 +46,7 @@ export async function mapScheduler() {
     console.log(`Scheduled ${maps.length} new maps`);
 
     if (maps.length > 0) {
-      maxCreatedAt = maps[maps.length - 1].createdAt;
+      lastId = maps[maps.length - 1].id;
     }
   });
 }

@@ -17,6 +17,10 @@ function getNewLastUpdatedAt(entities: { createdAt: Date }[]) {
   return new Date(Math.max(...entities.map(entity => entity.createdAt.getTime())));
 }
 
+function getNewLastId(entities: { id: number }[]) {
+  return Math.max(...entities.map(entity => entity.id));
+}
+
 export async function updatePlayersCount(lastUpdateDate: Date) {
   const players = await prisma.player.findMany({
     select: {
@@ -63,50 +67,6 @@ export async function updateClansCount(lastUpdateDate: Date) {
   }
 }
 
-export async function updateGameServersCount(lastUpdateDate: Date) {
-  const gameServers = await prisma.gameServer.findMany({
-    select: {
-      createdAt: true,
-    },
-    where: {
-      createdAt: {
-        gt: lastUpdateDate,
-      },
-    },
-    orderBy: {
-      createdAt: 'asc',
-    },
-    take: 1000,
-  });
-
-  if (gameServers.length > 0) {
-    const newLastUpdatedAt = getNewLastUpdatedAt(gameServers);
-    await incrementGlobalGameServerCount(redis, gameServers.length, newLastUpdatedAt);
-  }
-}
-
-export async function updateMapsCount(lastUpdateDate: Date) {
-  const maps = await prisma.map.findMany({
-    select: {
-      createdAt: true,
-    },
-    where: {
-      createdAt: {
-        gt: lastUpdateDate,
-      },
-    },
-    orderBy: {
-      createdAt: 'asc',
-    },
-    take: 1000,
-  });
-
-  if (maps.length > 0) {
-    const newLastUpdatedAt = getNewLastUpdatedAt(maps);
-    await incrementGlobalMapCount(redis, maps.length, newLastUpdatedAt);
-  }
-}
-
 export async function updateGameTypesCount(lastUpdateDate: Date) {
   const gameTypes = await prisma.gameType.findMany({
     select: {
@@ -129,20 +89,64 @@ export async function updateGameTypesCount(lastUpdateDate: Date) {
   }
 }
 
+export async function updateGameServersCount(lastUpdateId: number) {
+  const gameServers = await prisma.gameServer.findMany({
+    select: {
+      id: true,
+    },
+    where: {
+      id: {
+        gt: lastUpdateId,
+      },
+    },
+    orderBy: {
+      id: 'asc',
+    },
+    take: 1000,
+  });
+
+  if (gameServers.length > 0) {
+    const newLastUpdatedId = getNewLastId(gameServers);
+    await incrementGlobalGameServerCount(redis, gameServers.length, newLastUpdatedId);
+  }
+}
+
+export async function updateMapsCount(lastUpdateId: number) {
+  const maps = await prisma.map.findMany({
+    select: {
+      id: true,
+    },
+    where: {
+      id: {
+        gt: lastUpdateId,
+      },
+    },
+    orderBy: {
+      id: 'asc',
+    },
+    take: 1000,
+  });
+
+  if (maps.length > 0) {
+    const newLastUpdatedId = getNewLastId(maps);
+    await incrementGlobalMapCount(redis, maps.length, newLastUpdatedId);
+  }
+}
+
 async function processor() {
   const {
     playersLastUpdatedAt,
     clansLastUpdatedAt,
-    mapsLastUpdatedAt,
     gameTypesLastUpdatedAt,
-    gameServersLastUpdatedAt
+    mapsLastUpdatedId,
+    gameServersLastUpdatedId
   } = await getGlobalCountsLastUpdatedAt(redis);
 
   await updatePlayersCount(playersLastUpdatedAt);
   await updateClansCount(clansLastUpdatedAt);
-  await updateGameServersCount(gameServersLastUpdatedAt);
-  await updateMapsCount(mapsLastUpdatedAt);
   await updateGameTypesCount(gameTypesLastUpdatedAt);
+  await updateGameServersCount(gameServersLastUpdatedId);
+  await updateMapsCount(mapsLastUpdatedId);
 }
 
 export async function startUpdateGlobalCountsWorker() {

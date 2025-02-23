@@ -115,25 +115,25 @@ describe("updateGameServersCount", () => {
   test("single game server", async () => {
     prismaMock.gameServer.findMany.mockResolvedValue([mockGameServer]);
 
-    await updateGameServersCount(new Date(0));
+    await updateGameServersCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.gameServers).toBe(1);
 
     const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.gameServersLastUpdatedAt).toEqual(mockGameServer.createdAt);
+    expect(globalCountsLastUpdatedAt.gameServersLastUpdatedId).toEqual(mockGameServer.id);
   });
 
   test("no game servers", async () => {
     prismaMock.gameServer.findMany.mockResolvedValue([]);
 
-    await updateGameServersCount(new Date(0));
+    await updateGameServersCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.gameServers).toBe(0);
 
     const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.gameServersLastUpdatedAt).toEqual(new Date(0));
+    expect(globalCountsLastUpdatedAt.gameServersLastUpdatedId).toEqual(0);
   });
 });
 
@@ -141,25 +141,25 @@ describe("updateMapsCount", () => {
   test("single map", async () => {
     prismaMock.map.findMany.mockResolvedValue([mockMap]);
 
-    await updateMapsCount(new Date(0));
+    await updateMapsCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.maps).toBe(1);
 
     const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.mapsLastUpdatedAt).toEqual(mockMap.createdAt);
+    expect(globalCountsLastUpdatedAt.mapsLastUpdatedId).toEqual(mockMap.id);
   });
 
   test("no maps", async () => {
     prismaMock.map.findMany.mockResolvedValue([]);
 
-    await updateMapsCount(new Date(0));
+    await updateMapsCount(0);
 
     const globalCounts = await getGlobalCounts(redis);
     expect(globalCounts.maps).toBe(0);
 
     const globalCountsLastUpdatedAt = await getGlobalCountsLastUpdatedAt(redis);
-    expect(globalCountsLastUpdatedAt.mapsLastUpdatedAt).toEqual(new Date(0));
+    expect(globalCountsLastUpdatedAt.mapsLastUpdatedId).toEqual(0);
   });
 });
 

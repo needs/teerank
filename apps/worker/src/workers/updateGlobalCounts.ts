@@ -27,6 +27,10 @@ export async function updatePlayersCount(lastUpdateDate: Date) {
         gt: lastUpdateDate,
       },
     },
+    orderBy: {
+      createdAt: 'asc',
+    },
+    take: 1000,
   });
 
   console.log(`Found ${players.length} players to update (${lastUpdateDate.toISOString()} - ${new Date().toISOString()})`);
@@ -47,6 +51,10 @@ export async function updateClansCount(lastUpdateDate: Date) {
         gt: lastUpdateDate,
       },
     },
+    orderBy: {
+      createdAt: 'asc',
+    },
+    take: 1000,
   });
 
   if (clans.length > 0) {
@@ -65,6 +73,10 @@ export async function updateGameServersCount(lastUpdateDate: Date) {
         gt: lastUpdateDate,
       },
     },
+    orderBy: {
+      createdAt: 'asc',
+    },
+    take: 1000,
   });
 
   if (gameServers.length > 0) {
@@ -83,6 +95,10 @@ export async function updateMapsCount(lastUpdateDate: Date) {
         gt: lastUpdateDate,
       },
     },
+    orderBy: {
+      createdAt: 'asc',
+    },
+    take: 1000,
   });
 
   if (maps.length > 0) {
@@ -101,6 +117,10 @@ export async function updateGameTypesCount(lastUpdateDate: Date) {
         gt: lastUpdateDate,
       },
     },
+    orderBy: {
+      createdAt: 'asc',
+    },
+    take: 1000,
   });
 
   if (gameTypes.length > 0) {

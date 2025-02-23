@@ -48,66 +48,6 @@ function skipPolling(gameServer: GameServer & { gameServerState: GameServerState
   return Math.random() >= (1.0 / Math.min(gameServer.failureCount, MAX_FAILURE_COUNT));
 }
 
-export async function changePlayerClans(
-  playerClans: Record<string, string | null>,
-) {
-  const totalPlayerCount = Object.keys(playerClans).length;
-  const clanDelta: Record<string, number> = {};
-
-  // When changing clans, clan `activePlayerCount` needs to be updated for both
-  // the old and new clans.  To avoid race conditions, when updating a player's
-  // clan, make sure old player clan is accurate.
-
-  for (let i = 0; i < 10; i++) {
-    for (const [playerName, newClanName_] of Object.entries(playerClans)) {
-      const newClanName = newClanName_ || null;
-
-      const currentPlayer = await prisma.player.findUnique({
-        where: { name: playerName },
-        select: { clanName: true },
-      });
-
-      const oldClanName = currentPlayer?.clanName || null;
-
-      const ret = await prisma.player.updateMany({
-        where: { name: playerName, clanName: oldClanName },
-        data: { clanName: newClanName },
-      });
-
-      if (ret.count !== 0) {
-        if (oldClanName !== null) {
-          clanDelta[oldClanName] = (clanDelta[oldClanName] ?? 0) - 1;
-        }
-
-        if (newClanName !== null) {
-          clanDelta[newClanName] = (clanDelta[newClanName] ?? 0) + 1;
-        }
-
-        delete playerClans[playerName];
-      }
-    }
-
-    const remainingPlayerCount = Object.keys(playerClans).length;
-    if (remainingPlayerCount === 0) {
-      break;
-    }
-  }
-
-  const remainingPlayerCount = Object.keys(playerClans).length;
-  if (remainingPlayerCount > 0) {
-    console.error(`${remainingPlayerCount}/${totalPlayerCount} players failed to update`);
-  }
-
-  for (const [clanName, delta] of Object.entries(clanDelta)) {
-    if (delta !== 0) {
-      await prisma.clan.update({
-        where: { name: clanName },
-        data: { activePlayerCount: { increment: delta } },
-      });
-    }
-  }
-}
-
 export async function processGameServerInfo(
   gameServer: GameServer & { gameServerState: GameServerState | null },
   gameServerInfo: GameServerInfoPacket,
@@ -149,16 +89,22 @@ export async function processGameServerInfo(
 
   const uniqClients = uniqBy(gameServerInfo.clients, 'name');
 
-  await prisma.player.createMany({
-    data: uniqClients.map((client) => ({
-      name: client.name,
-    })),
-    skipDuplicates: true,
-  });
-
-  await changePlayerClans(
-    Object.fromEntries(uniqClients.map((client) => [client.name, client.clan])),
-  );
+  for (const client of uniqClients) {
+    await prisma.player.upsert({
+      where: {
+        name: client.name,
+      },
+      update: {
+        clanName: client.clan === "" ? undefined : client.clan,
+        lastSeenAt: new Date()
+      },
+      create: {
+        name: client.name,
+        clanName: client.clan === "" ? undefined : client.clan,
+        lastSeenAt: new Date(),
+      },
+    });
+  }
 
   for (const client of uniqClients) {
     await prisma.playerInfoGameType.upsert({
@@ -279,17 +225,6 @@ export async function processGameServerInfo(
       }
     },
   });
-
-  for (const client of uniqClients) {
-    await prisma.player.update({
-      where: {
-        name: client.name,
-      },
-      data: {
-        lastSeenAt: new Date(),
-      },
-    });
-  }
 
   await prisma.gameServer.update({
     where: {

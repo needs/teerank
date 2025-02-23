@@ -1,10 +1,9 @@
 import {
-  getQueueUpdatePlayTime,
-  lastCompletedJobDate,
+  getLastUpdatePlayTimeDate,
   getLastPollGameServerDate,
-  getQueueRankPlayer,
-  getQueueGameTypeCount,
-  getQueueMapCount,
+  getLastRankPlayerDate,
+  getLastGameTypeCountDate,
+  getLastMapCountDate,
   getLastPollMasterServerDate,
 } from '@teerank/teerank';
 import prisma from '../../utils/prisma';
@@ -30,10 +29,10 @@ export default async function Index() {
   ] = await Promise.all([
     getLastPollMasterServerDate(),
     getLastPollGameServerDate(),
-    lastCompletedJobDate(getQueueUpdatePlayTime()),
-    lastCompletedJobDate(getQueueRankPlayer()),
-    lastCompletedJobDate(getQueueGameTypeCount()),
-    lastCompletedJobDate(getQueueMapCount()),
+    getLastUpdatePlayTimeDate(),
+    getLastRankPlayerDate(),
+    getLastGameTypeCountDate(),
+    getLastMapCountDate(),
     prisma.masterServer.findMany({
       select: {
         address: true,

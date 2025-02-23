@@ -1,4 +1,8 @@
-import { getQueueRankPlayer, getQueueUpdatePlayTime, schedulePollGameServer } from "@teerank/teerank";
+import {
+  schedulePollGameServer,
+  getUpdatePlayTimeWaitingCount,
+  getRankPlayerWaitingCount
+} from "@teerank/teerank";
 import { minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 import { schedule, scheduleWithSpread } from "../utils";
@@ -8,14 +12,17 @@ let lastId = 0;
 let queuesFull = false;
 
 export async function gameServerScheduler() {
-  const queueRankPlayer = getQueueRankPlayer();
-  const queueUpdatePlayTime = getQueueUpdatePlayTime();
-
   schedule(minutesToMilliseconds(1), async () => {
-    const rankPlayerWaitingCount = await queueRankPlayer.getWaitingCount();
-    const updatePlayTimeWaitingCount = await queueUpdatePlayTime.getWaitingCount();
+    const [rankPlayerWaitingCount, updatePlayTimeWaitingCount] = await Promise.all([
+      getRankPlayerWaitingCount(),
+      getUpdatePlayTimeWaitingCount()
+    ]);
 
     queuesFull = rankPlayerWaitingCount >= 50000 || updatePlayTimeWaitingCount >= 50000;
+
+    if (queuesFull) {
+      console.log('Queues are full:', { rankPlayerWaitingCount, updatePlayTimeWaitingCount });
+    }
   });
 
   schedule(minutesToMilliseconds(5), async () => {

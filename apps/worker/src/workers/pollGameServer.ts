@@ -1,7 +1,7 @@
 import { prisma } from "../prisma";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { GameServerInfoPacket, unpackGameServerInfoPackets } from "../packets/gameServerInfo";
-import { getQueueRankPlayer, getQueueUpdatePlayTime, PollGameServerJobData, processPollGameServerJobs, wait } from "@teerank/teerank";
+import { scheduleUpdatePlayTime, scheduleRankPlayer, PollGameServerJobData, processPollGameServerJobs, wait } from "@teerank/teerank";
 import { GameServer, GameServerState } from "@prisma/client";
 import { getEnvInt } from "@teerank/teerank";
 import { uniqBy } from "lodash";
@@ -368,9 +368,6 @@ async function getGameServer(jobData: PollGameServerJobData) {
 }
 
 async function processor(jobData: PollGameServerJobData) {
-  const queueUpdatePlayTime = getQueueUpdatePlayTime();
-  const queueRankPlayer = getQueueRankPlayer();
-
   const gameServer = await getGameServer(jobData);
 
   if (skipPolling(gameServer)) {
@@ -393,22 +390,9 @@ async function processor(jobData: PollGameServerJobData) {
       const gameServerInfo = unpackGameServerInfoPackets(receivedPackets.packets)
       const snapshotId = await processGameServerInfo(gameServer, gameServerInfo);
 
-      const jobName = `${gameServer.ip} - ${gameServer.port} - ${snapshotId}`;
-
       await Promise.all([
-        queueUpdatePlayTime.add(jobName, {
-          snapshotId: snapshotId,
-        }, {
-          removeOnComplete: 1000,
-          removeOnFail: 1000,
-        }),
-
-        queueRankPlayer.add(jobName, {
-          snapshotId: snapshotId,
-        }, {
-          removeOnComplete: 1000,
-          removeOnFail: 1000,
-        })
+        scheduleUpdatePlayTime({ snapshotId }),
+        scheduleRankPlayer({ snapshotId })
       ]);
     } catch (e) {
       console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)

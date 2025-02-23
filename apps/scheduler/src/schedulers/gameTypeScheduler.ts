@@ -1,4 +1,6 @@
-import { getQueueGameTypeCount } from "@teerank/teerank";
+import {
+  scheduleGameTypeCount
+} from "@teerank/teerank";
 import { hoursToMilliseconds, minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 import { schedule, scheduleWithSpread } from "../utils";
@@ -6,8 +8,6 @@ import { schedule, scheduleWithSpread } from "../utils";
 let maxCreatedAt = new Date(0);
 
 export async function gameTypeScheduler() {
-  const queue = getQueueGameTypeCount();
-
   schedule(minutesToMilliseconds(5), async () => {
     const gameTypes = await prisma.gameType.findMany({
       where: {
@@ -22,17 +22,9 @@ export async function gameTypeScheduler() {
 
     for (const gameType of gameTypes) {
       scheduleWithSpread(hoursToMilliseconds(1), async () => {
-        await queue.add(
-          gameType.name,
-          {
-            gameTypeName: gameType.name,
-          },
-          {
-            deduplication: {
-              id: gameType.name,
-            }
-          }
-        )
+        await scheduleGameTypeCount({
+          gameTypeName: gameType.name,
+        });
       });
     }
 

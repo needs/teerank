@@ -66,11 +66,15 @@ export function ListCell({
   alignRight,
   className = '',
 }: {
-  label: string;
+  label?: string;
   href?: UrlObject;
   alignRight?: boolean;
   className?: string;
 }) {
+  if (label === undefined) {
+    return <span className={className} />;
+  }
+
   return (
     <span
       className={twMerge('truncate', alignRight && 'text-right', className)}

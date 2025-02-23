@@ -8,6 +8,8 @@ import { searchParamPageSchema } from '../../../../utils/page';
 import prisma from '../../../../utils/prisma';
 import { encodeString } from '../../../../utils/encoding';
 import { formatPlayTime } from '../../../../utils/format';
+import { GameServer } from '@prisma/client';
+import { formatDuration, intervalToDuration } from 'date-fns';
 
 export const metadata = {
   title: 'Server',
@@ -21,6 +23,31 @@ function ipAndPort(ip: string, port: number) {
     default:
       return `${ip}:${port}`;
   }
+}
+
+function OfflineServer({ gameServer }: { gameServer: GameServer }) {
+  return (
+    <main className="flex flex-col gap-8 py-12">
+      <header className="flex flex-row px-20 gap-8">
+        <section className="flex flex-col gap-2 grow">
+          <h1 className="text-2xl font-bold">
+            {ipAndPort(gameServer.ip, gameServer.port)}
+          </h1>
+          <div className="flex flex-row divide-x">
+            <span className="pr-4">
+              Offline for{' '}
+              {formatDuration(
+                intervalToDuration({
+                  start: gameServer.lastSeenAt,
+                  end: new Date(),
+                })
+              )}
+            </span>
+          </div>
+        </section>
+      </header>
+    </main>
+  );
 }
 
 export default async function Index({
@@ -67,15 +94,21 @@ export default async function Index({
     },
   });
 
-  if (gameServer === null || gameServer.gameServerState === null) {
+  if (gameServer === null) {
     return notFound();
+  }
+
+  if (gameServer.gameServerState === null) {
+    return <OfflineServer gameServer={gameServer} />;
   }
 
   return (
     <main className="flex flex-col gap-8 py-12">
       <header className="flex flex-row px-20 gap-8">
         <section className="flex flex-col gap-2 grow">
-          <h1 className="text-2xl font-bold">{gameServer.gameServerState.name}</h1>
+          <h1 className="text-2xl font-bold">
+            {gameServer.gameServerState.name}
+          </h1>
           <div className="flex flex-row divide-x">
             <span className="pr-4">
               <Link

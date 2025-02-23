@@ -16,37 +16,64 @@ export default async function Index({
 }) {
   const { page } = searchParamSchema.parse(searchParams);
 
-  const gameServerStates = await prisma.gameServerState.findMany({
-    orderBy: {
-      numClients: 'desc',
+  const gameServers = await prisma.gameServer.findMany({
+    select: {
+      ip: true,
+      port: true,
+      gameServerState: {
+        select: {
+          name: true,
+          numClients: true,
+          maxClients: true,
+          map: {
+            select: {
+              gameTypeName: true,
+              name: true,
+            },
+          },
+        },
+      },
     },
-    include: {
-      gameServer: true,
-      map: true,
-    },
+    orderBy: [
+      {
+        failureCount: 'asc',
+      },
+      {
+        gameServerState: {
+          maxClients: 'desc',
+        },
+      },
+      {
+        gameServerState: {
+          numClients: 'desc',
+        },
+      },
+      {
+        playTime: 'desc',
+      },
+    ],
     take: 100,
     skip: (page - 1) * 100,
   });
 
   const globalCounts = await getGlobalCounts(redis);
 
-  const servers = gameServerStates
-    .map((gameServerState, index) => (gameServerState.gameServer ? {
-      rank: (page - 1) * 100 + index + 1,
-      name: gameServerState.name,
-      gameTypeName: gameServerState.map.gameTypeName,
-      mapName: gameServerState.map.name,
-      numClients: gameServerState.numClients,
-      maxClients: gameServerState.maxClients,
-      ip: gameServerState.gameServer.ip,
-      port: gameServerState.gameServer.port,
-    } : null))
-    .filter((server) => server !== null);
+  const servers = gameServers.map((gameServer, index) => ({
+    rank: (page - 1) * 100 + index + 1,
+    ip: gameServer.ip,
+    port: gameServer.port,
+    state: gameServer.gameServerState
+      ? {
+          name: gameServer.gameServerState.name,
+          gameTypeName: gameServer.gameServerState.map.gameTypeName,
+          mapName: gameServer.gameServerState.map.name,
+          numClients: gameServer.gameServerState.numClients,
+          maxClients: gameServer.gameServerState.maxClients,
+        }
+      : null,
+  }));
 
   return (
-    <ServerList
-      serverCount={globalCounts.gameServers}
-      servers={servers}
-    />
+    <ServerList serverCount={globalCounts.gameServers} servers={servers} />
   );
 }

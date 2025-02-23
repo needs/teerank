@@ -17,48 +17,56 @@ export default async function Index({
   const { page } = searchParamsSchema.parse(searchParams);
   const { gameTypeName } = paramsSchema.parse(params);
 
-  const gameServerStates = await prisma.gameServerState.findMany({
+  const gameServers = await prisma.gameServer.findMany({
     select: {
-      name: true,
-      numClients: true,
-      maxClients: true,
-      map: {
+      ip: true,
+      port: true,
+      gameServerState: {
         select: {
           name: true,
-          gameTypeName: true,
-        },
-      },
-      gameServer: {
-        select: {
-          ip: true,
-          port: true,
+          numClients: true,
+          maxClients: true,
+          map: {
+            select: {
+              name: true,
+              gameTypeName: true,
+            },
+          },
         },
       },
     },
     where: {
-      map: {
-        gameTypeName: {
-          equals: gameTypeName,
+      gameServerState: {
+        map: {
+          gameTypeName: {
+            equals: gameTypeName,
+          },
         },
       },
     },
     orderBy: [
       {
-        numClients: 'desc',
+        gameServerState: {
+          numClients: 'desc',
+        },
       },
       {
-        maxClients: 'desc',
+        gameServerState: {
+          maxClients: 'desc',
+        },
       },
     ],
     take: 100,
     skip: (page - 1) * 100,
   });
 
-  const serverCount = await prisma.gameServerState.count({
+  const serverCount = await prisma.gameServer.count({
     where: {
-      map: {
-        gameTypeName: {
-          equals: gameTypeName,
+      gameServerState: {
+        map: {
+          gameTypeName: {
+            equals: gameTypeName,
+          },
         },
       },
     },
@@ -67,15 +75,19 @@ export default async function Index({
   return (
     <ServerList
       serverCount={serverCount}
-      servers={gameServerStates.map((gameServerState, index) => ({
+      servers={gameServers.map((gameServer, index) => ({
         rank: (page - 1) * 100 + index + 1,
-        name: gameServerState.name,
-        gameTypeName: gameServerState.map.gameTypeName,
-        mapName: gameServerState.map.name ?? '',
-        numClients: gameServerState.numClients,
-        maxClients: gameServerState.maxClients,
-        ip: gameServerState.gameServer?.ip ?? '',
-        port: gameServerState.gameServer?.port ?? 0,
+        ip: gameServer.ip,
+        port: gameServer.port,
+        state: gameServer.gameServerState
+          ? {
+              name: gameServer.gameServerState.name,
+              gameTypeName: gameServer.gameServerState.map.gameTypeName,
+              mapName: gameServer.gameServerState.map.name,
+              numClients: gameServer.gameServerState.numClients,
+              maxClients: gameServer.gameServerState.maxClients,
+            }
+          : null,
       }))}
     />
   );

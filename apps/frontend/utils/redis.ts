@@ -1,10 +1,11 @@
-import { REDIS_HOST, REDIS_PORT } from '@teerank/teerank'
+import { REDIS_FAMILY, REDIS_HOST, REDIS_PORT } from '@teerank/teerank'
 import { Redis } from 'ioredis'
 
 const redisClientSingleton = () => {
   return new Redis({
     host: REDIS_HOST,
     port: REDIS_PORT,
+    family: REDIS_FAMILY,
   })
 }
 

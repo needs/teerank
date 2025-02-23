@@ -2,10 +2,12 @@ import { Job, Queue, Worker } from "bullmq";
 import { bullmqConnection, lastCompletedJobDate } from "./config";
 import { z } from "zod";
 import { minutesToSeconds } from "date-fns";
+import { getEnvInt } from "../utils";
 
 let mapCountQueue: Queue | null = null;
 
-export const QUEUE_NAME_MAP_COUNT = 'map-count';
+const QUEUE_NAME_MAP_COUNT = 'map-count';
+const UPDATE_MAPS_COUNTS_CONCURRENCY = getEnvInt('UPDATE_MAPS_COUNTS_CONCURRENCY', 5);
 
 function getQueueMapCount() {
   mapCountQueue ??= new Queue(QUEUE_NAME_MAP_COUNT, { connection: bullmqConnection });
@@ -37,6 +39,7 @@ export async function processMapCountJobs(processor: (data: MapCountJobData) => 
 
   return new Worker(QUEUE_NAME_MAP_COUNT, jobProcessor, {
     connection: bullmqConnection,
+    concurrency: UPDATE_MAPS_COUNTS_CONCURRENCY,
     removeOnComplete: {
       age: minutesToSeconds(10),
     },
@@ -46,8 +49,12 @@ export async function processMapCountJobs(processor: (data: MapCountJobData) => 
   });
 }
 
+export async function cleanMapCountQueue() {
+  await getQueueMapCount().obliterate({
+    force: true,
+  });
+}
+
 export async function getLastMapCountDate() {
   return lastCompletedJobDate(getQueueMapCount());
 }
-
-export { getQueueMapCount };

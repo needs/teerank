@@ -2,10 +2,12 @@ import { Job, Queue, Worker } from "bullmq";
 import { bullmqConnection, lastCompletedJobDate } from "./config";
 import { z } from "zod";
 import { minutesToSeconds } from "date-fns";
+import { getEnvInt } from "../utils";
 
 let gameTypeCountQueue: Queue | null = null;
 
-export const QUEUE_NAME_GAME_TYPE_COUNT = 'game-type-count';
+const QUEUE_NAME_GAME_TYPE_COUNT = 'game-type-count';
+const UPDATE_GAME_TYPES_COUNTS_CONCURRENCY = getEnvInt('UPDATE_GAME_TYPES_COUNTS_CONCURRENCY', 5);
 
 function getQueueGameTypeCount() {
   gameTypeCountQueue ??= new Queue(QUEUE_NAME_GAME_TYPE_COUNT, { connection: bullmqConnection });
@@ -35,6 +37,7 @@ export async function processGameTypeCountJobs(processor: (data: GameTypeCountJo
 
   return new Worker(QUEUE_NAME_GAME_TYPE_COUNT, jobProcessor, {
     connection: bullmqConnection,
+    concurrency: UPDATE_GAME_TYPES_COUNTS_CONCURRENCY,
     removeOnComplete: {
       age: minutesToSeconds(10),
     },
@@ -44,8 +47,12 @@ export async function processGameTypeCountJobs(processor: (data: GameTypeCountJo
   });
 }
 
+export async function cleanGameTypeCountQueue() {
+  await getQueueGameTypeCount().obliterate({
+    force: true,
+  });
+}
+
 export async function getLastGameTypeCountDate() {
   return lastCompletedJobDate(getQueueGameTypeCount());
 }
-
-export { getQueueGameTypeCount };

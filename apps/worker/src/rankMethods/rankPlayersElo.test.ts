@@ -100,7 +100,7 @@ function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: num
 test('Only one snapshot', async () => {
   const snapshot = createSnapshot(1, new Date(), [100, 100]);
   mockSnapshot(snapshot);
-  await rankPlayer(snapshot.id);
+  await rankPlayer({ snapshotId: snapshot.id });
   checkRatings([], []);
 });
 
@@ -113,8 +113,8 @@ test('Different map', async () => {
   mockSnapshot(snapshot1);
   mockSnapshot(snapshot2, snapshot1);
 
-  await rankPlayer(snapshot1.id);
-  await rankPlayer(snapshot2.id);
+  await rankPlayer({ snapshotId: snapshot1.id });
+  await rankPlayer({ snapshotId: snapshot2.id });
   checkRatings([], []);
 });
 
@@ -126,8 +126,8 @@ test('Big time gap', async () => {
   mockSnapshot(snapshot1);
   mockSnapshot(snapshot2, snapshot1);
 
-  await rankPlayer(snapshot1.id);
-  await rankPlayer(snapshot2.id);
+  await rankPlayer({ snapshotId: snapshot1.id });
+  await rankPlayer({ snapshotId: snapshot2.id });
   checkRatings([], []);
 });
 
@@ -139,7 +139,7 @@ test('Two players', async () => {
   mockSnapshot(snapshot1);
   mockSnapshot(snapshot2, snapshot1);
 
-  await rankPlayer(snapshot1.id);
-  await rankPlayer(snapshot2.id);
+  await rankPlayer({ snapshotId: snapshot1.id });
+  await rankPlayer({ snapshotId: snapshot2.id });
   checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });

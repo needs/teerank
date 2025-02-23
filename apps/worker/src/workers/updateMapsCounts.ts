@@ -1,12 +1,7 @@
-import { Worker } from "bullmq";
 import { prisma } from "../prisma";
-import { bullmqConnection, QUEUE_NAME_MAP_COUNT } from "@teerank/teerank"
-import { getEnvInt } from "@teerank/teerank";
-import { minutesToSeconds } from "date-fns";
+import { MapCountJobData, processMapCountJobs } from "@teerank/teerank"
 
-const UPDATE_MAPS_COUNTS_CONCURRENCY = getEnvInt('UPDATE_MAPS_COUNTS_CONCURRENCY', 5);
-
-export async function updateMapsCount(gameTypeName: string, mapName: string) {
+export async function updateMapsCount(data: MapCountJobData) {
   const map = await prisma.map.findUniqueOrThrow({
     select: {
       _count: {
@@ -18,8 +13,8 @@ export async function updateMapsCount(gameTypeName: string, mapName: string) {
     },
     where: {
       name_gameTypeName: {
-        name: mapName,
-        gameTypeName,
+        name: data.mapName,
+        gameTypeName: data.gameTypeName,
       },
     },
   });
@@ -27,8 +22,8 @@ export async function updateMapsCount(gameTypeName: string, mapName: string) {
   const gameServerCount = await prisma.gameServerState.count({
     where: {
       map: {
-        name: mapName,
-        gameTypeName,
+        name: data.mapName,
+        gameTypeName: data.gameTypeName,
       },
     },
   });
@@ -36,8 +31,8 @@ export async function updateMapsCount(gameTypeName: string, mapName: string) {
   await prisma.map.update({
     where: {
       name_gameTypeName: {
-        name: mapName,
-        gameTypeName,
+        name: data.mapName,
+        gameTypeName: data.gameTypeName,
       },
     },
     data: {
@@ -49,14 +44,5 @@ export async function updateMapsCount(gameTypeName: string, mapName: string) {
 }
 
 export async function startUpdateMapsCountsWorker() {
-  return new Worker(QUEUE_NAME_MAP_COUNT, job => updateMapsCount(job.data.gameTypeName, job.data.mapName), {
-    connection: bullmqConnection,
-    concurrency: UPDATE_MAPS_COUNTS_CONCURRENCY,
-    removeOnComplete: {
-      age: minutesToSeconds(10),
-    },
-    removeOnFail: {
-      count: 1000,
-    }
-  });
+  return await processMapCountJobs(updateMapsCount);
 }

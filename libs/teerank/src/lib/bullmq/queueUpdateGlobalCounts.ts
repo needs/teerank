@@ -5,7 +5,7 @@ import { minutesToSeconds } from "date-fns";
 
 let updateGlobalCountsQueue: Queue | null = null;
 
-export const QUEUE_NAME_UPDATE_GLOBAL_COUNTS = 'update-global-counts';
+const QUEUE_NAME_UPDATE_GLOBAL_COUNTS = 'update-global-counts';
 
 function getQueueUpdateGlobalCounts() {
   updateGlobalCountsQueue ??= new Queue(QUEUE_NAME_UPDATE_GLOBAL_COUNTS, { connection: bullmqConnection });
@@ -43,8 +43,12 @@ export async function processUpdateGlobalCountsJobs(processor: (data: UpdateGlob
   });
 }
 
+export async function cleanUpdateGlobalCountsQueue() {
+  await getQueueUpdateGlobalCounts().obliterate({
+    force: true,
+  });
+}
+
 export async function getLastUpdateGlobalCountsDate() {
   return lastCompletedJobDate(getQueueUpdateGlobalCounts());
 }
-
-export { getQueueUpdateGlobalCounts };

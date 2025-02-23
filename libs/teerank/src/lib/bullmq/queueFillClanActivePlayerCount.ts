@@ -5,14 +5,14 @@ import { minutesToSeconds } from "date-fns";
 
 let fillClanActivePlayerCountQueue: Queue | null = null;
 
-export const QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT = 'fill-clan-active-player-count';
+const QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT = 'fill-clan-active-player-count';
 
 function getQueueFillClanActivePlayerCount() {
   fillClanActivePlayerCountQueue ??= new Queue(QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT, { connection: bullmqConnection });
   return fillClanActivePlayerCountQueue;
 }
 
-const schema = z.object({});
+const schema = z.void();
 
 export type FillClanActivePlayerCountJobData = z.infer<typeof schema>;
 
@@ -40,6 +40,12 @@ export async function processFillClanActivePlayerCountJobs(processor: (data: Fil
     removeOnFail: {
       count: 1000,
     }
+  });
+}
+
+export async function cleanFillClanActivePlayerCountQueue() {
+  await getQueueFillClanActivePlayerCount().obliterate({
+    force: true,
   });
 }
 

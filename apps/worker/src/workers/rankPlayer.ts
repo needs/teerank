@@ -2,17 +2,12 @@ import { RankMethod } from "@prisma/client";
 import { prisma } from "../prisma";
 import { rankPlayersElo } from "../rankMethods/rankPlayersElo";
 import { rankPlayersTime } from "../rankMethods/rankPlayersTime";
-import { Worker } from "bullmq";
-import { bullmqConnection, QUEUE_NAME_RANK_PLAYER } from "@teerank/teerank";
-import { getEnvInt } from "@teerank/teerank";
-import { minutesToSeconds } from "date-fns";
+import { processRankPlayerJobs, RankPlayerJobData } from "@teerank/teerank";
 
-const RANK_PLAYER_CONCURRENCY = getEnvInt('RANK_PLAYER_CONCURRENCY', 20);
-
-export async function rankPlayer(snapshotId: number) {
+export async function rankPlayer(data: RankPlayerJobData) {
   const snapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
     where: {
-      id: snapshotId,
+      id: data.snapshotId,
     },
     select: {
       id: true,
@@ -39,11 +34,5 @@ export async function rankPlayer(snapshotId: number) {
 }
 
 export async function startRankPlayerWorker() {
-  return new Worker(QUEUE_NAME_RANK_PLAYER, (job) => rankPlayer(job.data.snapshotId), {
-    connection: bullmqConnection,
-    concurrency: RANK_PLAYER_CONCURRENCY,
-    removeOnComplete: {
-      age: minutesToSeconds(10),
-    },
-  });
+  return await processRankPlayerJobs(rankPlayer);
 }

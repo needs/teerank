@@ -2,10 +2,12 @@ import { Job, Queue, Worker } from "bullmq";
 import { bullmqConnection, lastCompletedJobDate } from "./config";
 import { z } from "zod";
 import { minutesToSeconds } from "date-fns";
+import { getEnvInt } from "../utils";
 
 let updatePlayTimeQueue: Queue | null = null;
 
-export const QUEUE_NAME_UPDATE_PLAY_TIME = 'update-play-time';
+const QUEUE_NAME_UPDATE_PLAY_TIME = 'update-play-time';
+const UPDATE_PLAY_TIME_CONCURRENCY = getEnvInt('UPDATE_PLAY_TIME_CONCURRENCY', 20);
 
 function getQueueUpdatePlayTime() {
   updatePlayTimeQueue ??= new Queue(QUEUE_NAME_UPDATE_PLAY_TIME, { connection: bullmqConnection });
@@ -34,12 +36,19 @@ export async function processUpdatePlayTimeJobs(processor: (data: UpdatePlayTime
 
   return new Worker(QUEUE_NAME_UPDATE_PLAY_TIME, jobProcessor, {
     connection: bullmqConnection,
+    concurrency: UPDATE_PLAY_TIME_CONCURRENCY,
     removeOnComplete: {
       age: minutesToSeconds(10),
     },
     removeOnFail: {
       count: 1000,
     }
+  });
+}
+
+export async function cleanUpdatePlayTimeQueue() {
+  await getQueueUpdatePlayTime().obliterate({
+    force: true,
   });
 }
 
@@ -51,5 +60,3 @@ export async function getUpdatePlayTimeWaitingCount() {
   const queue = getQueueUpdatePlayTime();
   return queue.getWaitingCount();
 }
-
-export { getQueueUpdatePlayTime };

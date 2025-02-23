@@ -88,38 +88,38 @@ function checkRatings(expectedRatings: (number | null)[]) {
 test('Positive and negative time', async () => {
   const snapshot = createSnapshot([10, -10]);
   mockSnapshot(snapshot);
-  await rankPlayer(snapshot.id);
+  await rankPlayer({ snapshotId: snapshot.id });
   checkRatings([-10, -10]);
 });
 
 test('Time increase', async () => {
   const snapshot1 = createSnapshot([10]);
   mockSnapshot(snapshot1);
-  await rankPlayer(snapshot1.id);
+  await rankPlayer({ snapshotId: snapshot1.id });
   checkRatings([-10]);
 
   const snapshot2 = createSnapshot([30]);
   mockSnapshot(snapshot2);
-  await rankPlayer(snapshot2.id);
+  await rankPlayer({ snapshotId: snapshot2.id });
   checkRatings([-30]);
 });
 
 test('Time decrease', async () => {
   const snapshot1 = createSnapshot([30]);
   mockSnapshot(snapshot1);
-  await rankPlayer(snapshot1.id);
+  await rankPlayer({ snapshotId: snapshot1.id });
   checkRatings([-30]);
 
   const snapshot2 = createSnapshot([10]);
   mockSnapshot(snapshot2);
-  await rankPlayer(snapshot2.id);
+  await rankPlayer({ snapshotId: snapshot2.id });
   checkRatings([-10]);
 });
 
 test('Maximum time', async () => {
   const snapshot = createSnapshot([9999, -9999]);
   mockSnapshot(snapshot);
-  await rankPlayer(snapshot.id);
+  await rankPlayer({ snapshotId: snapshot.id });
   checkRatings([null, null]);
 });
 
@@ -135,6 +135,6 @@ test('Connecting player', async () => {
     inGame: true,
   });
   mockSnapshot(snapshot);
-  await rankPlayer(snapshot.id);
+  await rankPlayer({ snapshotId: snapshot.id });
   checkRatings([null]);
 });

@@ -1,79 +1,54 @@
-import { Worker } from "bullmq";
 import { prisma } from "../prisma";
-import { QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT } from "@teerank/teerank";
-import { bullmqConnection } from "@teerank/teerank";
-import { redis } from "../redis";
-import { minutesToSeconds } from "date-fns";
+import { processFillClanActivePlayerCountJobs } from "@teerank/teerank";
 
-const MIN_CREATED_AT_KEY = 'fill-clan-active-player-count-min-created-at';
-
-async function processor() {
-  const minCreatedAt = new Date(Number(await redis.get(MIN_CREATED_AT_KEY) || "0"));
-  console.log(`Min created at: ${minCreatedAt}`);
-
+export async function fillClanActivePlayerCount() {
   const clans = await prisma.clan.findMany({
     select: {
       name: true,
-      createdAt: true,
-      _count: {
-        select: {
-          players: true,
-        },
-      },
+      activePlayerCount: true,
     },
-
-    where: {
-      createdAt: {
-        gt: minCreatedAt,
-      },
-    },
-
-    orderBy: {
-      createdAt: 'asc',
-    },
-
-    take: 100,
   });
 
-  if (clans.length === 0) {
-    console.log('No clans to fill');
-
-    return {
-      minCreatedAt,
-      clansCount: 0,
-    };
-  }
-
-  console.log(`Filling clan active player count for ${clans.length} clans`);
+  const clansMap = new Map<string, number>();
 
   for (const clan of clans) {
-    await prisma.clan.update({
-      where: { name: clan.name },
-      data: { activePlayerCount: clan._count.players },
-    });
+    clansMap.set(clan.name, clan.activePlayerCount);
   }
 
-  console.log(`Filled clan active player count for ${clans.length} clans`);
+  const playersByClan = await prisma.player.groupBy({
+    by: ['clanName'],
+    _count: {
+      id: true,
+    },
+  });
 
-  const newMinCreatedAt = clans[clans.length - 1].createdAt;
-  await redis.set(MIN_CREATED_AT_KEY, newMinCreatedAt.getTime());
-  console.log(`Updated min created at to ${newMinCreatedAt.toISOString()}`);
+  for (const player of playersByClan) {
+    if (player.clanName !== null) {
+      const oldCount = clansMap.get(player.clanName) || 0;
+      const newCount = player._count.id;
+      clansMap.delete(player.clanName);
 
-  return {
-    minCreatedAt: newMinCreatedAt,
-    clansCount: clans.length,
-  };
+      if (oldCount !== newCount) {
+        await prisma.clan.update({
+          where: { name: player.clanName },
+          data: { activePlayerCount: newCount },
+        });
+      }
+    }
+  }
+
+  // All clans that are still in the map means they have no active players
+  // anymore.
+  for (const [clanName, count] of clansMap) {
+    if (count !== 0) {
+      await prisma.clan.update({
+        where: { name: clanName },
+        data: { activePlayerCount: 0 },
+      });
+    }
+  }
 }
 
 export async function startFillClanActivePlayerCountWorker() {
-  return new Worker(QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT, processor, {
-    connection: bullmqConnection,
-    concurrency: 1,
-    removeOnComplete: {
-      age: minutesToSeconds(10),
-    },
-    removeOnFail: {
-      count: 1000,
-    }
-  });
+  return await processFillClanActivePlayerCountJobs(fillClanActivePlayerCount);
 }

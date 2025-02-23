@@ -1,17 +1,14 @@
-import { Worker } from "bullmq";
 import { prisma } from "../prisma";
 import {
-  QUEUE_NAME_UPDATE_GLOBAL_COUNTS,
   getGlobalCountsLastId,
   incrementGlobalPlayerCount,
   incrementGlobalClanCount,
   incrementGlobalGameServerCount,
   incrementGlobalMapCount,
-  incrementGlobalGameTypeCount
+  incrementGlobalGameTypeCount,
+  processUpdateGlobalCountsJobs
 } from "@teerank/teerank";
-import { bullmqConnection } from "@teerank/teerank";
 import { redis } from "../redis";
-import { minutesToSeconds } from "date-fns";
 
 function getNewLastId(entities: { id: number }[]) {
   return Math.max(...entities.map(entity => entity.id));
@@ -144,14 +141,5 @@ async function processor() {
 }
 
 export async function startUpdateGlobalCountsWorker() {
-  return new Worker(QUEUE_NAME_UPDATE_GLOBAL_COUNTS, processor, {
-    connection: bullmqConnection,
-    concurrency: 1,
-    removeOnComplete: {
-      age: minutesToSeconds(10),
-    },
-    removeOnFail: {
-      count: 1000,
-    }
-  });
+  return await processUpdateGlobalCountsJobs(processor);
 }

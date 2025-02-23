@@ -1,12 +1,7 @@
-import { Worker } from "bullmq";
 import { prisma } from "../prisma";
-import { bullmqConnection, QUEUE_NAME_GAME_TYPE_COUNT } from "@teerank/teerank"
-import { getEnvInt } from "@teerank/teerank";
-import { minutesToSeconds } from "date-fns";
+import { GameTypeCountJobData, processGameTypeCountJobs } from "@teerank/teerank"
 
-const UPDATE_GAME_TYPES_COUNTS_CONCURRENCY = getEnvInt('UPDATE_GAME_TYPES_COUNTS_CONCURRENCY', 5);
-
-export async function updateGameTypeCount(gameTypeName: string) {
+export async function updateGameTypeCount(data: GameTypeCountJobData) {
   const gameType = await prisma.gameType.findUniqueOrThrow({
     select: {
       _count: {
@@ -18,21 +13,21 @@ export async function updateGameTypeCount(gameTypeName: string) {
       },
     },
     where: {
-      name: gameTypeName,
+      name: data.gameTypeName,
     },
   });
 
   const gameServerCount = await prisma.gameServerState.count({
     where: {
       map: {
-        gameTypeName,
+        gameTypeName: data.gameTypeName,
       },
     },
   });
 
   await prisma.gameType.update({
     where: {
-      name: gameTypeName,
+      name: data.gameTypeName,
     },
     data: {
       playerCount: gameType._count.playerInfoGameTypes,
@@ -44,14 +39,5 @@ export async function updateGameTypeCount(gameTypeName: string) {
 }
 
 export async function startUpdateGameTypesCountsWorker() {
-  return new Worker(QUEUE_NAME_GAME_TYPE_COUNT, job => updateGameTypeCount(job.data.gameTypeName), {
-    connection: bullmqConnection,
-    concurrency: UPDATE_GAME_TYPES_COUNTS_CONCURRENCY,
-    removeOnComplete: {
-      age: minutesToSeconds(10),
-    },
-    removeOnFail: {
-      count: 1000,
-    }
-  });
+  return await processGameTypeCountJobs(updateGameTypeCount);
 }

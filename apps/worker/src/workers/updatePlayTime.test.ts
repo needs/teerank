@@ -133,7 +133,7 @@ test('Single snapshot', async () => {
   const snapshot = mockSecondSnapshot(baseDate, clients);
   prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(null);
 
-  await updatePlayTime(snapshot.id);
+  await updatePlayTime({ snapshotId: snapshot.id });
   checkPlayTimes([0], [0], [0], 0);
 });
 
@@ -144,7 +144,7 @@ test('One player, no clan', async () => {
   mockFirstSnapshot(baseDate, clients);
   mockSecondSnapshot(addMinutes(baseDate, 5), clients);
 
-  await updatePlayTime(2);
+  await updatePlayTime({ snapshotId: 2 });
   checkPlayTimes([5 * 60], [], [], 5 * 60);
 });
 
@@ -155,7 +155,7 @@ test('One player, one clan', async () => {
   mockFirstSnapshot(baseDate, clients);
   mockSecondSnapshot(addMinutes(baseDate, 5), clients);
 
-  await updatePlayTime(2);
+  await updatePlayTime({ snapshotId: 2 });
   checkPlayTimes([5 * 60], [5 * 60], [5 * 60], 5 * 60);
 });
 
@@ -169,7 +169,7 @@ test('Two players, same clan', async () => {
   mockFirstSnapshot(baseDate, clients);
   mockSecondSnapshot(addMinutes(baseDate, 5), clients);
 
-  await updatePlayTime(2);
+  await updatePlayTime({ snapshotId: 2 });
   checkPlayTimes([5 * 60, 5 * 60], [10 * 60], [5 * 60, 5 * 60], 10 * 60);
 });
 
@@ -183,6 +183,6 @@ test('Two players, different clan', async () => {
   mockFirstSnapshot(baseDate, clients);
   mockSecondSnapshot(addMinutes(baseDate, 5), clients);
 
-  await updatePlayTime(2);
+  await updatePlayTime({ snapshotId: 2 });
   checkPlayTimes([5 * 60, 5 * 60], [5 * 60, 5 * 60], [5 * 60, 5 * 60], 2 * 5 * 60);
 });

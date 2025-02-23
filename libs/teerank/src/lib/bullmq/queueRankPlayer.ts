@@ -2,10 +2,13 @@ import { Job, Queue, Worker } from "bullmq";
 import { bullmqConnection, lastCompletedJobDate } from "./config";
 import { z } from "zod";
 import { minutesToSeconds } from "date-fns";
+import { getEnvInt } from "../utils";
 
 let rankPlayerQueue: Queue | null = null;
 
-export const QUEUE_NAME_RANK_PLAYER = 'rank-player';
+const QUEUE_NAME_RANK_PLAYER = 'rank-player';
+const RANK_PLAYER_CONCURRENCY = getEnvInt('RANK_PLAYER_CONCURRENCY', 20);
+
 
 function getQueueRankPlayer() {
   rankPlayerQueue ??= new Queue(QUEUE_NAME_RANK_PLAYER, { connection: bullmqConnection });
@@ -34,12 +37,19 @@ export async function processRankPlayerJobs(processor: (data: RankPlayerJobData)
 
   return new Worker(QUEUE_NAME_RANK_PLAYER, jobProcessor, {
     connection: bullmqConnection,
+    concurrency: RANK_PLAYER_CONCURRENCY,
     removeOnComplete: {
       age: minutesToSeconds(10),
     },
     removeOnFail: {
       count: 1000,
     }
+  });
+}
+
+export async function cleanRankPlayerQueue() {
+  await getQueueRankPlayer().obliterate({
+    force: true,
   });
 }
 
@@ -51,5 +61,3 @@ export async function getRankPlayerWaitingCount() {
   const queue = getQueueRankPlayer();
   return queue.getWaitingCount();
 }
-
-export { getQueueRankPlayer };

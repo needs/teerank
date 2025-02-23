@@ -5,18 +5,18 @@ import { hoursToMilliseconds, minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 import { schedule, scheduleWithSpread } from "../utils";
 
-let maxCreatedAt = new Date(0);
+let lastId = 0;
 
 export async function gameTypeScheduler() {
   schedule(minutesToMilliseconds(5), async () => {
     const gameTypes = await prisma.gameType.findMany({
       where: {
-        createdAt: {
-          gt: maxCreatedAt,
+        id: {
+          gt: lastId,
         },
       },
       orderBy: {
-        createdAt: 'asc',
+        id: 'asc',
       },
     });
 
@@ -31,7 +31,7 @@ export async function gameTypeScheduler() {
     console.log(`Scheduled ${gameTypes.length} new game types`);
 
     if (gameTypes.length > 0) {
-      maxCreatedAt = gameTypes[gameTypes.length - 1].createdAt;
+      lastId = gameTypes[gameTypes.length - 1].id;
     }
   });
 }

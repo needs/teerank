@@ -27,7 +27,7 @@ model GameServer {
   updatedAt    DateTime @updatedAt
   lastSeenAt   DateTime @default(now())
   playTime     BigInt   @default(0)
-  failureCount Int      @default(0)
+  failureCount Int      @default(1)
 
   ip   String
   port Int

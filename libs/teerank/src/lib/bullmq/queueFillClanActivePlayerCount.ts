@@ -12,7 +12,7 @@ function getQueueFillClanActivePlayerCount() {
   return fillClanActivePlayerCountQueue;
 }
 
-const schema = z.void();
+const schema = z.object({});
 
 export type FillClanActivePlayerCountJobData = z.infer<typeof schema>;
 

@@ -7,8 +7,3 @@ app = "teerankio-worker"
 primary_region = "cdg"
 
 [build]
-
-[[vm]]
-  cpu_kind = "shared"
-  cpus = 1
-  memory_mb = 512

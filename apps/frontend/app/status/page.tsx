@@ -1,11 +1,11 @@
 import {
   getQueueUpdatePlayTime,
   lastCompletedJobDate,
-  getQueuePollMasterServer,
   getQueuePollGameServer,
   getQueueRankPlayer,
   getQueueGameTypeCount,
   getQueueMapCount,
+  getLastPollMasterServerDate,
 } from '@teerank/teerank';
 import prisma from '../../utils/prisma';
 import { formatDistanceToNow, subMinutes } from 'date-fns';
@@ -28,7 +28,7 @@ export default async function Index() {
     masterServers,
     unreferencedGameServersCount,
   ] = await Promise.all([
-    lastCompletedJobDate(getQueuePollMasterServer()),
+    getLastPollMasterServerDate(),
     lastCompletedJobDate(getQueuePollGameServer()),
     lastCompletedJobDate(getQueueUpdatePlayTime()),
     lastCompletedJobDate(getQueueRankPlayer()),

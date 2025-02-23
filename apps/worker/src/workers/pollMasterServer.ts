@@ -2,10 +2,7 @@ import { prisma } from "../prisma";
 import { lookup } from "dns/promises";
 import { unpackMasterPackets } from "../packets/masterServerInfo";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
-import { QUEUE_NAME_POLL_MASTER_SERVER, wait } from "@teerank/teerank";
-import { Job, Worker } from "bullmq";
-import { bullmqConnection } from "@teerank/teerank";
-import { minutesToSeconds } from "date-fns";
+import { PollMasterServerJobData, processPollMasterServerJobs, wait } from "@teerank/teerank";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -27,12 +24,12 @@ const PACKET_GETLIST = Buffer.from([
   ...stringToCharCode('req2'),
 ]);
 
-async function processor(job: Job) {
+async function processor(jobData: PollMasterServerJobData) {
   const masterServer = await prisma.masterServer.findUniqueOrThrow({
     where: {
       address_port: {
-        address: job.data.address,
-        port: job.data.port,
+        address: jobData.address,
+        port: jobData.port,
       },
     },
   });
@@ -91,13 +88,5 @@ async function processor(job: Job) {
 }
 
 export async function startPollMasterServerWorker() {
-  return new Worker(QUEUE_NAME_POLL_MASTER_SERVER, processor, {
-    connection: bullmqConnection,
-    removeOnComplete: {
-      age: minutesToSeconds(10),
-    },
-    removeOnFail: {
-      count: 1000,
-    }
-  });
+  return processPollMasterServerJobs(processor);
 }

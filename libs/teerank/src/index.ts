@@ -3,3 +3,4 @@ export * from './lib/schemas';
 export * from './lib/bullmqConfig';
 export * from './lib/redisConfig';
 export * from './lib/globalCounts';
+export * from './lib/bullmq/queuePollMasterServer';

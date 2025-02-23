@@ -1,13 +1,13 @@
 import { Queue, RedisOptions } from "bullmq";
-import { REDIS_HOST, REDIS_PORT } from "./redisConfig";
+import { REDIS_HOST, REDIS_PORT, REDIS_FAMILY } from "./redisConfig";
+import { cleanPollMasterServerQueue } from "./bullmq/queuePollMasterServer";
 
 export const bullmqConnection: RedisOptions = {
   host: REDIS_HOST,
   port: REDIS_PORT,
-  family: 6,
+  family: REDIS_FAMILY,
 };
 
-export const QUEUE_NAME_POLL_MASTER_SERVER = 'poll-master-server';
 export const QUEUE_NAME_POLL_GAME_SERVER = 'poll-game-server';
 export const QUEUE_NAME_UPDATE_PLAY_TIME = 'update-play-time';
 export const QUEUE_NAME_RANK_PLAYER = 'rank-player';
@@ -17,7 +17,6 @@ export const QUEUE_NAME_FILL_CLAN_ACTIVE_PLAYER_COUNT = 'fill-clan-active-player
 export const QUEUE_NAME_UPDATE_GLOBAL_COUNTS = 'update-global-counts';
 
 // Queue instances
-let pollMasterServerQueue: Queue | null = null;
 let pollGameServerQueue: Queue | null = null;
 let updatePlayTimeQueue: Queue | null = null;
 let rankPlayerQueue: Queue | null = null;
@@ -25,13 +24,6 @@ let gameTypeCountQueue: Queue | null = null;
 let mapCountQueue: Queue | null = null;
 let fillClanActivePlayerCountQueue: Queue | null = null;
 let updateGlobalCountsQueue: Queue | null = null;
-
-export function getQueuePollMasterServer() {
-  if (!pollMasterServerQueue) {
-    pollMasterServerQueue = new Queue(QUEUE_NAME_POLL_MASTER_SERVER, { connection: bullmqConnection });
-  }
-  return pollMasterServerQueue;
-}
 
 export function getQueuePollGameServer() {
   if (!pollGameServerQueue) {
@@ -92,7 +84,7 @@ export async function cleanQueue(queue: Queue) {
 
 export async function cleanAllQueues() {
   await Promise.all([
-    cleanQueue(getQueuePollMasterServer()),
+    cleanPollMasterServerQueue(),
     cleanQueue(getQueuePollGameServer()),
     cleanQueue(getQueueGameTypeCount()),
     cleanQueue(getQueueMapCount()),

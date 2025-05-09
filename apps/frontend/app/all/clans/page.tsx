@@ -7,6 +7,9 @@ import { searchParamSchema } from '../schema';
 export const metadata = {
   title: 'All Clans - Teerank',
   description: 'Teerank is a simple and fast ranking system for Teeworlds.',
+  alternates: {
+    canonical: 'https://teerank.io/all/clans',
+  },
 };
 
 export default async function Index({

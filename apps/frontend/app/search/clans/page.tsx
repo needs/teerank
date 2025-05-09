@@ -7,6 +7,9 @@ import { search } from '../../../utils/search';
 export const metadata = {
   title: 'Search - Clans',
   description: 'Search for clans',
+  alternates: {
+    canonical: 'https://teerank.io/search/clans',
+  },
 };
 
 export default async function Index({

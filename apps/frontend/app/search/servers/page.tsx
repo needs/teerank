@@ -7,6 +7,9 @@ import { search } from '../../../utils/search';
 export const metadata = {
   title: 'Search - Servers',
   description: 'Search for servers',
+  alternates: {
+    canonical: 'https://teerank.io/search/servers',
+  },
 };
 
 export default async function Index({

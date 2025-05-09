@@ -12,6 +12,9 @@ import { formatDistanceToNow, subMinutes } from 'date-fns';
 export const metadata = {
   title: 'Status - Teerank',
   description: 'Teerank status and statistics.',
+  alternates: {
+    canonical: 'https://teerank.io/status',
+  },
 };
 
 export const dynamic = 'force-dynamic';

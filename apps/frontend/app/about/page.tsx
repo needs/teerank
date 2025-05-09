@@ -3,6 +3,9 @@ import Link from 'next/link';
 export const metadata = {
   title: 'About - Teerank',
   description: 'Teerank is a simple and fast ranking system for Teeworlds.',
+  alternates: {
+    canonical: 'https://teerank.io/about',
+  },
 };
 
 export default function Index() {

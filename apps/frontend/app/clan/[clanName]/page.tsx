@@ -4,11 +4,24 @@ import { notFound } from 'next/navigation';
 import prisma from '../../../utils/prisma';
 import { PlayerList } from '../../../components/PlayerList';
 import { searchParamPageSchema } from '../../../utils/page';
+import { Metadata } from 'next';
+import { encodeString } from '../../../utils/encoding';
 
-export const metadata = {
-  title: 'Clan',
-  description: 'A Teeworlds clan',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: z.infer<typeof paramsSchema>;
+}): Promise<Metadata> {
+  const { clanName } = paramsSchema.parse(params);
+
+  return {
+    title: `Clan ${clanName}`,
+    description: `List of ranked players for ${clanName}`,
+    alternates: {
+      canonical: `https://teerank.io/clan/${encodeString(clanName)}`,
+    },
+  };
+}
 
 export default async function Index({
   params,

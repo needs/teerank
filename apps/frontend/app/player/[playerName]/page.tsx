@@ -4,11 +4,24 @@ import { notFound } from 'next/navigation';
 import { searchParamPageSchema } from '../../../utils/page';
 import prisma from '../../../utils/prisma';
 import { GameTypeList } from '../../../components/GameTypeList';
+import { Metadata } from 'next';
+import { encodeString } from '../../../utils/encoding';
 
-export const metadata = {
-  title: 'Player',
-  description: 'A Teeworlds player',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: z.infer<typeof paramsSchema>;
+}): Promise<Metadata> {
+  const { playerName } = paramsSchema.parse(params);
+
+  return {
+    title: `Player ${playerName}`,
+    description: 'A Teeworlds player',
+    alternates: {
+      canonical: `https://teerank.io/player/${encodeString(playerName)}`,
+    },
+  };
+}
 
 export default async function Index({
   params,

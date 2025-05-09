@@ -10,11 +10,23 @@ import { encodeString } from '../../../../utils/encoding';
 import { formatPlayTime } from '../../../../utils/format';
 import { GameServer } from '@prisma/client';
 import { formatDuration, intervalToDuration } from 'date-fns';
+import { Metadata } from 'next';
 
-export const metadata = {
-  title: 'Server',
-  description: 'A Teeworlds server',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: z.infer<typeof paramsSchema>;
+}): Promise<Metadata> {
+  const { ip, port } = paramsSchema.parse(params);
+
+  return {
+    title: `Server ${ip}:${port}`,
+    description: `List of ranked players for ${ip}:${port}`,
+    alternates: {
+      canonical: `https://teerank.io/server/${encodeString(ip)}/${encodeString(port.toString())}`,
+    },
+  };
+}
 
 function ipAndPort(ip: string, port: number) {
   switch (isIP(ip)) {

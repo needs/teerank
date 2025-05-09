@@ -13,6 +13,9 @@ const gaId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
 export const metadata = {
   title: 'Welcome to Teerank',
   description: 'Rank players, clans and servers from Teeworlds',
+  alternates: {
+    canonical: 'https://teerank.io',
+  },
 };
 
 export default async function RootLayout({

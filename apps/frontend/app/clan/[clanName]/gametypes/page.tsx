@@ -4,11 +4,24 @@ import { notFound } from 'next/navigation';
 import prisma from '../../../../utils/prisma';
 import { GameTypeList } from '../../../../components/GameTypeList';
 import { searchParamPageSchema } from '../../../../utils/page';
+import { encodeString } from '../../../../utils/encoding';
+import { Metadata } from 'next';
 
-export const metadata = {
-  title: 'Clan - Game types',
-  description: 'A Teeworlds clan',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: z.infer<typeof paramsSchema>;
+}): Promise<Metadata> {
+  const { clanName } = paramsSchema.parse(params);
+
+  return {
+    title: `Clan ${clanName} - Maps`,
+    description: `List of ranked maps for ${clanName}`,
+    alternates: {
+      canonical: `https://teerank.io/clan/${encodeString(clanName)}/gametypes`,
+    },
+  };
+}
 
 export default async function Index({
   params,

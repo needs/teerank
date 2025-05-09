@@ -7,6 +7,9 @@ import redis from '../../../utils/redis';
 export const metadata = {
   title: 'All Servers - Teerank',
   description: 'Teerank is a simple and fast ranking system for Teeworlds.',
+  alternates: {
+    canonical: 'https://teerank.io/all/servers',
+  },
 };
 
 export default async function Index({

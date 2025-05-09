@@ -3,11 +3,25 @@ import { PlayerList } from '../../../../components/PlayerList';
 import prisma from '../../../../utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../schema';
 import { notFound } from 'next/navigation';
+import { encodeString } from '../../../../utils/encoding';
+import { Metadata } from 'next';
+import { z } from 'zod';
 
-export const metadata = {
-  title: 'Players',
-  description: 'List of ranked players',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: z.infer<typeof paramsSchema>;
+}): Promise<Metadata> {
+  const { gameTypeName } = paramsSchema.parse(params);
+
+  return {
+    title: `Gametype ${gameTypeName}`,
+    description: `List of ranked players for ${gameTypeName}`,
+    alternates: {
+      canonical: `https://teerank.io/gametype/${encodeString(gameTypeName)}`,
+    },
+  };
+}
 
 export default async function Index({
   params,

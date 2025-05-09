@@ -1,12 +1,26 @@
+import { Metadata } from 'next';
 import { ClanList } from '../../../../../../components/ClanList';
+import { encodeString } from '../../../../../../utils/encoding';
 import prisma from '../../../../../../utils/prisma';
 import { paramsSchema, searchParamsSchema } from '../schema';
 import { notFound } from 'next/navigation';
+import { z } from 'zod';
 
-export const metadata = {
-  title: 'Clans',
-  description: 'List of ranked clans',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: z.infer<typeof paramsSchema>;
+}): Promise<Metadata> {
+  const { gameTypeName, mapName } = paramsSchema.parse(params);
+
+  return {
+    title: `${mapName} - ${gameTypeName}`,
+    description: `List of ranked clans for ${mapName} in ${gameTypeName}`,
+    alternates: {
+      canonical: `https://teerank.io/gametype/${encodeString(gameTypeName)}/map/${encodeString(mapName)}/clans`,
+    },
+  };
+}
 
 export default async function Index({
   params,

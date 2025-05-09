@@ -8,6 +8,9 @@ import { Fragment } from 'react';
 export const metadata = {
   title: 'Gametypes',
   description: 'List of all gametypes',
+  alternates: {
+    canonical: 'https://teerank.io/gametypes',
+  },
 };
 
 export default async function Index({

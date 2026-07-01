@@ -15,6 +15,7 @@ export function PlayerList({
     rank: number;
     name: string;
     clan?: string;
+    isActiveClan?: boolean;
     rating?: number;
     playTime: bigint;
     lastSeenAt: Date;
@@ -76,7 +77,8 @@ export function PlayerList({
         <Fragment key={player.name}>
           <ListCell alignRight label={formatInteger(player.rank)} />
           <ListCell
-            label={player.name}
+            label={player.isActiveClan === false ? `${player.name} (Past)` : player.name}
+            className={player.isActiveClan === false ? 'text-gray-400' : ''}
             href={{
               pathname: `/player/${encodeString(player.name)}`,
             }}

@@ -6,7 +6,8 @@ import { PlayerList } from '../../../components/PlayerList';
 import { searchParamPageSchema } from '../../../utils/page';
 import { Metadata } from 'next';
 import { encodeString } from '../../../utils/encoding';
-
+import Link from 'next/link';
+import { PastMembersToggle } from './PastMembersToggle';
 export async function generateMetadata({
   params,
 }: {
@@ -32,16 +33,23 @@ export default async function Index({
 }) {
   const { clanName } = paramsSchema.parse(params);
   const { page } = searchParamPageSchema.parse(searchParams);
+  const showPastMembers = searchParams.past === 'true' || searchParams.past === '1';
 
   const clan = await prisma.clan.findUnique({
     select: {
       activePlayerCount: true,
+      _count: {
+        select: {
+          clanPlayerInfos: true,
+        },
+      },
       clanPlayerInfos: {
         select: {
           playTime: true,
           player: {
             select: {
               name: true,
+              clanName: true,
               lastSeenAt: true,
               gameServerStateClients: {
                 select: {
@@ -61,7 +69,7 @@ export default async function Index({
             },
           },
         },
-        where: {
+        where: showPastMembers ? undefined : {
           player: {
             clanName,
           },
@@ -83,21 +91,25 @@ export default async function Index({
   }
 
   return (
-    <PlayerList
-      playerCount={clan.activePlayerCount}
-      rankMethod={null}
-      showLastSeen={true}
-      players={clan.clanPlayerInfos.map((playerInfo, index) => ({
-        rank: index + 1,
-        name: playerInfo.player.name,
-        clan: clanName,
-        playTime: playerInfo.playTime,
-        lastSeenAt: playerInfo.player.lastSeenAt,
-        gameServers: playerInfo.player.gameServerStateClients.map((client) => ({
-          ip: client.gameServerState.gameServer?.ip ?? '',
-          port: client.gameServerState.gameServer?.port ?? 0,
-        })),
-      }))}
-    />
+    <div className="flex flex-col gap-4">
+      <PastMembersToggle clanName={clanName} showPastMembers={showPastMembers} />
+      <PlayerList
+        playerCount={showPastMembers ? clan._count.clanPlayerInfos : clan.activePlayerCount}
+        rankMethod={null}
+        showLastSeen={true}
+        players={clan.clanPlayerInfos.map((playerInfo, index) => ({
+          rank: index + 1,
+          name: playerInfo.player.name,
+          clan: clanName,
+          isActiveClan: playerInfo.player.clanName === clanName,
+          playTime: playerInfo.playTime,
+          lastSeenAt: playerInfo.player.lastSeenAt,
+          gameServers: playerInfo.player.gameServerStateClients.map((client) => ({
+            ip: client.gameServerState.gameServer?.ip ?? '',
+            port: client.gameServerState.gameServer?.port ?? 0,
+          })),
+        }))}
+      />
+    </div>
   );
 }

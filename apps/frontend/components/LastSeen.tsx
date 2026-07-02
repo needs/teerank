@@ -23,7 +23,7 @@ export function LastSeen({
         href={{
           pathname: `/server/${encodeIp(gameServers[0].ip)}/${gameServers[0].port}`,
         }}
-        className={twMerge("text-[#43a700] font-bold hover:underline", className)}
+        className={twMerge("text-[#43a700] font-bold hover:underline", propClassName)}
       >
         Online
       </Link>

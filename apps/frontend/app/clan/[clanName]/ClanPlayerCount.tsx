@@ -10,7 +10,8 @@ export function ClanPlayerCount({
   totalCount: number;
 }) {
   const searchParams = useSearchParams();
-  const showPast = searchParams?.has('past') ?? false;
+  const past = searchParams?.get('past');
+  const showPast = past === 'true' || past === '1';
 
   return (
     <span className="pr-4">

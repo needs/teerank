@@ -7,12 +7,14 @@ import { encodeIp } from '../utils/encoding';
 export function LastSeen({
   lastSeenAt,
   gameServers,
+  className: propClassName,
 }: {
   lastSeenAt: Date;
   gameServers: {
     ip: string;
     port: number;
   }[];
+  className?: string;
 }) {
   if (gameServers.length > 0) {
     return (
@@ -21,7 +23,7 @@ export function LastSeen({
         href={{
           pathname: `/server/${encodeIp(gameServers[0].ip)}/${gameServers[0].port}`,
         }}
-        className="text-[#43a700] font-bold hover:underline"
+        className={twMerge("text-[#43a700] font-bold hover:underline", className)}
       >
         Online
       </Link>
@@ -45,7 +47,7 @@ export function LastSeen({
     }
 
     return (
-      <span className={twMerge('truncate', className)}>
+      <span className={twMerge('truncate', className, propClassName)}>
         {formatDurationShort(
           intervalToDuration({ start: lastSeenAt, end: new Date() })
         )}

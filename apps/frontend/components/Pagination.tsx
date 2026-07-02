@@ -61,13 +61,23 @@ export function Pagination({ pageCount }: { pageCount: number }) {
     }
   }
 
+  const getQuery = (targetPage: number) => {
+    const q = { ...searchParams };
+    if (targetPage === 1) {
+      delete q.page;
+    } else {
+      q.page = String(targetPage);
+    }
+    return q;
+  };
+
   return (
     <div className="flex flex-row justify-between border rounded-md overflow-hidden text-sm divide-x">
       <Button
         label="Previous"
         href={{
           pathname,
-          query: currentPage === 2 ? {} : { page: currentPage - 1 },
+          query: getQuery(currentPage - 1),
         }}
         disabled={currentPage === 1}
       />
@@ -86,12 +96,7 @@ export function Pagination({ pageCount }: { pageCount: number }) {
                   prefetch={false}
                   href={{
                     pathname,
-                    query:
-                      page === 1
-                        ? {}
-                        : {
-                            page,
-                          },
+                    query: getQuery(page),
                   }}
                   className={twMerge(
                     'px-2',
@@ -111,9 +116,7 @@ export function Pagination({ pageCount }: { pageCount: number }) {
         label="Next"
         href={{
           pathname,
-          query: {
-            page: currentPage + 1,
-          },
+          query: getQuery(currentPage + 1),
         }}
         disabled={currentPage === pageCount}
       />

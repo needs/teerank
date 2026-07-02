@@ -73,18 +73,22 @@ export function PlayerList({
         playerCount === undefined ? undefined : Math.ceil(playerCount / 100)
       }
     >
-      {players.map((player) => (
+      {players.map((player) => {
+        const rowClassName = player.isActiveClan === false ? 'text-gray-400' : '';
+        
+        return (
         <Fragment key={player.name}>
-          <ListCell alignRight label={formatInteger(player.rank)} />
+          <ListCell alignRight label={formatInteger(player.rank)} className={rowClassName} />
           <ListCell
             label={player.isActiveClan === false ? `${player.name} (Past)` : player.name}
-            className={player.isActiveClan === false ? 'text-gray-400' : ''}
+            className={rowClassName}
             href={{
               pathname: `/player/${encodeString(player.name)}`,
             }}
           />
           <ListCell
             label={player.clan ?? ''}
+            className={rowClassName}
             href={
               player.clan === undefined
                 ? undefined
@@ -96,6 +100,7 @@ export function PlayerList({
           {rankMethod === RankMethod.ELO && (
             <ListCell
               alignRight
+              className={rowClassName}
               label={
                 player.rating === undefined ? '' : formatInteger(player.rating)
               }
@@ -104,6 +109,7 @@ export function PlayerList({
           {rankMethod === RankMethod.TIME && (
             <ListCell
               alignRight
+              className={rowClassName}
               label={
                 player.rating === undefined
                   ? ''
@@ -111,15 +117,17 @@ export function PlayerList({
               }
             />
           )}
-          <ListCell alignRight label={formatPlayTime(player.playTime)} />
+          <ListCell alignRight label={formatPlayTime(player.playTime)} className={rowClassName} />
           {showLastSeen && (
             <LastSeen
               lastSeenAt={player.lastSeenAt}
               gameServers={player.gameServers}
+              className={rowClassName}
             />
           )}
         </Fragment>
-      ))}
+        );
+      })}
     </List>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export function PastMembersToggle({ clanName, showPastMembers }: { clanName: string, showPastMembers: boolean }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   return (
     <div className="flex justify-end px-8 mb-2">
@@ -12,7 +13,14 @@ export function PastMembersToggle({ clanName, showPastMembers }: { clanName: str
           type="checkbox" 
           checked={showPastMembers} 
           onChange={(e) => {
-            const url = `/clan/${encodeURIComponent(clanName)}${e.target.checked ? '?past=true' : ''}`;
+            const params = new URLSearchParams(searchParams.toString());
+            if (e.target.checked) {
+              params.set('past', 'true');
+            } else {
+              params.delete('past');
+            }
+            const queryString = params.toString();
+            const url = `/clan/${encodeURIComponent(clanName)}${queryString ? `?${queryString}` : ''}`;
             router.replace(url, { scroll: false });
           }}
           className="cursor-pointer"

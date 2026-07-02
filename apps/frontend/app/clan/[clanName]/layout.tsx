@@ -4,6 +4,7 @@ import { LayoutTabs } from './LayoutTabs';
 import { paramsSchema } from './schema';
 import { z } from 'zod';
 import { formatPlayTime } from '../../../utils/format';
+import { ClanPlayerCount } from './ClanPlayerCount';
 
 export default async function Index({
   params,
@@ -19,6 +20,9 @@ export default async function Index({
       name: true,
       playTime: true,
       activePlayerCount: true,
+      _count: {
+        select: { clanPlayerInfos: true },
+      },
     },
     where: {
       name: clanName,
@@ -51,7 +55,10 @@ export default async function Index({
       <header className="flex flex-row px-20 gap-4 items-center">
         <section className="flex flex-col gap-2 grow">
           <h1 className="text-2xl font-bold">{clan.name}</h1>
-          <span className="pr-4">{`${clan.activePlayerCount} players`}</span>
+          <ClanPlayerCount 
+            activeCount={clan.activePlayerCount} 
+            totalCount={clan._count.clanPlayerInfos} 
+          />
         </section>
         <aside className="flex flex-col gap-2 text-right">
           <p>

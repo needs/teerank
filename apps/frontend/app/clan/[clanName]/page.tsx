@@ -1,6 +1,6 @@
 import { paramsSchema } from './schema';
 import { z } from 'zod';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import prisma from '../../../utils/prisma';
 import { PlayerList } from '../../../components/PlayerList';
 import { searchParamPageSchema } from '../../../utils/page';
@@ -90,11 +90,30 @@ export default async function Index({
     return notFound();
   }
 
+  const playerCount = showPastMembers ? clan._count.clanPlayerInfos : clan.activePlayerCount;
+  const maxPage = Math.ceil(playerCount / 100) || 1;
+
+  if (page > maxPage) {
+    // Generate new URL with the max possible page
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(searchParams)) {
+      if (value !== undefined) {
+        if (Array.isArray(value)) {
+          value.forEach((v) => params.append(key, v));
+        } else {
+          params.set(key, value);
+        }
+      }
+    }
+    params.set('page', maxPage.toString());
+    return redirect(`/clan/${encodeURIComponent(clanName)}?${params.toString()}`);
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <PastMembersToggle clanName={clanName} showPastMembers={showPastMembers} />
       <PlayerList
-        playerCount={showPastMembers ? clan._count.clanPlayerInfos : clan.activePlayerCount}
+        playerCount={playerCount}
         rankMethod={null}
         showLastSeen={true}
         players={clan.clanPlayerInfos.map((playerInfo, index) => ({

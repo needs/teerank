@@ -68,21 +68,19 @@ function mockSnapshot(snapshot: MockedGameServerSnapshot) {
   return snapshot;
 }
 
-// New times are written as one multi-row UPDATE with (playerName, rating)
-// pairs as the interpolated values, plus the mapId as the last parameter.
-function timeUpdate(): { values: unknown[], mapId: unknown } | null {
-  const call = prismaMock.$executeRaw.mock.calls.find(
-    (args) => (args[0] as unknown as ReadonlyArray<string>).join('?').includes('UPDATE "PlayerInfoMap" SET')
+// New times are written as one multi-row UPDATE taking parallel
+// (playerNames, ratings) arrays plus the mapId.
+function timeUpdate(): { playerNames: string[], mapId: number, ratings: number[] } | null {
+  const call = prismaMock.$queryRawTyped.mock.calls.find(
+    (args) => (args[0] as unknown as { sql: string }).sql.includes('UPDATE "PlayerInfoMap" SET')
   );
 
   if (call === undefined) {
     return null;
   }
 
-  return {
-    values: (call[1] as { values: unknown[] }).values,
-    mapId: call[2],
-  };
+  const values = (call[0] as unknown as { values: [string[], number, number[]] }).values;
+  return { playerNames: values[0], mapId: values[1], ratings: values[2] };
 }
 
 function checkRatings(expectedRatings: (number | null)[]) {
@@ -98,7 +96,9 @@ function checkRatings(expectedRatings: (number | null)[]) {
 
   expectedRatings.forEach((rating, index) => {
     if (rating !== null) {
-      expect(update?.values).toEqual(expect.arrayContaining([`player${index}`, rating]));
+      const position = update!.playerNames.indexOf(`player${index}`);
+      expect(position).toBeGreaterThanOrEqual(0);
+      expect(update!.ratings[position]).toBe(rating);
     }
   });
 }

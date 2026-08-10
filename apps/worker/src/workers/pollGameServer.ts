@@ -3,6 +3,7 @@ import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPack
 import { GameServerInfoPacket, unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { scheduleUpdatePlayTime, scheduleRankPlayer, PollGameServerJobData, processPollGameServerJobs, wait } from "@teerank/teerank";
 import { GameServer, GameServerState, Prisma } from "@prisma/client";
+import { upsertPlayers } from "@prisma/client/sql";
 import { getEnvInt } from "@teerank/teerank";
 import { uniqBy } from "lodash";
 
@@ -94,23 +95,10 @@ export async function processGameServerInfo(
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
   if (uniqClients.length > 0) {
-    const now = new Date();
-
-    // createdAt/updatedAt are Prisma-managed and have to be set explicitly in
-    // raw SQL. The DO UPDATE is a no-op unless lastSeenAt moved by more than
-    // 10 minutes or the clan changed — the UI can't tell the difference, and
-    // it saves up to 4 index writes per player. An empty clan means "no clan
-    // info": it never overwrites a stored clan.
-    operations.push(prisma.$executeRaw`
-      INSERT INTO "Player" ("name", "clanName", "lastSeenAt", "createdAt", "updatedAt")
-      VALUES ${Prisma.join(uniqClients.map((client) => Prisma.sql`(${client.name}, ${client.clan === "" ? null : client.clan}, ${now}, ${now}, ${now})`))}
-      ON CONFLICT ("name") DO UPDATE SET
-        "clanName" = COALESCE(EXCLUDED."clanName", "Player"."clanName"),
-        "lastSeenAt" = EXCLUDED."lastSeenAt",
-        "updatedAt" = EXCLUDED."updatedAt"
-      WHERE EXCLUDED."lastSeenAt" - "Player"."lastSeenAt" > interval '10 minutes'
-        OR (EXCLUDED."clanName" IS NOT NULL AND EXCLUDED."clanName" IS DISTINCT FROM "Player"."clanName")
-    `);
+    operations.push(prisma.$queryRawTyped(upsertPlayers(
+      uniqClients.map((client) => client.name),
+      uniqClients.map((client) => client.clan),
+    )));
   }
 
   const snapshotCreate = prisma.gameServerSnapshot.create({

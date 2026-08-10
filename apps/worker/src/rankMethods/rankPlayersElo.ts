@@ -1,5 +1,5 @@
 import { differenceInMinutes } from "date-fns";
-import { Prisma } from "@prisma/client";
+import { incrementPlayerInfoGameTypeRatings, incrementPlayerInfoMapRatings } from "@prisma/client/sql";
 import { prisma } from "../prisma";
 
 async function getSnapshots(snapshotId: number) {
@@ -229,24 +229,13 @@ async function incrementRatings(table: 'PlayerInfoMap' | 'PlayerInfoGameType', e
     return;
   }
 
-  const values = Prisma.join(updates.map((update) => Prisma.sql`(${update.id}, ${update.eloDelta})`));
+  const updateIds = updates.map((update) => update.id);
+  const updateDeltas = updates.map((update) => update.eloDelta);
 
   if (table === 'PlayerInfoMap') {
-    await prisma.$executeRaw`
-      UPDATE "PlayerInfoMap" SET
-        "rating" = "PlayerInfoMap"."rating" + v."eloDelta",
-        "updatedAt" = now()
-      FROM (VALUES ${values}) AS v("id", "eloDelta")
-      WHERE "PlayerInfoMap"."id" = v."id"
-    `;
+    await prisma.$queryRawTyped(incrementPlayerInfoMapRatings(updateIds, updateDeltas));
   } else {
-    await prisma.$executeRaw`
-      UPDATE "PlayerInfoGameType" SET
-        "rating" = "PlayerInfoGameType"."rating" + v."eloDelta",
-        "updatedAt" = now()
-      FROM (VALUES ${values}) AS v("id", "eloDelta")
-      WHERE "PlayerInfoGameType"."id" = v."id"
-    `;
+    await prisma.$queryRawTyped(incrementPlayerInfoGameTypeRatings(updateIds, updateDeltas));
   }
 }
 

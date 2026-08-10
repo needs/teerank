@@ -1,4 +1,12 @@
-import { Prisma } from "@prisma/client";
+import {
+  incrementClanPlayTimes,
+  incrementPlayerPlayTimes,
+  upsertClanInfoGameTypePlayTimes,
+  upsertClanInfoMapPlayTimes,
+  upsertClanPlayerInfoPlayTimes,
+  upsertPlayerInfoGameTypePlayTimes,
+  upsertPlayerInfoMapPlayTimes,
+} from "@prisma/client/sql";
 import { prisma } from "../prisma";
 import { differenceInSeconds } from "date-fns";
 import { removeDuplicatedClients } from "../utils";
@@ -144,79 +152,62 @@ export async function updatePlayTime(data: UpdatePlayTimeJobData) {
 
   // Each group is written as a single multi-row statement, sorted by its
   // conflict key: unordered multi-row upserts deadlock under concurrent
-  // workers with overlapping player sets. createdAt/updatedAt are set
-  // explicitly because they're Prisma-managed.
+  // workers with overlapping player sets.
   const playerMaps = [...playerMapPlayTimes.values()].sort((a, b) => compareStrings(a.playerName, b.playerName));
-  await prisma.$executeRaw`
-    INSERT INTO "PlayerInfoMap" ("playerName", "mapId", "playTime", "createdAt", "updatedAt")
-    VALUES ${Prisma.join(playerMaps.map((row) => Prisma.sql`(${row.playerName}, ${row.mapId}, ${row.playTime}, now(), now())`))}
-    ON CONFLICT ("playerName", "mapId") DO UPDATE SET
-      "playTime" = "PlayerInfoMap"."playTime" + EXCLUDED."playTime",
-      "updatedAt" = now()
-  `;
+  await prisma.$queryRawTyped(upsertPlayerInfoMapPlayTimes(
+    playerMaps.map((row) => row.playerName),
+    snapshot.mapId,
+    playerMaps.map((row) => row.playTime),
+  ));
 
   const playerGameTypes = [...playerGameTypePlayTimes.values()].sort((a, b) => compareStrings(a.playerName, b.playerName));
-  await prisma.$executeRaw`
-    INSERT INTO "PlayerInfoGameType" ("playerName", "gameTypeName", "playTime", "createdAt", "updatedAt")
-    VALUES ${Prisma.join(playerGameTypes.map((row) => Prisma.sql`(${row.playerName}, ${row.gameTypeName}, ${row.playTime}, now(), now())`))}
-    ON CONFLICT ("playerName", "gameTypeName") DO UPDATE SET
-      "playTime" = "PlayerInfoGameType"."playTime" + EXCLUDED."playTime",
-      "updatedAt" = now()
-  `;
+  await prisma.$queryRawTyped(upsertPlayerInfoGameTypePlayTimes(
+    playerGameTypes.map((row) => row.playerName),
+    snapshot.map.gameTypeName,
+    playerGameTypes.map((row) => row.playTime),
+  ));
 
   const players = [...playerPlayTimes.values()].sort((a, b) => compareStrings(a.playerName, b.playerName));
-  await prisma.$executeRaw`
-    UPDATE "Player" SET
-      "playTime" = "Player"."playTime" + v."playTime",
-      "updatedAt" = now()
-    FROM (VALUES ${Prisma.join(players.map((row) => Prisma.sql`(${row.playerName}, ${row.playTime})`))}) AS v("playerName", "playTime")
-    WHERE "Player"."name" = v."playerName"
-  `;
+  await prisma.$queryRawTyped(incrementPlayerPlayTimes(
+    players.map((row) => row.playerName),
+    players.map((row) => row.playTime),
+  ));
 
   const clanMaps = [...clanMapPlayTimes.values()].sort((a, b) => compareStrings(a.clanName, b.clanName));
   if (clanMaps.length > 0) {
-    await prisma.$executeRaw`
-      INSERT INTO "ClanInfoMap" ("clanName", "mapId", "playTime", "createdAt", "updatedAt")
-      VALUES ${Prisma.join(clanMaps.map((row) => Prisma.sql`(${row.clanName}, ${row.mapId}, ${row.playTime}, now(), now())`))}
-      ON CONFLICT ("clanName", "mapId") DO UPDATE SET
-        "playTime" = "ClanInfoMap"."playTime" + EXCLUDED."playTime",
-        "updatedAt" = now()
-    `;
+    await prisma.$queryRawTyped(upsertClanInfoMapPlayTimes(
+      clanMaps.map((row) => row.clanName),
+      snapshot.mapId,
+      clanMaps.map((row) => row.playTime),
+    ));
   }
 
   const clanGameTypes = [...clanGameTypePlayTimes.values()].sort((a, b) => compareStrings(a.clanName, b.clanName));
   if (clanGameTypes.length > 0) {
-    await prisma.$executeRaw`
-      INSERT INTO "ClanInfoGameType" ("clanName", "gameTypeName", "playTime", "createdAt", "updatedAt")
-      VALUES ${Prisma.join(clanGameTypes.map((row) => Prisma.sql`(${row.clanName}, ${row.gameTypeName}, ${row.playTime}, now(), now())`))}
-      ON CONFLICT ("clanName", "gameTypeName") DO UPDATE SET
-        "playTime" = "ClanInfoGameType"."playTime" + EXCLUDED."playTime",
-        "updatedAt" = now()
-    `;
+    await prisma.$queryRawTyped(upsertClanInfoGameTypePlayTimes(
+      clanGameTypes.map((row) => row.clanName),
+      snapshot.map.gameTypeName,
+      clanGameTypes.map((row) => row.playTime),
+    ));
   }
 
   const clans = [...clanPlayTimes.values()].sort((a, b) => compareStrings(a.clanName, b.clanName));
   if (clans.length > 0) {
-    await prisma.$executeRaw`
-      UPDATE "Clan" SET
-        "playTime" = "Clan"."playTime" + v."playTime",
-        "updatedAt" = now()
-      FROM (VALUES ${Prisma.join(clans.map((row) => Prisma.sql`(${row.clanName}, ${row.playTime})`))}) AS v("clanName", "playTime")
-      WHERE "Clan"."name" = v."clanName"
-    `;
+    await prisma.$queryRawTyped(incrementClanPlayTimes(
+      clans.map((row) => row.clanName),
+      clans.map((row) => row.playTime),
+    ));
   }
 
   const clanPlayers = [...clanPlayerPlayTimes.values()].sort(
     (a, b) => compareStrings(a.clanName, b.clanName) || compareStrings(a.playerName, b.playerName)
   );
   if (clanPlayers.length > 0) {
-    await prisma.$executeRaw`
-      INSERT INTO "ClanPlayerInfo" ("clanName", "playerName", "playTime", "createdAt", "updatedAt")
-      VALUES ${Prisma.join(clanPlayers.map((row) => Prisma.sql`(${row.clanName}, ${row.playerName}, ${row.playTime}, now(), now())`))}
-      ON CONFLICT ("clanName", "playerName") DO UPDATE SET
-        "playTime" = "ClanPlayerInfo"."playTime" + EXCLUDED."playTime",
-        "updatedAt" = now()
-    `;
+    await prisma.$queryRawTyped(upsertClanPlayerInfoPlayTimes(
+      clanPlayers.map((row) => row.clanName),
+      clanPlayers.map((row) => row.playerName),
+      clanPlayers.map((row) => row.playTime),
+    ));
   }
 
   // Update GameType, Map, and GameServer records

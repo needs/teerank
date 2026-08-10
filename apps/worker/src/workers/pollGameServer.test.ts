@@ -77,11 +77,12 @@ test('processGameServerInfo', async () => {
     skipDuplicates: true
   });
 
-  // Players are upserted in one multi-row statement; the interpolated
-  // values contain each player name and clan.
-  expect(prismaMock.$executeRaw).toHaveBeenCalledTimes(1);
-  const playerUpsertValues = (prismaMock.$executeRaw.mock.calls[0][1] as { values: unknown[] }).values;
-  expect(playerUpsertValues).toEqual(expect.arrayContaining(['name1', 'clan1', 'name2', 'clan2']));
+  // Players are upserted in one multi-row statement taking parallel
+  // name/clan arrays.
+  expect(prismaMock.$queryRawTyped).toHaveBeenCalledTimes(1);
+  const playerUpsert = prismaMock.$queryRawTyped.mock.calls[0][0] as unknown as { sql: string; values: unknown[] };
+  expect(playerUpsert.sql).toContain('INSERT INTO "Player"');
+  expect(playerUpsert.values).toEqual([['name1', 'name2'], ['clan1', 'clan2']]);
 
   expect(prismaMock.gameServerSnapshot.create).toHaveBeenCalledWith(expect.objectContaining({
     data: expect.objectContaining({

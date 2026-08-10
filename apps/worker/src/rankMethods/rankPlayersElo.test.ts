@@ -83,16 +83,17 @@ function mockSnapshot(snapshot: MockedGameServerSnapshot, previousSnapshot: Mock
   prismaMock.playerInfoGameType.findMany.mockResolvedValue(playerInfoGameTypes);
 }
 
-function rawUpdateValues(table: string): unknown[] | null {
-  const call = prismaMock.$executeRaw.mock.calls.find(
-    (args) => (args[0] as unknown as ReadonlyArray<string>).join('?').includes(`UPDATE "${table}" SET`)
+function rawUpdateValues(table: string): { ids: number[], eloDeltas: number[] } | null {
+  const call = prismaMock.$queryRawTyped.mock.calls.find(
+    (args) => (args[0] as unknown as { sql: string }).sql.includes(`UPDATE "${table}" SET`)
   );
 
   if (call === undefined) {
     return null;
   }
 
-  return (call[1] as { values: unknown[] }).values;
+  const values = (call[0] as unknown as { values: [number[], number[]] }).values;
+  return { ids: values[0], eloDeltas: values[1] };
 }
 
 function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: number[]) {
@@ -103,7 +104,9 @@ function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: num
     expect(gameTypeValues).toBeNull();
   } else {
     expectedRatingsGameType.forEach((rating, index) => {
-      expect(gameTypeValues).toEqual(expect.arrayContaining([index, rating]));
+      const position = gameTypeValues!.ids.indexOf(index);
+      expect(position).toBeGreaterThanOrEqual(0);
+      expect(gameTypeValues!.eloDeltas[position]).toBe(rating);
     });
   }
 
@@ -111,7 +114,9 @@ function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: num
     expect(mapValues).toBeNull();
   } else {
     expectedRatingsMap.forEach((rating, index) => {
-      expect(mapValues).toEqual(expect.arrayContaining([index, rating]));
+      const position = mapValues!.ids.indexOf(index);
+      expect(position).toBeGreaterThanOrEqual(0);
+      expect(mapValues!.eloDeltas[position]).toBe(rating);
     });
   }
 }

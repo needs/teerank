@@ -46,18 +46,29 @@ const mockSecondSnapshot = (baseDate: Date, clients: GameServerClient[]) => {
   return snapshot;
 };
 
-// Each table is written with a single multi-row statement; find it by its
-// SQL fragment and return the interpolated parameter values.
+// Each table is written with a single multi-row statement taking parallel
+// arrays; find it by its SQL fragment and return the parameter arrays.
 function rawStatementValues(fragment: string): unknown[] | null {
-  const call = prismaMock.$executeRaw.mock.calls.find(
-    (args) => (args[0] as unknown as ReadonlyArray<string>).join('?').includes(fragment)
+  const call = prismaMock.$queryRawTyped.mock.calls.find(
+    (args) => (args[0] as unknown as { sql: string }).sql.includes(fragment)
   );
 
   if (call === undefined) {
     return null;
   }
 
-  return (call[1] as { values: unknown[] }).values;
+  return (call[0] as unknown as { values: unknown[] }).values;
+}
+
+// Assert that the statement's parallel (keys..., playTimes) arrays hold the
+// expected playTime for the given key at the same position.
+function expectRow(values: unknown[] | null, key: string, playTime: number) {
+  expect(values).not.toBeNull();
+  const [keys] = values as [string[]];
+  const playTimes = values![values!.length - 1] as number[];
+  const index = keys.indexOf(key);
+  expect(index).toBeGreaterThanOrEqual(0);
+  expect(playTimes[index]).toBe(playTime);
 }
 
 function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPlayTimes: number[], expectedClanPlayerPlayTimes: number[], expectedGlobalPlayTime: number) {
@@ -66,12 +77,11 @@ function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPlayTimes
   const playerValues = rawStatementValues('UPDATE "Player" SET');
 
   expectedPlayerPlayTimes.forEach((playTime, index) => {
-    // (playerName, mapId, playTime) per row
-    expect(playerInfoMapValues).toEqual(expect.arrayContaining([`player${index}`, 1, playTime]));
-    // (playerName, gameTypeName, playTime) per row
-    expect(playerInfoGameTypeValues).toEqual(expect.arrayContaining([`player${index}`, 'gameType', playTime]));
-    // (playerName, playTime) per row
-    expect(playerValues).toEqual(expect.arrayContaining([`player${index}`, playTime]));
+    expectRow(playerInfoMapValues, `player${index}`, playTime);
+    expect(playerInfoMapValues?.[1]).toBe(1); // mapId
+    expectRow(playerInfoGameTypeValues, `player${index}`, playTime);
+    expect(playerInfoGameTypeValues?.[1]).toBe('gameType');
+    expectRow(playerValues, `player${index}`, playTime);
   });
 
   const clanInfoMapValues = rawStatementValues('INSERT INTO "ClanInfoMap"');
@@ -79,15 +89,15 @@ function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPlayTimes
   const clanValues = rawStatementValues('UPDATE "Clan" SET');
 
   expectedClanPlayTimes.forEach((playTime, index) => {
-    expect(clanInfoMapValues).toEqual(expect.arrayContaining([`clan${index}`, 1, playTime]));
-    expect(clanInfoGameTypeValues).toEqual(expect.arrayContaining([`clan${index}`, 'gameType', playTime]));
-    expect(clanValues).toEqual(expect.arrayContaining([`clan${index}`, playTime]));
+    expectRow(clanInfoMapValues, `clan${index}`, playTime);
+    expectRow(clanInfoGameTypeValues, `clan${index}`, playTime);
+    expectRow(clanValues, `clan${index}`, playTime);
   });
 
   const clanPlayerInfoValues = rawStatementValues('INSERT INTO "ClanPlayerInfo"');
 
   expectedClanPlayerPlayTimes.forEach((playTime) => {
-    expect(clanPlayerInfoValues).toEqual(expect.arrayContaining([playTime]));
+    expect(clanPlayerInfoValues?.[2]).toEqual(expect.arrayContaining([playTime]));
   });
 
   // Check global updates
@@ -116,7 +126,7 @@ test('Single snapshot', async () => {
   await updatePlayTime({ snapshotId: snapshot.id });
 
   // A zero delta writes nothing at all.
-  expect(prismaMock.$executeRaw).not.toHaveBeenCalled();
+  expect(prismaMock.$queryRawTyped).not.toHaveBeenCalled();
   expect(prismaMock.gameType.update).not.toHaveBeenCalled();
   expect(prismaMock.map.update).not.toHaveBeenCalled();
   expect(prismaMock.gameServer.update).not.toHaveBeenCalled();

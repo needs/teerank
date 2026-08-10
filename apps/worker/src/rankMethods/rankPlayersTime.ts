@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { setPlayerInfoMapRatings } from "@prisma/client/sql";
 import { prisma } from "../prisma";
 
 function compareStrings(a: string, b: string) {
@@ -78,12 +78,9 @@ export const rankPlayersTime = async (snapshotId: number) => {
   // between concurrent workers.
   const updates = [...newPlayerTimes.entries()].sort(([a], [b]) => compareStrings(a, b));
 
-  await prisma.$executeRaw`
-    UPDATE "PlayerInfoMap" SET
-      "rating" = v."rating",
-      "updatedAt" = now()
-    FROM (VALUES ${Prisma.join(updates.map(([playerName, rating]) => Prisma.sql`(${playerName}, ${rating})`))}) AS v("playerName", "rating")
-    WHERE "PlayerInfoMap"."playerName" = v."playerName"
-      AND "PlayerInfoMap"."mapId" = ${snapshot.mapId}
-  `;
+  await prisma.$queryRawTyped(setPlayerInfoMapRatings(
+    updates.map(([playerName]) => playerName),
+    snapshot.mapId,
+    updates.map(([, rating]) => rating),
+  ));
 }

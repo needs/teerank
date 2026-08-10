@@ -44,9 +44,6 @@ function padId(id: number) {
   return id.toString().padStart(10, '0');
 }
 
-// Split a batch (sorted by id) into runs of snapshots sharing the same UTC
-// day, so every Parquet file only holds rows belonging to its dt= partition.
-// Runs are contiguous id ranges, which keeps the delete-by-range correct.
 function chunkByDay(snapshots: ArchivableSnapshot[]) {
   const chunks: { dt: string; snapshots: ArchivableSnapshot[] }[] = [];
 

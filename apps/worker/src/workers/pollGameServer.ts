@@ -78,9 +78,7 @@ export async function processGameServerInfo(
     },
   });
 
-  // Multi-row writes are sorted by their conflict key: with concurrent
-  // pollers sharing overlapping player sets, unordered multi-row upserts
-  // deadlock.
+  // Sort to avoid deadlocks
   const uniqClans = [...new Set(gameServerInfo.clients.map((client) => client.clan).filter((clan) => clan !== ''))].sort();
 
   const operations: Prisma.PrismaPromise<unknown>[] = [];

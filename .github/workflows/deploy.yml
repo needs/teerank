@@ -69,13 +69,6 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WORKER }}
           PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x", "linux-musl"]'
 
-      # One machine covers the measured poll workload (~6 concurrent slots
-      # needed, 100 available); extra machines are the largest line on the bill.
-      - name: Scale worker
-        run: flyctl scale count 1 --yes -a teerankio-worker
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WORKER }}
-
       - name: Deploy scheduler
         run: flyctl deploy --config apps/scheduler/fly.toml --dockerfile apps/scheduler/Dockerfile
         env:

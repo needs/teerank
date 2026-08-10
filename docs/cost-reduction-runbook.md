@@ -24,9 +24,7 @@ few weeks of margin, and the changes below both add headroom and remove the grow
   the archive drain's deletes are reclaimed as fast as they're made.
 
 **Deploys**: the new write path (state upsert, batched typedSql writes, one transaction per
-poll) and the archive worker ship with the worker/scheduler images. CI then pins the worker
-fleet to one machine (`flyctl scale count 1`) — the measured workload needs ~6 concurrent
-poll slots and one machine provides 100.
+poll) and the archive worker ship with the worker/scheduler images.
 
 **Archiving** starts by itself: the scheduler ticks `archive-snapshots` every 10 minutes.
 In production the worker stays idle (with a log line) until `S3_ENDPOINT` is set, so the

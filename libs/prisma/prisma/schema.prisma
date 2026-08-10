@@ -190,7 +190,6 @@ model PlayerInfoMap {
   mapId Int
 
   @@unique([playerName, mapId])
-  @@index([playTime(sort: Desc)])
   @@index([mapId, rating(sort: Desc, nulls: last), playTime(sort: Desc)])
 }
 
@@ -234,7 +233,6 @@ model GameServerSnapshot {
   gameServer   GameServer @relation(name: "GameServerSnapshotGameServerId", fields: [gameServerId], references: [id], onDelete: Cascade)
 
   @@index([gameServerId, createdAt])
-  @@index([createdAt])
 }
 
 model ClanInfoGameType {
@@ -268,7 +266,6 @@ model ClanInfoMap {
   mapId Int
 
   @@unique([clanName, mapId])
-  @@index([playTime(sort: Desc)])
   @@index([mapId, playTime(sort: Desc)])
 }
 

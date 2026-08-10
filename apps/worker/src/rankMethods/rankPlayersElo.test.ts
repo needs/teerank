@@ -1,5 +1,5 @@
 import { prismaMock } from '../../test/mockPrisma';
-import { GameServerClient, GameServerSnapshot, Map, GameType, RankMethod } from '@prisma/client';
+import { GameServerClient, GameServerSnapshot, Map, GameType, RankMethod, PlayerInfoMap, PlayerInfoGameType } from '@prisma/client';
 import { rankPlayer } from '../workers/rankPlayer';
 import { addHours } from 'date-fns';
 
@@ -57,44 +57,51 @@ function mockSnapshot(snapshot: MockedGameServerSnapshot, previousSnapshot: Mock
   prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot);
   prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(previousSnapshot);
 
-  // Mock initial player info creation
-  snapshot.clients.forEach((client, index) => {
-    prismaMock.playerInfoMap.upsert.mockResolvedValueOnce({
-      id: index,
-      playerName: client.playerName,
-      mapId: 1,
-      rating: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      playTime: BigInt(0),
-    });
+  // Info rows already exist with a 0 rating, so the ranking reads them
+  // instead of creating them.
+  const infoRows = snapshot.clients.map((client, index) => ({
+    id: index,
+    playerName: client.playerName,
+    rating: 0,
+  }));
 
-    prismaMock.playerInfoGameType.upsert.mockResolvedValueOnce({
-      id: index,
-      playerName: client.playerName,
-      gameTypeName: 'gameType',
-      rating: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      playTime: BigInt(0),
-    });
-  });
+  prismaMock.playerInfoMap.findMany.mockResolvedValue(infoRows as PlayerInfoMap[]);
+  prismaMock.playerInfoGameType.findMany.mockResolvedValue(infoRows as PlayerInfoGameType[]);
+}
+
+// Rating increments are written as one multi-row UPDATE per table with
+// (id, eloDelta) pairs as the interpolated values.
+function rawUpdateValues(table: string): unknown[] | null {
+  const call = prismaMock.$executeRaw.mock.calls.find(
+    (args) => (args[0] as unknown as ReadonlyArray<string>).join('?').includes(`UPDATE "${table}" SET`)
+  );
+
+  if (call === undefined) {
+    return null;
+  }
+
+  return (call[1] as { values: unknown[] }).values;
 }
 
 function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: number[]) {
-  expectedRatingsGameType.forEach((rating, index) => {
-    expect(prismaMock.playerInfoGameType.update).toHaveBeenCalledWith({
-      where: { id: index },
-      data: { rating: { increment: rating } }
-    });
-  });
+  const gameTypeValues = rawUpdateValues('PlayerInfoGameType');
+  const mapValues = rawUpdateValues('PlayerInfoMap');
 
-  expectedRatingsMap.forEach((rating, index) => {
-    expect(prismaMock.playerInfoMap.update).toHaveBeenCalledWith({
-      where: { id: index },
-      data: { rating: { increment: rating } }
+  if (expectedRatingsGameType.length === 0) {
+    expect(gameTypeValues).toBeNull();
+  } else {
+    expectedRatingsGameType.forEach((rating, index) => {
+      expect(gameTypeValues).toEqual(expect.arrayContaining([index, rating]));
     });
-  });
+  }
+
+  if (expectedRatingsMap.length === 0) {
+    expect(mapValues).toBeNull();
+  } else {
+    expectedRatingsMap.forEach((rating, index) => {
+      expect(mapValues).toEqual(expect.arrayContaining([index, rating]));
+    });
+  }
 }
 
 test('Only one snapshot', async () => {
@@ -111,10 +118,11 @@ test('Different map', async () => {
   snapshot2.mapId = 2;
 
   mockSnapshot(snapshot1);
-  mockSnapshot(snapshot2, snapshot1);
-
   await rankPlayer({ snapshotId: snapshot1.id });
+
+  mockSnapshot(snapshot2, snapshot1);
   await rankPlayer({ snapshotId: snapshot2.id });
+
   checkRatings([], []);
 });
 
@@ -124,10 +132,11 @@ test('Big time gap', async () => {
   const snapshot2 = createSnapshot(2, addHours(baseDate, 1), [99, 101]);
 
   mockSnapshot(snapshot1);
-  mockSnapshot(snapshot2, snapshot1);
-
   await rankPlayer({ snapshotId: snapshot1.id });
+
+  mockSnapshot(snapshot2, snapshot1);
   await rankPlayer({ snapshotId: snapshot2.id });
+
   checkRatings([], []);
 });
 
@@ -137,9 +146,10 @@ test('Two players', async () => {
   const snapshot2 = createSnapshot(2, baseDate, [99, 101]);
 
   mockSnapshot(snapshot1);
-  mockSnapshot(snapshot2, snapshot1);
-
   await rankPlayer({ snapshotId: snapshot1.id });
+
+  mockSnapshot(snapshot2, snapshot1);
   await rankPlayer({ snapshotId: snapshot2.id });
+
   checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });

@@ -1,4 +1,5 @@
 import { differenceInMinutes } from "date-fns";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma";
 
 async function getSnapshots(snapshotId: number) {
@@ -150,108 +151,137 @@ function computeEloDeltas(
   return eloDeltas;
 }
 
+function compareStrings(a: string, b: string) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+// Fetch the info rows for the snapshot's players, creating the (rarely)
+// missing ones with a 0 rating first. Two statements instead of one upsert
+// per player — a plain read in steady state, since rows exist after a
+// player's first ranked snapshot.
+async function getPlayerInfoMaps(playerNames: string[], mapId: number) {
+  const where = {
+    mapId,
+    playerName: {
+      in: playerNames,
+    },
+  };
+  const select = {
+    id: true,
+    playerName: true,
+    rating: true,
+  };
+
+  let playerInfoMaps = await prisma.playerInfoMap.findMany({ where, select });
+
+  if (playerInfoMaps.length < playerNames.length) {
+    const existing = new Set(playerInfoMaps.map(({ playerName }) => playerName));
+    const missing = playerNames.filter((playerName) => !existing.has(playerName));
+
+    await prisma.playerInfoMap.createMany({
+      data: missing.map((playerName) => ({ playerName, mapId, rating: 0 })),
+      skipDuplicates: true,
+    });
+    playerInfoMaps = await prisma.playerInfoMap.findMany({ where, select });
+  }
+
+  return playerInfoMaps;
+}
+
+async function getPlayerInfoGameTypes(playerNames: string[], gameTypeName: string) {
+  const where = {
+    gameTypeName,
+    playerName: {
+      in: playerNames,
+    },
+  };
+  const select = {
+    id: true,
+    playerName: true,
+    rating: true,
+  };
+
+  let playerInfoGameTypes = await prisma.playerInfoGameType.findMany({ where, select });
+
+  if (playerInfoGameTypes.length < playerNames.length) {
+    const existing = new Set(playerInfoGameTypes.map(({ playerName }) => playerName));
+    const missing = playerNames.filter((playerName) => !existing.has(playerName));
+
+    await prisma.playerInfoGameType.createMany({
+      data: missing.map((playerName) => ({ playerName, gameTypeName, rating: 0 })),
+      skipDuplicates: true,
+    });
+    playerInfoGameTypes = await prisma.playerInfoGameType.findMany({ where, select });
+  }
+
+  return playerInfoGameTypes;
+}
+
+async function incrementRatings(table: 'PlayerInfoMap' | 'PlayerInfoGameType', eloDeltas: Map<string, number>, ids: Map<string, { id: number }>) {
+  // Sorted by id, the conflict key, to avoid deadlocks between concurrent
+  // multi-row updates.
+  const updates = [...eloDeltas.entries()]
+    .filter(([, eloDelta]) => eloDelta !== 0)
+    .map(([playerName, eloDelta]) => ({ id: ids.get(playerName)?.id ?? 0, eloDelta }))
+    .sort((a, b) => a.id - b.id);
+
+  if (updates.length === 0) {
+    return;
+  }
+
+  const values = Prisma.join(updates.map((update) => Prisma.sql`(${update.id}, ${update.eloDelta})`));
+
+  if (table === 'PlayerInfoMap') {
+    await prisma.$executeRaw`
+      UPDATE "PlayerInfoMap" SET
+        "rating" = "PlayerInfoMap"."rating" + v."eloDelta",
+        "updatedAt" = now()
+      FROM (VALUES ${values}) AS v("id", "eloDelta")
+      WHERE "PlayerInfoMap"."id" = v."id"
+    `;
+  } else {
+    await prisma.$executeRaw`
+      UPDATE "PlayerInfoGameType" SET
+        "rating" = "PlayerInfoGameType"."rating" + v."eloDelta",
+        "updatedAt" = now()
+      FROM (VALUES ${values}) AS v("id", "eloDelta")
+      WHERE "PlayerInfoGameType"."id" = v."id"
+    `;
+  }
+}
+
 export const rankPlayersElo = async (snapshotId: number) => {
   const { snapshot, snapshotBefore } = await getSnapshots(snapshotId);
 
-  const playerInfoMaps = [];
-
-  for (const client of snapshot.clients) {
-    const playerInfoMap = await prisma.playerInfoMap.upsert({
-      where: {
-        playerName_mapId: {
-          playerName: client.playerName,
-          mapId: snapshot.mapId,
-        }
-      },
-      select: {
-        id: true,
-        playerName: true,
-        rating: true,
-      },
-      update: {},
-      create: {
-        playerName: client.playerName,
-        mapId: snapshot.mapId,
-        rating: 0,
-      },
-    });
-    playerInfoMaps.push(playerInfoMap);
+  if (snapshotBefore === null) {
+    return;
   }
 
+  const scoreDeltas = getScoreDeltas({ snapshotBefore, snapshot });
+
+  if (scoreDeltas.size === 0) {
+    return;
+  }
+
+  const playerNames = [...new Set(snapshot.clients.map((client) => client.playerName))].sort();
+
+  const playerInfoMaps = await getPlayerInfoMaps(playerNames, snapshot.mapId);
   const mapRatings = new Map(playerInfoMaps.map(({ playerName, rating, id }) => [playerName, { rating: rating ?? 0, id }]));
 
-  const playerInfoGameTypes = [];
-
-  for (const client of snapshot.clients) {
-    const playerInfoGameType = await prisma.playerInfoGameType.upsert({
-      where: {
-        playerName_gameTypeName: {
-          playerName: client.playerName,
-          gameTypeName: snapshot.map.gameTypeName,
-        },
-      },
-      select: {
-        id: true,
-        playerName: true,
-        rating: true,
-      },
-      update: {},
-      create: {
-        playerName: client.playerName,
-        gameTypeName: snapshot.map.gameTypeName,
-        rating: 0,
-      },
-    });
-    playerInfoGameTypes.push(playerInfoGameType);
-  }
-
+  const playerInfoGameTypes = await getPlayerInfoGameTypes(playerNames, snapshot.map.gameTypeName);
   const gameTypeRatings = new Map(playerInfoGameTypes.map(({ playerName, rating, id }) => [playerName, { rating: rating ?? 0, id }]));
 
-  if (snapshotBefore !== null) {
-    const scoreDeltas = getScoreDeltas({ snapshotBefore, snapshot });
+  const eloDeltasMap = computeEloDeltas(
+    scoreDeltas,
+    (playerName) => mapRatings.get(playerName)?.rating ?? 0,
+  );
 
-    const eloDeltasMap = computeEloDeltas(
-      scoreDeltas,
-      (playerName) => mapRatings.get(playerName)?.rating ?? 0,
-    );
+  await incrementRatings('PlayerInfoMap', eloDeltasMap, mapRatings);
 
-    if (eloDeltasMap.size > 0) {
-      for (const [playerName, eloDelta] of Array.from(eloDeltasMap.entries())) {
-        if (eloDelta !== 0) {
-          await prisma.playerInfoMap.update({
-            where: {
-              id: mapRatings.get(playerName)?.id ?? 0,
-            },
-            data: {
-              rating: {
-                increment: eloDelta,
-              },
-            },
-          });
-        }
-      }
-    }
+  const eloDeltasGameType = computeEloDeltas(
+    scoreDeltas,
+    (playerName) => gameTypeRatings.get(playerName)?.rating ?? 0,
+  );
 
-    const eloDeltasGameType = computeEloDeltas(
-      scoreDeltas,
-      (playerName) => gameTypeRatings.get(playerName)?.rating ?? 0,
-    );
-
-    if (eloDeltasGameType.size > 0) {
-      for (const [playerName, eloDelta] of Array.from(eloDeltasGameType.entries())) {
-        if (eloDelta !== 0) {
-          await prisma.playerInfoGameType.update({
-            where: {
-              id: gameTypeRatings.get(playerName)?.id ?? 0,
-            },
-            data: {
-              rating: {
-                increment: eloDelta,
-              },
-            },
-          });
-        }
-      }
-    }
-  }
+  await incrementRatings('PlayerInfoGameType', eloDeltasGameType, gameTypeRatings);
 }

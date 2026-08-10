@@ -46,68 +46,48 @@ const mockSecondSnapshot = (baseDate: Date, clients: GameServerClient[]) => {
   return snapshot;
 };
 
+// Each table is written with a single multi-row statement; find it by its
+// SQL fragment and return the interpolated parameter values.
+function rawStatementValues(fragment: string): unknown[] | null {
+  const call = prismaMock.$executeRaw.mock.calls.find(
+    (args) => (args[0] as unknown as ReadonlyArray<string>).join('?').includes(fragment)
+  );
+
+  if (call === undefined) {
+    return null;
+  }
+
+  return (call[1] as { values: unknown[] }).values;
+}
+
 function checkPlayTimes(expectedPlayerPlayTimes: number[], expectedClanPlayTimes: number[], expectedClanPlayerPlayTimes: number[], expectedGlobalPlayTime: number) {
-  // Check player updates
+  const playerInfoMapValues = rawStatementValues('INSERT INTO "PlayerInfoMap"');
+  const playerInfoGameTypeValues = rawStatementValues('INSERT INTO "PlayerInfoGameType"');
+  const playerValues = rawStatementValues('UPDATE "Player" SET');
+
   expectedPlayerPlayTimes.forEach((playTime, index) => {
-    expect(prismaMock.player.update).toHaveBeenCalledWith({
-      where: { name: `player${index}` },
-      data: { playTime: { increment: playTime } }
-    });
-
-    expect(prismaMock.playerInfoMap.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        playerName_mapId: {
-          mapId: 1,
-          playerName: `player${index}`
-        }
-      },
-      update: { playTime: { increment: playTime } }
-    }));
-
-    expect(prismaMock.playerInfoGameType.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        playerName_gameTypeName: {
-          gameTypeName: 'gameType',
-          playerName: `player${index}`
-        }
-      },
-      update: { playTime: { increment: playTime } }
-    }));
+    // (playerName, mapId, playTime) per row
+    expect(playerInfoMapValues).toEqual(expect.arrayContaining([`player${index}`, 1, playTime]));
+    // (playerName, gameTypeName, playTime) per row
+    expect(playerInfoGameTypeValues).toEqual(expect.arrayContaining([`player${index}`, 'gameType', playTime]));
+    // (playerName, playTime) per row
+    expect(playerValues).toEqual(expect.arrayContaining([`player${index}`, playTime]));
   });
 
-  // Check clan updates
+  const clanInfoMapValues = rawStatementValues('INSERT INTO "ClanInfoMap"');
+  const clanInfoGameTypeValues = rawStatementValues('INSERT INTO "ClanInfoGameType"');
+  const clanValues = rawStatementValues('UPDATE "Clan" SET');
+
   expectedClanPlayTimes.forEach((playTime, index) => {
-    expect(prismaMock.clan.update).toHaveBeenCalledWith({
-      where: { name: `clan${index}` },
-      data: { playTime: { increment: playTime } }
-    });
-
-    expect(prismaMock.clanInfoMap.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        clanName_mapId: {
-          mapId: 1,
-          clanName: `clan${index}`
-        }
-      },
-      update: { playTime: { increment: playTime } }
-    }));
-
-    expect(prismaMock.clanInfoGameType.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: {
-        clanName_gameTypeName: {
-          gameTypeName: 'gameType',
-          clanName: `clan${index}`
-        }
-      },
-      update: { playTime: { increment: playTime } }
-    }));
+    expect(clanInfoMapValues).toEqual(expect.arrayContaining([`clan${index}`, 1, playTime]));
+    expect(clanInfoGameTypeValues).toEqual(expect.arrayContaining([`clan${index}`, 'gameType', playTime]));
+    expect(clanValues).toEqual(expect.arrayContaining([`clan${index}`, playTime]));
   });
 
-  // Check clan-player updates
+  const clanPlayerInfoValues = rawStatementValues('INSERT INTO "ClanPlayerInfo"');
+
   expectedClanPlayerPlayTimes.forEach((playTime) => {
-    expect(prismaMock.clanPlayerInfo.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      update: { playTime: { increment: playTime } }
-    }));
+    expect(clanPlayerInfoValues).toEqual(expect.arrayContaining([playTime]));
   });
 
   // Check global updates
@@ -134,7 +114,12 @@ test('Single snapshot', async () => {
   prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(null);
 
   await updatePlayTime({ snapshotId: snapshot.id });
-  checkPlayTimes([0], [0], [0], 0);
+
+  // A zero delta writes nothing at all.
+  expect(prismaMock.$executeRaw).not.toHaveBeenCalled();
+  expect(prismaMock.gameType.update).not.toHaveBeenCalled();
+  expect(prismaMock.map.update).not.toHaveBeenCalled();
+  expect(prismaMock.gameServer.update).not.toHaveBeenCalled();
 });
 
 test('One player, no clan', async () => {
@@ -146,6 +131,11 @@ test('One player, no clan', async () => {
 
   await updatePlayTime({ snapshotId: 2 });
   checkPlayTimes([5 * 60], [], [], 5 * 60);
+
+  // No clan statements at all when no client has a clan.
+  expect(rawStatementValues('INSERT INTO "ClanInfoMap"')).toBeNull();
+  expect(rawStatementValues('UPDATE "Clan" SET')).toBeNull();
+  expect(rawStatementValues('INSERT INTO "ClanPlayerInfo"')).toBeNull();
 });
 
 test('One player, one clan', async () => {

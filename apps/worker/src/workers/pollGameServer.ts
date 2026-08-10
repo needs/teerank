@@ -198,11 +198,7 @@ export async function processGameServerInfo(
     },
   }));
 
-  // A single transaction per poll: each statement was previously its own
-  // implicit transaction, costing a commit and WAL flush apiece. The array
-  // form doesn't pin a connection for the duration like the interactive
-  // callback form would. map.upsert stays outside because its id is needed
-  // to build the statements.
+  // A single transaction per poll to save db connections
   const results = await prisma.$transaction(operations);
   const snapshot = results[operations.indexOf(snapshotCreate)] as { id: number };
 

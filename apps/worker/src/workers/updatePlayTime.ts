@@ -9,12 +9,9 @@ import {
 } from "@prisma/client/sql";
 import { prisma } from "../prisma";
 import { differenceInSeconds } from "date-fns";
+import { sortBy } from "lodash";
 import { removeDuplicatedClients } from "../utils";
 import { processUpdatePlayTimeJobs, UpdatePlayTimeJobData } from "@teerank/teerank";
-
-function compareStrings(a: string, b: string) {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
 
 export async function updatePlayTime(data: UpdatePlayTimeJobData) {
   const snapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
@@ -58,7 +55,6 @@ export async function updatePlayTime(data: UpdatePlayTimeJobData) {
   const deltaSecond = snapshotBefore === null ? 0 : differenceInSeconds(snapshot.createdAt, snapshotBefore.createdAt);
   const deltaPlayTime = deltaSecond > 10 * 60 ? 5 * 60 : deltaSecond;
 
-  // A zero delta would write zero-increment rows to seven tables.
   if (deltaPlayTime === 0) {
     return;
   }
@@ -153,27 +149,27 @@ export async function updatePlayTime(data: UpdatePlayTimeJobData) {
   // Each group is written as a single multi-row statement, sorted by its
   // conflict key: unordered multi-row upserts deadlock under concurrent
   // workers with overlapping player sets.
-  const playerMaps = [...playerMapPlayTimes.values()].sort((a, b) => compareStrings(a.playerName, b.playerName));
+  const playerMaps = sortBy([...playerMapPlayTimes.values()], 'playerName');
   await prisma.$queryRawTyped(upsertPlayerInfoMapPlayTimes(
     playerMaps.map((row) => row.playerName),
     snapshot.mapId,
     playerMaps.map((row) => row.playTime),
   ));
 
-  const playerGameTypes = [...playerGameTypePlayTimes.values()].sort((a, b) => compareStrings(a.playerName, b.playerName));
+  const playerGameTypes = sortBy([...playerGameTypePlayTimes.values()], 'playerName');
   await prisma.$queryRawTyped(upsertPlayerInfoGameTypePlayTimes(
     playerGameTypes.map((row) => row.playerName),
     snapshot.map.gameTypeName,
     playerGameTypes.map((row) => row.playTime),
   ));
 
-  const players = [...playerPlayTimes.values()].sort((a, b) => compareStrings(a.playerName, b.playerName));
+  const players = sortBy([...playerPlayTimes.values()], 'playerName');
   await prisma.$queryRawTyped(incrementPlayerPlayTimes(
     players.map((row) => row.playerName),
     players.map((row) => row.playTime),
   ));
 
-  const clanMaps = [...clanMapPlayTimes.values()].sort((a, b) => compareStrings(a.clanName, b.clanName));
+  const clanMaps = sortBy([...clanMapPlayTimes.values()], 'clanName');
   if (clanMaps.length > 0) {
     await prisma.$queryRawTyped(upsertClanInfoMapPlayTimes(
       clanMaps.map((row) => row.clanName),
@@ -182,7 +178,7 @@ export async function updatePlayTime(data: UpdatePlayTimeJobData) {
     ));
   }
 
-  const clanGameTypes = [...clanGameTypePlayTimes.values()].sort((a, b) => compareStrings(a.clanName, b.clanName));
+  const clanGameTypes = sortBy([...clanGameTypePlayTimes.values()], 'clanName');
   if (clanGameTypes.length > 0) {
     await prisma.$queryRawTyped(upsertClanInfoGameTypePlayTimes(
       clanGameTypes.map((row) => row.clanName),
@@ -191,7 +187,7 @@ export async function updatePlayTime(data: UpdatePlayTimeJobData) {
     ));
   }
 
-  const clans = [...clanPlayTimes.values()].sort((a, b) => compareStrings(a.clanName, b.clanName));
+  const clans = sortBy([...clanPlayTimes.values()], 'clanName');
   if (clans.length > 0) {
     await prisma.$queryRawTyped(incrementClanPlayTimes(
       clans.map((row) => row.clanName),
@@ -199,9 +195,7 @@ export async function updatePlayTime(data: UpdatePlayTimeJobData) {
     ));
   }
 
-  const clanPlayers = [...clanPlayerPlayTimes.values()].sort(
-    (a, b) => compareStrings(a.clanName, b.clanName) || compareStrings(a.playerName, b.playerName)
-  );
+  const clanPlayers = sortBy([...clanPlayerPlayTimes.values()], ['clanName', 'playerName']);
   if (clanPlayers.length > 0) {
     await prisma.$queryRawTyped(upsertClanPlayerInfoPlayTimes(
       clanPlayers.map((row) => row.clanName),

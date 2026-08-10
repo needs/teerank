@@ -5,7 +5,7 @@ import { scheduleUpdatePlayTime, scheduleRankPlayer, PollGameServerJobData, proc
 import { GameServer, GameServerState, Prisma } from "@prisma/client";
 import { upsertPlayers } from "@prisma/client/sql";
 import { getEnvInt } from "@teerank/teerank";
-import { uniqBy } from "lodash";
+import { sortBy, uniqBy } from "lodash";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -91,8 +91,7 @@ export async function processGameServerInfo(
     skipDuplicates: true,
   }));
 
-  const uniqClients = uniqBy(gameServerInfo.clients, 'name')
-    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const uniqClients = sortBy(uniqBy(gameServerInfo.clients, 'name'), 'name');
 
   if (uniqClients.length > 0) {
     operations.push(prisma.$queryRawTyped(upsertPlayers(

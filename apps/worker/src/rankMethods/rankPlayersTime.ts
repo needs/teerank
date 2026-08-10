@@ -1,9 +1,6 @@
 import { setPlayerInfoMapRatings } from "@prisma/client/sql";
+import { sortBy } from "lodash";
 import { prisma } from "../prisma";
-
-function compareStrings(a: string, b: string) {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
 
 export const rankPlayersTime = async (snapshotId: number) => {
   const snapshot = await prisma.gameServerSnapshot.findUniqueOrThrow({
@@ -76,7 +73,7 @@ export const rankPlayersTime = async (snapshotId: number) => {
 
   // One multi-row update, sorted by the conflict key to avoid deadlocks
   // between concurrent workers.
-  const updates = [...newPlayerTimes.entries()].sort(([a], [b]) => compareStrings(a, b));
+  const updates = sortBy([...newPlayerTimes.entries()], ([playerName]) => playerName);
 
   await prisma.$queryRawTyped(setPlayerInfoMapRatings(
     updates.map(([playerName]) => playerName),

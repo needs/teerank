@@ -151,10 +151,6 @@ function computeEloDeltas(
   return eloDeltas;
 }
 
-function compareStrings(a: string, b: string) {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
-
 // Fetch the info rows for the snapshot's players, creating the (rarely)
 // missing ones with a 0 rating first. Two statements instead of one upsert
 // per player — a plain read in steady state, since rows exist after a

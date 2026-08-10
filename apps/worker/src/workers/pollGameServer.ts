@@ -233,42 +233,55 @@ export async function processGameServerInfo(
     data: {
       lastSeenAt: new Date(),
       failureCount: 0,
-
-      gameServerState: {
-        create: {
-          version: gameServerInfo.version,
-          name: gameServerInfo.name,
-
-          map: {
-            connect: {
-              id: map.id,
-            },
-          },
-          numPlayers: gameServerInfo.numPlayers,
-          maxPlayers: gameServerInfo.maxPlayers,
-          numClients: gameServerInfo.numClients,
-          maxClients: gameServerInfo.maxClients,
-
-          clients: {
-            createMany: {
-              data: gameServerInfo.clients.map((client) => ({
-                playerName: client.name,
-                clanName: client.clan === "" ? undefined : client.clan,
-                country: client.country,
-                score: client.score,
-                inGame: client.inGame,
-              })),
-            },
-          }
-        },
-      },
     },
   });
 
-  // Delete any game server states that don't have a game server anymore.
-  await prisma.gameServerState.deleteMany({
+  const stateClients = gameServerInfo.clients.map((client) => ({
+    playerName: client.name,
+    clanName: client.clan === "" ? undefined : client.clan,
+    country: client.country,
+    score: client.score,
+    inGame: client.inGame,
+  }));
+
+  await prisma.gameServerState.upsert({
+    select: {
+      id: true,
+    },
     where: {
-      gameServerId: null,
+      gameServerId: gameServer.id,
+    },
+    update: {
+      version: gameServerInfo.version,
+      name: gameServerInfo.name,
+      mapId: map.id,
+      numPlayers: gameServerInfo.numPlayers,
+      maxPlayers: gameServerInfo.maxPlayers,
+      numClients: gameServerInfo.numClients,
+      maxClients: gameServerInfo.maxClients,
+
+      clients: {
+        deleteMany: {},
+        createMany: {
+          data: stateClients,
+        },
+      },
+    },
+    create: {
+      gameServerId: gameServer.id,
+      version: gameServerInfo.version,
+      name: gameServerInfo.name,
+      mapId: map.id,
+      numPlayers: gameServerInfo.numPlayers,
+      maxPlayers: gameServerInfo.maxPlayers,
+      numClients: gameServerInfo.numClients,
+      maxClients: gameServerInfo.maxClients,
+
+      clients: {
+        createMany: {
+          data: stateClients,
+        },
+      },
     },
   });
 

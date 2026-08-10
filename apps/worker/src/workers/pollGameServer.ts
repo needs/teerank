@@ -83,12 +83,14 @@ export async function processGameServerInfo(
   // deadlock.
   const uniqClans = [...new Set(gameServerInfo.clients.map((client) => client.clan).filter((clan) => clan !== ''))].sort();
 
-  await prisma.clan.createMany({
+  const operations: Prisma.PrismaPromise<unknown>[] = [];
+
+  operations.push(prisma.clan.createMany({
     data: uniqClans.map((clan) => ({
       name: clan,
     })),
     skipDuplicates: true,
-  });
+  }));
 
   const uniqClients = uniqBy(gameServerInfo.clients, 'name')
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
@@ -101,7 +103,7 @@ export async function processGameServerInfo(
     // 10 minutes or the clan changed — the UI can't tell the difference, and
     // it saves up to 4 index writes per player. An empty clan means "no clan
     // info": it never overwrites a stored clan.
-    await prisma.$executeRaw`
+    operations.push(prisma.$executeRaw`
       INSERT INTO "Player" ("name", "clanName", "lastSeenAt", "createdAt", "updatedAt")
       VALUES ${Prisma.join(uniqClients.map((client) => Prisma.sql`(${client.name}, ${client.clan === "" ? null : client.clan}, ${now}, ${now}, ${now})`))}
       ON CONFLICT ("name") DO UPDATE SET
@@ -110,18 +112,12 @@ export async function processGameServerInfo(
         "updatedAt" = EXCLUDED."updatedAt"
       WHERE EXCLUDED."lastSeenAt" - "Player"."lastSeenAt" > interval '10 minutes'
         OR (EXCLUDED."clanName" IS NOT NULL AND EXCLUDED."clanName" IS DISTINCT FROM "Player"."clanName")
-    `;
+    `);
   }
 
-  const snapshot = await prisma.gameServerSnapshot.create({
+  const snapshotCreate = prisma.gameServerSnapshot.create({
     select: {
       id: true,
-      clients: {
-        select: {
-          playerName: true,
-          id: true
-        }
-      }
     },
     data: {
       gameServer: {
@@ -156,8 +152,9 @@ export async function processGameServerInfo(
       }
     },
   });
+  operations.push(snapshotCreate);
 
-  await prisma.gameServer.update({
+  operations.push(prisma.gameServer.update({
     where: {
       id: gameServer.id,
     },
@@ -165,7 +162,7 @@ export async function processGameServerInfo(
       lastSeenAt: new Date(),
       failureCount: 0,
     },
-  });
+  }));
 
   const stateClients = gameServerInfo.clients.map((client) => ({
     playerName: client.name,
@@ -175,7 +172,7 @@ export async function processGameServerInfo(
     inGame: client.inGame,
   }));
 
-  await prisma.gameServerState.upsert({
+  operations.push(prisma.gameServerState.upsert({
     select: {
       id: true,
     },
@@ -214,7 +211,15 @@ export async function processGameServerInfo(
         },
       },
     },
-  });
+  }));
+
+  // A single transaction per poll: each statement was previously its own
+  // implicit transaction, costing a commit and WAL flush apiece. The array
+  // form doesn't pin a connection for the duration like the interactive
+  // callback form would. map.upsert stays outside because its id is needed
+  // to build the statements.
+  const results = await prisma.$transaction(operations);
+  const snapshot = results[operations.indexOf(snapshotCreate)] as { id: number };
 
   return snapshot.id;
 }

@@ -67,6 +67,8 @@ test('processGameServerInfo', async () => {
   prismaMock.gameServerSnapshot.create.mockResolvedValue({
     id: 1,
   } as unknown as GameServerSnapshot);
+  // Array-form transaction: resolve the already-built operation promises.
+  prismaMock.$transaction.mockImplementation(((operations: Promise<unknown>[]) => Promise.all(operations)) as never);
 
   await processGameServerInfo(gameServer, gameServerInfo);
 

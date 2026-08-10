@@ -2,7 +2,7 @@ import { prisma } from "../prisma";
 import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
 import { GameServerInfoPacket, unpackGameServerInfoPackets } from "../packets/gameServerInfo";
 import { scheduleUpdatePlayTime, scheduleRankPlayer, PollGameServerJobData, processPollGameServerJobs, wait } from "@teerank/teerank";
-import { GameServer, GameServerState } from "@prisma/client";
+import { GameServer, GameServerState, Prisma } from "@prisma/client";
 import { getEnvInt } from "@teerank/teerank";
 import { uniqBy } from "lodash";
 
@@ -78,7 +78,10 @@ export async function processGameServerInfo(
     },
   });
 
-  const uniqClans = [...new Set(gameServerInfo.clients.map((client) => client.clan).filter((clan) => clan !== ''))];
+  // Multi-row writes are sorted by their conflict key: with concurrent
+  // pollers sharing overlapping player sets, unordered multi-row upserts
+  // deadlock.
+  const uniqClans = [...new Set(gameServerInfo.clients.map((client) => client.clan).filter((clan) => clan !== ''))].sort();
 
   await prisma.clan.createMany({
     data: uniqClans.map((clan) => ({
@@ -87,23 +90,27 @@ export async function processGameServerInfo(
     skipDuplicates: true,
   });
 
-  const uniqClients = uniqBy(gameServerInfo.clients, 'name');
+  const uniqClients = uniqBy(gameServerInfo.clients, 'name')
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
-  for (const client of uniqClients) {
-    await prisma.player.upsert({
-      where: {
-        name: client.name,
-      },
-      update: {
-        clanName: client.clan === "" ? undefined : client.clan,
-        lastSeenAt: new Date()
-      },
-      create: {
-        name: client.name,
-        clanName: client.clan === "" ? undefined : client.clan,
-        lastSeenAt: new Date(),
-      },
-    });
+  if (uniqClients.length > 0) {
+    const now = new Date();
+
+    // createdAt/updatedAt are Prisma-managed and have to be set explicitly in
+    // raw SQL. The DO UPDATE is a no-op unless lastSeenAt moved by more than
+    // 10 minutes or the clan changed — the UI can't tell the difference, and
+    // it saves up to 4 index writes per player. An empty clan means "no clan
+    // info": it never overwrites a stored clan.
+    await prisma.$executeRaw`
+      INSERT INTO "Player" ("name", "clanName", "lastSeenAt", "createdAt", "updatedAt")
+      VALUES ${Prisma.join(uniqClients.map((client) => Prisma.sql`(${client.name}, ${client.clan === "" ? null : client.clan}, ${now}, ${now}, ${now})`))}
+      ON CONFLICT ("name") DO UPDATE SET
+        "clanName" = COALESCE(EXCLUDED."clanName", "Player"."clanName"),
+        "lastSeenAt" = EXCLUDED."lastSeenAt",
+        "updatedAt" = EXCLUDED."updatedAt"
+      WHERE EXCLUDED."lastSeenAt" - "Player"."lastSeenAt" > interval '10 minutes'
+        OR (EXCLUDED."clanName" IS NOT NULL AND EXCLUDED."clanName" IS DISTINCT FROM "Player"."clanName")
+    `;
   }
 
   const snapshot = await prisma.gameServerSnapshot.create({

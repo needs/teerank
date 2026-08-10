@@ -1,7 +1,7 @@
 import { prismaMock } from "../../test/mockPrisma";
 import { ServerHeader } from "../packet";
 import { GameServerInfoPacket } from "../packets/gameServerInfo";
-import { GameServer, GameServerSnapshot, GameServerState, Player } from "@prisma/client";
+import { GameServer, GameServerSnapshot, GameServerState } from "@prisma/client";
 import { processGameServerInfo } from "./pollGameServer";
 
 const newGameServer = (): GameServer & { gameServerState: GameServerState | null } => ({
@@ -75,17 +75,11 @@ test('processGameServerInfo', async () => {
     skipDuplicates: true
   });
 
-  expect(prismaMock.player.upsert).toHaveBeenCalledWith(expect.objectContaining({
-    where: { name: 'name1' },
-    update: { clanName: 'clan1', lastSeenAt: expect.any(Date) },
-    create: { name: 'name1', clanName: 'clan1', lastSeenAt: expect.any(Date) },
-  }));
-
-  expect(prismaMock.player.upsert).toHaveBeenCalledWith(expect.objectContaining({
-    where: { name: 'name2' },
-    update: { clanName: 'clan2', lastSeenAt: expect.any(Date) },
-    create: { name: 'name2', clanName: 'clan2', lastSeenAt: expect.any(Date) },
-  }));
+  // Players are upserted in one multi-row statement; the interpolated
+  // values contain each player name and clan.
+  expect(prismaMock.$executeRaw).toHaveBeenCalledTimes(1);
+  const playerUpsertValues = (prismaMock.$executeRaw.mock.calls[0][1] as { values: unknown[] }).values;
+  expect(playerUpsertValues).toEqual(expect.arrayContaining(['name1', 'clan1', 'name2', 'clan2']));
 
   expect(prismaMock.gameServerSnapshot.create).toHaveBeenCalledWith(expect.objectContaining({
     data: expect.objectContaining({

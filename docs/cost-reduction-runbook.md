@@ -7,24 +7,23 @@ flyctl), in order. Connection credentials: `fly ssh console -a teerankio-postgre
 
 ## Phase 0 — buy headroom (run first, before anything else)
 
-The volume is at ~87% and Fly Postgres goes read-only at 90%. These return space to the
-filesystem immediately:
+The volume is at ~87% and Fly Postgres goes read-only at 90%.
+
+**The three index drops run automatically when this branch merges**: CI's
+`prisma migrate deploy` applies three single-statement migrations, each holding one
+`DROP INDEX CONCURRENTLY` — no locks, no manual psql. (PostgreSQL forbids CONCURRENTLY
+inside a transaction block, and Prisma wraps *multi-statement* migrations in one, but
+verified on Prisma 5.22 it sends *single-statement* migrations unwrapped. The migration
+files must therefore stay single-statement.) They reclaim ~5.8 GB immediately:
+`GameServerSnapshot_createdAt_idx` (4.8 GB, redundant with `(gameServerId, createdAt)`),
+`PlayerInfoMap_playTime_idx` (805 MB, unused), `ClanInfoMap_playTime_idx` (148 MB).
+If a drop is interrupted mid-run (CI cancelled), the index can be left `INVALID` but
+present — re-running the pipeline re-drops it.
+
+One drop stays **manual** (via `npm run proxy:database` + psql), worth another 6.2 GB:
 
 ```sql
-DROP INDEX CONCURRENTLY "GameServerSnapshot_createdAt_idx";  -- 4.8 GB, redundant with (gameServerId, createdAt)
-DROP INDEX CONCURRENTLY "PlayerInfoMap_playTime_idx";        -- 805 MB, unused
-DROP INDEX CONCURRENTLY "ClanInfoMap_playTime_idx";          -- 148 MB, effectively unused
-ALTER TABLE "GameServerClient" DROP CONSTRAINT "GameServerClient_pkey";  -- 6.2 GB, never scanned, no FK references it; brief ACCESS EXCLUSIVE
-```
-
-The drops are manual because PostgreSQL forbids `DROP INDEX CONCURRENTLY` inside a
-transaction block, and `prisma migrate deploy` wraps multi-statement migrations in one
-(verified on Prisma 5.22: such a migration fails with SQLSTATE 25001 and rolls back).
-
-Then mark the matching migration as applied so CI doesn't re-run it:
-
-```sh
-npx prisma migrate resolve --applied 20260810000000_drop_redundant_indices --schema libs/prisma/prisma/schema.prisma
+ALTER TABLE "GameServerClient" DROP CONSTRAINT "GameServerClient_pkey";  -- never scanned, no FK references it; brief ACCESS EXCLUSIVE
 ```
 
 ⚠️ The `GameServerClient_pkey` drop is deliberately **not** in the Prisma schema or any
@@ -37,8 +36,9 @@ Also scale the worker fleet down — 300 concurrent poll slots for a ~6-slot wor
 fly scale count 1 -a teerankio-worker
 ```
 
-Verify: `fly checks list -a teerankio-postgres2` — `disk-capacity` should fall from ~87% to ~76%.
-Confirm search and the map/clan pages still work.
+Verify: `fly checks list -a teerankio-postgres2` — `disk-capacity` should fall from ~87% to ~76%
+once both the migrations and the pkey drop have run. Confirm search and the map/clan pages
+still work.
 
 ## Baseline (before deploying the Phase 2 write-path changes)
 

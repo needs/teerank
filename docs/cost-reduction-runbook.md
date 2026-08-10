@@ -26,26 +26,14 @@ few weeks of margin, and the changes below both add headroom and remove the grow
 **Deploys**: the new write path (state upsert, batched typedSql writes, one transaction per
 poll) and the archive worker ship with the worker/scheduler images.
 
-**Archiving** starts by itself: the scheduler ticks `archive-snapshots` every 10 minutes.
-In production the worker stays idle (with a log line) until `S3_ENDPOINT` is set, so the
-deploy is safe before the R2 bucket exists. Once configured, it drains the ~180 M-row
-backlog within its time budget per tick and settles into steady state on its own; nothing
-special-cases the backlog.
-
-## The one thing code can't do: R2 credentials
-
-Creating the Cloudflare R2 bucket and handing the worker its credentials is inherently
-out-of-repo. When ready (no urgency — archiving just waits):
-
-```sh
-fly secrets set -a teerankio-worker \
-  S3_ENDPOINT='https://<account-id>.r2.cloudflarestorage.com' \
-  S3_REGION='auto' \
-  S3_BUCKET='teerank-snapshots' \
-  S3_FORCE_PATH_STYLE='false' \
-  S3_ACCESS_KEY_ID='…' \
-  S3_SECRET_ACCESS_KEY='…'
-```
+**Archiving** starts by itself: the scheduler ticks `archive-snapshots` every 10 minutes,
+and the worker drains the ~180 M-row backlog within its time budget per tick before
+settling into steady state on its own; nothing special-cases the backlog. The R2 bucket
+(`teerank`) exists and its credentials are already set as secrets on `teerankio-worker`
+(`S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_FORCE_PATH_STYLE`, `S3_ACCESS_KEY_ID`,
+`S3_SECRET_ACCESS_KEY`), verified with a write/read/delete round trip. Object storage is
+expected to work: if it's misconfigured, archive jobs fail visibly in the queue rather
+than skipping.
 
 ## Tuning knobs (env on `teerankio-worker`)
 

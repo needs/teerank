@@ -17,6 +17,10 @@ DROP INDEX CONCURRENTLY "ClanInfoMap_playTime_idx";          -- 148 MB, effectiv
 ALTER TABLE "GameServerClient" DROP CONSTRAINT "GameServerClient_pkey";  -- 6.2 GB, never scanned, no FK references it; brief ACCESS EXCLUSIVE
 ```
 
+The drops are manual because PostgreSQL forbids `DROP INDEX CONCURRENTLY` inside a
+transaction block, and `prisma migrate deploy` wraps multi-statement migrations in one
+(verified on Prisma 5.22: such a migration fails with SQLSTATE 25001 and rolls back).
+
 Then mark the matching migration as applied so CI doesn't re-run it:
 
 ```sh

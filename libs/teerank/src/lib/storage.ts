@@ -5,9 +5,6 @@ export const S3_BUCKET = getEnv('S3_BUCKET', 'teerank-snapshots');
 
 let s3Client: S3Client | null = null;
 
-// MinIO, R2 and S3 all speak the S3 API and differ only by env vars: MinIO
-// wants S3_FORCE_PATH_STYLE=true, R2 wants region "auto" and its account
-// endpoint.
 export function getS3Client() {
   s3Client ??= new S3Client({
     endpoint: getEnv('S3_ENDPOINT', 'http://localhost:9000'),

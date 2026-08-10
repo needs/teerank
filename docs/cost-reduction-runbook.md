@@ -1,118 +1,104 @@
-# Cost reduction runbook — manual production steps
+# Cost reduction — what merging this branch does
 
-The code side of the cost-reduction plan lives in this branch. This file lists every step
-that has to be run **manually against production** (via `npm run proxy:database` + psql, or
-flyctl), in order. Connection credentials: `fly ssh console -a teerankio-postgres2 -C printenv`
-— `OPERATOR_PASSWORD` connects as `postgres` to the `teerank` database.
+Everything is code-driven: merging to master applies it all through the normal CI pipeline.
+The disk situation is not an emergency — ~3.4 GB of headroom at ~103 MB/day growth leaves a
+few weeks of margin, and the changes below both add headroom and remove the growth source.
 
-## Phase 0 — buy headroom (run first, before anything else)
+## Applied automatically on merge
 
-The volume is at ~87% and Fly Postgres goes read-only at 90%.
+**Migrations** (CI runs `prisma migrate deploy` before deploying the apps):
 
-**The three index drops run automatically when this branch merges**: CI's
-`prisma migrate deploy` applies three single-statement migrations, each holding one
-`DROP INDEX CONCURRENTLY` — no locks, no manual psql. (PostgreSQL forbids CONCURRENTLY
-inside a transaction block, and Prisma wraps *multi-statement* migrations in one, but
-verified on Prisma 5.22 it sends *single-statement* migrations unwrapped. The migration
-files must therefore stay single-statement.) They reclaim ~5.8 GB immediately:
-`GameServerSnapshot_createdAt_idx` (4.8 GB, redundant with `(gameServerId, createdAt)`),
-`PlayerInfoMap_playTime_idx` (805 MB, unused), `ClanInfoMap_playTime_idx` (148 MB).
-If a drop is interrupted mid-run (CI cancelled), the index can be left `INVALID` but
-present — re-running the pipeline re-drops it.
+- Three single-statement `DROP INDEX CONCURRENTLY` migrations reclaim ~5.8 GB immediately
+  and lock-free: `GameServerSnapshot_createdAt_idx` (4.8 GB, redundant with
+  `(gameServerId, createdAt)`), `PlayerInfoMap_playTime_idx` (805 MB, unused), and
+  `ClanInfoMap_playTime_idx` (148 MB). They must stay single-statement — Prisma wraps
+  multi-statement migrations in a transaction, where PostgreSQL rejects CONCURRENTLY
+  (verified on Prisma 5.22; see the comments in the migration files). If a CI run is
+  cancelled mid-drop the index can be left `INVALID` but present; the next run re-drops it.
+- `GameServerState.gameServerId` becomes NOT NULL (orphans deleted first). Old workers
+  briefly fail polls between the migrate step and the worker deploy — harmless,
+  self-healing.
+- `GameServerStateClient.id` widens to bigint; `GameServer.masterServerId` gets an index.
+- `GameServerState`/`GameServerStateClient` get `fillfactor = 70` so the new in-place
+  state updates stay HOT, and the two snapshot tables get eager autovacuum settings so
+  the archive drain's deletes are reclaimed as fast as they're made.
 
-One drop stays **manual** (via `npm run proxy:database` + psql), worth another 6.2 GB:
+**Deploys**: the new write path (state upsert, batched typedSql writes, one transaction per
+poll) and the archive worker ship with the worker/scheduler images. CI then pins the worker
+fleet to one machine (`flyctl scale count 1`) — the measured workload needs ~6 concurrent
+poll slots and one machine provides 100.
 
-```sql
-ALTER TABLE "GameServerClient" DROP CONSTRAINT "GameServerClient_pkey";  -- never scanned, no FK references it; brief ACCESS EXCLUSIVE
-```
+**Archiving** starts by itself: the scheduler ticks `archive-snapshots` every 10 minutes.
+In production the worker stays idle (with a log line) until `S3_ENDPOINT` is set, so the
+deploy is safe before the R2 bucket exists. Once configured, it drains the ~180 M-row
+backlog within its time budget per tick and settles into steady state on its own; nothing
+special-cases the backlog.
 
-⚠️ The `GameServerClient_pkey` drop is deliberately **not** in the Prisma schema or any
-migration — it is an operational action creating documented drift until the table is dropped
-entirely. Prisma keeps working (inserts still get the sequence default).
+## The one thing code can't do: R2 credentials
 
-Also scale the worker fleet down — 300 concurrent poll slots for a ~6-slot workload:
+Creating the Cloudflare R2 bucket and handing the worker its credentials is inherently
+out-of-repo. When ready (no urgency — archiving just waits):
 
 ```sh
-fly scale count 1 -a teerankio-worker
+fly secrets set -a teerankio-worker \
+  S3_ENDPOINT='https://<account-id>.r2.cloudflarestorage.com' \
+  S3_REGION='auto' \
+  S3_BUCKET='teerank-snapshots' \
+  S3_FORCE_PATH_STYLE='false' \
+  S3_ACCESS_KEY_ID='…' \
+  S3_SECRET_ACCESS_KEY='…'
 ```
 
-Verify: `fly checks list -a teerankio-postgres2` — `disk-capacity` should fall from ~87% to ~76%
-once both the migrations and the pkey drop have run. Confirm search and the map/clan pages
-still work.
-
-## Baseline (before deploying the Phase 2 write-path changes)
-
-With `pg_stat_statements` (already installed), capture top queries by total time and by call
-count, plus `n_tup_hot_upd` ratios on `GameServerState` / `Player` / `PlayerInfoMap`.
-
-## Phase 2a — after the state-upsert code deploys
-
-```sql
-ALTER TABLE "GameServerState"       SET (fillfactor = 70);
-ALTER TABLE "GameServerStateClient" SET (fillfactor = 70);
-VACUUM FULL "GameServerState";                         -- 352 KB heap, instant
-VACUUM FULL "GameServerStateClient";
-REINDEX INDEX CONCURRENTLY "GameServerState_name_idx"; -- reclaim GIN bloat
-```
-
-## Phase 2g — before applying the bigint migration
-
-Check sequence positions (int4 overflow risk):
-
-```sql
-SELECT sequencename, last_value FROM pg_sequences
-WHERE sequencename IN ('GameServerStateClient_id_seq', 'GameServerClient_id_seq', 'GameServerSnapshot_id_seq');
-```
-
-## Phase 1d — before ramping the archive drain
-
-Tune autovacuum on both tables so dead tuples don't eat the Phase 0 headroom:
-
-```sql
-ALTER TABLE "GameServerClient"   SET (autovacuum_vacuum_scale_factor = 0.01,
-                                      autovacuum_vacuum_cost_limit   = 2000);
-ALTER TABLE "GameServerSnapshot" SET (autovacuum_vacuum_scale_factor = 0.01,
-                                      autovacuum_vacuum_cost_limit   = 2000);
-```
-
-Archive worker env (set on `teerankio-worker` / `teerankio-scheduler`):
+## Tuning knobs (env on `teerankio-worker`)
 
 | Var | Default | Meaning |
 |---|---|---|
-| `S3_ENDPOINT` | — | R2 account endpoint (`https://<account>.r2.cloudflarestorage.com`) |
-| `S3_REGION` | `auto` | `auto` for R2 |
-| `S3_BUCKET` | `teerank-snapshots` | bucket name |
-| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | — | credentials |
-| `S3_FORCE_PATH_STYLE` | `false` | `true` for MinIO |
 | `SNAPSHOT_RETENTION_HOURS` | `48` | rows younger than this are never archived |
 | `ARCHIVE_BATCH_SIZE` | `5000` | snapshots per Parquet object |
 | `ARCHIVE_TIME_BUDGET_MS` | `300000` | wall-clock budget per 10-min tick |
 | `ARCHIVE_BATCH_PAUSE_MS` | `200` | sleep between batches |
 
-Start with the conservative defaults, watch one tick, then ramp the drain by raising
-`ARCHIVE_TIME_BUDGET_MS` and lowering `ARCHIVE_BATCH_PAUSE_MS`.
+The defaults drain the backlog over roughly a couple of weeks at a gentle duty cycle.
+Raise the budget / lower the pause to go faster once it's proven stable; raise the pause
+if `n_dead_tup` on the snapshot tables outruns autovacuum.
 
-**Watch daily during the drain:** volume free space (`disk-capacity` check), `pg_wal` size,
-`n_dead_tup` / `last_autovacuum` on both tables, and poll-queue depth (the `queuesFull` guard
-trips at 50 000). If dead tuples outpace autovacuum, raise `ARCHIVE_BATCH_PAUSE_MS`.
+## What to expect and watch
 
-**Post-drain:** the two tables should hold only the 48h window (~520 k snapshots);
-`pg_database_size` should sit near 18 GB and stop growing. The *volume* still reads ~76%
-until a dump/restore — expected, not a failure. Verify archive completeness: object id-ranges
-must tile continuously with no gaps up to the oldest surviving snapshot.
+- `disk-capacity` (`fly checks list -a teerankio-postgres2`) drops from ~87% to ~81–82%
+  when the index-drop migrations land, then stops growing as the drain catches up.
+- During the drain, occasionally glance at volume free space, `pg_wal` size,
+  `n_dead_tup`/`last_autovacuum` on the two snapshot tables, and poll-queue depth (the
+  `queuesFull` guard trips at 50 000).
+- Post-drain: the snapshot tables hold only the 48 h window (~520 k snapshots) and
+  `pg_database_size` sits near 18 GB. The *volume* still reads ~81% — Postgres doesn't
+  return heap space to the OS; actually shrinking the volume is the Phase 3 dump/restore
+  onto smaller hosting, which is also when the remaining index bloat (e.g. the unused
+  6.2 GB `GameServerClient_pkey`) disappears for free.
+- Archive completeness check: object id-ranges should tile with no gaps up to the oldest
+  surviving snapshot id.
 
-## Local end-to-end test of the archive path
+## Deliberately not done (was in the original plan)
+
+- **Dropping `GameServerClient_pkey` (6.2 GB)**: manual-only by nature (it would drift from
+  `schema.prisma`, which requires an id). With the growth source removed and ~5.8 GB
+  reclaimed by the index drops, the headroom math no longer needs it; the space comes back
+  at the Phase 3 dump/restore anyway.
+- **`VACUUM FULL` / `REINDEX` on the state tables**: they're under 5 MB — autovacuum plus
+  the new HOT-friendly write path reclaims them without exclusive locks.
+- **Postgres 15.8 → 15.15**: worth doing someday via Fly's image update, unrelated to this
+  branch.
+
+## Testing locally
 
 ```sh
-docker compose up -d          # now includes MinIO on :9000, console on :9001
-npx nx run worker:serve       # in one shell
-npx nx run scheduler:serve    # in another
+docker compose up -d          # includes MinIO on :9000, console on :9001 (minioadmin/minioadmin)
+npx nx run worker:serve
+npx nx run scheduler:serve
 ```
 
-Force `SNAPSHOT_RETENTION_HOURS=0` on the worker to exercise the path without waiting.
-Confirm objects appear in the MinIO console (`localhost:9001`, minioadmin/minioadmin) and rows
-then disappear from Postgres. Point DuckDB at the local bucket and diff row counts and sampled
-rows against what was deleted:
+Set `SNAPSHOT_RETENTION_HOURS=0` on the worker to archive without waiting. Objects appear
+in the MinIO console; rows disappear from Postgres only after a verified upload. Query the
+archive straight from DuckDB:
 
 ```sql
 CREATE SECRET (TYPE S3, KEY_ID 'minioadmin', SECRET 'minioadmin',
@@ -121,13 +107,3 @@ SELECT dt, "playerName", count(*) * 5 AS approx_minutes
 FROM read_parquet('s3://teerank-snapshots/snapshots/dt=*/*.parquet', hive_partitioning = 1)
 WHERE "inGame" GROUP BY dt, "playerName";
 ```
-
-Check `createdAt` returns as a real timestamp, `snapshotId` keeps precision, and nulls stay
-null rather than `""`.
-
-## Notes
-
-- Postgres is on 15.8 with 15.15 available. Update on its own schedule — not while the volume
-  is tight or the drain is running.
-- Actually shrinking the 110 GB volume needs a dump/restore onto a smaller one — deferred to
-  the Phase 3 hosting move, once the DB is ~18 GB.

@@ -156,6 +156,13 @@ async function archiveBatch(snapshots: ArchivableSnapshot[]) {
 // state the watermark finds ~nothing and the run exits early; during the
 // drain it works until the time budget runs out and resumes next tick.
 export async function archiveSnapshots(_data: ArchiveSnapshotsJobData) {
+  // Outside development, stay idle until object storage is explicitly
+  // configured — the worker can deploy before the R2 bucket exists.
+  if (process.env.S3_ENDPOINT === undefined && process.env.NODE_ENV !== 'development') {
+    console.log('S3_ENDPOINT not set, skipping snapshot archiving');
+    return;
+  }
+
   const startedAt = Date.now();
   const watermark = await getWatermark();
 

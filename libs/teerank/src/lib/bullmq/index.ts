@@ -8,3 +8,4 @@ export * from './queueGameTypeCount';
 export * from './queueMapCount';
 export * from './queueFillClanActivePlayerCount';
 export * from './queueUpdateGlobalCounts';
+export * from './queueArchiveSnapshots';

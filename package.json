@@ -61,6 +61,7 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1106.0",
     "@fastify/autoload": "~5.7.1",
     "@fastify/sensible": "~5.2.0",
     "@next/third-parties": "^14.1.0",
@@ -70,6 +71,7 @@
     "@sentry/profiling-node": "^7.107.0",
     "@sentry/utils": "^7.107.0",
     "@types/lodash": "^4.17.13",
+    "apache-arrow": "^21.2.0",
     "base64url": "^3.0.1",
     "bullmq": "^5.29.1",
     "date-fns": "^2.30.0",
@@ -84,6 +86,7 @@
     "lodash.uniqby": "^4.7.0",
     "next": "14.2.3",
     "only-allow": "^1.2.1",
+    "parquet-wasm": "^0.7.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "sharp": "^0.32.6",

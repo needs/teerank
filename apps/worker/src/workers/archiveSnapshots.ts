@@ -114,7 +114,7 @@ function flattenRows(snapshots: ArchivableSnapshot[]): SnapshotArchiveRow[] {
 async function getWatermark() {
   const result = await prisma.$queryRaw<{ max: number | null }[]>`
     SELECT max(id)::int4 AS max FROM "GameServerSnapshot"
-    WHERE "createdAt" < now() - make_interval(hours => ${SNAPSHOT_RETENTION_HOURS})
+    WHERE "createdAt" < now() - make_interval(hours => ${SNAPSHOT_RETENTION_HOURS}::int)
   `;
 
   return result[0]?.max ?? null;

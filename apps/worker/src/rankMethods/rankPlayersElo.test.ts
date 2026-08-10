@@ -59,18 +59,30 @@ function mockSnapshot(snapshot: MockedGameServerSnapshot, previousSnapshot: Mock
 
   // Info rows already exist with a 0 rating, so the ranking reads them
   // instead of creating them.
-  const infoRows = snapshot.clients.map((client, index) => ({
+  const playerInfoMaps: PlayerInfoMap[] = snapshot.clients.map((client, index) => ({
     id: index,
     playerName: client.playerName,
     rating: 0,
+    mapId: snapshot.mapId,
+    playTime: BigInt(0),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   }));
 
-  prismaMock.playerInfoMap.findMany.mockResolvedValue(infoRows as PlayerInfoMap[]);
-  prismaMock.playerInfoGameType.findMany.mockResolvedValue(infoRows as PlayerInfoGameType[]);
+  const playerInfoGameTypes: PlayerInfoGameType[] = snapshot.clients.map((client, index) => ({
+    id: index,
+    playerName: client.playerName,
+    rating: 0,
+    gameTypeName: snapshot.map.gameTypeName,
+    playTime: BigInt(0),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
+
+  prismaMock.playerInfoMap.findMany.mockResolvedValue(playerInfoMaps);
+  prismaMock.playerInfoGameType.findMany.mockResolvedValue(playerInfoGameTypes);
 }
 
-// Rating increments are written as one multi-row UPDATE per table with
-// (id, eloDelta) pairs as the interpolated values.
 function rawUpdateValues(table: string): unknown[] | null {
   const call = prismaMock.$executeRaw.mock.calls.find(
     (args) => (args[0] as unknown as ReadonlyArray<string>).join('?').includes(`UPDATE "${table}" SET`)

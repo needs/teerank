@@ -53,13 +53,17 @@ function mockSnapshot(snapshot: MockedGameServerSnapshot) {
   prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot);
 
   // Info rows exist without a rating yet.
-  const infoRows = snapshot.clients.map((client, index) => ({
+  const playerInfoMaps: PlayerInfoMap[] = snapshot.clients.map((client, index) => ({
     id: index,
     playerName: client.playerName,
     rating: null,
+    mapId: snapshot.mapId,
+    playTime: BigInt(0),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   }));
 
-  prismaMock.playerInfoMap.findMany.mockResolvedValue(infoRows as PlayerInfoMap[]);
+  prismaMock.playerInfoMap.findMany.mockResolvedValue(playerInfoMaps);
 
   return snapshot;
 }

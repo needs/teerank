@@ -40,6 +40,7 @@ model GameServer {
 
   @@unique([ip, port])
   @@index([createdAt])
+  @@index([masterServerId])
 }
 
 model GameServerState {
@@ -68,7 +69,7 @@ model GameServerState {
 }
 
 model GameServerStateClient {
-  id Int @id @default(autoincrement())
+  id BigInt @id @default(autoincrement())
 
   gameServerState   GameServerState @relation(fields: [gameServerStateId], references: [id], onDelete: Cascade)
   gameServerStateId Int

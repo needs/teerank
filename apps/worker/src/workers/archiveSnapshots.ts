@@ -138,12 +138,14 @@ async function archiveBatch(snapshots: ArchivableSnapshot[]) {
       throw new Error(`Archive object ${key} is missing or empty, not deleting rows`);
     }
 
-    await prisma.gameServerClient.deleteMany({
-      where: { snapshotId: { gte: firstId, lte: lastId } },
-    });
-    await prisma.gameServerSnapshot.deleteMany({
-      where: { id: { gte: firstId, lte: lastId } },
-    });
+    await prisma.$transaction([
+      prisma.gameServerClient.deleteMany({
+        where: { snapshotId: { gte: firstId, lte: lastId } },
+      }),
+      prisma.gameServerSnapshot.deleteMany({
+        where: { id: { gte: firstId, lte: lastId } },
+      }),
+    ]);
 
     console.log(`Archived ${chunk.length} snapshots to ${key}`);
   }

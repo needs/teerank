@@ -167,6 +167,30 @@ export default async function Index() {
       <main className="py-12 px-4 md:px-12 xl:px-20 text-[#666] flex flex-col gap-8">
         <section className="flex flex-col gap-4">
           <header className="flex flex-row justify-between items-baseline">
+            <h1 className="text-2xl font-bold clear-both">Archiving snapshots</h1>
+            <p className="text-md clear-both text-[#888]">August 11th 2026</p>
+          </header>
+          <p>
+            All 100M+ game server snapshots used to be stored in the main
+            Postgres database.  However, space, scale and cost started to become
+            a real issue, with the database growing up to 100GB and costing more
+            than $140 per month.
+          </p>
+          <p>
+            All snapshots are being moved to R2 in a compressed format.  As a
+            result, the database will be much lighter, and the project will be
+            cost efficient, decreasing the cost to not even a dollar per month.
+            Performance improvements should follow as well, since indexes are
+            now much smaller.
+          </p>
+          <p>
+            Small new feature: on a clan page, past members can be listed as
+            well if the option is toggled, thanks to a PR from Dmitry!
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <header className="flex flex-row justify-between items-baseline">
             <h1 className="text-2xl font-bold clear-both">Faster search</h1>
             <p className="text-md clear-both text-[#888]">February 16th 2025</p>
           </header>

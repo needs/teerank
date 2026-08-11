@@ -1,5 +1,5 @@
 import { prismaMock } from '../../test/mockPrisma';
-import { GameServerClient, GameServerSnapshot, Map, GameType, RankMethod } from '@prisma/client';
+import { GameServerClient, GameServerSnapshot, Map, GameType, RankMethod, PlayerInfoMap, PlayerInfoGameType } from '@prisma/client';
 import { rankPlayer } from '../workers/rankPlayer';
 import { addHours } from 'date-fns';
 
@@ -57,44 +57,68 @@ function mockSnapshot(snapshot: MockedGameServerSnapshot, previousSnapshot: Mock
   prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot);
   prismaMock.gameServerSnapshot.findFirst.mockResolvedValue(previousSnapshot);
 
-  // Mock initial player info creation
-  snapshot.clients.forEach((client, index) => {
-    prismaMock.playerInfoMap.upsert.mockResolvedValueOnce({
-      id: index,
-      playerName: client.playerName,
-      mapId: 1,
-      rating: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      playTime: BigInt(0),
-    });
+  // Info rows already exist with a 0 rating, so the ranking reads them
+  // instead of creating them.
+  const playerInfoMaps: PlayerInfoMap[] = snapshot.clients.map((client, index) => ({
+    id: index,
+    playerName: client.playerName,
+    rating: 0,
+    mapId: snapshot.mapId,
+    playTime: BigInt(0),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
 
-    prismaMock.playerInfoGameType.upsert.mockResolvedValueOnce({
-      id: index,
-      playerName: client.playerName,
-      gameTypeName: 'gameType',
-      rating: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      playTime: BigInt(0),
-    });
-  });
+  const playerInfoGameTypes: PlayerInfoGameType[] = snapshot.clients.map((client, index) => ({
+    id: index,
+    playerName: client.playerName,
+    rating: 0,
+    gameTypeName: snapshot.map.gameTypeName,
+    playTime: BigInt(0),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
+
+  prismaMock.playerInfoMap.findMany.mockResolvedValue(playerInfoMaps);
+  prismaMock.playerInfoGameType.findMany.mockResolvedValue(playerInfoGameTypes);
+}
+
+function rawUpdateValues(table: string): { ids: number[], eloDeltas: number[] } | null {
+  const call = prismaMock.$queryRawTyped.mock.calls.find(
+    (args) => (args[0] as unknown as { sql: string }).sql.includes(`UPDATE "${table}" SET`)
+  );
+
+  if (call === undefined) {
+    return null;
+  }
+
+  const values = (call[0] as unknown as { values: [number[], number[]] }).values;
+  return { ids: values[0], eloDeltas: values[1] };
 }
 
 function checkRatings(expectedRatingsGameType: number[], expectedRatingsMap: number[]) {
-  expectedRatingsGameType.forEach((rating, index) => {
-    expect(prismaMock.playerInfoGameType.update).toHaveBeenCalledWith({
-      where: { id: index },
-      data: { rating: { increment: rating } }
-    });
-  });
+  const gameTypeValues = rawUpdateValues('PlayerInfoGameType');
+  const mapValues = rawUpdateValues('PlayerInfoMap');
 
-  expectedRatingsMap.forEach((rating, index) => {
-    expect(prismaMock.playerInfoMap.update).toHaveBeenCalledWith({
-      where: { id: index },
-      data: { rating: { increment: rating } }
+  if (expectedRatingsGameType.length === 0) {
+    expect(gameTypeValues).toBeNull();
+  } else {
+    expectedRatingsGameType.forEach((rating, index) => {
+      const position = gameTypeValues!.ids.indexOf(index);
+      expect(position).toBeGreaterThanOrEqual(0);
+      expect(gameTypeValues!.eloDeltas[position]).toBe(rating);
     });
-  });
+  }
+
+  if (expectedRatingsMap.length === 0) {
+    expect(mapValues).toBeNull();
+  } else {
+    expectedRatingsMap.forEach((rating, index) => {
+      const position = mapValues!.ids.indexOf(index);
+      expect(position).toBeGreaterThanOrEqual(0);
+      expect(mapValues!.eloDeltas[position]).toBe(rating);
+    });
+  }
 }
 
 test('Only one snapshot', async () => {
@@ -111,10 +135,11 @@ test('Different map', async () => {
   snapshot2.mapId = 2;
 
   mockSnapshot(snapshot1);
-  mockSnapshot(snapshot2, snapshot1);
-
   await rankPlayer({ snapshotId: snapshot1.id });
+
+  mockSnapshot(snapshot2, snapshot1);
   await rankPlayer({ snapshotId: snapshot2.id });
+
   checkRatings([], []);
 });
 
@@ -124,10 +149,11 @@ test('Big time gap', async () => {
   const snapshot2 = createSnapshot(2, addHours(baseDate, 1), [99, 101]);
 
   mockSnapshot(snapshot1);
-  mockSnapshot(snapshot2, snapshot1);
-
   await rankPlayer({ snapshotId: snapshot1.id });
+
+  mockSnapshot(snapshot2, snapshot1);
   await rankPlayer({ snapshotId: snapshot2.id });
+
   checkRatings([], []);
 });
 
@@ -137,9 +163,10 @@ test('Two players', async () => {
   const snapshot2 = createSnapshot(2, baseDate, [99, 101]);
 
   mockSnapshot(snapshot1);
-  mockSnapshot(snapshot2, snapshot1);
-
   await rankPlayer({ snapshotId: snapshot1.id });
+
+  mockSnapshot(snapshot2, snapshot1);
   await rankPlayer({ snapshotId: snapshot2.id });
+
   checkRatings([-12.5, 12.5], [-12.5, 12.5]);
 });

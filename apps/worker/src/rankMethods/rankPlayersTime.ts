@@ -1,3 +1,5 @@
+import { setPlayerInfoMapRatings } from "@prisma/client/sql";
+import { sortBy } from "lodash";
 import { prisma } from "../prisma";
 
 export const rankPlayersTime = async (snapshotId: number) => {
@@ -17,28 +19,36 @@ export const rankPlayersTime = async (snapshotId: number) => {
     },
   });
 
-  const playerInfoMaps = [];
+  if (snapshot.clients.length === 0) {
+    return;
+  }
 
-  for (const client of snapshot.clients) {
-    const playerInfoMap = await prisma.playerInfoMap.upsert({
-      where: {
-        playerName_mapId: {
-          playerName: client.playerName,
-          mapId: snapshot.mapId,
-        }
-      },
-      select: {
-        id: true,
-        playerName: true,
-        rating: true,
-      },
-      update: {},
-      create: {
-        playerName: client.playerName,
-        mapId: snapshot.mapId,
-      },
+  const playerNames = [...new Set(snapshot.clients.map((client) => client.playerName))].sort();
+
+  const where = {
+    mapId: snapshot.mapId,
+    playerName: {
+      in: playerNames,
+    },
+  };
+  const select = {
+    playerName: true,
+    rating: true,
+  };
+
+  // Fetch the info rows, creating the (rarely) missing ones first — a plain
+  // read in steady state instead of one upsert per player.
+  let playerInfoMaps = await prisma.playerInfoMap.findMany({ where, select });
+
+  if (playerInfoMaps.length < playerNames.length) {
+    const existing = new Set(playerInfoMaps.map(({ playerName }) => playerName));
+    const missing = playerNames.filter((playerName) => !existing.has(playerName));
+
+    await prisma.playerInfoMap.createMany({
+      data: missing.map((playerName) => ({ playerName, mapId: snapshot.mapId })),
+      skipDuplicates: true,
     });
-    playerInfoMaps.push(playerInfoMap);
+    playerInfoMaps = await prisma.playerInfoMap.findMany({ where, select });
   }
 
   const playerTimes = new Map(playerInfoMaps.map(({ playerName, rating }) => [playerName, rating]));
@@ -57,17 +67,17 @@ export const rankPlayersTime = async (snapshotId: number) => {
     }
   }
 
-  for (const [playerName, newTime] of newPlayerTimes.entries()) {
-    await prisma.playerInfoMap.update({
-      where: {
-        playerName_mapId: {
-          playerName,
-          mapId: snapshot.mapId,
-        },
-      },
-      data: {
-        rating: newTime,
-      },
-    });
+  if (newPlayerTimes.size === 0) {
+    return;
   }
+
+  // One multi-row update, sorted by the conflict key to avoid deadlocks
+  // between concurrent workers.
+  const updates = sortBy([...newPlayerTimes.entries()], ([playerName]) => playerName);
+
+  await prisma.$queryRawTyped(setPlayerInfoMapRatings(
+    updates.map(([playerName]) => playerName),
+    snapshot.mapId,
+    updates.map(([, rating]) => rating),
+  ));
 }

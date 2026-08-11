@@ -6,6 +6,7 @@ import { addDefaultMasterServers } from './addDefaultMasterServers';
 import { fillClanActivePlayerCountScheduler } from './schedulers/fillClanActivePlayerCountScheduler';
 import { cleanAllQueues } from '@teerank/teerank';
 import { updateGlobalCountsScheduler } from './schedulers/updateGlobalCountsScheduler';
+import { archiveSnapshotsScheduler } from './schedulers/archiveSnapshotsScheduler';
 
 async function main() {
   if (process.env.NODE_ENV === 'development') {
@@ -21,6 +22,7 @@ async function main() {
   gameTypeScheduler();
   fillClanActivePlayerCountScheduler();
   updateGlobalCountsScheduler();
+  archiveSnapshotsScheduler();
 }
 
 main();

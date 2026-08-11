@@ -1,7 +1,7 @@
 import { prismaMock } from "../../test/mockPrisma";
 import { ServerHeader } from "../packet";
 import { GameServerInfoPacket } from "../packets/gameServerInfo";
-import { GameServer, GameServerSnapshot, GameServerState, Player } from "@prisma/client";
+import { GameServer, GameServerSnapshot, GameServerState } from "@prisma/client";
 import { processGameServerInfo } from "./pollGameServer";
 
 const newGameServer = (): GameServer & { gameServerState: GameServerState | null } => ({
@@ -67,6 +67,8 @@ test('processGameServerInfo', async () => {
   prismaMock.gameServerSnapshot.create.mockResolvedValue({
     id: 1,
   } as unknown as GameServerSnapshot);
+  // Array-form transaction: resolve the already-built operation promises.
+  prismaMock.$transaction.mockImplementation(((operations: Promise<unknown>[]) => Promise.all(operations)) as never);
 
   await processGameServerInfo(gameServer, gameServerInfo);
 
@@ -75,17 +77,12 @@ test('processGameServerInfo', async () => {
     skipDuplicates: true
   });
 
-  expect(prismaMock.player.upsert).toHaveBeenCalledWith(expect.objectContaining({
-    where: { name: 'name1' },
-    update: { clanName: 'clan1', lastSeenAt: expect.any(Date) },
-    create: { name: 'name1', clanName: 'clan1', lastSeenAt: expect.any(Date) },
-  }));
-
-  expect(prismaMock.player.upsert).toHaveBeenCalledWith(expect.objectContaining({
-    where: { name: 'name2' },
-    update: { clanName: 'clan2', lastSeenAt: expect.any(Date) },
-    create: { name: 'name2', clanName: 'clan2', lastSeenAt: expect.any(Date) },
-  }));
+  // Players are upserted in one multi-row statement taking parallel
+  // name/clan arrays.
+  expect(prismaMock.$queryRawTyped).toHaveBeenCalledTimes(1);
+  const playerUpsert = prismaMock.$queryRawTyped.mock.calls[0][0] as unknown as { sql: string; values: unknown[] };
+  expect(playerUpsert.sql).toContain('INSERT INTO "Player"');
+  expect(playerUpsert.values).toEqual([['name1', 'name2'], ['clan1', 'clan2']]);
 
   expect(prismaMock.gameServerSnapshot.create).toHaveBeenCalledWith(expect.objectContaining({
     data: expect.objectContaining({

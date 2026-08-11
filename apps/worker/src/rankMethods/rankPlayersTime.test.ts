@@ -1,5 +1,5 @@
 import { prismaMock } from '../../test/mockPrisma';
-import { GameServerClient, GameServerSnapshot, GameType, Map, RankMethod } from '@prisma/client';
+import { GameServerClient, GameServerSnapshot, GameType, Map, PlayerInfoMap, RankMethod } from '@prisma/client';
 import { rankPlayer } from '../workers/rankPlayer';
 
 type MockedGameServerSnapshot = GameServerSnapshot & { clients: GameServerClient[], map: Map & { gameType: GameType } };
@@ -52,38 +52,60 @@ function createSnapshot(scores: number[]): MockedGameServerSnapshot {
 function mockSnapshot(snapshot: MockedGameServerSnapshot) {
   prismaMock.gameServerSnapshot.findUniqueOrThrow.mockResolvedValue(snapshot);
 
-  snapshot.clients.forEach((client, index) => {
-    prismaMock.playerInfoMap.upsert.mockResolvedValueOnce({
-      id: index,
-      playerName: client.playerName,
-      rating: null,
-      mapId: snapshot.mapId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      playTime: BigInt(0),
-    });
-  });
+  // Info rows exist without a rating yet.
+  const playerInfoMaps: PlayerInfoMap[] = snapshot.clients.map((client, index) => ({
+    id: index,
+    playerName: client.playerName,
+    rating: null,
+    mapId: snapshot.mapId,
+    playTime: BigInt(0),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
+
+  prismaMock.playerInfoMap.findMany.mockResolvedValue(playerInfoMaps);
 
   return snapshot;
 }
 
+// New times are written as one multi-row UPDATE taking parallel
+// (playerNames, ratings) arrays plus the mapId.
+function timeUpdate(): { playerNames: string[], mapId: number, ratings: number[] } | null {
+  const call = prismaMock.$queryRawTyped.mock.calls.find(
+    (args) => (args[0] as unknown as { sql: string }).sql.includes('UPDATE "PlayerInfoMap" SET')
+  );
+
+  if (call === undefined) {
+    return null;
+  }
+
+  const values = (call[0] as unknown as { values: [string[], number, number[]] }).values;
+  return { playerNames: values[0], mapId: values[1], ratings: values[2] };
+}
+
 function checkRatings(expectedRatings: (number | null)[]) {
+  const update = timeUpdate();
+
+  if (expectedRatings.every((rating) => rating === null)) {
+    expect(update).toBeNull();
+    return;
+  }
+
+  expect(update).not.toBeNull();
+  expect(update?.mapId).toBe(1);
+
   expectedRatings.forEach((rating, index) => {
     if (rating !== null) {
-      expect(prismaMock.playerInfoMap.update).toHaveBeenCalledWith({
-        where: {
-          playerName_mapId: {
-            playerName: `player${index}`,
-            mapId: 1,
-          },
-        },
-        data: {
-          rating: rating,
-        },
-      });
+      const position = update!.playerNames.indexOf(`player${index}`);
+      expect(position).toBeGreaterThanOrEqual(0);
+      expect(update!.ratings[position]).toBe(rating);
     }
   });
 }
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 test('Positive and negative time', async () => {
   const snapshot = createSnapshot([10, -10]);
@@ -97,6 +119,7 @@ test('Time increase', async () => {
   mockSnapshot(snapshot1);
   await rankPlayer({ snapshotId: snapshot1.id });
   checkRatings([-10]);
+  jest.clearAllMocks();
 
   const snapshot2 = createSnapshot([30]);
   mockSnapshot(snapshot2);
@@ -109,6 +132,7 @@ test('Time decrease', async () => {
   mockSnapshot(snapshot1);
   await rankPlayer({ snapshotId: snapshot1.id });
   checkRatings([-30]);
+  jest.clearAllMocks();
 
   const snapshot2 = createSnapshot([10]);
   mockSnapshot(snapshot2);

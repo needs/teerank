@@ -1,5 +1,15 @@
+import {
+  incrementClanPlayTimes,
+  incrementPlayerPlayTimes,
+  upsertClanInfoGameTypePlayTimes,
+  upsertClanInfoMapPlayTimes,
+  upsertClanPlayerInfoPlayTimes,
+  upsertPlayerInfoGameTypePlayTimes,
+  upsertPlayerInfoMapPlayTimes,
+} from "@prisma/client/sql";
 import { prisma } from "../prisma";
 import { differenceInSeconds } from "date-fns";
+import { sortBy } from "lodash";
 import { removeDuplicatedClients } from "../utils";
 import { processUpdatePlayTimeJobs, UpdatePlayTimeJobData } from "@teerank/teerank";
 
@@ -44,7 +54,16 @@ export async function updatePlayTime(data: UpdatePlayTimeJobData) {
 
   const deltaSecond = snapshotBefore === null ? 0 : differenceInSeconds(snapshot.createdAt, snapshotBefore.createdAt);
   const deltaPlayTime = deltaSecond > 10 * 60 ? 5 * 60 : deltaSecond;
+
+  if (deltaPlayTime === 0) {
+    return;
+  }
+
   const clients = removeDuplicatedClients(snapshot.clients);
+
+  if (clients.length === 0) {
+    return;
+  }
 
   // Create maps to store accumulated play times with structured values
   type PlayerMapPlayTime = { playerName: string; mapId: number; playTime: number };
@@ -127,120 +146,62 @@ export async function updatePlayTime(data: UpdatePlayTimeJobData) {
     }
   }
 
-  // Update PlayerInfoMap records
-  for (const data of playerMapPlayTimes.values()) {
-    await prisma.playerInfoMap.upsert({
-      where: {
-        playerName_mapId: {
-          mapId: data.mapId,
-          playerName: data.playerName,
-        },
-      },
-      update: {
-        playTime: { increment: data.playTime },
-      },
-      create: {
-        player: { connect: { name: data.playerName } },
-        map: { connect: { id: data.mapId } },
-        playTime: data.playTime,
-      },
-    });
+  // Each group is written as a single multi-row statement, sorted by its
+  // conflict key: unordered multi-row upserts deadlock under concurrent
+  // workers with overlapping player sets.
+  const playerMaps = sortBy([...playerMapPlayTimes.values()], 'playerName');
+  await prisma.$queryRawTyped(upsertPlayerInfoMapPlayTimes(
+    playerMaps.map((row) => row.playerName),
+    snapshot.mapId,
+    playerMaps.map((row) => row.playTime),
+  ));
+
+  const playerGameTypes = sortBy([...playerGameTypePlayTimes.values()], 'playerName');
+  await prisma.$queryRawTyped(upsertPlayerInfoGameTypePlayTimes(
+    playerGameTypes.map((row) => row.playerName),
+    snapshot.map.gameTypeName,
+    playerGameTypes.map((row) => row.playTime),
+  ));
+
+  const players = sortBy([...playerPlayTimes.values()], 'playerName');
+  await prisma.$queryRawTyped(incrementPlayerPlayTimes(
+    players.map((row) => row.playerName),
+    players.map((row) => row.playTime),
+  ));
+
+  const clanMaps = sortBy([...clanMapPlayTimes.values()], 'clanName');
+  if (clanMaps.length > 0) {
+    await prisma.$queryRawTyped(upsertClanInfoMapPlayTimes(
+      clanMaps.map((row) => row.clanName),
+      snapshot.mapId,
+      clanMaps.map((row) => row.playTime),
+    ));
   }
 
-  // Update PlayerInfoGameType records
-  for (const data of playerGameTypePlayTimes.values()) {
-    await prisma.playerInfoGameType.upsert({
-      where: {
-        playerName_gameTypeName: {
-          gameTypeName: data.gameTypeName,
-          playerName: data.playerName,
-        },
-      },
-      update: {
-        playTime: { increment: data.playTime },
-      },
-      create: {
-        player: { connect: { name: data.playerName } },
-        gameType: { connect: { name: data.gameTypeName } },
-        playTime: data.playTime,
-      },
-    });
+  const clanGameTypes = sortBy([...clanGameTypePlayTimes.values()], 'clanName');
+  if (clanGameTypes.length > 0) {
+    await prisma.$queryRawTyped(upsertClanInfoGameTypePlayTimes(
+      clanGameTypes.map((row) => row.clanName),
+      snapshot.map.gameTypeName,
+      clanGameTypes.map((row) => row.playTime),
+    ));
   }
 
-  // Update Player records
-  for (const data of playerPlayTimes.values()) {
-    await prisma.player.update({
-      where: { name: data.playerName },
-      data: { playTime: { increment: data.playTime } },
-    });
+  const clans = sortBy([...clanPlayTimes.values()], 'clanName');
+  if (clans.length > 0) {
+    await prisma.$queryRawTyped(incrementClanPlayTimes(
+      clans.map((row) => row.clanName),
+      clans.map((row) => row.playTime),
+    ));
   }
 
-  // Update ClanInfoMap records
-  for (const data of clanMapPlayTimes.values()) {
-    await prisma.clanInfoMap.upsert({
-      where: {
-        clanName_mapId: {
-          mapId: data.mapId,
-          clanName: data.clanName,
-        },
-      },
-      update: {
-        playTime: { increment: data.playTime },
-      },
-      create: {
-        clan: { connect: { name: data.clanName } },
-        map: { connect: { id: data.mapId } },
-        playTime: data.playTime,
-      },
-    });
-  }
-
-  // Update ClanInfoGameType records
-  for (const data of clanGameTypePlayTimes.values()) {
-    await prisma.clanInfoGameType.upsert({
-      where: {
-        clanName_gameTypeName: {
-          gameTypeName: data.gameTypeName,
-          clanName: data.clanName,
-        },
-      },
-      update: {
-        playTime: { increment: data.playTime },
-      },
-      create: {
-        clan: { connect: { name: data.clanName } },
-        gameType: { connect: { name: data.gameTypeName } },
-        playTime: data.playTime,
-      },
-    });
-  }
-
-  // Update Clan records
-  for (const data of clanPlayTimes.values()) {
-    await prisma.clan.update({
-      where: { name: data.clanName },
-      data: { playTime: { increment: data.playTime } },
-    });
-  }
-
-  // Update ClanPlayerInfo records
-  for (const data of clanPlayerPlayTimes.values()) {
-    await prisma.clanPlayerInfo.upsert({
-      where: {
-        clanName_playerName: {
-          clanName: data.clanName,
-          playerName: data.playerName,
-        },
-      },
-      update: {
-        playTime: { increment: data.playTime },
-      },
-      create: {
-        clan: { connect: { name: data.clanName } },
-        player: { connect: { name: data.playerName } },
-        playTime: data.playTime,
-      },
-    });
+  const clanPlayers = sortBy([...clanPlayerPlayTimes.values()], ['clanName', 'playerName']);
+  if (clanPlayers.length > 0) {
+    await prisma.$queryRawTyped(upsertClanPlayerInfoPlayTimes(
+      clanPlayers.map((row) => row.clanName),
+      clanPlayers.map((row) => row.playerName),
+      clanPlayers.map((row) => row.playTime),
+    ));
   }
 
   // Update GameType, Map, and GameServer records

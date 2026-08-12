@@ -3,5 +3,5 @@ import { decodeIp } from "../../../../utils/encoding";
 
 export const paramsSchema = z.object({
   ip: z.string().transform(decodeIp),
-  port: z.coerce.number().int().positive(),
+  port: z.coerce.number().int().positive().max(65535).catch(0),
 });

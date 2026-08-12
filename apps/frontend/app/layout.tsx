@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import Image from 'next/image';
 import './global.css';
 import Link from 'next/link';
@@ -23,22 +24,29 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const defaultGameTypes = await prisma.gameType.findMany({
-    select: {
-      name: true,
-      playerCount: true,
-      mapCount: true,
-    },
-    orderBy: [
-      {
-        playerCount: 'desc',
+  // error.tsx cannot catch root layout errors, so a failure here would take
+  // down every page at once. Degrade to empty tabs instead.
+  const defaultGameTypes = await prisma.gameType
+    .findMany({
+      select: {
+        name: true,
+        playerCount: true,
+        mapCount: true,
       },
-      {
-        mapCount: 'desc',
-      },
-    ],
-    take: 2,
-  });
+      orderBy: [
+        {
+          playerCount: 'desc',
+        },
+        {
+          mapCount: 'desc',
+        },
+      ],
+      take: 2,
+    })
+    .catch((error) => {
+      Sentry.captureException(error);
+      return [];
+    });
 
   return (
     <html lang="en">

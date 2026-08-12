@@ -6,7 +6,6 @@ import {
 import { minutesToMilliseconds } from "date-fns";
 import { prisma } from "../prisma";
 import { schedule, scheduleWithSpread } from "../utils";
-import { captureMessage } from "@sentry/node";
 
 let lastId = 0;
 let queuesFull = false;
@@ -45,8 +44,6 @@ export async function gameServerScheduler() {
     for (const gameServer of gameServers) {
       scheduleWithSpread(minutesToMilliseconds(5), async () => {
         if (queuesFull) {
-          console.log('Queues are full, skipping game server poll');
-          captureMessage('Queues are full, skipping game server poll');
           return;
         }
 

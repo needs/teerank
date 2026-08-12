@@ -21,10 +21,16 @@ export function encodeString(str: string) {
   }
 }
 
+// Never throws: malformed percent-escapes fall back to the raw segment, which
+// matches no record, so the page 404s instead of raising a 500.
 export function decodeString(str: string) {
-  if (str.startsWith('_')) {
-    return base64url.decode(str.slice(1));
-  } else {
-    return decodeURIComponent(str);
+  try {
+    if (str.startsWith('_')) {
+      return base64url.decode(str.slice(1));
+    } else {
+      return decodeURIComponent(str);
+    }
+  } catch {
+    return str;
   }
 }

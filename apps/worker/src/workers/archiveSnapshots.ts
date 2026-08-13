@@ -2,6 +2,7 @@ import { HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import {
   ArchiveSnapshotsJobData,
   S3_BUCKET,
+  SNAPSHOT_RETENTION_HOURS,
   getEnvInt,
   getS3Client,
   processArchiveSnapshotsJobs,
@@ -10,7 +11,6 @@ import {
 import { prisma } from "../prisma";
 import { SnapshotArchiveRow, encodeSnapshotRowsToParquet } from "../parquet";
 
-const SNAPSHOT_RETENTION_HOURS = getEnvInt('SNAPSHOT_RETENTION_HOURS', 48);
 const ARCHIVE_BATCH_SIZE = getEnvInt('ARCHIVE_BATCH_SIZE', 5000);
 const ARCHIVE_TIME_BUDGET_MS = getEnvInt('ARCHIVE_TIME_BUDGET_MS', 5 * 60 * 1000);
 const ARCHIVE_BATCH_PAUSE_MS = getEnvInt('ARCHIVE_BATCH_PAUSE_MS', 200);

@@ -1,7 +1,8 @@
 import { S3Client } from "@aws-sdk/client-s3";
-import { getEnv } from "./utils";
+import { getEnv, getEnvInt } from "./utils";
 
 export const S3_BUCKET = getEnv('S3_BUCKET', 'teerank-snapshots');
+export const SNAPSHOT_RETENTION_HOURS = getEnvInt('SNAPSHOT_RETENTION_HOURS', 48);
 
 let s3Client: S3Client | null = null;
 

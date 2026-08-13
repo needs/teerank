@@ -1,7 +1,7 @@
 import { Job, Queue, Worker } from "bullmq";
 import { bullmqConnection, lastCompletedJobDate } from "./config";
 import { z } from "zod";
-import { minutesToSeconds } from "date-fns";
+import { hoursToSeconds } from "date-fns";
 
 let archiveSnapshotsQueue: Queue | null = null;
 
@@ -35,7 +35,7 @@ export async function processArchiveSnapshotsJobs(processor: (data: ArchiveSnaps
     connection: bullmqConnection,
     concurrency: 1,
     removeOnComplete: {
-      age: minutesToSeconds(10),
+      age: hoursToSeconds(6),
     },
     removeOnFail: {
       count: 1000,
@@ -51,6 +51,10 @@ export async function cleanArchiveSnapshotsQueue() {
 
 export async function getLastArchiveSnapshotsDate() {
   return lastCompletedJobDate(getQueueArchiveSnapshots());
+}
+
+export async function getArchiveSnapshotsFailedCount() {
+  return getQueueArchiveSnapshots().getFailedCount();
 }
 
 export { getQueueArchiveSnapshots };

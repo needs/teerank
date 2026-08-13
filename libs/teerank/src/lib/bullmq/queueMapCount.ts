@@ -2,12 +2,10 @@ import { Job, Queue, Worker } from "bullmq";
 import { bullmqConnection, lastCompletedJobDate } from "./config";
 import { z } from "zod";
 import { minutesToSeconds } from "date-fns";
-import { getEnvInt } from "../utils";
 
 let mapCountQueue: Queue | null = null;
 
 const QUEUE_NAME_MAP_COUNT = 'map-count';
-const UPDATE_MAPS_COUNTS_CONCURRENCY = getEnvInt('UPDATE_MAPS_COUNTS_CONCURRENCY', 5);
 
 function getQueueMapCount() {
   mapCountQueue ??= new Queue(QUEUE_NAME_MAP_COUNT, { connection: bullmqConnection });
@@ -15,18 +13,16 @@ function getQueueMapCount() {
 }
 
 const schema = z.object({
-  gameTypeName: z.string(),
-  mapName: z.string(),
-  mapId: z.number(),
+  mode: z.enum(['full', 'gameServers']),
 });
 
 export type MapCountJobData = z.infer<typeof schema>;
 
 export async function scheduleMapCount(data: MapCountJobData) {
   const queue = getQueueMapCount();
-  await queue.add(`${data.gameTypeName} - ${data.mapName}`, data, {
+  await queue.add(data.mode, data, {
     deduplication: {
-      id: data.mapId.toString(),
+      id: data.mode,
     }
   });
 }
@@ -39,7 +35,7 @@ export async function processMapCountJobs(processor: (data: MapCountJobData) => 
 
   return new Worker(QUEUE_NAME_MAP_COUNT, jobProcessor, {
     connection: bullmqConnection,
-    concurrency: UPDATE_MAPS_COUNTS_CONCURRENCY,
+    concurrency: 1,
     removeOnComplete: {
       age: minutesToSeconds(10),
     },

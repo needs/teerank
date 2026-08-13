@@ -1,42 +1,13 @@
 import { scheduleMapCount } from "@teerank/teerank";
-import { hoursToMilliseconds, minutesToMilliseconds } from "date-fns";
-import { prisma } from "../prisma";
-import { schedule, scheduleWithSpread } from "../utils";
-
-let lastId = 0;
+import { hoursToMilliseconds } from "date-fns";
+import { schedule } from "../utils";
 
 export async function mapScheduler() {
-  schedule(minutesToMilliseconds(5), async () => {
-    const maps = await prisma.map.findMany({
-      where: {
-        id: {
-          gt: lastId,
-        },
-      },
-      select: {
-        gameTypeName: true,
-        name: true,
-        id: true,
-      },
-      orderBy: {
-        id: 'asc',
-      },
-    });
+  schedule(hoursToMilliseconds(24), async () => {
+    await scheduleMapCount({ mode: 'full' });
+  });
 
-    for (const map of maps) {
-      scheduleWithSpread(hoursToMilliseconds(24), async () => {
-        await scheduleMapCount({
-          gameTypeName: map.gameTypeName,
-          mapName: map.name,
-          mapId: map.id,
-        });
-      });
-    }
-
-    console.log(`Scheduled ${maps.length} new maps`);
-
-    if (maps.length > 0) {
-      lastId = maps[maps.length - 1].id;
-    }
+  schedule(hoursToMilliseconds(1), async () => {
+    await scheduleMapCount({ mode: 'gameServers' });
   });
 }

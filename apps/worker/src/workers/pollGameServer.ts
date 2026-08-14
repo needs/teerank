@@ -1,6 +1,7 @@
 import { prisma } from "../prisma";
-import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
+import { resetPackets, getReceivedPackets, sendRequests, setupSockets } from "../socket";
 import { GameServerInfoPacket, unpackGameServerInfoPackets } from "../packets/gameServerInfo";
+import { headerBuffer } from "../packet";
 import { scheduleUpdatePlayTime, scheduleRankPlayer, PollGameServerJobData, processPollGameServerJobs, wait } from "@teerank/teerank";
 import { GameServer, GameServerState, Prisma } from "@prisma/client";
 import { upsertPlayers } from "@prisma/client/sql";
@@ -38,6 +39,8 @@ const PACKET_GETINFO64 = Buffer.from([
   ...stringToCharCode('fstd'),
   0
 ]);
+
+const REQUEST_GETINFO7 = Buffer.from([...headerBuffer('gie3'), 0]);
 
 const MAX_FAILURE_COUNT = getEnvInt('MAX_FAILURE_COUNT', 30);
 
@@ -241,44 +244,42 @@ async function processor(jobData: PollGameServerJobData) {
 
   const sockets = await setupSockets();
 
-  listenForPackets(sockets, gameServer.ip, gameServer.port);
-
-  sendData(sockets, PACKET_GETINFO, gameServer.ip, gameServer.port);
-  sendData(sockets, PACKET_GETINFO64, gameServer.ip, gameServer.port);
+  sendRequests(sockets, gameServer.ip, gameServer.port, [PACKET_GETINFO, PACKET_GETINFO64], REQUEST_GETINFO7);
 
   await wait(2000);
 
   const receivedPackets = getReceivedPackets(sockets, gameServer.ip, gameServer.port);
 
-  if (receivedPackets.packets.length > 0) {
-    try {
-      const gameServerInfo = unpackGameServerInfoPackets(receivedPackets.packets)
+  try {
+    const gameServerInfo = unpackGameServerInfoPackets(receivedPackets.packets);
+
+    if (gameServerInfo !== undefined) {
       const snapshotId = await processGameServerInfo(gameServer, gameServerInfo);
 
       await Promise.all([
         scheduleUpdatePlayTime({ snapshotId }),
         scheduleRankPlayer({ snapshotId })
       ]);
-    } catch (e) {
-      console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
-    }
-  } else {
-    await prisma.gameServerState.deleteMany({
-      where: {
-        gameServerId: gameServer.id,
-      },
-    });
-
-    await prisma.gameServer.update({
-      where: {
-        id: gameServer.id,
-      },
-      data: {
-        failureCount: {
-          increment: 1,
+    } else {
+      await prisma.gameServerState.deleteMany({
+        where: {
+          gameServerId: gameServer.id,
         },
-      },
-    });
+      });
+
+      await prisma.gameServer.update({
+        where: {
+          id: gameServer.id,
+        },
+        data: {
+          failureCount: {
+            increment: 1,
+          },
+        },
+      });
+    }
+  } catch (e) {
+    console.warn(`${gameServer.ip}:${gameServer.port}: ${e}`)
   }
 
   resetPackets(sockets, gameServer.ip, gameServer.port);

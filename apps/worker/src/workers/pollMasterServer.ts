@@ -1,8 +1,9 @@
 import { prisma } from "../prisma";
 import { lookup } from "dns/promises";
 import { unpackMasterPackets } from "../packets/masterServerInfo";
-import { resetPackets, getReceivedPackets, sendData, setupSockets, listenForPackets } from "../socket";
+import { resetPackets, getReceivedPackets, sendRequests, setupSockets } from "../socket";
 import { PollMasterServerJobData, processPollMasterServerJobs, wait } from "@teerank/teerank";
+import { headerBuffer } from "../packet";
 
 function stringToCharCode(str: string) {
   return str.split('').map((char) => char.charCodeAt(0));
@@ -24,6 +25,8 @@ const PACKET_GETLIST = Buffer.from([
   ...stringToCharCode('req2'),
 ]);
 
+const REQUEST_GETLIST7 = headerBuffer('req2');
+
 async function processor(jobData: PollMasterServerJobData) {
   const masterServer = await prisma.masterServer.findUniqueOrThrow({
     where: {
@@ -39,9 +42,7 @@ async function processor(jobData: PollMasterServerJobData) {
   console.log(`Polling ${masterServer.address}:${masterServer.port}`);
   const ip = await lookup(masterServer.address);
 
-  listenForPackets(sockets, ip.address, masterServer.port);
-
-  sendData(sockets, PACKET_GETLIST, ip.address, masterServer.port);
+  sendRequests(sockets, ip.address, masterServer.port, [PACKET_GETLIST], REQUEST_GETLIST7);
 
   await wait(2000);
   const receivedPackets = getReceivedPackets(sockets, ip.address, masterServer.port);

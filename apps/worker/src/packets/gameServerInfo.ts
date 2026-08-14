@@ -1,4 +1,4 @@
-import { Packet, ServerHeader, packetIsConsumed, unpackBool, unpackInt, unpackServerHeader, unpackString } from "../packet";
+import { Packet, ServerHeader, packetIsConsumed, unpackBool, unpackInt, unpackInt7, unpackServerHeader, unpackString } from "../packet";
 
 type Client = {
   name: string;
@@ -58,19 +58,30 @@ function initGameServerInfoPacket(): GameServerInfoPacket {
   };
 }
 
-function unpackGameServerInfoPacket(packet: Packet, gameServerInfoPacket: GameServerInfoPacket) {
+function unpackGameServerInfoPacket(packet: Packet, gameServerInfoPacket: GameServerInfoPacket): boolean {
   const header = unpackServerHeader(packet);
 
   switch (header) {
+    case undefined:
+      return false;
     case ServerHeader.Vanilla:
-      return unpackGameServerInfoVanilla(packet, gameServerInfoPacket);
+      unpackGameServerInfoVanilla(packet, gameServerInfoPacket);
+      break;
     case ServerHeader.Legacy64:
-      return unpackGameServerInfoLegacy64(packet, gameServerInfoPacket);
+      unpackGameServerInfoLegacy64(packet, gameServerInfoPacket);
+      break;
     case ServerHeader.Extended:
-      return unpackGameServerInfoExtended(packet, gameServerInfoPacket);
+      unpackGameServerInfoExtended(packet, gameServerInfoPacket);
+      break;
     case ServerHeader.ExtendedMore:
-      return unpackGameServerInfoExtendedMore(packet, gameServerInfoPacket);
+      unpackGameServerInfoExtendedMore(packet, gameServerInfoPacket);
+      break;
+    case ServerHeader.Vanilla7:
+      unpackGameServerInfoVanilla7(packet, gameServerInfoPacket);
+      break;
   }
+
+  return true;
 }
 
 function unpackGameServerInfoVanilla(packet: Packet, gameServerInfoPacket: GameServerInfoPacket) {
@@ -211,12 +222,54 @@ function unpackGameServerInfoExtendedMore(packet: Packet, gameServerInfoPacket: 
   }
 }
 
-export function unpackGameServerInfoPackets(packets: Packet[]): GameServerInfoPacket {
+function unpackGameServerInfoVanilla7(packet: Packet, gameServerInfoPacket: GameServerInfoPacket) {
+  unpackInt7(packet); // token
+
+  gameServerInfoPacket.version = unpackString(packet);
+  gameServerInfoPacket.name = unpackString(packet);
+
+  unpackString(packet); // hostname
+
+  gameServerInfoPacket.map = unpackString(packet);
+  gameServerInfoPacket.gameType = unpackString(packet);
+
+  unpackInt7(packet); // flags
+  unpackInt7(packet); // skill level
+
+  gameServerInfoPacket.numPlayers = unpackInt7(packet);
+  gameServerInfoPacket.maxPlayers = unpackInt7(packet);
+
+  gameServerInfoPacket.numClients = unpackInt7(packet);
+  gameServerInfoPacket.maxClients = unpackInt7(packet);
+
+  while (!packetIsConsumed(packet)) {
+    const name = unpackString(packet);
+    const clan = unpackString(packet);
+    const country = unpackInt7(packet);
+    const score = unpackInt7(packet);
+    const playerType = unpackInt7(packet); // 1: spectator, 2: bot
+
+    addClient(gameServerInfoPacket, {
+      name,
+      clan,
+      country,
+      score,
+      inGame: (playerType & 1) === 0,
+
+      _origin: ServerHeader.Vanilla7,
+    });
+  }
+}
+
+export function unpackGameServerInfoPackets(packets: Packet[]): GameServerInfoPacket | undefined {
   const gameServerInfoPacket = initGameServerInfoPacket();
+  let unpackedCount = 0;
 
   for (const packet of packets) {
-    unpackGameServerInfoPacket(packet, gameServerInfoPacket);
+    if (unpackGameServerInfoPacket(packet, gameServerInfoPacket)) {
+      unpackedCount += 1;
+    }
   }
 
-  return gameServerInfoPacket;
+  return unpackedCount > 0 ? gameServerInfoPacket : undefined;
 }

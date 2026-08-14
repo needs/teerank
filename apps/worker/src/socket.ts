@@ -1,5 +1,5 @@
 import { RemoteInfo, Socket, createSocket } from "dgram";
-import { Packet, packetFromBuffer } from "./packet";
+import { Packet, packCtrlTokenRequest, packConnless7, packetFromBuffer, peekCtrlToken, randomToken } from "./packet";
 import { isIP } from "net";
 
 type Sockets = {
@@ -7,7 +7,7 @@ type Sockets = {
   socket6: Socket;
   packetsByIpAndPort: Record<
     string,
-    { packets: Packet[]; }
+    { packets: Packet[]; onPacket?: (packet: Packet) => void; }
   >;
 };
 
@@ -32,6 +32,7 @@ async function createSockets() {
 
     if (receivedPacket !== undefined) {
       receivedPacket.packets.push(packet);
+      receivedPacket.onPacket?.(packet);
     }
   };
 
@@ -70,9 +71,29 @@ export function sendData(sockets: Sockets, data: Buffer, ip: string, port: numbe
   });
 }
 
-export function listenForPackets(sockets: Sockets, ip: string, port: number) {
+export function listenForPackets(sockets: Sockets, ip: string, port: number, onPacket?: (packet: Packet) => void) {
   const ipAndPort = ipAndPortToString(ip, port);
-  sockets.packetsByIpAndPort[ipAndPort] = { packets: [] };
+  sockets.packetsByIpAndPort[ipAndPort] = { packets: [], onPacket };
+}
+
+// Sends 0.6 requests right away.  0.7 requires a token handshake first, so the
+// 0.7 request is sent when the server answers the token request.
+export function sendRequests(sockets: Sockets, ip: string, port: number, requests06: Buffer[], request7: Buffer) {
+  const myToken = randomToken();
+
+  listenForPackets(sockets, ip, port, (packet) => {
+    const serverToken = peekCtrlToken(packet);
+
+    if (serverToken !== undefined) {
+      sendData(sockets, packConnless7(serverToken, myToken, request7), ip, port);
+    }
+  });
+
+  for (const request of requests06) {
+    sendData(sockets, request, ip, port);
+  }
+
+  sendData(sockets, packCtrlTokenRequest(myToken), ip, port);
 }
 
 export function getReceivedPackets(sockets: Sockets, ip: string, port: number) {

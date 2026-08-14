@@ -17,6 +17,8 @@ function unpackMasterPacket(packet: Packet): MasterServerPacketInfo {
   const header = unpackMasterHeader(packet);
 
   switch (header) {
+    case undefined:
+      return { gameServers: [] };
     case MasterHeader.Vanilla:
       return unpackMasterVanillaContent(packet);
   }

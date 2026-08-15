@@ -167,6 +167,25 @@ export default async function Index() {
       <main className="py-12 px-4 md:px-12 xl:px-20 text-[#666] flex flex-col gap-8">
         <section className="flex flex-col gap-4">
           <header className="flex flex-row justify-between items-baseline">
+            <h1 className="text-2xl font-bold clear-both">0.7 servers and map counts</h1>
+            <p className="text-md clear-both text-[#888]">August 15th 2026</p>
+          </header>
+          <p>
+            Initially Teerank only parsed 0.6 game servers, but now that 0.7 is
+            mainline, adding support for those new servers was due.  0.7 brings
+            a new handshake flow before being able to list players, which added
+            some complexity to the mix.
+          </p>
+          <p>
+            Also map counts for game types were not updating for more than a
+            year because it was too costly to update them.  It turns out that
+            with some SQL magic the query is not that bad: it takes 3 minutes to
+            update them, so this is done once a day.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <header className="flex flex-row justify-between items-baseline">
             <h1 className="text-2xl font-bold clear-both">Archiving snapshots</h1>
             <p className="text-md clear-both text-[#888]">August 11th 2026</p>
           </header>

@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { List, ListCell } from '../../../../components/List';
 import { searchParamPageSchema } from '../../../../utils/page';
 import prisma from '../../../../utils/prisma';
-import { encodeString } from '../../../../utils/encoding';
+import { encodeIp, encodeString } from '../../../../utils/encoding';
+import { SnapshotTimeline } from '../../../../components/SnapshotTimeline';
 import { formatPlayTime } from '../../../../utils/format';
 import { GameServer } from '@prisma/client';
 import { formatDuration, intervalToDuration } from 'date-fns';
@@ -78,33 +79,51 @@ export default async function Index({
 
   const { ip, port } = parsedParams.data;
 
-  const gameServer = await prisma.gameServer.findUnique({
-    where: {
-      ip_port: {
-        ip,
-        port,
-      },
-    },
-    include: {
-      gameServerState: {
-        include: {
-          clients: {
-            orderBy: {
-              score: 'desc',
-            },
-            skip: (page - 1) * 100,
-            take: 100,
-          },
-          _count: {
-            select: {
-              clients: true,
-            },
-          },
-          map: true,
+  const [gameServer, snapshots] = await Promise.all([
+    prisma.gameServer.findUnique({
+      where: {
+        ip_port: {
+          ip,
+          port,
         },
       },
-    },
-  });
+      include: {
+        gameServerState: {
+          include: {
+            clients: {
+              orderBy: {
+                score: 'desc',
+              },
+              skip: (page - 1) * 100,
+              take: 100,
+            },
+            _count: {
+              select: {
+                clients: true,
+              },
+            },
+            map: true,
+          },
+        },
+      },
+    }),
+    prisma.gameServerSnapshot.findMany({
+      where: {
+        gameServer: {
+          ip,
+          port,
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        numClients: true,
+      },
+    }),
+  ]);
 
   if (gameServer === null) {
     return notFound();
@@ -162,50 +181,61 @@ export default async function Index({
         </section>
       </header>
 
-      <List
-        pageCount={Math.ceil(gameServer.gameServerState._count.clients / 100)}
-        columns={[
-          {
-            title: '',
-            expand: false,
-          },
-          {
-            title: 'Name',
-            expand: true,
-          },
-          {
-            title: 'Clan',
-            expand: true,
-          },
-          {
-            title: 'Score',
-            expand: false,
-          },
-        ]}
+      <SnapshotTimeline
+        snapshots={snapshots.map((snapshot) => ({
+          id: snapshot.id,
+          createdAt: snapshot.createdAt.toISOString(),
+          numClients: snapshot.numClients,
+        }))}
+        apiPath={`/api/server/${encodeIp(gameServer.ip)}/${
+          gameServer.port
+        }/snapshot`}
       >
-        {gameServer.gameServerState.clients.map((client, index) => (
-          <>
-            <ListCell alignRight label={`${index + 1}`} />
-            <ListCell
-              label={client.playerName}
-              href={{
-                pathname: `/player/${encodeString(client.playerName)}`,
-              }}
-            />
-            <ListCell
-              label={client.clanName ?? ''}
-              href={
-                client.clanName === null
-                  ? undefined
-                  : {
-                      pathname: `/clan/${encodeString(client.clanName)}`,
-                    }
-              }
-            />
-            <ListCell alignRight label={client.score.toString()} />
-          </>
-        ))}
-      </List>
+        <List
+          pageCount={Math.ceil(gameServer.gameServerState._count.clients / 100)}
+          columns={[
+            {
+              title: '',
+              expand: false,
+            },
+            {
+              title: 'Name',
+              expand: true,
+            },
+            {
+              title: 'Clan',
+              expand: true,
+            },
+            {
+              title: 'Score',
+              expand: false,
+            },
+          ]}
+        >
+          {gameServer.gameServerState.clients.map((client, index) => (
+            <>
+              <ListCell alignRight label={`${index + 1}`} />
+              <ListCell
+                label={client.playerName}
+                href={{
+                  pathname: `/player/${encodeString(client.playerName)}`,
+                }}
+              />
+              <ListCell
+                label={client.clanName ?? ''}
+                href={
+                  client.clanName === null
+                    ? undefined
+                    : {
+                        pathname: `/clan/${encodeString(client.clanName)}`,
+                      }
+                }
+              />
+              <ListCell alignRight label={client.score.toString()} />
+            </>
+          ))}
+        </List>
+      </SnapshotTimeline>
     </main>
   );
 }

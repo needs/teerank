@@ -4,7 +4,10 @@ import { LayoutTabs } from './LayoutTabs';
 import { paramsSchema } from './schema';
 import { z } from 'zod';
 import { formatPlayTime } from '../../../utils/format';
+import { encodeString } from '../../../utils/encoding';
 import { ClanPlayerCount } from './ClanPlayerCount';
+import { ActivityCalendarSection } from '../../../components/ActivityCalendarSection';
+import { getClanActivity } from '../../../utils/activity';
 
 export default async function Index({
   params,
@@ -17,6 +20,7 @@ export default async function Index({
 
   const clan = await prisma.clan.findUnique({
     select: {
+      id: true,
       name: true,
       playTime: true,
       activePlayerCount: true,
@@ -29,7 +33,11 @@ export default async function Index({
     },
   });
 
-  const [gameTypeCount, mapCount] = await Promise.all([
+  if (clan === null) {
+    return notFound();
+  }
+
+  const [gameTypeCount, mapCount, activity] = await Promise.all([
     prisma.clanInfoGameType.count({
       where: {
         clan: {
@@ -44,27 +52,32 @@ export default async function Index({
         },
       }
     }),
+    getClanActivity(clan.id, { range: '1y' }),
   ]);
-
-  if (clan === null) {
-    return notFound();
-  }
 
   return (
     <main className="flex flex-col gap-8 py-12">
-      <header className="flex flex-row px-20 gap-4 items-center">
-        <section className="flex flex-col gap-2 grow">
-          <h1 className="text-2xl font-bold">{clan.name}</h1>
-          <ClanPlayerCount 
-            activeCount={clan.activePlayerCount} 
-            totalCount={clan._count.clanPlayerInfos} 
+      <header className="px-8 xl:px-20">
+        <div className="relative">
+          <ActivityCalendarSection
+            apiPath={`/api/clan/${encodeString(clanName)}/activity`}
+            initial={activity}
           />
-        </section>
-        <aside className="flex flex-col gap-2 text-right">
-          <p>
-            <b>Total Playtime</b>: {formatPlayTime(clan.playTime)}
-          </p>
-        </aside>
+          <div className="absolute inset-y-0 left-0 z-10 flex w-1/2 flex-col justify-center gap-2 bg-gradient-to-r from-white from-30% via-white/85 via-65% to-transparent">
+            <h1 className="text-2xl font-bold">{clan.name}</h1>
+            <div className="flex flex-row divide-x">
+              <span className="pr-4">
+                <ClanPlayerCount
+                  activeCount={clan.activePlayerCount}
+                  totalCount={clan._count.clanPlayerInfos}
+                />
+              </span>
+              <span className="px-4">
+                Playtime: {formatPlayTime(clan.playTime)}
+              </span>
+            </div>
+          </div>
+        </div>
       </header>
 
       <LayoutTabs

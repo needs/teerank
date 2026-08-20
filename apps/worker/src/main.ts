@@ -7,6 +7,8 @@ import { startUpdateGameTypesCountsWorker } from "./workers/updateGameTypesCount
 import { startFillClanActivePlayerCountWorker } from "./workers/fillClanActivePlayerCount";
 import { startUpdateGlobalCountsWorker } from "./workers/updateGlobalCounts";
 import { startArchiveSnapshotsWorker } from "./workers/archiveSnapshots";
+import { startRollupDayWorker } from "./workers/rollupDay";
+import { startRollupBackfillWorker } from "./workers/rollupBackfill";
 
 async function main() {
   const workers = await Promise.all([
@@ -19,6 +21,8 @@ async function main() {
     startFillClanActivePlayerCountWorker(),
     startUpdateGlobalCountsWorker(),
     startArchiveSnapshotsWorker(),
+    startRollupDayWorker(),
+    startRollupBackfillWorker(),
   ]);
 
   async function gracefulShutdown(signal: string) {

@@ -7,6 +7,8 @@ import { cleanUpdateGlobalCountsQueue } from "./queueUpdateGlobalCounts";
 import { cleanUpdatePlayTimeQueue } from "./queueUpdatePlayTime";
 import { cleanRankPlayerQueue } from "./queueRankPlayer";
 import { cleanArchiveSnapshotsQueue } from "./queueArchiveSnapshots";
+import { cleanRollupDayQueue } from "./queueRollupDay";
+import { cleanRollupBackfillQueue } from "./queueRollupBackfill";
 
 export async function cleanAllQueues() {
   await Promise.all([
@@ -19,5 +21,7 @@ export async function cleanAllQueues() {
     cleanUpdatePlayTimeQueue(),
     cleanRankPlayerQueue(),
     cleanArchiveSnapshotsQueue(),
+    cleanRollupDayQueue(),
+    cleanRollupBackfillQueue(),
   ]);
 }

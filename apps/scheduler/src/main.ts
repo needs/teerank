@@ -8,6 +8,8 @@ import { fillClanActivePlayerCountScheduler } from './schedulers/fillClanActiveP
 import { cleanAllQueues } from '@teerank/teerank';
 import { updateGlobalCountsScheduler } from './schedulers/updateGlobalCountsScheduler';
 import { archiveSnapshotsScheduler } from './schedulers/archiveSnapshotsScheduler';
+import { rollupDayScheduler } from './schedulers/rollupDayScheduler';
+import { rollupBackfillScheduler } from './schedulers/rollupBackfillScheduler';
 
 async function main() {
   if (process.env.NODE_ENV === 'development') {
@@ -25,6 +27,8 @@ async function main() {
   fillClanActivePlayerCountScheduler();
   updateGlobalCountsScheduler();
   archiveSnapshotsScheduler();
+  rollupDayScheduler();
+  rollupBackfillScheduler();
 }
 
 main();

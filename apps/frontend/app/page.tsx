@@ -5,6 +5,8 @@ import { getGlobalCounts } from '@teerank/teerank';
 import { formatInteger } from '../utils/format';
 import { encodeString } from '../utils/encoding';
 import redis from '../utils/redis';
+import { DailyPlayersSection } from '../components/DailyPlayersSection';
+import { getDailyPlayers } from '../utils/dailyPlayers';
 
 export const metadata = {
   title: 'Teerank',
@@ -90,6 +92,7 @@ export default async function Index() {
     clans,
     gameTypes,
     globalCounts,
+    dailyPlayers,
   ] = await Promise.all([
     prisma.player.findMany({
       select: {
@@ -129,6 +132,8 @@ export default async function Index() {
     }),
 
     getGlobalCounts(redis),
+
+    getDailyPlayers('90d'),
   ]);
 
   return (
@@ -165,6 +170,8 @@ export default async function Index() {
       </header>
 
       <main className="py-12 px-4 md:px-12 xl:px-20 text-[#666] flex flex-col gap-8">
+        <DailyPlayersSection initial={dailyPlayers} />
+
         <section className="flex flex-col gap-4">
           <header className="flex flex-row justify-between items-baseline">
             <h1 className="text-2xl font-bold clear-both">0.7 servers and map counts</h1>

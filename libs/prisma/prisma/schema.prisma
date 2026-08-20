@@ -319,3 +319,53 @@ model GlobalCounts {
   clanCount       Int @default(0)
   gameServerCount Int @default(0)
 }
+
+// Daily/hourly rollups of the snapshot history. No foreign keys: ids are
+// resolved at write time, and rows must survive source-row deletion. The
+// tables are partitioned by range on day/hour (see the migration); every
+// primary key leads with the partition key.
+
+model PlayerDay {
+  day      DateTime @db.Date
+  playerId Int
+  playTime Int      // seconds
+
+  @@id([day, playerId])
+  @@index([playerId, day])
+}
+
+model ServerDay {
+  day          DateTime @db.Date
+  gameServerId Int
+  avgClients   Int      @db.SmallInt
+  maxClients   Int      @db.SmallInt
+
+  @@id([gameServerId, day])
+}
+
+model MapDay {
+  day         DateTime @db.Date
+  mapId       Int
+  playTime    Int
+  playerCount Int
+
+  @@id([mapId, day])
+}
+
+model GameTypeDay {
+  day         DateTime @db.Date
+  gameTypeId  Int
+  playTime    Int
+  playerCount Int
+
+  @@id([gameTypeId, day])
+}
+
+model ClanDay {
+  day         DateTime @db.Date
+  clanId      Int
+  playTime    Int
+  playerCount Int      @db.SmallInt
+
+  @@id([clanId, day])
+}

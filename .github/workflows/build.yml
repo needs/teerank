@@ -1,0 +1,82 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      deploy:
+        description: Deploy the built apps to Fly
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx nx run-many -t lint --parallel=3
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Open database proxy
+        run: |
+          flyctl proxy 5434:5432 --app teerankio-postgres2 &
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES2 }}
+
+      - name: Open redis proxy
+        run: |
+          flyctl proxy 6379:6379 --app teerankio-redis &
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_REDIS }}
+
+      - name: Migrate database
+        run: |
+          sleep 2
+          npx prisma generate --sql --schema=libs/prisma/prisma/schema.prisma
+          npx nx run-many -t prisma-deploy --parallel=4
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES2 }}
+          PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x", "linux-musl"]'
+
+      - name: Build
+        run: npx nx run-many -t build --configuration=production --parallel=4
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      - name: Test
+        run: |
+          npx nx run-many -t test
+        env:
+          PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x", "linux-musl"]'
+
+      - name: Deploy frontend
+        if: inputs.deploy
+        run: flyctl deploy --config apps/frontend/fly.toml --dockerfile apps/frontend/Dockerfile
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_FRONTEND }}
+          PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x", "linux-musl"]'
+
+      - name: Deploy worker
+        if: inputs.deploy
+        run: flyctl deploy --config apps/worker/fly.toml --dockerfile apps/worker/Dockerfile
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WORKER }}
+          PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x", "linux-musl"]'
+
+      - name: Deploy scheduler
+        if: inputs.deploy
+        run: flyctl deploy --config apps/scheduler/fly.toml --dockerfile apps/scheduler/Dockerfile
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_SCHEDULER }}
+          PRISMA_BINARY_TARGETS: '["native", "linux-musl-openssl-3.0.x", "linux-musl"]'

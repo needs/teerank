@@ -12,6 +12,8 @@ import { formatPlayTime } from '../../../../utils/format';
 import { GameServer } from '@prisma/client';
 import { formatDuration, intervalToDuration } from 'date-fns';
 import { Metadata } from 'next';
+import { ActivityCalendarSection } from '../../../../components/ActivityCalendarSection';
+import { getServerActivity } from '../../../../utils/activity';
 
 export async function generateMetadata({
   params,
@@ -133,52 +135,52 @@ export default async function Index({
     return <OfflineServer gameServer={gameServer} />;
   }
 
+  const activity = await getServerActivity(gameServer.id, { range: '1y' });
+
   return (
     <main className="flex flex-col gap-8 py-12">
-      <header className="flex flex-row px-20 gap-8">
-        <section className="flex flex-col gap-2 grow">
-          <h1 className="text-2xl font-bold">
-            {gameServer.gameServerState.name}
-          </h1>
-          <div className="flex flex-row divide-x">
-            <span className="pr-4">
-              <Link
-                className="hover:underline"
-                href={{
-                  pathname: `/gametype/${encodeString(
-                    gameServer.gameServerState.map.gameTypeName
-                  )}`,
-                }}
-              >
-                {gameServer.gameServerState.map.gameTypeName}
-              </Link>
-            </span>
-            <span className="px-4">
-              <Link
-                className="hover:underline"
-                href={{
-                  pathname: `/gametype/${encodeString(
-                    gameServer.gameServerState.map.gameTypeName
-                  )}/map/${encodeString(gameServer.gameServerState.map.name)}`,
-                }}
-              >
-                {gameServer.gameServerState.map.name}
-              </Link>
-            </span>
-            <span className="px-4">{`${gameServer.gameServerState.numClients} / ${gameServer.gameServerState.maxClients} clients`}</span>
-            <span className="px-4">
-              Playtime: {formatPlayTime(gameServer.playTime)}
-            </span>
+      <header className="px-8 xl:px-20">
+        <div className="relative">
+          <ActivityCalendarSection
+            apiPath={`/api/server/${encodeIp(gameServer.ip)}/${gameServer.port}/activity`}
+            initial={activity}
+          />
+          <div className="absolute inset-y-0 left-0 z-10 flex w-1/2 flex-col justify-center gap-2 bg-gradient-to-r from-white from-30% via-white/85 via-65% to-transparent">
+            <h1 className="text-2xl font-bold">
+              {gameServer.gameServerState.name}
+            </h1>
+            <div className="flex flex-row divide-x">
+              <span className="pr-4">
+                <Link
+                  className="hover:underline"
+                  href={{
+                    pathname: `/gametype/${encodeString(
+                      gameServer.gameServerState.map.gameTypeName
+                    )}`,
+                  }}
+                >
+                  {gameServer.gameServerState.map.gameTypeName}
+                </Link>
+              </span>
+              <span className="px-4">
+                <Link
+                  className="hover:underline"
+                  href={{
+                    pathname: `/gametype/${encodeString(
+                      gameServer.gameServerState.map.gameTypeName
+                    )}/map/${encodeString(gameServer.gameServerState.map.name)}`,
+                  }}
+                >
+                  {gameServer.gameServerState.map.name}
+                </Link>
+              </span>
+              <span className="px-4">{`${gameServer.gameServerState.numClients} / ${gameServer.gameServerState.maxClients} clients`}</span>
+              <span className="px-4">
+                Playtime: {formatPlayTime(gameServer.playTime)}
+              </span>
+            </div>
           </div>
-        </section>
-        <section className="flex flex-col divide-y border rounded-md overflow-hidden self-start">
-          <h2 className="py-1.5 px-4 bg-gradient-to-b from-[#ffffff] to-[#eaeaea] text-center">
-            Server address
-          </h2>
-          <span className="py-1.5 px-4 text-sm">
-            {ipAndPort(gameServer.ip, gameServer.port)}
-          </span>
-        </section>
+        </div>
       </header>
 
       <SnapshotTimeline

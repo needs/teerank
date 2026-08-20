@@ -9,3 +9,5 @@ export * from './queueMapCount';
 export * from './queueFillClanActivePlayerCount';
 export * from './queueUpdateGlobalCounts';
 export * from './queueArchiveSnapshots';
+export * from './queueRollupDay';
+export * from './queueRollupBackfill';

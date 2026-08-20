@@ -41,8 +41,8 @@ jobs:
       - name: Migrate database
         run: |
           sleep 2
-          npx prisma generate --sql --schema=libs/prisma/prisma/schema.prisma
           npx nx run-many -t prisma-deploy --parallel=4
+          npx prisma generate --sql --schema=libs/prisma/prisma/schema.prisma
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_POSTGRES2 }}

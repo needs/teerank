@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const utcDaySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
 export const indexPlayerSchema = z.object({
   name: z.string(),
   clanName: z.string().nullable(),

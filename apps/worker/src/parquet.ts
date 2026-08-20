@@ -5,6 +5,7 @@ import {
   Table,
   TimestampMillisecond,
   Utf8,
+  tableFromIPC,
   tableToIPC,
   vectorFromArray,
 } from "apache-arrow";
@@ -12,6 +13,7 @@ import {
   Compression,
   Table as WasmTable,
   WriterPropertiesBuilder,
+  readParquet,
   writeParquet,
 } from "parquet-wasm";
 
@@ -66,4 +68,35 @@ export function encodeSnapshotRowsToParquet(rows: SnapshotArchiveRow[]): Uint8Ar
     .build();
 
   return writeParquet(wasmTable, writerProperties);
+}
+
+export function decodeSnapshotRowsFromParquet(parquet: Uint8Array): SnapshotArchiveRow[] {
+  const table = tableFromIPC(readParquet(parquet).intoIPCStream());
+  const rows: SnapshotArchiveRow[] = [];
+
+  for (let index = 0; index < table.numRows; index++) {
+    const row = table.get(index)!.toJSON();
+
+    rows.push({
+      snapshotId: Number(row.snapshotId),
+      createdAt: new Date(Number(row.createdAt)),
+      gameServerId: row.gameServerId,
+      serverName: row.serverName,
+      version: row.version,
+      mapId: row.mapId,
+      mapName: row.mapName,
+      gameTypeName: row.gameTypeName,
+      numPlayers: row.numPlayers,
+      maxPlayers: row.maxPlayers,
+      numClients: row.numClients,
+      maxClients: row.maxClients,
+      playerName: row.playerName,
+      clanName: row.clanName,
+      score: row.score,
+      country: row.country,
+      inGame: row.inGame,
+    });
+  }
+
+  return rows;
 }

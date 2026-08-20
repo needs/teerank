@@ -7,7 +7,13 @@ import {
   getLastPollMasterServerDate,
   getLastArchiveSnapshotsDate,
   getArchiveSnapshotsFailedCount,
+  getRollupDayFailedCount,
+  getRollupBackfillFailedCount,
   SNAPSHOT_RETENTION_HOURS,
+  DAY_MS,
+  addUtcDays,
+  formatUtcDay,
+  utcYesterday,
 } from '@teerank/teerank';
 import prisma from '../../utils/prisma';
 import {
@@ -37,6 +43,10 @@ export default async function Index() {
     lastMapCountDate,
     lastArchiveSnapshotsDate,
     archiveSnapshotsFailedCount,
+    rollupBounds,
+    rollupDays,
+    rollupDayFailedCount,
+    rollupBackfillFailedCount,
     oldestSnapshot,
     masterServers,
     unreferencedGameServersCount,
@@ -49,6 +59,15 @@ export default async function Index() {
     getLastMapCountDate(),
     getLastArchiveSnapshotsDate(),
     getArchiveSnapshotsFailedCount(),
+    prisma.playerDay.aggregate({
+      _min: { day: true },
+      _max: { day: true },
+    }),
+    prisma.playerDay.groupBy({
+      by: ['day'],
+    }),
+    getRollupDayFailedCount(),
+    getRollupBackfillFailedCount(),
     prisma.gameServerSnapshot.findFirst({
       orderBy: {
         id: 'asc',
@@ -127,6 +146,27 @@ export default async function Index() {
     oldestSnapshot !== null && oldestSnapshot.createdAt < retentionCutoff
       ? formatDistanceStrict(oldestSnapshot.createdAt, retentionCutoff)
       : null;
+
+  const latestRollupDay = rollupBounds._max.day;
+  const oldestRollupDay = rollupBounds._min.day;
+  const yesterday = utcYesterday();
+
+  // The rollup for a new day lands within the scheduler's first hourly tick;
+  // give it until 02:00 UTC before flagging it late.
+  const rollupOnTime =
+    latestRollupDay !== null &&
+    (latestRollupDay.getTime() === yesterday.getTime() ||
+      (new Date().getUTCHours() < 2 &&
+        latestRollupDay.getTime() === addUtcDays(yesterday, -1).getTime()));
+
+  const missingRollupDays =
+    latestRollupDay === null || oldestRollupDay === null
+      ? 0
+      : Math.round((latestRollupDay.getTime() - oldestRollupDay.getTime()) / DAY_MS) +
+        1 -
+        rollupDays.length;
+
+  const rollupFailedCount = rollupDayFailedCount + rollupBackfillFailedCount;
 
   return (
     <main className="py-12 px-4 md:px-12 xl:px-20 text-[#666] flex flex-col gap-4">
@@ -207,6 +247,58 @@ export default async function Index() {
               {archiveSnapshotsFailedCount}
             </span>
             {archiveSnapshotsFailedCount > 0 && (
+              <span className="font-bold text-[#b05656] px-4">Failing</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <h1 className="text-2xl font-bold clear-both">Rollup</h1>
+      <div className="flex flex-col divide-y">
+        <div className="flex flex-row items-center p-2">
+          <span className="grow px-4">Latest day</span>
+          <div className="flex flex-row divide-x">
+            <span className="text-sm text-[#aaa] px-4">
+              {latestRollupDay === null ? 'None' : formatUtcDay(latestRollupDay)}
+            </span>
+            {rollupOnTime ? (
+              <span className="font-bold text-[#5a8d39] px-4">OK</span>
+            ) : (
+              <span className="font-bold text-[#b05656] px-4">Late</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-row items-center p-2">
+          <span className="grow px-4">Oldest day</span>
+          <div className="flex flex-row divide-x">
+            <span className="text-sm text-[#aaa] px-4">
+              {oldestRollupDay === null ? 'None' : formatUtcDay(oldestRollupDay)}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-row items-center p-2">
+          <span className="grow px-4">Backfill gap</span>
+          <div className="flex flex-row divide-x">
+            {missingRollupDays > 0 && (
+              <span className="text-sm text-[#aaa] px-4">
+                {missingRollupDays} days missing
+              </span>
+            )}
+            {missingRollupDays === 0 ? (
+              <span className="font-bold text-[#5a8d39] px-4">Complete</span>
+            ) : (
+              <span className="font-bold text-[#970] px-4">Filling</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-row items-center p-2">
+          <span className="grow px-4">Failed jobs</span>
+          <div className="flex flex-row divide-x">
+            <span className="text-sm text-[#aaa] px-4">{rollupFailedCount}</span>
+            {rollupFailedCount > 0 && (
               <span className="font-bold text-[#b05656] px-4">Failing</span>
             )}
           </div>

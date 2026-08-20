@@ -51,3 +51,7 @@ export async function cleanRollupBackfillQueue() {
     force: true,
   });
 }
+
+export async function getRollupBackfillFailedCount() {
+  return getQueueRollupBackfill().getFailedCount();
+}

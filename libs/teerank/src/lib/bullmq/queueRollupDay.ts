@@ -51,3 +51,7 @@ export async function cleanRollupDayQueue() {
     force: true,
   });
 }
+
+export async function getRollupDayFailedCount() {
+  return getQueueRollupDay().getFailedCount();
+}

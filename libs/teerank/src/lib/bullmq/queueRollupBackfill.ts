@@ -1,8 +1,6 @@
 import { Job, Queue, Worker } from "bullmq";
 import { bullmqConnection } from "./config";
-import { z } from "zod";
 import { hoursToSeconds } from "date-fns";
-import { utcDaySchema } from "../schemas";
 
 let rollupBackfillQueue: Queue | null = null;
 
@@ -13,25 +11,18 @@ function getQueueRollupBackfill() {
   return rollupBackfillQueue;
 }
 
-const schema = z.object({
-  day: utcDaySchema,
-});
-
-export type RollupBackfillJobData = z.infer<typeof schema>;
-
-export async function scheduleRollupBackfill(data: RollupBackfillJobData) {
+export async function scheduleRollupBackfill() {
   const queue = getQueueRollupBackfill();
-  await queue.add(`rollup-backfill-${data.day}`, data, {
+  await queue.add('rollup-backfill-scan', {}, {
     deduplication: {
-      id: `rollup-backfill-${data.day}`,
+      id: 'rollup-backfill-scan',
     }
   });
 }
 
-export async function processRollupBackfillJobs(processor: (data: RollupBackfillJobData) => Promise<void>) {
-  const jobProcessor = async (job: Job) => {
-    const data = schema.parse(job.data);
-    await processor(data);
+export async function processRollupBackfillJobs(processor: () => Promise<void>) {
+  const jobProcessor = async (_job: Job) => {
+    await processor();
   }
 
   return new Worker(QUEUE_NAME_ROLLUP_BACKFILL, jobProcessor, {

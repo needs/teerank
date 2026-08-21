@@ -4,7 +4,7 @@ import prisma from '../../../../../utils/prisma';
 import { LayoutTabs } from '../../LayoutTabs';
 import { paramsSchema } from './schema';
 import { encodeString } from '../../../../../utils/encoding';
-import { ActivityCalendarSection } from '../../../../../components/ActivityCalendarSection';
+import { ActivityHeader } from '../../../../../components/ActivityHeader';
 import { getMapActivity } from '../../../../../utils/activity';
 
 export default async function Index({
@@ -34,23 +34,21 @@ export default async function Index({
   return (
     <div className="flex flex-col gap-4 py-8">
       <header className="px-8 xl:px-20">
-        <div className="relative">
-          <ActivityCalendarSection
-            apiPath={`/api/gametype/${encodeString(gameTypeName)}/map/${encodeString(mapName)}/activity`}
-            initial={activity}
-          />
-          <div className="absolute inset-y-0 left-0 z-10 flex w-1/2 flex-col justify-center gap-2 bg-gradient-to-r from-white from-30% via-white/85 via-65% to-transparent">
-            <h1 className="text-2xl font-bold">{mapName}</h1>
-            <span>
-              <Link
-                className="hover:underline"
-                href={{ pathname: `/gametype/${encodeString(gameTypeName)}` }}
-              >
-                {gameTypeName}
-              </Link>
-            </span>
-          </div>
-        </div>
+        <ActivityHeader
+          apiPath={`/api/gametype/${encodeString(gameTypeName)}/map/${encodeString(mapName)}/activity`}
+          activity={activity}
+          contentClassName="flex-col justify-center gap-2"
+        >
+          <h1 className="text-2xl font-bold">{mapName}</h1>
+          <span>
+            <Link
+              className="hover:underline"
+              href={{ pathname: `/gametype/${encodeString(gameTypeName)}` }}
+            >
+              {gameTypeName}
+            </Link>
+          </span>
+        </ActivityHeader>
       </header>
 
       <LayoutTabs

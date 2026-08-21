@@ -8,7 +8,7 @@ import { LayoutTabs } from './LayoutTabs';
 import { LastSeen } from '../../../components/LastSeen';
 import { formatPlayTime } from '../../../utils/format';
 import { encodeString } from '../../../utils/encoding';
-import { ActivityCalendarSection } from '../../../components/ActivityCalendarSection';
+import { ActivityHeader } from '../../../components/ActivityHeader';
 import { getPlayerActivity } from '../../../utils/activity';
 
 export default async function Index({
@@ -74,43 +74,41 @@ export default async function Index({
   return (
     <main className="flex flex-col gap-8 py-12">
       <header className="px-8 xl:px-20">
-        <div className="relative">
-          <ActivityCalendarSection
-            apiPath={`/api/player/${encodeString(playerName)}/activity`}
-            initial={activity}
-          />
-          <div className="absolute inset-y-0 left-0 z-10 flex w-1/2 flex-row items-center gap-4 bg-gradient-to-r from-white from-30% via-white/85 via-65% to-transparent">
-            <Image src="/player.png" width={100} height={100} alt="Player" />
-            <section className="flex flex-col gap-2">
-              <h1 className="text-2xl font-bold">{player.name}</h1>
-              <div className="flex flex-row divide-x">
-                {player.clanName !== null && (
-                  <span className="pr-4">
-                    <Link
-                      className="hover:underline"
-                      href={{
-                        pathname: `/clan/${encodeString(player.clanName)}`,
-                      }}
-                    >
-                      {player.clanName}
-                    </Link>
-                  </span>
-                )}
-                <span className={player.clanName !== null ? 'px-4' : 'pr-4'}>
-                  Playtime: {formatPlayTime(player.playTime)}
+        <ActivityHeader
+          apiPath={`/api/player/${encodeString(playerName)}/activity`}
+          activity={activity}
+          contentClassName="flex-row items-center gap-4"
+        >
+          <Image src="/player.png" width={100} height={100} alt="Player" />
+          <section className="flex flex-col gap-2">
+            <h1 className="text-2xl font-bold">{player.name}</h1>
+            <div className="flex flex-row divide-x">
+              {player.clanName !== null && (
+                <span className="pr-4">
+                  <Link
+                    className="hover:underline"
+                    href={{
+                      pathname: `/clan/${encodeString(player.clanName)}`,
+                    }}
+                  >
+                    {player.clanName}
+                  </Link>
                 </span>
-                <span className="px-4">
-                  <LastSeen
-                    gameServers={player.gameServerStateClients
-                      .map((client) => client.gameServerState.gameServer)
-                      .filter((gameServer) => gameServer !== null)}
-                    lastSeenAt={player.lastSeenAt}
-                  />
-                </span>
-              </div>
-            </section>
-          </div>
-        </div>
+              )}
+              <span className={player.clanName !== null ? 'px-4' : 'pr-4'}>
+                Playtime: {formatPlayTime(player.playTime)}
+              </span>
+              <span className="px-4">
+                <LastSeen
+                  gameServers={player.gameServerStateClients
+                    .map((client) => client.gameServerState.gameServer)
+                    .filter((gameServer) => gameServer !== null)}
+                  lastSeenAt={player.lastSeenAt}
+                />
+              </span>
+            </div>
+          </section>
+        </ActivityHeader>
       </header>
 
       <LayoutTabs

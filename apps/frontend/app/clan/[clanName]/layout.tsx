@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { formatPlayTime } from '../../../utils/format';
 import { encodeString } from '../../../utils/encoding';
 import { ClanPlayerCount } from './ClanPlayerCount';
-import { ActivityCalendarSection } from '../../../components/ActivityCalendarSection';
+import { ActivityHeader } from '../../../components/ActivityHeader';
 import { getClanActivity } from '../../../utils/activity';
 
 export default async function Index({
@@ -58,26 +58,24 @@ export default async function Index({
   return (
     <main className="flex flex-col gap-8 py-12">
       <header className="px-8 xl:px-20">
-        <div className="relative">
-          <ActivityCalendarSection
-            apiPath={`/api/clan/${encodeString(clanName)}/activity`}
-            initial={activity}
-          />
-          <div className="absolute inset-y-0 left-0 z-10 flex w-1/2 flex-col justify-center gap-2 bg-gradient-to-r from-white from-30% via-white/85 via-65% to-transparent">
-            <h1 className="text-2xl font-bold">{clan.name}</h1>
-            <div className="flex flex-row divide-x">
-              <span className="pr-4">
-                <ClanPlayerCount
-                  activeCount={clan.activePlayerCount}
-                  totalCount={clan._count.clanPlayerInfos}
-                />
-              </span>
-              <span className="px-4">
-                Playtime: {formatPlayTime(clan.playTime)}
-              </span>
-            </div>
+        <ActivityHeader
+          apiPath={`/api/clan/${encodeString(clanName)}/activity`}
+          activity={activity}
+          contentClassName="flex-col justify-center gap-2"
+        >
+          <h1 className="text-2xl font-bold">{clan.name}</h1>
+          <div className="flex flex-row divide-x">
+            <span className="pr-4">
+              <ClanPlayerCount
+                activeCount={clan.activePlayerCount}
+                totalCount={clan._count.clanPlayerInfos}
+              />
+            </span>
+            <span className="px-4">
+              Playtime: {formatPlayTime(clan.playTime)}
+            </span>
           </div>
-        </div>
+        </ActivityHeader>
       </header>
 
       <LayoutTabs

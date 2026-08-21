@@ -1,21 +1,62 @@
 import { GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { hoursToMilliseconds } from "date-fns";
 import {
-  RollupBackfillJobData,
   S3_BUCKET,
   SNAPSHOT_RETENTION_HOURS,
   addUtcDays,
+  formatUtcDay,
   getEnvInt,
   getS3Client,
   parseUtcDay,
   processRollupBackfillJobs,
 } from "@teerank/teerank";
+import { prisma } from "../prisma";
 import { SnapshotArchiveRow, decodeSnapshotRowsFromParquet } from "../parquet";
 import { DayAggregator, RollupSnapshot } from "../rollup/aggregateDay";
 import { writeDayRollup } from "../rollup/writeDayRollup";
-import { isDayRolledUp } from "./rollupDay";
 
 const ROLLUP_TIME_BUDGET_MS = getEnvInt('ROLLUP_TIME_BUDGET_MS', 10 * 60 * 1000);
+const ROLLUP_BACKFILL_DAYS_PER_TICK = getEnvInt('ROLLUP_BACKFILL_DAYS_PER_TICK', 4);
+
+async function listArchivedDays() {
+  const s3 = getS3Client();
+  const days: string[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const result = await s3.send(new ListObjectsV2Command({
+      Bucket: S3_BUCKET,
+      Prefix: 'snapshots/',
+      Delimiter: '/',
+      ContinuationToken: continuationToken,
+    }));
+
+    for (const prefix of result.CommonPrefixes ?? []) {
+      const match = prefix.Prefix?.match(/dt=(\d{4}-\d{2}-\d{2})\/$/);
+      if (match !== null && match !== undefined) {
+        days.push(match[1]);
+      }
+    }
+
+    continuationToken = result.NextContinuationToken;
+  } while (continuationToken !== undefined);
+
+  return days.sort();
+}
+
+async function listMissingArchivedDays() {
+  const days = (await listArchivedDays()).slice(0, -1).filter((day) => {
+    const dayEndMs = addUtcDays(parseUtcDay(day), 1).getTime();
+    return dayEndMs + hoursToMilliseconds(SNAPSHOT_RETENTION_HOURS) <= Date.now();
+  });
+
+  const rolledUpDays = await prisma.playerDay.groupBy({
+    by: ['day'],
+  });
+  const rolledUp = new Set(rolledUpDays.map(({ day }) => formatUtcDay(day)));
+
+  return days.filter((day) => !rolledUp.has(day));
+}
 
 async function listDayObjectKeys(day: string) {
   const s3 = getS3Client();
@@ -79,27 +120,15 @@ function addArchiveRows(aggregator: DayAggregator, rows: SnapshotArchiveRow[], d
   }
 }
 
-export async function rollupBackfill(data: RollupBackfillJobData) {
+async function backfillDay(dayLabel: string) {
   const startedAt = Date.now();
-  const day = parseUtcDay(data.day);
+  const day = parseUtcDay(dayLabel);
   const dayEnd = addUtcDays(day, 1);
 
-  // The archive only holds all of a day's snapshots once the retention window
-  // has moved past the day's end.
-  if (dayEnd.getTime() + hoursToMilliseconds(SNAPSHOT_RETENTION_HOURS) > Date.now()) {
-    console.log(`Backfill for ${data.day} skipped: day may not be fully archived`);
-    return;
-  }
-
-  if (await isDayRolledUp(day)) {
-    console.log(`Backfill for ${data.day} skipped: already rolled up`);
-    return;
-  }
-
-  const keys = await listDayObjectKeys(data.day);
+  const keys = await listDayObjectKeys(dayLabel);
 
   if (keys.length === 0) {
-    console.log(`Backfill for ${data.day} skipped: no archive objects`);
+    console.log(`Backfill for ${dayLabel} skipped: no archive objects`);
     return;
   }
 
@@ -108,7 +137,7 @@ export async function rollupBackfill(data: RollupBackfillJobData) {
 
   for (const key of keys) {
     if (Date.now() - startedAt > ROLLUP_TIME_BUDGET_MS) {
-      throw new Error(`Backfill for ${data.day} exceeded time budget, nothing written`);
+      throw new Error(`Backfill for ${dayLabel} exceeded time budget, nothing written`);
     }
 
     const object = await s3.send(new GetObjectCommand({ Bucket: S3_BUCKET, Key: key }));
@@ -122,6 +151,14 @@ export async function rollupBackfill(data: RollupBackfillJobData) {
   }
 
   await writeDayRollup(day, aggregator.finalize());
+}
+
+export async function rollupBackfill() {
+  const missing = await listMissingArchivedDays();
+
+  for (const day of missing.slice(0, ROLLUP_BACKFILL_DAYS_PER_TICK)) {
+    await backfillDay(day);
+  }
 }
 
 export async function startRollupBackfillWorker() {

@@ -17,13 +17,15 @@ const PRESET_DAYS: Record<string, number> = {
   '1y': 365,
 };
 
+export const CACHE_SECONDS = 3600;
+
 export const getDailyPlayers = unstable_cache(
   async (range: string): Promise<DailyPlayersPayload> => {
     const to = utcYesterday();
     let from: Date;
 
     if (range === 'all') {
-      const result = await prisma.playerDay.aggregate({ _min: { day: true } });
+      const result = await prisma.globalDay.aggregate({ _min: { day: true } });
       const minFrom = addUtcDays(to, -(MAX_SPAN_DAYS - 1));
       const minDay = result._min.day;
       from = minDay === null || minDay > to ? to : minDay < minFrom ? minFrom : minDay;
@@ -32,10 +34,9 @@ export const getDailyPlayers = unstable_cache(
       from = addUtcDays(to, -(PRESET_DAYS[range] - 1));
     }
 
-    const rows = await prisma.playerDay.groupBy({
-      by: ['day'],
-      where: { day: { gte: from } },
-      _count: { _all: true },
+    const rows = await prisma.globalDay.findMany({
+      where: { day: { gte: from, lte: to } },
+      select: { day: true, playerCount: true },
       orderBy: { day: 'asc' },
     });
 
@@ -43,9 +44,12 @@ export const getDailyPlayers = unstable_cache(
       range,
       from: formatUtcDay(from),
       to: formatUtcDay(to),
-      days: rows.map(({ day, _count }) => ({ day: formatUtcDay(day), players: _count._all })),
+      days: rows.map(({ day, playerCount }) => ({
+        day: formatUtcDay(day),
+        players: playerCount,
+      })),
     };
   },
   ['home-daily-players'],
-  { revalidate: 3600 }
+  { revalidate: CACHE_SECONDS }
 );

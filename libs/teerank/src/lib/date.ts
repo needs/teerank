@@ -22,6 +22,10 @@ export function utcYesterday() {
   return addUtcDays(startOfUtcDay(new Date()), -1);
 }
 
+export function localizeUtcDay(date: Date) {
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
 export function eachUtcDay(from: Date, to: Date) {
   const count = Math.round((to.getTime() - from.getTime()) / DAY_MS) + 1;
 

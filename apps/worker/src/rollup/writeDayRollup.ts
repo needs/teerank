@@ -128,6 +128,12 @@ export async function writeDayRollup(day: Date, rollup: DayRollup) {
 
   await prisma.$transaction(
     async (tx) => {
+      await tx.globalDay.upsert({
+        where: { day },
+        create: { day, playerCount: playerRows.length },
+        update: { playerCount: playerRows.length },
+      });
+
       await tx.playerDay.deleteMany({ where: { day } });
       await tx.serverDay.deleteMany({ where: { day } });
       await tx.mapDay.deleteMany({ where: { day } });

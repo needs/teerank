@@ -44,7 +44,7 @@ export default async function Index() {
     lastArchiveSnapshotsDate,
     archiveSnapshotsFailedCount,
     rollupBounds,
-    rollupDays,
+    rollupDayCount,
     rollupDayFailedCount,
     rollupBackfillFailedCount,
     oldestSnapshot,
@@ -59,13 +59,11 @@ export default async function Index() {
     getLastMapCountDate(),
     getLastArchiveSnapshotsDate(),
     getArchiveSnapshotsFailedCount(),
-    prisma.playerDay.aggregate({
+    prisma.globalDay.aggregate({
       _min: { day: true },
       _max: { day: true },
     }),
-    prisma.playerDay.groupBy({
-      by: ['day'],
-    }),
+    prisma.globalDay.count(),
     getRollupDayFailedCount(),
     getRollupBackfillFailedCount(),
     prisma.gameServerSnapshot.findFirst({
@@ -164,7 +162,7 @@ export default async function Index() {
       ? 0
       : Math.round((latestRollupDay.getTime() - oldestRollupDay.getTime()) / DAY_MS) +
         1 -
-        rollupDays.length;
+        rollupDayCount;
 
   const rollupFailedCount = rollupDayFailedCount + rollupBackfillFailedCount;
 

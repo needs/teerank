@@ -50,8 +50,8 @@ async function listMissingArchivedDays() {
     return dayEndMs + hoursToMilliseconds(SNAPSHOT_RETENTION_HOURS) <= Date.now();
   });
 
-  const rolledUpDays = await prisma.playerDay.groupBy({
-    by: ['day'],
+  const rolledUpDays = await prisma.globalDay.findMany({
+    select: { day: true },
   });
   const rolledUp = new Set(rolledUpDays.map(({ day }) => formatUtcDay(day)));
 

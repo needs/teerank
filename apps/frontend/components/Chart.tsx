@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { DAY_MS, localizeUtcDay } from '@teerank/teerank/date';
 import { formatInteger } from '../utils/format';
 
 export type ChartPoint = {
@@ -14,6 +15,22 @@ const HEIGHT = 260;
 const MARGIN = { top: 12, right: 12, bottom: 32, left: 90 };
 const INNER_WIDTH = WIDTH - MARGIN.left - MARGIN.right;
 const INNER_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;
+
+function axisDatePattern(dates: Date[]) {
+  const span = (dates[dates.length - 1].getTime() - dates[0].getTime()) / DAY_MS;
+
+  if (span > 366) {
+    return 'MMM yyyy';
+  }
+
+  return dates[0].getUTCFullYear() === dates[dates.length - 1].getUTCFullYear()
+    ? 'MMM d'
+    : 'MMM d, yyyy';
+}
+
+function formatUtcDate(date: Date, pattern: string) {
+  return format(localizeUtcDay(date), pattern);
+}
 
 function niceCeiling(value: number) {
   if (value <= 0) {
@@ -120,8 +137,8 @@ function EmptyChart({ label }: { label: string }) {
 
 export function BarChart({
   points,
-  formatDate = (date) => format(date, 'MMM d'),
-  formatTooltipDate = formatDate,
+  formatDate,
+  formatTooltipDate,
   formatValue = formatInteger,
   emptyLabel = 'No data yet',
   fontSize = 14,
@@ -151,6 +168,11 @@ export function BarChart({
     return <EmptyChart label={emptyLabel} />;
   }
 
+  const dates = points.map((point) => point.date);
+  const axisDate = formatDate ?? ((date: Date) => formatUtcDate(date, axisDatePattern(dates)));
+  const tooltipDate =
+    formatTooltipDate ?? ((date: Date) => formatUtcDate(date, 'MMM d, yyyy'));
+
   const max = niceCeiling(Math.max(...values));
   const scaleY = (value: number) => MARGIN.top + INNER_HEIGHT * (1 - value / max);
   const barWidth = (INNER_WIDTH / points.length) * 0.7;
@@ -164,7 +186,7 @@ export function BarChart({
         role="img"
       >
         <YAxis ticks={[0, max / 2, max]} scaleY={scaleY} formatValue={formatValue} fontSize={fontSize} />
-        <XAxis dates={points.map((point) => point.date)} formatDate={formatDate} fontSize={fontSize} />
+        <XAxis dates={dates} formatDate={axisDate} fontSize={fontSize} />
 
         {points.map((point, index) =>
           point.value === null ? null : (
@@ -179,7 +201,7 @@ export function BarChart({
               strokeWidth="1"
               className="stroke-transparent transition-[fill-opacity] hover:[fill-opacity:1] hover:stroke-[#00000059]"
               onMouseEnter={(event) =>
-                showTooltip(event, `${formatValue(point.value as number)} on ${formatTooltipDate(point.date)}`)
+                showTooltip(event, `${formatValue(point.value as number)} on ${tooltipDate(point.date)}`)
               }
               onMouseLeave={hideTooltip}
             />

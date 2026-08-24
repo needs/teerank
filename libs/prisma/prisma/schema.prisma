@@ -325,6 +325,11 @@ model GlobalCounts {
 // tables are partitioned by range on day/hour (see the migration); every
 // primary key leads with the partition key.
 
+model GlobalDay {
+  day         DateTime @id @db.Date
+  playerCount Int
+}
+
 model PlayerDay {
   day      DateTime @db.Date
   playerId Int

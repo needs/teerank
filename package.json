@@ -64,7 +64,6 @@
     "@aws-sdk/client-s3": "^3.1106.0",
     "@fastify/autoload": "~5.7.1",
     "@fastify/sensible": "~5.2.0",
-    "@next/third-parties": "^14.1.0",
     "@prisma/client": "^5.22.0",
     "@sentry/nextjs": "^7.107.0",
     "@sentry/node": "^7.120.2",

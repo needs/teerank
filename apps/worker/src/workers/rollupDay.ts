@@ -14,9 +14,9 @@ const ROLLUP_BATCH_SIZE = getEnvInt('ROLLUP_BATCH_SIZE', 2000);
 const ROLLUP_TIME_BUDGET_MS = getEnvInt('ROLLUP_TIME_BUDGET_MS', 10 * 60 * 1000);
 
 export async function isDayRolledUp(day: Date) {
-  const existing = await prisma.playerDay.findFirst({
+  const existing = await prisma.globalDay.findUnique({
     where: { day },
-    select: { playerId: true },
+    select: { day: true },
   });
 
   return existing !== null;

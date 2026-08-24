@@ -127,7 +127,7 @@ describe('rollupDay', () => {
   };
 
   test('skips a day that is already rolled up', async () => {
-    prismaMock.playerDay.findFirst.mockResolvedValue({ playerId: 1 } as never);
+    prismaMock.globalDay.findUnique.mockResolvedValue({ day } as never);
 
     await rollupDay({ day: '2026-08-19' });
 
@@ -140,12 +140,12 @@ describe('rollupDay', () => {
 
     await rollupDay({ day: today });
 
-    expect(prismaMock.playerDay.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.globalDay.findUnique).not.toHaveBeenCalled();
     expect(prismaMock.gameServerSnapshot.findMany).not.toHaveBeenCalled();
   });
 
   test('aggregates a day and writes all five tables', async () => {
-    prismaMock.playerDay.findFirst.mockResolvedValue(null);
+    prismaMock.globalDay.findUnique.mockResolvedValue(null);
     prismaMock.gameServerSnapshot.findMany.mockResolvedValue([
       {
         id: 1,
@@ -161,6 +161,11 @@ describe('rollupDay', () => {
 
     await rollupDay({ day: '2026-08-19' });
 
+    expect(prismaMock.globalDay.upsert).toHaveBeenCalledWith({
+      where: { day },
+      create: { day, playerCount: 1 },
+      update: { playerCount: 1 },
+    });
     expect(prismaMock.playerDay.deleteMany).toHaveBeenCalledWith({ where: { day } });
     expect(prismaMock.serverDay.deleteMany).toHaveBeenCalledWith({ where: { day } });
 
@@ -182,7 +187,7 @@ describe('rollupDay', () => {
   });
 
   test('players that no longer exist are dropped', async () => {
-    prismaMock.playerDay.findFirst.mockResolvedValue(null);
+    prismaMock.globalDay.findUnique.mockResolvedValue(null);
     prismaMock.gameServerSnapshot.findMany.mockResolvedValue([
       {
         id: 1,

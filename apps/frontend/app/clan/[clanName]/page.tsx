@@ -6,7 +6,6 @@ import { PlayerList } from '../../../components/PlayerList';
 import { searchParamPageSchema } from '../../../utils/page';
 import { Metadata } from 'next';
 import { encodeString } from '../../../utils/encoding';
-import Link from 'next/link';
 import { STUB_MIN_POLL_COUNT, STUB_OCCURRENCE_RATIO } from '@teerank/teerank';
 import {
   countClanPlayersWithoutShared,

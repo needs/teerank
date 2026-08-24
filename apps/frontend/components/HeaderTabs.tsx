@@ -217,7 +217,8 @@ export function HeaderTabs({
           label="Player"
           pathname={`/player/${encodeString(playerName)}`}
           extraPathnames={[
-            `/player/${encodeString(playerName)}/maps`,
+            `/player/${encodeString(playerName)}/teammates`,
+            `/player/${encodeString(playerName)}/activity`,
             `/player/${encodeString(playerName)}/clans`,
           ]}
         />

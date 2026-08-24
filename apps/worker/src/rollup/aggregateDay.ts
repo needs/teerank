@@ -1,7 +1,10 @@
 import { millisecondsInHour } from "date-fns";
+import { getEnvInt } from "@teerank/teerank";
 import { removeDuplicatedClients } from "../utils";
 
 export const OBSERVATION_SECONDS = 5 * 60;
+
+export const PARTNER_DAY_THRESHOLD_SECONDS = getEnvInt('PARTNER_DAY_THRESHOLD_SECONDS', 3600);
 
 export type RollupSnapshot = {
   createdAt: Date;
@@ -17,11 +20,17 @@ export type RollupSnapshot = {
 };
 
 export type DayRollup = {
-  players: { playerName: string; playTime: number }[];
+  players: {
+    playerName: string;
+    playTime: number;
+    pollCount: number;
+    occurrenceCount: number;
+  }[];
   serverDays: { gameServerId: number; avgClients: number; maxClients: number }[];
   maps: { mapId: number; playTime: number; playerCount: number }[];
   gameTypes: { gameTypeName: string; playTime: number; playerCount: number }[];
   clans: { clanName: string; playTime: number; playerCount: number }[];
+  partners: { playerName: string; partnerName: string; playTime: number }[];
 };
 
 type ServerHourAggregate = {
@@ -34,6 +43,12 @@ type ServerHourAggregate = {
 type PresenceAggregate = {
   playTime: number;
   players: Set<string>;
+};
+
+type PlayerAggregate = {
+  playTime: number;
+  occurrenceCount: number;
+  polls: Set<number>;
 };
 
 function getOrCreate<K, V>(map: Map<K, V>, key: K, create: () => V): V {
@@ -51,12 +66,19 @@ function newPresence(): PresenceAggregate {
   return { playTime: 0, players: new Set() };
 }
 
+function newPlayerAggregate(): PlayerAggregate {
+  return { playTime: 0, occurrenceCount: 0, polls: new Set() };
+}
+
 export class DayAggregator {
-  private players = new Map<string, number>();
+  private players = new Map<string, PlayerAggregate>();
   private serverHours = new Map<string, ServerHourAggregate>();
   private maps = new Map<number, PresenceAggregate>();
   private gameTypes = new Map<string, PresenceAggregate>();
   private clans = new Map<string, PresenceAggregate>();
+  private partners = new Map<string, number>();
+
+  constructor(private partnerThresholdSeconds = PARTNER_DAY_THRESHOLD_SECONDS) {}
 
   addSnapshot(snapshot: RollupSnapshot) {
     const clients = removeDuplicatedClients(snapshot.clients);
@@ -84,10 +106,18 @@ export class DayAggregator {
     map.playTime += inGameCount * OBSERVATION_SECONDS;
     gameType.playTime += inGameCount * OBSERVATION_SECONDS;
 
+    // Snapshots taken in the same observation window count as one poll, so a
+    // name on several servers at once has more occurrences than polls.
+    const poll = Math.floor(snapshot.createdAt.getTime() / (OBSERVATION_SECONDS * 1000));
+
     for (const client of clients) {
       const playTime = client.inGame ? OBSERVATION_SECONDS : 0;
 
-      this.players.set(client.playerName, (this.players.get(client.playerName) ?? 0) + playTime);
+      const player = getOrCreate(this.players, client.playerName, newPlayerAggregate);
+      player.playTime += playTime;
+      player.occurrenceCount += 1;
+      player.polls.add(poll);
+
       map.players.add(client.playerName);
       gameType.players.add(client.playerName);
 
@@ -95,6 +125,18 @@ export class DayAggregator {
         const clan = getOrCreate(this.clans, client.clanName, newPresence);
         clan.playTime += playTime;
         clan.players.add(client.playerName);
+      }
+    }
+
+    const inGameNames = clients
+      .filter((client) => client.inGame)
+      .map((client) => client.playerName)
+      .sort();
+
+    for (let i = 0; i < inGameNames.length; i++) {
+      for (let j = i + 1; j < inGameNames.length; j++) {
+        const key = `${inGameNames[i]}\0${inGameNames[j]}`;
+        this.partners.set(key, (this.partners.get(key) ?? 0) + OBSERVATION_SECONDS);
       }
     }
   }
@@ -117,9 +159,11 @@ export class DayAggregator {
     }
 
     return {
-      players: [...this.players.entries()].map(([playerName, playTime]) => ({
+      players: [...this.players.entries()].map(([playerName, aggregate]) => ({
         playerName,
-        playTime,
+        playTime: aggregate.playTime,
+        pollCount: aggregate.polls.size,
+        occurrenceCount: aggregate.occurrenceCount,
       })),
 
       serverDays: [...serverDays.entries()].map(([gameServerId, aggregate]) => ({
@@ -148,6 +192,13 @@ export class DayAggregator {
         playTime: aggregate.playTime,
         playerCount: aggregate.players.size,
       })),
+
+      partners: [...this.partners.entries()]
+        .filter(([, playTime]) => playTime >= this.partnerThresholdSeconds)
+        .map(([key, playTime]) => {
+          const [playerName, partnerName] = key.split('\0');
+          return { playerName, partnerName, playTime };
+        }),
     };
   }
 }

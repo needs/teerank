@@ -100,6 +100,9 @@ model Player {
 
   playTime BigInt @default(0)
 
+  pollCount       Int @default(0)
+  occurrenceCount Int @default(0)
+
   gameServerClients      GameServerClient[]
   gameServerStateClients GameServerStateClient[]
   clanPlayerInfos        ClanPlayerInfo[]
@@ -211,6 +214,7 @@ model GameServerClient {
   inGame  Boolean
 
   @@index([snapshotId])
+  @@index([playerName, id])
 }
 
 model GameServerSnapshot {
@@ -373,4 +377,13 @@ model ClanDay {
   playerCount Int      @db.SmallInt
 
   @@id([clanId, day])
+}
+
+model PlayerPartner {
+  playerId     Int
+  partnerId    Int
+  playTime     Int      // seconds
+  lastPlayedAt DateTime @db.Date
+
+  @@id([playerId, partnerId])
 }

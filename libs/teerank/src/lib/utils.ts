@@ -20,3 +20,8 @@ export function getEnvInt(key: string, defaultValue: number) {
   const value = getEnv(key, defaultValue.toString());
   return Number(value);
 }
+
+export function getEnvFloat(key: string, defaultValue: number) {
+  const value = getEnv(key, defaultValue.toString());
+  return Number(value);
+}

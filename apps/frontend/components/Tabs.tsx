@@ -18,7 +18,7 @@ export function Tab({
   href,
 }: {
   label: string;
-  count: number;
+  count?: number;
   isActive: boolean;
   href: UrlObject;
 }) {
@@ -32,9 +32,11 @@ export function Tab({
   const content = (
     <>
       <span className="text-xl font-bold px-4">{label}</span>
-      <span className="text-[#999] text-lg px-4 hidden lg:block border-l">
-        {formatInteger(count)}
-      </span>
+      {count !== undefined && (
+        <span className="text-[#999] text-lg px-4 hidden lg:block border-l">
+          {formatInteger(count)}
+        </span>
+      )}
     </>
   );
 

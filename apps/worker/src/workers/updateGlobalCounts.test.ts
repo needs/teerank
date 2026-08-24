@@ -12,6 +12,8 @@ const mockPlayer: Player = {
   lastSeenAt: new Date(),
   clanName: "test",
   playTime: BigInt(1),
+  pollCount: 0,
+  occurrenceCount: 0,
 }
 
 const mockClan: Clan = {

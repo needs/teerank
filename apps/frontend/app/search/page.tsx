@@ -3,6 +3,7 @@ import { LayoutTabs } from './LayoutTabs';
 import { Error } from './SearchError';
 import { PlayerList } from '../../components/PlayerList';
 import { search } from '../../utils/search';
+import { sharedHiddenParam } from '../../utils/shared';
 
 export const metadata = {
   title: 'Search - Players',
@@ -23,7 +24,9 @@ export default async function Index({
     return <Error message="Please enter at least 2 characters." />;
   }
 
-  const { players, clans, gameServers } = await search(query);
+  const { players, clans, gameServers } = await search(query, {
+    includeShared: !sharedHiddenParam(searchParams),
+  });
 
   return (
     <LayoutTabs query={query} selectedTab="players" playerCount={players.length} clanCount={clans.length} gameServerCount={gameServers.length}>
@@ -38,6 +41,8 @@ export default async function Index({
           rating: undefined,
           playTime: BigInt(player.playTime),
           lastSeenAt: player.lastSeenAt,
+          pollCount: player.pollCount,
+          occurrenceCount: player.occurrenceCount,
           gameServers: player.servers,
         }))}
       />

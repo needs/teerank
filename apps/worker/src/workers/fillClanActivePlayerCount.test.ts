@@ -26,6 +26,8 @@ describe('fillClanActivePlayerCount', () => {
           playTime: BigInt(0),
           clanName: 'clan1',
           lastSeenAt: new Date(),
+          pollCount: 0,
+          occurrenceCount: 0,
 
           _count: { id: 101 },
           _avg: { id: 101 },
@@ -57,6 +59,8 @@ describe('fillClanActivePlayerCount', () => {
           playTime: BigInt(0),
           clanName: 'clan1',
           lastSeenAt: new Date(),
+          pollCount: 0,
+          occurrenceCount: 0,
 
           _count: { id: 1 },
           _avg: { id: 1 },
@@ -99,6 +103,8 @@ describe('fillClanActivePlayerCount', () => {
           playTime: BigInt(0),
           clanName: 'clan2',
           lastSeenAt: new Date(),
+          pollCount: 0,
+          occurrenceCount: 0,
 
           _count: { id: 1 },
           _avg: { id: 1 },

@@ -1,8 +1,12 @@
 import { RankMethod } from '@prisma/client';
+import { Fragment, Suspense } from 'react';
+import Link from 'next/link';
+import { twMerge } from 'tailwind-merge';
 import { formatInteger, formatPlayTime } from '../utils/format';
 import { List, ListCell } from './List';
 import { LastSeen } from './LastSeen';
-import { Fragment } from 'react';
+import { SharedRatio } from './SharedRatio';
+import { EyeToggle } from './EyeToggle';
 import { encodeString } from '../utils/encoding';
 
 export function PlayerList({
@@ -10,6 +14,7 @@ export function PlayerList({
   rankMethod,
   playerCount,
   showLastSeen,
+  showInactiveToggle,
 }: {
   players: {
     rank: number;
@@ -19,6 +24,8 @@ export function PlayerList({
     rating?: number;
     playTime: bigint;
     lastSeenAt: Date;
+    pollCount: number;
+    occurrenceCount: number;
     gameServers: {
       ip: string;
       port: number;
@@ -27,14 +34,39 @@ export function PlayerList({
   rankMethod: RankMethod | null;
   playerCount?: number;
   showLastSeen?: boolean;
+  showInactiveToggle?: boolean;
 }) {
-  const columns = [
+  const columns: { title: React.ReactNode; expand: boolean }[] = [
     {
       title: '',
       expand: false,
     },
     {
-      title: 'Name',
+      title: (
+        <>
+          Name
+          <Suspense>
+            <EyeToggle
+              label="shared"
+              title="shared names"
+              param="shared"
+              value="hidden"
+              visibleWhenSet={false}
+              className="ml-3"
+            />
+            {showInactiveToggle && (
+              <EyeToggle
+                label="inactive"
+                title="past members"
+                param="past"
+                value="true"
+                visibleWhenSet={true}
+                className="ml-2"
+              />
+            )}
+          </Suspense>
+        </>
+      ),
       expand: true,
     },
     {
@@ -79,13 +111,24 @@ export function PlayerList({
         return (
         <Fragment key={player.name}>
           <ListCell alignRight label={formatInteger(player.rank)} className={rowClassName} />
-          <ListCell
-            label={player.isActiveClan === false ? `${player.name} (Past)` : player.name}
-            className={rowClassName}
-            href={{
-              pathname: `/player/${encodeString(player.name)}`,
-            }}
-          />
+          <span className={twMerge('truncate', rowClassName)}>
+            <Link
+              prefetch={false}
+              className="hover:underline"
+              href={{
+                pathname: `/player/${encodeString(player.name)}`,
+              }}
+            >
+              {player.isActiveClan === false
+                ? `${player.name} (Past)`
+                : player.name}
+            </Link>
+            <SharedRatio
+              pollCount={player.pollCount}
+              occurrenceCount={player.occurrenceCount}
+              className="ml-2"
+            />
+          </span>
           <ListCell
             label={player.clan ?? ''}
             className={rowClassName}
@@ -117,11 +160,19 @@ export function PlayerList({
               }
             />
           )}
-          <ListCell alignRight label={formatPlayTime(player.playTime)} className={rowClassName} />
+          <ListCell
+            alignRight
+            label={formatPlayTime(player.playTime)}
+            className={rowClassName}
+            href={{
+              pathname: `/player/${encodeString(player.name)}`,
+            }}
+          />
           {showLastSeen && (
             <LastSeen
               lastSeenAt={player.lastSeenAt}
               gameServers={player.gameServers}
+              playerName={player.name}
               className={rowClassName}
             />
           )}

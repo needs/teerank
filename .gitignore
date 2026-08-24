@@ -56,3 +56,6 @@ playground/*
 
 # Search index
 search-index.json
+
+# TypeScript incremental build info
+*.tsbuildinfo

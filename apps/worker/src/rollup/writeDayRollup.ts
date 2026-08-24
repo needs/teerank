@@ -1,6 +1,7 @@
 import { chunk } from "lodash";
 import { minutesToMilliseconds } from "date-fns";
-import { formatUtcDay } from "@teerank/teerank";
+import { formatUtcDay, isStubName } from "@teerank/teerank";
+import { incrementPlayerPollCounts, upsertPlayerPartners } from "@prisma/client/sql";
 import { prisma } from "../prisma";
 import { DayRollup } from "./aggregateDay";
 import { ensureRollupPartitions } from "./partitions";
@@ -26,14 +27,25 @@ async function lookupIds(
 export async function writeDayRollup(day: Date, rollup: DayRollup) {
   await ensureRollupPartitions(day);
 
+  const stubPlayerIds = new Set<number>();
+
   const [playerIds, clanIds, gameTypeIds] = await Promise.all([
     lookupIds(
       rollup.players.map((row) => row.playerName),
-      (names) =>
-        prisma.player.findMany({
+      async (names) => {
+        const players = await prisma.player.findMany({
           where: { name: { in: names } },
-          select: { name: true, id: true },
-        })
+          select: { name: true, id: true, pollCount: true, occurrenceCount: true },
+        });
+
+        for (const player of players) {
+          if (isStubName(player.pollCount, player.occurrenceCount)) {
+            stubPlayerIds.add(player.id);
+          }
+        }
+
+        return players;
+      }
     ),
     lookupIds(
       rollup.clans.map((row) => row.clanName),
@@ -57,20 +69,24 @@ export async function writeDayRollup(day: Date, rollup: DayRollup) {
   // rollup has no string columns to keep them under.
   let droppedRows = 0;
 
-  const playerRows = rollup.players.flatMap((row) => {
+  const playerRows: { day: Date; playerId: number; playTime: number }[] = [];
+  const pollCountRows: { playerId: number; pollCount: number; occurrenceCount: number }[] = [];
+
+  for (const row of rollup.players) {
     const playerId = playerIds.get(row.playerName);
 
     if (playerId === undefined) {
       droppedRows += 1;
-      return [];
+      continue;
     }
 
-    return {
-      day,
+    playerRows.push({ day, playerId, playTime: row.playTime });
+    pollCountRows.push({
       playerId,
-      playTime: row.playTime,
-    };
-  });
+      pollCount: row.pollCount,
+      occurrenceCount: row.occurrenceCount,
+    });
+  }
 
   const serverRows = rollup.serverDays.map((row) => ({
     day,
@@ -118,16 +134,41 @@ export async function writeDayRollup(day: Date, rollup: DayRollup) {
     };
   });
 
+  // A stub name is many people, so pairs involving one are meaningless.
+  const partnerRows = rollup.partners.flatMap((row) => {
+    const playerId = playerIds.get(row.playerName);
+    const partnerId = playerIds.get(row.partnerName);
+
+    if (playerId === undefined || partnerId === undefined) {
+      droppedRows += 1;
+      return [];
+    }
+
+    if (stubPlayerIds.has(playerId) || stubPlayerIds.has(partnerId)) {
+      return [];
+    }
+
+    return [
+      { playerId, partnerId, playTime: row.playTime },
+      { playerId: partnerId, partnerId: playerId, playTime: row.playTime },
+    ];
+  });
+
   // Inserting a day in key order keeps the btrees ~90% full instead of the
   // ~70% random inserts leave; the reverse indexes lead with the same id.
   playerRows.sort((a, b) => a.playerId - b.playerId);
+  pollCountRows.sort((a, b) => a.playerId - b.playerId);
   serverRows.sort((a, b) => a.gameServerId - b.gameServerId);
   mapRows.sort((a, b) => a.mapId - b.mapId);
   gameTypeRows.sort((a, b) => a.gameTypeId - b.gameTypeId);
   clanRows.sort((a, b) => a.clanId - b.clanId);
+  partnerRows.sort((a, b) => a.playerId - b.playerId || a.partnerId - b.partnerId);
 
   await prisma.$transaction(
     async (tx) => {
+      const alreadyRolledUp =
+        (await tx.globalDay.findUnique({ where: { day }, select: { day: true } })) !== null;
+
       await tx.globalDay.upsert({
         where: { day },
         create: { day, playerCount: playerRows.length },
@@ -155,6 +196,29 @@ export async function writeDayRollup(day: Date, rollup: DayRollup) {
       for (const rows of chunk(clanRows, INSERT_CHUNK_SIZE)) {
         await tx.clanDay.createMany({ data: rows });
       }
+
+      if (!alreadyRolledUp) {
+        for (const rows of chunk(partnerRows, INSERT_CHUNK_SIZE)) {
+          await tx.$queryRawTyped(
+            upsertPlayerPartners(
+              rows.map((row) => row.playerId),
+              rows.map((row) => row.partnerId),
+              rows.map((row) => row.playTime),
+              day
+            )
+          );
+        }
+
+        for (const rows of chunk(pollCountRows, INSERT_CHUNK_SIZE)) {
+          await tx.$queryRawTyped(
+            incrementPlayerPollCounts(
+              rows.map((row) => row.playerId),
+              rows.map((row) => row.pollCount),
+              rows.map((row) => row.occurrenceCount)
+            )
+          );
+        }
+      }
     },
     { timeout: minutesToMilliseconds(5), maxWait: minutesToMilliseconds(1) }
   );
@@ -163,7 +227,8 @@ export async function writeDayRollup(day: Date, rollup: DayRollup) {
   console.log(
     `Rolled up ${dayLabel}: ${playerRows.length} PlayerDay, ` +
       `${serverRows.length} ServerDay, ${mapRows.length} MapDay, ` +
-      `${gameTypeRows.length} GameTypeDay, ${clanRows.length} ClanDay` +
+      `${gameTypeRows.length} GameTypeDay, ${clanRows.length} ClanDay, ` +
+      `${partnerRows.length} PlayerPartner` +
       (droppedRows > 0 ? ` (${droppedRows} rows dropped: unresolved names)` : '')
   );
 }

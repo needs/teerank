@@ -5,7 +5,7 @@ import { Pagination } from './Pagination';
 import { Suspense } from 'react';
 
 type Column = {
-  title: string;
+  title: React.ReactNode;
   expand: boolean;
 };
 
@@ -31,8 +31,8 @@ export function List({
         gridTemplateColumns,
       }}
     >
-      {columns.map((column) => (
-        <span key={column.title} className="text-[#970] text-xl font-bold py-1">
+      {columns.map((column, index) => (
+        <span key={index} className="text-[#970] text-xl font-bold py-1">
           {column.title}
         </span>
       ))}

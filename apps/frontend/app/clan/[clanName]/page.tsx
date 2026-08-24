@@ -7,7 +7,12 @@ import { searchParamPageSchema } from '../../../utils/page';
 import { Metadata } from 'next';
 import { encodeString } from '../../../utils/encoding';
 import Link from 'next/link';
-import { PastMembersToggle } from './PastMembersToggle';
+import { STUB_MIN_POLL_COUNT, STUB_OCCURRENCE_RATIO } from '@teerank/teerank';
+import {
+  countClanPlayersWithoutShared,
+  listClanPlayersWithoutShared,
+} from '@prisma/client/sql';
+import { sharedHiddenParam } from '../../../utils/shared';
 export async function generateMetadata({
   params,
 }: {
@@ -35,6 +40,35 @@ export default async function Index({
   const { page } = searchParamPageSchema.parse(searchParams);
   const showPastMembers = searchParams.past === 'true' || searchParams.past === '1';
 
+  let nameFilter: string[] | undefined;
+  let filteredCount: number | undefined;
+
+  if (sharedHiddenParam(searchParams)) {
+    const [names, counts] = await Promise.all([
+      prisma.$queryRawTyped(
+        listClanPlayersWithoutShared(
+          clanName,
+          showPastMembers,
+          STUB_MIN_POLL_COUNT,
+          STUB_OCCURRENCE_RATIO,
+          100,
+          (page - 1) * 100
+        )
+      ),
+      prisma.$queryRawTyped(
+        countClanPlayersWithoutShared(
+          clanName,
+          showPastMembers,
+          STUB_MIN_POLL_COUNT,
+          STUB_OCCURRENCE_RATIO
+        )
+      ),
+    ]);
+
+    nameFilter = names.map((row) => row.playerName);
+    filteredCount = Number(counts[0]?.count ?? 0);
+  }
+
   const clan = await prisma.clan.findUnique({
     select: {
       activePlayerCount: true,
@@ -51,6 +85,8 @@ export default async function Index({
               name: true,
               clanName: true,
               lastSeenAt: true,
+              pollCount: true,
+              occurrenceCount: true,
               gameServerStateClients: {
                 select: {
                   gameServerState: {
@@ -69,16 +105,17 @@ export default async function Index({
             },
           },
         },
-        where: showPastMembers ? undefined : {
-          player: {
-            clanName,
-          },
-        },
+        where:
+          nameFilter === undefined
+            ? showPastMembers
+              ? undefined
+              : { player: { clanName } }
+            : { playerName: { in: nameFilter } },
         orderBy: {
           playTime: 'desc',
         },
         take: 100,
-        skip: (page - 1) * 100,
+        skip: nameFilter === undefined ? (page - 1) * 100 : 0,
       },
     },
     where: {
@@ -90,7 +127,9 @@ export default async function Index({
     return notFound();
   }
 
-  const playerCount = showPastMembers ? clan._count.clanPlayerInfos : clan.activePlayerCount;
+  const playerCount =
+    filteredCount ??
+    (showPastMembers ? clan._count.clanPlayerInfos : clan.activePlayerCount);
   const maxPage = Math.ceil(playerCount / 100) || 1;
 
   if (page > maxPage) {
@@ -111,11 +150,11 @@ export default async function Index({
 
   return (
     <div className="flex flex-col gap-4">
-      <PastMembersToggle clanName={clanName} showPastMembers={showPastMembers} />
       <PlayerList
         playerCount={playerCount}
         rankMethod={null}
         showLastSeen={true}
+        showInactiveToggle={true}
         players={clan.clanPlayerInfos.map((playerInfo, index) => ({
           rank: index + 1,
           name: playerInfo.player.name,
@@ -123,6 +162,8 @@ export default async function Index({
           isActiveClan: playerInfo.player.clanName === clanName,
           playTime: playerInfo.playTime,
           lastSeenAt: playerInfo.player.lastSeenAt,
+          pollCount: playerInfo.player.pollCount,
+          occurrenceCount: playerInfo.player.occurrenceCount,
           gameServers: playerInfo.player.gameServerStateClients.map((client) => ({
             ip: client.gameServerState.gameServer?.ip ?? '',
             port: client.gameServerState.gameServer?.port ?? 0,

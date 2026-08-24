@@ -32,7 +32,9 @@ describe('DayAggregator', () => {
 
     const rollup = aggregator.finalize();
 
-    expect(rollup.players).toEqual([{ playerName: 'player0', playTime: OBSERVATION_SECONDS }]);
+    expect(rollup.players).toEqual([
+      { playerName: 'player0', playTime: OBSERVATION_SECONDS, pollCount: 1, occurrenceCount: 1 },
+    ]);
     expect(rollup.serverDays).toEqual([{ gameServerId: 1, avgClients: 1, maxClients: 1 }]);
     expect(rollup.maps).toEqual([{ mapId: 1, playTime: OBSERVATION_SECONDS, playerCount: 1 }]);
     expect(rollup.gameTypes).toEqual([
@@ -49,7 +51,9 @@ describe('DayAggregator', () => {
 
     const rollup = aggregator.finalize();
 
-    expect(rollup.players).toEqual([{ playerName: 'player0', playTime: 0 }]);
+    expect(rollup.players).toEqual([
+      { playerName: 'player0', playTime: 0, pollCount: 1, occurrenceCount: 1 },
+    ]);
     expect(rollup.maps[0]).toEqual({ mapId: 1, playTime: 0, playerCount: 1 });
     expect(rollup.clans[0]).toEqual({ clanName: 'clan0', playTime: 0, playerCount: 1 });
     // A spectator is still a connected client.
@@ -62,7 +66,22 @@ describe('DayAggregator', () => {
 
     const rollup = aggregator.finalize();
 
-    expect(rollup.players).toEqual([{ playerName: 'player0', playTime: OBSERVATION_SECONDS }]);
+    expect(rollup.players).toEqual([
+      { playerName: 'player0', playTime: OBSERVATION_SECONDS, pollCount: 1, occurrenceCount: 1 },
+    ]);
+  });
+
+  test('a name on two servers in one poll has more occurrences than polls', () => {
+    const aggregator = new DayAggregator();
+    aggregator.addSnapshot(newSnapshot(0, [newClient('player0')]));
+    aggregator.addSnapshot(newSnapshot(0, [newClient('player0')], { gameServerId: 2 }));
+    aggregator.addSnapshot(newSnapshot(5, [newClient('player0')]));
+
+    const rollup = aggregator.finalize();
+
+    expect(rollup.players).toEqual([
+      { playerName: 'player0', playTime: 3 * OBSERVATION_SECONDS, pollCount: 2, occurrenceCount: 3 },
+    ]);
   });
 
   test('servers with only empty snapshots are skipped', () => {
@@ -89,6 +108,28 @@ describe('DayAggregator', () => {
     expect(rollup.serverDays).toEqual([{ gameServerId: 1, avgClients: 3, maxClients: 4 }]);
   });
 
+  test('partners accumulate shared time, below-threshold pairs are dropped', () => {
+    const aggregator = new DayAggregator(2 * OBSERVATION_SECONDS);
+    aggregator.addSnapshot(
+      newSnapshot(0, [newClient('player1'), newClient('player0'), newClient('player2')])
+    );
+    aggregator.addSnapshot(newSnapshot(5, [newClient('player0'), newClient('player1')]));
+
+    const rollup = aggregator.finalize();
+
+    expect(rollup.partners).toEqual([
+      { playerName: 'player0', partnerName: 'player1', playTime: 2 * OBSERVATION_SECONDS },
+    ]);
+  });
+
+  test('spectators and players on other servers are not partners', () => {
+    const aggregator = new DayAggregator(OBSERVATION_SECONDS);
+    aggregator.addSnapshot(newSnapshot(0, [newClient('player0'), newClient('player1', null, false)]));
+    aggregator.addSnapshot(newSnapshot(0, [newClient('player2')], { gameServerId: 2 }));
+
+    expect(aggregator.finalize().partners).toEqual([]);
+  });
+
   test('distinct players across snapshots and gametypes', () => {
     const aggregator = new DayAggregator();
     aggregator.addSnapshot(newSnapshot(0, [newClient('player0', 'clan0')]));
@@ -103,8 +144,8 @@ describe('DayAggregator', () => {
     const rollup = aggregator.finalize();
 
     expect(rollup.players).toEqual([
-      { playerName: 'player0', playTime: 2 * OBSERVATION_SECONDS },
-      { playerName: 'player1', playTime: OBSERVATION_SECONDS },
+      { playerName: 'player0', playTime: 2 * OBSERVATION_SECONDS, pollCount: 2, occurrenceCount: 2 },
+      { playerName: 'player1', playTime: OBSERVATION_SECONDS, pollCount: 1, occurrenceCount: 1 },
     ]);
     expect(rollup.gameTypes).toEqual([
       { gameTypeName: 'CTF', playTime: OBSERVATION_SECONDS, playerCount: 1 },
@@ -118,7 +159,9 @@ describe('DayAggregator', () => {
 
 describe('rollupDay', () => {
   const mockLookups = () => {
-    prismaMock.player.findMany.mockResolvedValue([{ name: 'player0', id: 11 }] as never);
+    prismaMock.player.findMany.mockResolvedValue([
+      { name: 'player0', id: 11, pollCount: 0, occurrenceCount: 0 },
+    ] as never);
     prismaMock.clan.findMany.mockResolvedValue([{ name: 'clan0', id: 21 }] as never);
     prismaMock.gameType.findMany.mockResolvedValue([{ name: 'CTF', id: 31 }] as never);
     prismaMock.$queryRawTyped.mockResolvedValue([] as never);
@@ -184,6 +227,82 @@ describe('rollupDay', () => {
     expect(prismaMock.clanDay.createMany).toHaveBeenCalledWith({
       data: [{ day, clanId: 21, playTime: OBSERVATION_SECONDS, playerCount: 1 }],
     });
+  });
+
+  // Two players sharing 12 snapshots reach the default one-hour threshold.
+  const mockSharedSnapshots = (count = 12) => {
+    prismaMock.gameServerSnapshot.findMany.mockResolvedValueOnce(
+      Array.from({ length: count }, (_, i) => ({
+        id: i + 1,
+        createdAt: addMinutes(day, 5 * i),
+        gameServerId: 1,
+        mapId: 1,
+        numClients: 2,
+        map: { gameTypeName: 'CTF' },
+        clients: [
+          { playerName: 'player0', clanName: null, inGame: true },
+          { playerName: 'player1', clanName: null, inGame: true },
+        ],
+      })) as never
+    );
+  };
+
+  const partnerUpsertCalls = () =>
+    prismaMock.$queryRawTyped.mock.calls.filter(([query]) =>
+      (query as unknown as { sql: string }).sql.includes('PlayerPartner')
+    );
+
+  test('writes partner pairs in both directions', async () => {
+    prismaMock.globalDay.findUnique.mockResolvedValue(null);
+    mockSharedSnapshots();
+    mockLookups();
+    prismaMock.player.findMany.mockResolvedValue([
+      { name: 'player0', id: 11, pollCount: 0, occurrenceCount: 0 },
+      { name: 'player1', id: 12, pollCount: 0, occurrenceCount: 0 },
+    ] as never);
+
+    await rollupDay({ day: '2026-08-19' });
+
+    const calls = partnerUpsertCalls();
+    expect(calls).toHaveLength(1);
+    expect((calls[0][0] as unknown as { values: unknown[] }).values).toEqual([
+      [11, 12],
+      [12, 11],
+      [3600, 3600],
+      day,
+    ]);
+  });
+
+  test('pairs involving a stub name are not written', async () => {
+    prismaMock.globalDay.findUnique.mockResolvedValue(null);
+    mockSharedSnapshots();
+    mockLookups();
+    prismaMock.player.findMany.mockResolvedValue([
+      { name: 'player0', id: 11, pollCount: 0, occurrenceCount: 0 },
+      { name: 'player1', id: 12, pollCount: 100, occurrenceCount: 200 },
+    ] as never);
+
+    await rollupDay({ day: '2026-08-19' });
+
+    expect(partnerUpsertCalls()).toHaveLength(0);
+    expect(prismaMock.playerDay.createMany).toHaveBeenCalled();
+  });
+
+  test('re-rolling a day does not increment partner totals again', async () => {
+    prismaMock.globalDay.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ day } as never);
+    mockSharedSnapshots();
+    mockLookups();
+    prismaMock.player.findMany.mockResolvedValue([
+      { name: 'player0', id: 11, pollCount: 0, occurrenceCount: 0 },
+      { name: 'player1', id: 12, pollCount: 0, occurrenceCount: 0 },
+    ] as never);
+
+    await rollupDay({ day: '2026-08-19' });
+
+    expect(partnerUpsertCalls()).toHaveLength(0);
+    expect(prismaMock.playerDay.createMany).toHaveBeenCalled();
   });
 
   test('players that no longer exist are dropped', async () => {

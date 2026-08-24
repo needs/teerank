@@ -3,6 +3,8 @@ SELECT
   "public"."Player"."lastSeenAt",
   "public"."Player"."clanName",
   "public"."Player"."playTime",
+  "public"."Player"."pollCount",
+  "public"."Player"."occurrenceCount",
   array_agg(
     DISTINCT jsonb_build_object(
       'ip', "public"."GameServer"."ip",
@@ -17,6 +19,11 @@ FROM
   LEFT JOIN "public"."GameServer" ON "public"."GameServer"."id" = "public"."GameServerState"."gameServerId"
 WHERE
   "public"."Player"."name" ILIKE $1
+  AND (
+    $2::bool
+    OR "public"."Player"."pollCount" < $3
+    OR "public"."Player"."occurrenceCount"::float8 < "public"."Player"."pollCount" * $4::float8
+  )
 GROUP BY
   "public"."Player"."name",
   "public"."Player"."lastSeenAt",

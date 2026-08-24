@@ -9,7 +9,9 @@ import { LastSeen } from '../../../components/LastSeen';
 import { formatPlayTime } from '../../../utils/format';
 import { encodeString } from '../../../utils/encoding';
 import { ActivityHeader } from '../../../components/ActivityHeader';
+import { SharedRatio } from '../../../components/SharedRatio';
 import { getPlayerActivity } from '../../../utils/activity';
+import { countTeammates } from '../../../utils/teammates';
 
 export default async function Index({
   params,
@@ -27,6 +29,8 @@ export default async function Index({
       clanName: true,
       playTime: true,
       lastSeenAt: true,
+      pollCount: true,
+      occurrenceCount: true,
 
       gameServerStateClients: {
         select: {
@@ -52,22 +56,13 @@ export default async function Index({
     return notFound();
   }
 
-  const [mapCount, gameTypeCount, clanCount, activity] = await Promise.all([
-    prisma.playerInfoMap.count({
-      where: {
-        playerName,
-      },
-    }),
-    prisma.playerInfoGameType.count({
-      where: {
-        playerName,
-      },
-    }),
+  const [clanCount, teammateCount, activity] = await Promise.all([
     prisma.clanPlayerInfo.count({
       where: {
         playerName,
       },
     }),
+    countTeammates(player.id),
     getPlayerActivity(player.id, { range: '1y' }),
   ]);
 
@@ -81,7 +76,13 @@ export default async function Index({
         >
           <Image src="/player.png" width={100} height={100} alt="Player" />
           <section className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">{player.name}</h1>
+            <div className="flex flex-row items-center gap-3">
+              <h1 className="text-2xl font-bold">{player.name}</h1>
+              <SharedRatio
+                pollCount={player.pollCount}
+                occurrenceCount={player.occurrenceCount}
+              />
+            </div>
             <div className="flex flex-row divide-x">
               {player.clanName !== null && (
                 <span className="pr-4">
@@ -104,6 +105,7 @@ export default async function Index({
                     .map((client) => client.gameServerState.gameServer)
                     .filter((gameServer) => gameServer !== null)}
                   lastSeenAt={player.lastSeenAt}
+                  playerName={player.name}
                 />
               </span>
             </div>
@@ -113,9 +115,8 @@ export default async function Index({
 
       <LayoutTabs
         playerName={playerName}
-        mapCount={mapCount}
-        gameTypeCount={gameTypeCount}
         clanCount={clanCount}
+        teammateCount={teammateCount}
       />
 
       {children}

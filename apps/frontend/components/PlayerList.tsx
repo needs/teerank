@@ -43,7 +43,7 @@ export function PlayerList({
     },
     {
       title: (
-        <>
+        <span className="flex flex-row items-center gap-2 whitespace-nowrap">
           Name
           <Suspense>
             <EyeToggle
@@ -52,7 +52,7 @@ export function PlayerList({
               param="shared"
               value="hidden"
               visibleWhenSet={false}
-              className="ml-3"
+              className="ml-1"
             />
             {showInactiveToggle && (
               <EyeToggle
@@ -61,11 +61,10 @@ export function PlayerList({
                 param="past"
                 value="true"
                 visibleWhenSet={true}
-                className="ml-2"
               />
             )}
           </Suspense>
-        </>
+        </span>
       ),
       expand: true,
     },

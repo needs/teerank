@@ -157,7 +157,7 @@ export default async function Index({
         players={clan.clanPlayerInfos.map((playerInfo, index) => ({
           rank: index + 1,
           name: playerInfo.player.name,
-          clan: clanName,
+          clan: playerInfo.player.clanName ?? undefined,
           isActiveClan: playerInfo.player.clanName === clanName,
           playTime: playerInfo.playTime,
           lastSeenAt: playerInfo.player.lastSeenAt,

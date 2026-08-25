@@ -2,13 +2,14 @@ import { paramsSchema } from './schema';
 import { z } from 'zod';
 import { notFound } from 'next/navigation';
 import { isIP } from 'net';
-import Link from 'next/link';
 import Image from 'next/image';
 import { List, ListCell } from '../../../../components/List';
 import { searchParamPageSchema } from '../../../../utils/page';
 import prisma from '../../../../utils/prisma';
 import { encodeIp, encodeString } from '../../../../utils/encoding';
 import { SnapshotTimeline } from '../../../../components/SnapshotTimeline';
+import { SnapshotProvider } from '../../../../components/SnapshotContext';
+import { ServerHeaderInfo } from '../../../../components/ServerHeaderInfo';
 import { formatPlayTime } from '../../../../utils/format';
 import { GameServer } from '@prisma/client';
 import { formatDuration, intervalToDuration } from 'date-fns';
@@ -141,52 +142,7 @@ export default async function Index({
 
   return (
     <main className="flex flex-col gap-8 py-12">
-      <header className="px-8 xl:px-20">
-        <ActivityHeader
-          apiPath={`/api/server/${encodeIp(gameServer.ip)}/${gameServer.port}/activity`}
-          activity={activity}
-          contentClassName="flex-row items-center gap-4"
-        >
-          <Image src="/server.png" width={124} height={100} alt="Server" />
-          <section className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">
-              {gameServer.gameServerState.name}
-            </h1>
-            <div className="flex flex-row divide-x">
-              <span className="pr-4">
-                <Link
-                  className="hover:underline"
-                  href={{
-                    pathname: `/gametype/${encodeString(
-                      gameServer.gameServerState.map.gameTypeName
-                    )}`,
-                  }}
-                >
-                  {gameServer.gameServerState.map.gameTypeName}
-                </Link>
-              </span>
-              <span className="px-4">
-                <Link
-                  className="hover:underline"
-                  href={{
-                    pathname: `/gametype/${encodeString(
-                      gameServer.gameServerState.map.gameTypeName
-                    )}/map/${encodeString(gameServer.gameServerState.map.name)}`,
-                  }}
-                >
-                  {gameServer.gameServerState.map.name}
-                </Link>
-              </span>
-              <span className="px-4">{`${gameServer.gameServerState.numClients} / ${gameServer.gameServerState.maxClients} clients`}</span>
-              <span className="px-4">
-                Playtime: {formatPlayTime(gameServer.playTime)}
-              </span>
-            </div>
-          </section>
-        </ActivityHeader>
-      </header>
-
-      <SnapshotTimeline
+      <SnapshotProvider
         snapshots={snapshots.map((snapshot) => ({
           id: snapshot.id,
           createdAt: snapshot.createdAt.toISOString(),
@@ -196,51 +152,73 @@ export default async function Index({
           gameServer.port
         }/snapshot`}
       >
-        <List
-          pageCount={Math.ceil(gameServer.gameServerState._count.clients / 100)}
-          columns={[
-            {
-              title: '',
-              expand: false,
-            },
-            {
-              title: 'Name',
-              expand: true,
-            },
-            {
-              title: 'Clan',
-              expand: true,
-            },
-            {
-              title: 'Score',
-              expand: false,
-            },
-          ]}
-        >
-          {gameServer.gameServerState.clients.map((client, index) => (
-            <>
-              <ListCell alignRight label={`${index + 1}`} />
-              <ListCell
-                label={client.playerName}
-                href={{
-                  pathname: `/player/${encodeString(client.playerName)}`,
-                }}
-              />
-              <ListCell
-                label={client.clanName ?? ''}
-                href={
-                  client.clanName === null
-                    ? undefined
-                    : {
-                        pathname: `/clan/${encodeString(client.clanName)}`,
-                      }
-                }
-              />
-              <ListCell alignRight label={client.score.toString()} />
-            </>
-          ))}
-        </List>
-      </SnapshotTimeline>
+        <header className="px-8 xl:px-20">
+          <ActivityHeader
+            apiPath={`/api/server/${encodeIp(gameServer.ip)}/${gameServer.port}/activity`}
+            activity={activity}
+            contentClassName="flex-row items-center gap-4"
+          >
+            <Image src="/server.png" width={124} height={100} alt="Server" />
+            <ServerHeaderInfo
+              name={gameServer.gameServerState.name}
+              gameTypeName={gameServer.gameServerState.map.gameTypeName}
+              mapName={gameServer.gameServerState.map.name}
+              numClients={gameServer.gameServerState.numClients}
+              maxClients={gameServer.gameServerState.maxClients}
+              playTime={formatPlayTime(gameServer.playTime)}
+            />
+          </ActivityHeader>
+        </header>
+
+        <SnapshotTimeline>
+          <List
+            pageCount={Math.ceil(
+              gameServer.gameServerState._count.clients / 100
+            )}
+            columns={[
+              {
+                title: '',
+                expand: false,
+              },
+              {
+                title: 'Name',
+                expand: true,
+              },
+              {
+                title: 'Clan',
+                expand: true,
+              },
+              {
+                title: 'Score',
+                expand: false,
+              },
+            ]}
+          >
+            {gameServer.gameServerState.clients.map((client, index) => (
+              <>
+                <ListCell alignRight label={`${index + 1}`} />
+                <ListCell
+                  label={client.playerName}
+                  href={{
+                    pathname: `/player/${encodeString(client.playerName)}`,
+                  }}
+                />
+                <ListCell
+                  label={client.clanName ?? ''}
+                  href={
+                    client.clanName === null
+                      ? undefined
+                      : {
+                          pathname: `/clan/${encodeString(client.clanName)}`,
+                        }
+                  }
+                />
+                <ListCell alignRight label={client.score.toString()} />
+              </>
+            ))}
+          </List>
+        </SnapshotTimeline>
+      </SnapshotProvider>
     </main>
   );
 }

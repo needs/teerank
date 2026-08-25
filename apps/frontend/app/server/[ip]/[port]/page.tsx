@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { notFound } from 'next/navigation';
 import { isIP } from 'net';
 import Link from 'next/link';
+import Image from 'next/image';
 import { List, ListCell } from '../../../../components/List';
 import { searchParamPageSchema } from '../../../../utils/page';
 import prisma from '../../../../utils/prisma';
@@ -43,7 +44,8 @@ function ipAndPort(ip: string, port: number) {
 function OfflineServer({ gameServer }: { gameServer: GameServer }) {
   return (
     <main className="flex flex-col gap-8 py-12">
-      <header className="flex flex-row px-20 gap-8">
+      <header className="flex flex-row items-center px-20 gap-4">
+        <Image src="/server.png" width={124} height={100} alt="Server" />
         <section className="flex flex-col gap-2 grow">
           <h1 className="text-2xl font-bold">
             {ipAndPort(gameServer.ip, gameServer.port)}
@@ -143,41 +145,44 @@ export default async function Index({
         <ActivityHeader
           apiPath={`/api/server/${encodeIp(gameServer.ip)}/${gameServer.port}/activity`}
           activity={activity}
-          contentClassName="flex-col justify-center gap-2"
+          contentClassName="flex-row items-center gap-4"
         >
-          <h1 className="text-2xl font-bold">
-            {gameServer.gameServerState.name}
-          </h1>
-          <div className="flex flex-row divide-x">
-            <span className="pr-4">
-              <Link
-                className="hover:underline"
-                href={{
-                  pathname: `/gametype/${encodeString(
-                    gameServer.gameServerState.map.gameTypeName
-                  )}`,
-                }}
-              >
-                {gameServer.gameServerState.map.gameTypeName}
-              </Link>
-            </span>
-            <span className="px-4">
-              <Link
-                className="hover:underline"
-                href={{
-                  pathname: `/gametype/${encodeString(
-                    gameServer.gameServerState.map.gameTypeName
-                  )}/map/${encodeString(gameServer.gameServerState.map.name)}`,
-                }}
-              >
-                {gameServer.gameServerState.map.name}
-              </Link>
-            </span>
-            <span className="px-4">{`${gameServer.gameServerState.numClients} / ${gameServer.gameServerState.maxClients} clients`}</span>
-            <span className="px-4">
-              Playtime: {formatPlayTime(gameServer.playTime)}
-            </span>
-          </div>
+          <Image src="/server.png" width={124} height={100} alt="Server" />
+          <section className="flex flex-col gap-2">
+            <h1 className="text-2xl font-bold">
+              {gameServer.gameServerState.name}
+            </h1>
+            <div className="flex flex-row divide-x">
+              <span className="pr-4">
+                <Link
+                  className="hover:underline"
+                  href={{
+                    pathname: `/gametype/${encodeString(
+                      gameServer.gameServerState.map.gameTypeName
+                    )}`,
+                  }}
+                >
+                  {gameServer.gameServerState.map.gameTypeName}
+                </Link>
+              </span>
+              <span className="px-4">
+                <Link
+                  className="hover:underline"
+                  href={{
+                    pathname: `/gametype/${encodeString(
+                      gameServer.gameServerState.map.gameTypeName
+                    )}/map/${encodeString(gameServer.gameServerState.map.name)}`,
+                  }}
+                >
+                  {gameServer.gameServerState.map.name}
+                </Link>
+              </span>
+              <span className="px-4">{`${gameServer.gameServerState.numClients} / ${gameServer.gameServerState.maxClients} clients`}</span>
+              <span className="px-4">
+                Playtime: {formatPlayTime(gameServer.playTime)}
+              </span>
+            </div>
+          </section>
         </ActivityHeader>
       </header>
 

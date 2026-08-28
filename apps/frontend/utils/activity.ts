@@ -76,6 +76,23 @@ function tooltipDate(day: Date) {
   return format(day, 'MMM d, yyyy');
 }
 
+function finishSuffix(finishCount: number) {
+  return finishCount > 0
+    ? ` · ${formatInteger(finishCount)} ${finishCount === 1 ? 'finish' : 'finishes'}`
+    : '';
+}
+
+function finishOnlyDay(day: Date, finishCount: number): ActivityDay {
+  return {
+    day: formatUtcDay(day),
+    value: finishCount,
+    kind: 'finishes',
+    tooltip:
+      `${formatInteger(finishCount)} ${finishCount === 1 ? 'finish' : 'finishes'}` +
+      ` on ${tooltipDate(day)} (DDNet records)`,
+  };
+}
+
 export async function getPlayerActivity(playerId: number, params: RangeParams) {
   const { range, from, to } = await resolveDomain(params, async () => {
     const result = await prisma.playerDay.aggregate({
@@ -87,14 +104,21 @@ export async function getPlayerActivity(playerId: number, params: RangeParams) {
 
   const rows = await prisma.playerDay.findMany({
     where: { playerId, day: { gte: from, lte: to } },
-    select: { day: true, playTime: true },
+    select: { day: true, playTime: true, finishCount: true },
   });
 
-  return payload(range, from, to, rows.map((row) => ({
-    day: formatUtcDay(row.day),
-    value: row.playTime,
-    tooltip: `${formatPlayTime(BigInt(row.playTime))} on ${tooltipDate(row.day)}`,
-  })));
+  return payload(range, from, to, rows.map((row) => {
+    if (row.playTime <= 0 && row.finishCount > 0) {
+      return finishOnlyDay(row.day, row.finishCount);
+    }
+    return {
+      day: formatUtcDay(row.day),
+      value: row.playTime,
+      tooltip:
+        `${formatPlayTime(BigInt(row.playTime))} on ${tooltipDate(row.day)}` +
+        finishSuffix(row.finishCount),
+    };
+  }));
 }
 
 export async function getClanActivity(clanId: number, params: RangeParams) {
@@ -150,14 +174,21 @@ export async function getMapActivity(mapId: number, params: RangeParams) {
 
   const rows = await prisma.mapDay.findMany({
     where: { mapId, day: { gte: from, lte: to } },
-    select: { day: true, playTime: true, playerCount: true },
+    select: { day: true, playTime: true, playerCount: true, finishCount: true },
   });
 
-  return payload(range, from, to, rows.map((row) => ({
-    day: formatUtcDay(row.day),
-    value: row.playTime,
-    tooltip: `${formatPlayTime(BigInt(row.playTime))} · ${formatInteger(row.playerCount)} players on ${tooltipDate(row.day)}`,
-  })));
+  return payload(range, from, to, rows.map((row) => {
+    if (row.playTime <= 0 && row.finishCount > 0) {
+      return finishOnlyDay(row.day, row.finishCount);
+    }
+    return {
+      day: formatUtcDay(row.day),
+      value: row.playTime,
+      tooltip:
+        `${formatPlayTime(BigInt(row.playTime))} · ${formatInteger(row.playerCount)} players` +
+        ` on ${tooltipDate(row.day)}` + finishSuffix(row.finishCount),
+    };
+  }));
 }
 
 export async function getServerActivity(gameServerId: number, params: RangeParams) {

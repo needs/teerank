@@ -6,7 +6,7 @@ import Image from 'next/image';
 import prisma from '../../../utils/prisma';
 import { LayoutTabs } from './LayoutTabs';
 import { LastSeen } from '../../../components/LastSeen';
-import { formatPlayTime } from '../../../utils/format';
+import { formatInteger, formatPlayTime } from '../../../utils/format';
 import { encodeString } from '../../../utils/encoding';
 import { ActivityHeader } from '../../../components/ActivityHeader';
 import { SharedRatio } from '../../../components/SharedRatio';
@@ -56,7 +56,7 @@ export default async function Index({
     return notFound();
   }
 
-  const [clanCount, teammateCount, activity] = await Promise.all([
+  const [clanCount, teammateCount, activity, ddnetPlayer] = await Promise.all([
     prisma.clanPlayerInfo.count({
       where: {
         playerName,
@@ -64,6 +64,16 @@ export default async function Index({
     }),
     countTeammates(player.id),
     getPlayerActivity(player.id, { range: '1y' }),
+    prisma.ddnetPlayer.findUnique({
+      select: {
+        points: true,
+        pointsRank: true,
+        finishCount: true,
+      },
+      where: {
+        playerId: player.id,
+      },
+    }),
   ]);
 
   return (
@@ -108,6 +118,13 @@ export default async function Index({
                   playerName={player.name}
                 />
               </span>
+              {ddnetPlayer !== null && (
+                <span className="px-4">
+                  DDNet: {formatInteger(ddnetPlayer.points)} pts
+                  {ddnetPlayer.pointsRank !== null &&
+                    ` · #${formatInteger(ddnetPlayer.pointsRank)}`}
+                </span>
+              )}
             </div>
           </section>
         </ActivityHeader>
@@ -117,6 +134,7 @@ export default async function Index({
         playerName={playerName}
         clanCount={clanCount}
         teammateCount={teammateCount}
+        ddnetFinishCount={ddnetPlayer?.finishCount}
       />
 
       {children}

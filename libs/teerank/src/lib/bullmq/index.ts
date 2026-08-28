@@ -11,3 +11,6 @@ export * from './queueUpdateGlobalCounts';
 export * from './queueArchiveSnapshots';
 export * from './queueRollupDay';
 export * from './queueRollupBackfill';
+export * from './queueDdnetBackfill';
+export * from './queueDdnetImport';
+export * from './queueDdnetOnline';

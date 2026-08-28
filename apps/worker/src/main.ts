@@ -9,6 +9,9 @@ import { startUpdateGlobalCountsWorker } from "./workers/updateGlobalCounts";
 import { startArchiveSnapshotsWorker } from "./workers/archiveSnapshots";
 import { startRollupDayWorker } from "./workers/rollupDay";
 import { startRollupBackfillWorker } from "./workers/rollupBackfill";
+import { startDdnetBackfillWorker } from "./workers/ddnetBackfill";
+import { startDdnetImportWorker } from "./workers/ddnetImport";
+import { startDdnetOnlineWorker } from "./workers/ddnetOnlineImport";
 
 async function main() {
   const workers = await Promise.all([
@@ -23,6 +26,9 @@ async function main() {
     startArchiveSnapshotsWorker(),
     startRollupDayWorker(),
     startRollupBackfillWorker(),
+    startDdnetBackfillWorker(),
+    startDdnetImportWorker(),
+    startDdnetOnlineWorker(),
   ]);
 
   async function gracefulShutdown(signal: string) {

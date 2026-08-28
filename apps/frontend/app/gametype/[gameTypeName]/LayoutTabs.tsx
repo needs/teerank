@@ -10,12 +10,14 @@ export function LayoutTabs({
   playerCount,
   clanCount,
   serverCount,
+  showRecords,
 }: {
   gameTypeName: string;
   mapName?: string;
   playerCount: number;
   clanCount: number;
   serverCount: number;
+  showRecords?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -45,6 +47,13 @@ export function LayoutTabs({
         isActive={pathname === `${urlPathname}/servers`}
         href={{ pathname: `${urlPathname}/servers` }}
       />
+      {showRecords && (
+        <Tab
+          label="Records"
+          isActive={pathname === `${urlPathname}/records`}
+          href={{ pathname: `${urlPathname}/records` }}
+        />
+      )}
     </Tabs>
   );
 }

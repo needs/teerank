@@ -66,6 +66,26 @@ export function formatDurationShort(duration: Duration) {
   }
 }
 
+// DDNet finish times: "03:42.86", "1:02:15.40".
+export function formatFinishTime(seconds: number) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+
+  const pad = (value: number) => value.toString().padStart(2, '0');
+  const restFormatted = rest.toFixed(2).padStart(5, '0');
+
+  if (hours > 0) {
+    return `${hours}:${pad(minutes)}:${restFormatted}`;
+  }
+  return `${pad(minutes)}:${restFormatted}`;
+}
+
+export function formatTimeDelta(seconds: number) {
+  const sign = seconds >= 0 ? '+' : '-';
+  return `${sign}${formatFinishTime(Math.abs(seconds))}`;
+}
+
 export function formatInteger(number: number) {
   return Intl.NumberFormat('en-US', {
     maximumFractionDigits: 0,

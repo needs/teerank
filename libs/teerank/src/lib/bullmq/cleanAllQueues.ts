@@ -9,6 +9,9 @@ import { cleanRankPlayerQueue } from "./queueRankPlayer";
 import { cleanArchiveSnapshotsQueue } from "./queueArchiveSnapshots";
 import { cleanRollupDayQueue } from "./queueRollupDay";
 import { cleanRollupBackfillQueue } from "./queueRollupBackfill";
+import { cleanDdnetBackfillQueue } from "./queueDdnetBackfill";
+import { cleanDdnetImportQueue } from "./queueDdnetImport";
+import { cleanDdnetOnlineQueue } from "./queueDdnetOnline";
 
 export async function cleanAllQueues() {
   await Promise.all([
@@ -23,5 +26,8 @@ export async function cleanAllQueues() {
     cleanArchiveSnapshotsQueue(),
     cleanRollupDayQueue(),
     cleanRollupBackfillQueue(),
+    cleanDdnetBackfillQueue(),
+    cleanDdnetImportQueue(),
+    cleanDdnetOnlineQueue(),
   ]);
 }

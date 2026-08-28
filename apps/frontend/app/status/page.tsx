@@ -9,6 +9,9 @@ import {
   getArchiveSnapshotsFailedCount,
   getRollupDayFailedCount,
   getRollupBackfillFailedCount,
+  getDdnetBackfillFailedCount,
+  getDdnetImportFailedCount,
+  getDdnetOnlineFailedCount,
   SNAPSHOT_RETENTION_HOURS,
   DAY_MS,
   addUtcDays,
@@ -47,6 +50,10 @@ export default async function Index() {
     rollupDayCount,
     rollupDayFailedCount,
     rollupBackfillFailedCount,
+    ddnetFailedCounts,
+    ddnetBackfillState,
+    ddnetImportState,
+    ddnetOnlineDayCount,
     oldestSnapshot,
     masterServers,
     unreferencedGameServersCount,
@@ -66,6 +73,14 @@ export default async function Index() {
     prisma.globalDay.count(),
     getRollupDayFailedCount(),
     getRollupBackfillFailedCount(),
+    Promise.all([
+      getDdnetBackfillFailedCount(),
+      getDdnetImportFailedCount(),
+      getDdnetOnlineFailedCount(),
+    ]).then((counts) => counts.reduce((sum, count) => sum + count, 0)),
+    prisma.ddnetState.findUnique({ where: { key: 'backfill' } }),
+    prisma.ddnetState.findUnique({ where: { key: 'import' } }),
+    prisma.ddnetOnlineDay.count({ where: { key: 'ALL' } }),
     prisma.gameServerSnapshot.findFirst({
       orderBy: {
         id: 'asc',
@@ -165,6 +180,18 @@ export default async function Index() {
         rollupDayCount;
 
   const rollupFailedCount = rollupDayFailedCount + rollupBackfillFailedCount;
+
+  const backfillPhase =
+    (ddnetBackfillState?.value as { phase?: string; monthIndex?: number; raceMonths?: string[] } | null)
+      ?? null;
+  const ddnetBackfillLabel =
+    backfillPhase === null
+      ? 'Not started'
+      : backfillPhase.phase === 'apply' && backfillPhase.raceMonths !== undefined
+        ? `apply ${backfillPhase.monthIndex ?? 0}/${backfillPhase.raceMonths.length} months`
+        : backfillPhase.phase ?? 'unknown';
+  const ddnetLastDump =
+    (ddnetImportState?.value as { lastModified?: string } | null)?.lastModified ?? null;
 
   return (
     <main className="py-12 px-4 md:px-12 xl:px-20 text-[#666] flex flex-col gap-4">
@@ -297,6 +324,47 @@ export default async function Index() {
           <div className="flex flex-row divide-x">
             <span className="text-sm text-[#aaa] px-4">{rollupFailedCount}</span>
             {rollupFailedCount > 0 && (
+              <span className="font-bold text-[#b05656] px-4">Failing</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <h1 className="text-2xl font-bold clear-both">DDNet import</h1>
+      <div className="flex flex-col divide-y">
+        <div className="flex flex-row items-center p-2">
+          <span className="grow px-4">Backfill</span>
+          <div className="flex flex-row divide-x">
+            <span className="text-sm text-[#aaa] px-4">{ddnetBackfillLabel}</span>
+            {backfillPhase?.phase === 'done' && (
+              <span className="font-bold text-[#5a8d39] px-4">Done</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-row items-center p-2">
+          <span className="grow px-4">Last dump</span>
+          <div className="flex flex-row divide-x">
+            <span className="text-sm text-[#aaa] px-4">
+              {ddnetLastDump === null
+                ? 'None'
+                : formatDistanceToNow(new Date(ddnetLastDump), { addSuffix: true })}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-row items-center p-2">
+          <span className="grow px-4">Online history</span>
+          <div className="flex flex-row divide-x">
+            <span className="text-sm text-[#aaa] px-4">{ddnetOnlineDayCount} days</span>
+          </div>
+        </div>
+
+        <div className="flex flex-row items-center p-2">
+          <span className="grow px-4">Failed jobs</span>
+          <div className="flex flex-row divide-x">
+            <span className="text-sm text-[#aaa] px-4">{ddnetFailedCounts}</span>
+            {ddnetFailedCounts > 0 && (
               <span className="font-bold text-[#b05656] px-4">Failing</span>
             )}
           </div>

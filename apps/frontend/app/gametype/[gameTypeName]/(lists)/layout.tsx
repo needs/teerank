@@ -44,6 +44,7 @@ export default async function Index({
         playerCount={gameType.playerCount}
         clanCount={gameType.clanCount}
         serverCount={gameType.gameServerCount}
+        showRecords={gameTypeName === 'DDraceNetwork'}
       />
 
       {children}

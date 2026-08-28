@@ -8,6 +8,7 @@ export type ActivityDay = {
   day: string; // YYYY-MM-DD
   value: number;
   tooltip: string;
+  kind?: 'finishes';
 };
 
 export type ActivityPayload = {
@@ -19,6 +20,7 @@ export type ActivityPayload = {
 
 const EMPTY_COLOR = '#00000010';
 const LEVEL_COLORS = ['#e6dcae', '#d2ba6a', '#b3922e', '#997700'];
+const FINISH_LEVEL_COLORS = ['#d3dade', '#adbcc5', '#8299a7', '#5f7a8c'];
 
 const TOOLTIP_DELAY_MS = 300;
 
@@ -26,18 +28,26 @@ function quantile(sorted: number[], q: number) {
   return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))];
 }
 
-function cellColor(value: number | undefined, thresholds: number[]) {
-  if (value === undefined || value <= 0) {
+function thresholdsOf(values: number[]) {
+  const positives = values.filter((value) => value > 0).sort((a, b) => a - b);
+  return [quantile(positives, 0.25), quantile(positives, 0.5), quantile(positives, 0.75)];
+}
+
+function cellColor(day: ActivityDay | undefined, thresholds: number[], finishThresholds: number[]) {
+  if (day === undefined || day.value <= 0) {
     return EMPTY_COLOR;
   }
 
-  for (const [level, threshold] of thresholds.entries()) {
-    if (value <= threshold) {
-      return LEVEL_COLORS[level];
+  const colors = day.kind === 'finishes' ? FINISH_LEVEL_COLORS : LEVEL_COLORS;
+  const levels = day.kind === 'finishes' ? finishThresholds : thresholds;
+
+  for (const [level, threshold] of levels.entries()) {
+    if (day.value <= threshold) {
+      return colors[level];
     }
   }
 
-  return LEVEL_COLORS[LEVEL_COLORS.length - 1];
+  return colors[colors.length - 1];
 }
 
 type Tooltip = {
@@ -91,11 +101,12 @@ export function ActivityCalendar({
   const to = parseUtcDay(payload.to);
   const days = new Map(payload.days.map((day) => [day.day, day]));
 
-  const positives = payload.days
-    .map(({ value }) => value)
-    .filter((value) => value > 0)
-    .sort((a, b) => a - b);
-  const thresholds = [quantile(positives, 0.25), quantile(positives, 0.5), quantile(positives, 0.75)];
+  const thresholds = thresholdsOf(
+    payload.days.filter((day) => day.kind === undefined).map(({ value }) => value)
+  );
+  const finishThresholds = thresholdsOf(
+    payload.days.filter((day) => day.kind === 'finishes').map(({ value }) => value)
+  );
 
   // Columns start on the Sunday on or before the first day.
   const startSunday = addUtcDays(from, -from.getUTCDay());
@@ -135,7 +146,7 @@ export function ActivityCalendar({
           width={cell}
           height={cell}
           rx="2.5"
-          fill={cellColor(day?.value, thresholds)}
+          fill={cellColor(day, thresholds, finishThresholds)}
           strokeWidth="1"
           className="stroke-transparent hover:stroke-[#00000059]"
           onMouseEnter={(event) => showTooltip(event, text)}

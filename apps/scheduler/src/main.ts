@@ -10,6 +10,9 @@ import { updateGlobalCountsScheduler } from './schedulers/updateGlobalCountsSche
 import { archiveSnapshotsScheduler } from './schedulers/archiveSnapshotsScheduler';
 import { rollupDayScheduler } from './schedulers/rollupDayScheduler';
 import { rollupBackfillScheduler } from './schedulers/rollupBackfillScheduler';
+import { ddnetBackfillScheduler } from './schedulers/ddnetBackfillScheduler';
+import { ddnetImportScheduler } from './schedulers/ddnetImportScheduler';
+import { ddnetOnlineScheduler } from './schedulers/ddnetOnlineScheduler';
 
 async function main() {
   if (process.env.NODE_ENV === 'development') {
@@ -29,6 +32,9 @@ async function main() {
   archiveSnapshotsScheduler();
   rollupDayScheduler();
   rollupBackfillScheduler();
+  ddnetBackfillScheduler();
+  ddnetImportScheduler();
+  ddnetOnlineScheduler();
 }
 
 main();

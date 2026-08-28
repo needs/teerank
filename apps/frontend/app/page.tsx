@@ -174,6 +174,17 @@ export default async function Index() {
 
         <section className="flex flex-col gap-4">
           <header className="flex flex-row justify-between items-baseline">
+            <h1 className="text-2xl font-bold clear-both">DDNet integration</h1>
+            <p className="text-md clear-both text-[#888]">August 28th 2026</p>
+          </header>
+          <p>
+            Teerank now imports data from DDNet daily and shows for each map
+            all finishes: solo, team and duo.  It also gathers map metadata.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <header className="flex flex-row justify-between items-baseline">
             <h1 className="text-2xl font-bold clear-both">Teammates, activity and shared player names</h1>
             <p className="text-md clear-both text-[#888]">August 25th 2026</p>
           </header>

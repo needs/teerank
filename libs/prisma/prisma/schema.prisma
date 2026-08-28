@@ -335,9 +335,10 @@ model GlobalDay {
 }
 
 model PlayerDay {
-  day      DateTime @db.Date
-  playerId Int
-  playTime Int      // seconds
+  day         DateTime @db.Date
+  playerId    Int
+  playTime    Int      // seconds
+  finishCount Int      @default(0)
 
   @@id([day, playerId])
   @@index([playerId, day])
@@ -357,6 +358,7 @@ model MapDay {
   mapId       Int
   playTime    Int
   playerCount Int
+  finishCount Int      @default(0)
 
   @@id([mapId, day])
 }
@@ -386,4 +388,126 @@ model PlayerPartner {
   lastPlayedAt DateTime @db.Date
 
   @@id([playerId, partnerId])
+}
+
+model DdnetMap {
+  mapId       Int      @id // Map.id, gameTypeName 'DDraceNetwork'
+  category    String // Novice / Moderate / Brutal / Insane / Solo / ...
+  points      Int      @db.SmallInt
+  stars       Int      @db.SmallInt
+  mapper      String // raw, possibly "A & B"; parsed into DdnetMapMapper
+  releasedAt  DateTime? @db.Date
+  width       Int?
+  height      Int?
+  tiles       String[] // names of the set tile-feature flags
+  finishCount Int      @default(0)
+  medianTime  Float?
+  wrSplits    Float[]  @db.Real
+  medianSplits Float[] @db.Real
+  timeQuantiles Float[] @db.Real // 101 points, 0..100th percentile
+}
+
+model DdnetMapMapper {
+  mapperName String
+  mapId      Int
+
+  @@id([mapperName, mapId])
+  @@index([mapId])
+}
+
+model DdnetMapThumb {
+  mapId     Int      @id
+  png       Bytes
+  etag      String?
+  fetchedAt DateTime
+}
+
+model DdnetRaceBest {
+  mapId         Int
+  playerId      Int
+  time          Float
+  finishCount   Int
+  firstFinishAt DateTime @db.Date
+  bestAt        DateTime @db.Date
+  splits        Float[]  @db.Real // empty when the best run has no checkpoints
+
+  @@id([mapId, playerId])
+  @@index([mapId, time])
+  @@index([playerId])
+}
+
+model DdnetPlayer {
+  playerId      Int      @id
+  points        Int      @default(0)
+  pointsRank    Int?
+  finishCount   Int      @default(0)
+  firstFinishAt DateTime
+  lastFinishAt  DateTime
+
+  @@index([points(sort: Desc)])
+}
+
+model DdnetTeamRace {
+  teamId    Bytes    @id
+  mapId     Int
+  time      Float
+  timestamp DateTime
+  size      Int      @db.SmallInt
+
+  @@index([mapId, time])
+}
+
+model DdnetTeamRacePlayer {
+  teamId   Bytes
+  playerId Int
+
+  @@id([teamId, playerId])
+  @@index([playerId])
+}
+
+model DdnetPartner {
+  playerId     Int
+  partnerId    Int
+  finishCount  Int
+  bestTime     Float
+  bestMapId    Int
+  lastFinishAt DateTime @db.Date
+
+  @@id([playerId, partnerId])
+}
+
+model DdnetPartnerMap {
+  playerId     Int
+  partnerId    Int
+  mapId        Int
+  bestTime     Float
+  finishCount  Int
+  lastFinishAt DateTime @db.Date
+
+  @@id([playerId, partnerId, mapId])
+}
+
+model DdnetRecord {
+  mapId     Int
+  timestamp DateTime
+  playerId  Int
+  time      Float
+
+  @@id([mapId, timestamp, playerId])
+  @@index([timestamp])
+}
+
+model DdnetOnlineDay {
+  day        DateTime @db.Date
+  kind       Int      @db.SmallInt // 0 = country, 1 = mod
+  key        String // location/mod code; 'ALL' = total
+  avgPlayers Int
+  maxPlayers Int
+
+  @@id([day, kind, key])
+}
+
+model DdnetState {
+  key   String @id
+  value Json
 }

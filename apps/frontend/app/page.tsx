@@ -185,6 +185,30 @@ export default async function Index() {
 
         <section className="flex flex-col gap-4">
           <header className="flex flex-row justify-between items-baseline">
+            <h1 className="text-2xl font-bold clear-both">Teammates, activity and shared player names</h1>
+            <p className="text-md clear-both text-[#888]">August 25th 2026</p>
+          </header>
+          <p>
+            Teerank is now tracking the partners you play with the most.
+          </p>
+          <p>
+            Players, clans and servers now have an activity chart, built using
+            the last 2 years worth of data.  A chart of daily active players is
+            also on the home page.
+          </p>
+          <p>
+            Last but not least: Teerank now detects shared names, and they can
+            be filtered out.
+          </p>
+          <p>
+            On the technical side, teerank.io is proxied through Cloudflare to
+            reduce the impact of AI crawler traffic spikes.  Google Analytics
+            has been removed as well.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <header className="flex flex-row justify-between items-baseline">
             <h1 className="text-2xl font-bold clear-both">0.7 servers and map counts</h1>
             <p className="text-md clear-both text-[#888]">August 15th 2026</p>
           </header>

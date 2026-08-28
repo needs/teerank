@@ -1,33 +1,10 @@
 'use client';
 
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment } from 'react';
 import { format } from 'date-fns';
 import { List, ListCell } from './List';
 import { encodeString } from '../utils/encoding';
-import { useDebounce } from '../utils/hooks';
-
-export type TimelinePoint = {
-  id: number;
-  createdAt: string;
-  numClients: number;
-};
-
-type Snapshot = {
-  id: number;
-  createdAt: string;
-  name: string;
-  numClients: number;
-  maxClients: number;
-  map: {
-    name: string;
-    gameTypeName: string;
-  };
-  clients: {
-    playerName: string;
-    clanName: string | null;
-    score: number;
-  }[];
-};
+import { Snapshot, TimelinePoint, useSnapshot } from './SnapshotContext';
 
 function sparklinePath(snapshots: TimelinePoint[]) {
   const maxClients = Math.max(1, ...snapshots.map(({ numClients }) => numClients));
@@ -92,58 +69,15 @@ function SnapshotList({ snapshot }: { snapshot: Snapshot }) {
   );
 }
 
-export function SnapshotTimeline({
-  snapshots,
-  apiPath,
-  children,
-}: {
-  snapshots: TimelinePoint[];
-  apiPath: string;
-  children: React.ReactNode;
-}) {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [lastLoaded, setLastLoaded] = useState<Snapshot | null>(null);
-  const cacheRef = useRef<Map<number, Snapshot>>();
-
-  if (cacheRef.current === undefined) {
-    cacheRef.current = new Map();
-  }
-
-  const cache = cacheRef.current;
-  const selected = selectedIndex === null ? null : snapshots[selectedIndex];
-  const debouncedSelected = useDebounce(selected, 150);
-  const snapshot =
-    selected === null ? null : cache.get(selected.id) ?? lastLoaded;
-
-  useEffect(() => {
-    if (debouncedSelected === null || cache.has(debouncedSelected.id)) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    (async () => {
-      try {
-        const response = await fetch(`${apiPath}/${debouncedSelected.id}`, {
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          return;
-        }
-
-        const data: Snapshot = await response.json();
-        cache.set(data.id, data);
-        setLastLoaded(data);
-      } catch {
-        return;
-      }
-    })();
-
-    return () => {
-      controller.abort();
-    };
-  }, [debouncedSelected, apiPath, cache]);
+export function SnapshotTimeline({ children }: { children: React.ReactNode }) {
+  const {
+    snapshots,
+    selectedIndex,
+    setSelectedIndex,
+    selected,
+    snapshot,
+    stale,
+  } = useSnapshot();
 
   if (snapshots.length === 0) {
     return <>{children}</>;
@@ -152,29 +86,16 @@ export function SnapshotTimeline({
   const lastIndex = snapshots.length - 1;
   const cursorFraction =
     selectedIndex === null || lastIndex === 0 ? 1 : selectedIndex / lastIndex;
-  const stale = selected !== null && snapshot?.id !== selected.id;
 
   return (
     <>
       <section className="flex flex-col gap-2 px-4 lg:px-8 xl:px-16">
         <div className="flex flex-row items-baseline justify-between text-sm">
-          {selected === null ? (
-            <span>
-              <span className="font-bold text-[#970]">Live</span>
-              <span className="text-[#666]"> — drag the bar to rewind</span>
-            </span>
-          ) : (
-            <span>
-              <span className="font-bold text-[#970]">
-                {format(new Date(selected.createdAt), 'MMM d, HH:mm')}
-              </span>
-              <span className="text-[#666]">
-                {' '}
-                — {selected.numClients} clients
-                {!stale && snapshot !== null && ` on ${snapshot.map.name}`}
-              </span>
-            </span>
-          )}
+          <span className="font-bold text-[#970]">
+            {selected === null
+              ? 'Live'
+              : format(new Date(selected.createdAt), 'MMM d, HH:mm')}
+          </span>
 
           {selected !== null && (
             <button

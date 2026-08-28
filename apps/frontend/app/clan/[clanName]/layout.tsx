@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
 import prisma from '../../../utils/prisma';
 import { LayoutTabs } from './LayoutTabs';
 import { paramsSchema } from './schema';
@@ -61,20 +62,23 @@ export default async function Index({
         <ActivityHeader
           apiPath={`/api/clan/${encodeString(clanName)}/activity`}
           activity={activity}
-          contentClassName="flex-col justify-center gap-2"
+          contentClassName="flex-row items-center gap-4"
         >
-          <h1 className="text-2xl font-bold">{clan.name}</h1>
-          <div className="flex flex-row divide-x">
-            <span className="pr-4">
-              <ClanPlayerCount
-                activeCount={clan.activePlayerCount}
-                totalCount={clan._count.clanPlayerInfos}
-              />
-            </span>
-            <span className="px-4">
-              Playtime: {formatPlayTime(clan.playTime)}
-            </span>
-          </div>
+          <Image src="/clan.png" width={79} height={100} alt="Clan" />
+          <section className="flex flex-col gap-2">
+            <h1 className="text-2xl font-bold">{clan.name}</h1>
+            <div className="flex flex-row divide-x">
+              <span className="pr-4">
+                <ClanPlayerCount
+                  activeCount={clan.activePlayerCount}
+                  totalCount={clan._count.clanPlayerInfos}
+                />
+              </span>
+              <span className="px-4">
+                Playtime: {formatPlayTime(clan.playTime)}
+              </span>
+            </div>
+          </section>
         </ActivityHeader>
       </header>
 

@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
-import { prisma } from "./prisma";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { prisma as defaultPrisma } from "./prisma";
 
 const snapshotSelect = {
   id: true,
@@ -35,10 +35,12 @@ export async function* iterateSnapshots({
   from,
   to,
   batchSize,
+  prisma = defaultPrisma,
 }: {
   from: Date;
   to: Date;
   batchSize: number;
+  prisma?: Pick<PrismaClient, 'gameServerSnapshot'>;
 }): AsyncGenerator<IteratedSnapshot, void, undefined> {
   let cursor = 0;
 

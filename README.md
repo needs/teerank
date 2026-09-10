@@ -10,10 +10,13 @@ npm install
 docker compose up -d
 npx nx run frontend:serve
 npx nx run worker:serve
+npx nx run scheduler:serve
 ```
 
-Alternatively, open the projetc on VSCode and run the start building using:
-`Command + Shift + B`.
+In Conductor, the `dev` run script does all of the above.  Spotlight testing
+syncs the active workspace into the repository root and the script serves from
+there, so every workspace shares one `node_modules`, one docker stack and one
+database.
 
 # Legacy
 

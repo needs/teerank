@@ -1,0 +1,26 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+spotlight_testing = true
+environment_variable_files = [ ".conductor/dev.env" ]
+
+[scripts]
+setup = ".conductor/setup.sh"
+run_mode = "nonconcurrent"
+
+[scripts.run.dev]
+command = ".conductor/dev.sh"
+available_in = [ "local" ]
+default = true
+icon = "play"
+
+[[preview_urls]]
+name = "Frontend"
+url = "http://localhost:47820"
+
+[[preview_urls]]
+name = "Bull Board"
+url = "http://localhost:47825"
+
+[[preview_urls]]
+name = "pghero"
+url = "http://localhost:47826"

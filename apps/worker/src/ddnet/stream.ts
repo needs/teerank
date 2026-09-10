@@ -72,7 +72,7 @@ function parseSplits(record: string[]): number[] {
   return hasData ? splits : [];
 }
 
-export async function parseCsvEntry(
+async function parseCsvEntry(
   entry: NodeJS.ReadableStream,
   onRecord: (record: string[], header: string[]) => void | Promise<void>
 ) {

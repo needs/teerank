@@ -23,7 +23,8 @@
       "defaultConfiguration": "development",
       "options": {
         "buildTarget": "frontend:build",
-        "dev": true
+        "dev": true,
+        "port": 47820
       },
       "configurations": {
         "development": {

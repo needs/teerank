@@ -15,9 +15,6 @@ function withConnectionLimit(url: string | undefined, limit: number) {
   return parsed.toString();
 }
 
-// The day rollup streams a whole day in small batches; on the shared pool each
-// batch queues behind the hundred concurrent poll transactions and the job
-// runs out its time budget while both the database and the worker sit idle.
 export const rollupPrisma = new PrismaClient({
   datasourceUrl: withConnectionLimit(prismaDatabaseUrl, 2),
 });

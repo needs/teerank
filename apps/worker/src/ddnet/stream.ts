@@ -76,7 +76,6 @@ export async function parseCsvEntry(
   entry: NodeJS.ReadableStream,
   onRecord: (record: string[], header: string[]) => void | Promise<void>
 ) {
-  // The dump is a MySQL export: quotes and backslashes are backslash-escaped.
   const parser = entry.pipe(parse({
     relax_column_count: true,
     bom: true,
@@ -177,7 +176,6 @@ export async function streamStatsDump(handlers: DumpHandlers) {
       }
     }
   } finally {
-    // Bailing out mid-archive must not leave the download open.
     zip.destroy();
     source.destroy();
   }

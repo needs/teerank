@@ -166,8 +166,6 @@ export async function writeDayRollup(day: Date, rollup: DayRollup) {
 
   await prisma.$transaction(
     async (tx) => {
-      // Day and backfill rollups touch the same Player and PlayerPartner
-      // rows; serializing writers avoids deadlocking on them.
       await tx.$queryRawTyped(lockRollupWrite());
 
       const alreadyRolledUp =

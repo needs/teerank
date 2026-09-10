@@ -1,7 +1,7 @@
 import { chunk } from "lodash";
 import { minutesToMilliseconds } from "date-fns";
 import { formatUtcDay, isStubName } from "@teerank/teerank";
-import { incrementPlayerPollCounts, upsertPlayerPartners } from "@prisma/client/sql";
+import { incrementPlayerPollCounts, lockRollupWrite, upsertPlayerPartners } from "@prisma/client/sql";
 import { prisma } from "../prisma";
 import { DayRollup } from "./aggregateDay";
 import { ensureRollupPartitions } from "./partitions";
@@ -166,6 +166,8 @@ export async function writeDayRollup(day: Date, rollup: DayRollup) {
 
   await prisma.$transaction(
     async (tx) => {
+      await tx.$queryRawTyped(lockRollupWrite());
+
       const alreadyRolledUp =
         (await tx.globalDay.findUnique({ where: { day }, select: { day: true } })) !== null;
 
@@ -220,7 +222,7 @@ export async function writeDayRollup(day: Date, rollup: DayRollup) {
         }
       }
     },
-    { timeout: minutesToMilliseconds(5), maxWait: minutesToMilliseconds(1) }
+    { timeout: minutesToMilliseconds(15), maxWait: minutesToMilliseconds(1) }
   );
 
   const dayLabel = formatUtcDay(day);

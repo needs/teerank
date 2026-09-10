@@ -145,7 +145,7 @@ export default async function Index() {
     {
       title: 'Map count',
       date: lastMapCountDate,
-      staleAfterMinutes: 10,
+      staleAfterMinutes: 75,
     },
     {
       title: 'Archiving snapshots',

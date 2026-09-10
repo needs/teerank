@@ -79,6 +79,7 @@ async function parseCsvEntry(
   const parser = entry.pipe(parse({
     relax_column_count: true,
     bom: true,
+    escape: '\\',
   }));
 
   let header: string[] | null = null;
@@ -109,68 +110,74 @@ export async function streamStatsDump(handlers: DumpHandlers) {
     throw new Error(`GET ${DDNET_STATS_URL} failed: ${response.status}`);
   }
 
-  const zip = Readable.fromWeb(response.body as never).pipe(unzipper.Parse({ forceStream: true }));
+  const source = Readable.fromWeb(response.body as never);
+  const zip = source.pipe(unzipper.Parse({ forceStream: true }));
 
-  for await (const entry of zip as AsyncIterable<unzipper.Entry>) {
-    const fileName = entry.path.split('/').pop() ?? '';
+  try {
+    for await (const entry of zip as AsyncIterable<unzipper.Entry>) {
+      const fileName = entry.path.split('/').pop() ?? '';
 
-    if (fileName === 'maps.csv' && handlers.onMap !== undefined) {
-      await parseCsvEntry(entry, async (record) => {
-        await handlers.onMap!({
-          name: record[0],
-          category: record[1],
-          points: Number(record[2]),
-          stars: Number(record[3]),
-          mapper: record[4],
-          releasedAt: parseDumpTimestamp(record[5]),
+      if (fileName === 'maps.csv' && handlers.onMap !== undefined) {
+        await parseCsvEntry(entry, async (record) => {
+          await handlers.onMap!({
+            name: record[0],
+            category: record[1],
+            points: Number(record[2]),
+            stars: Number(record[3]),
+            mapper: record[4],
+            releasedAt: parseDumpTimestamp(record[5]),
+          });
         });
-      });
-    } else if (fileName === 'mapinfo.csv' && handlers.onMapInfo !== undefined) {
-      await parseCsvEntry(entry, async (record, header) => {
-        const tiles: string[] = [];
-        for (let index = 3; index < header.length; index++) {
-          if (Number(record[index]) > 0) {
-            tiles.push(header[index]);
+      } else if (fileName === 'mapinfo.csv' && handlers.onMapInfo !== undefined) {
+        await parseCsvEntry(entry, async (record, header) => {
+          const tiles: string[] = [];
+          for (let index = 3; index < header.length; index++) {
+            if (Number(record[index]) > 0) {
+              tiles.push(header[index]);
+            }
           }
-        }
-        await handlers.onMapInfo!({
-          name: record[0],
-          width: Number(record[1]),
-          height: Number(record[2]),
-          tiles,
+          await handlers.onMapInfo!({
+            name: record[0],
+            width: Number(record[1]),
+            height: Number(record[2]),
+            tiles,
+          });
         });
-      });
-    } else if (fileName === 'race.csv' && handlers.onRace !== undefined) {
-      await parseCsvEntry(entry, async (record) => {
-        const timestamp = parseDumpTimestamp(record[3]);
-        if (timestamp === null) {
-          return;
-        }
-        await handlers.onRace!({
-          mapName: record[0],
-          playerName: record[1],
-          time: Number(record[2]),
-          timestamp,
-          splits: parseSplits(record),
+      } else if (fileName === 'race.csv' && handlers.onRace !== undefined) {
+        await parseCsvEntry(entry, async (record) => {
+          const timestamp = parseDumpTimestamp(record[3]);
+          if (timestamp === null) {
+            return;
+          }
+          await handlers.onRace!({
+            mapName: record[0],
+            playerName: record[1],
+            time: Number(record[2]),
+            timestamp,
+            splits: parseSplits(record),
+          });
         });
-      });
-    } else if (fileName === 'teamrace.csv' && handlers.onTeamRace !== undefined) {
-      await parseCsvEntry(entry, async (record) => {
-        const timestamp = parseDumpTimestamp(record[4]);
-        if (timestamp === null) {
-          return;
-        }
-        await handlers.onTeamRace!({
-          mapName: record[0],
-          playerName: record[1],
-          time: Number(record[2]),
-          teamId: record[3].toLowerCase(),
-          timestamp,
+      } else if (fileName === 'teamrace.csv' && handlers.onTeamRace !== undefined) {
+        await parseCsvEntry(entry, async (record) => {
+          const timestamp = parseDumpTimestamp(record[4]);
+          if (timestamp === null) {
+            return;
+          }
+          await handlers.onTeamRace!({
+            mapName: record[0],
+            playerName: record[1],
+            time: Number(record[2]),
+            teamId: record[3].toLowerCase(),
+            timestamp,
+          });
         });
-      });
-    } else {
-      entry.autodrain();
+      } else {
+        entry.autodrain();
+      }
     }
+  } finally {
+    zip.destroy();
+    source.destroy();
   }
 }
 

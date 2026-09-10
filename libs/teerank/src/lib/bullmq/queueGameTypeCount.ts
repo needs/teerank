@@ -22,9 +22,9 @@ export type GameTypeCountJobData = z.infer<typeof schema>;
 
 export async function scheduleGameTypeCount(data: GameTypeCountJobData) {
   const queue = getQueueGameTypeCount();
-  await queue.add(data.gameTypeName, data, {
+  await queue.add('game-type-count', data, {
     deduplication: {
-      id: data.gameTypeName,
+      id: `game-type-count:${data.gameTypeName}`,
     }
   });
 }

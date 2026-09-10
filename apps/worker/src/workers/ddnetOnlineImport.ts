@@ -94,7 +94,8 @@ async function importSource(source: typeof SOURCES[number]) {
   const decoder = new TextDecoder();
 
   let pendingRows: ReturnType<typeof finalizeDay> = [];
-  let current: DayAggregate | null = null;
+  const openDays = new Map<string, DayAggregate>();
+  let currentDay: string | null = null;
   let currentDayStart = offset;
   let lineStart = offset;
   let buffered = '';
@@ -106,11 +107,16 @@ async function importSource(source: typeof SOURCES[number]) {
       return;
     }
 
-    if (current === null || current.day !== day) {
-      if (current !== null) {
-        pendingRows.push(...finalizeDay(current, source.kind, source.withTotal));
+    let current = openDays.get(day);
+    if (current === undefined) {
+      // A sample logged after the next day began belongs to a day that may
+      // already be flushed; a single stray sample is not worth reopening it.
+      if (currentDay !== null && day < currentDay) {
+        return;
       }
       current = newDayAggregate(day);
+      openDays.set(day, current);
+      currentDay = day;
       currentDayStart = lineStart;
     }
 
@@ -143,34 +149,50 @@ async function importSource(source: typeof SOURCES[number]) {
     current.totalSum += total;
   };
 
-  for (;;) {
-    const { done, value } = await reader.read();
-    const text = done ? decoder.decode() : decoder.decode(value, { stream: true });
-    buffered += text;
+  // Every day but the current one is closed: later samples for it are dropped.
+  const finalizeClosedDays = () => {
+    for (const [day, aggregate] of openDays) {
+      if (day !== currentDay) {
+        pendingRows.push(...finalizeDay(aggregate, source.kind, source.withTotal));
+        openDays.delete(day);
+      }
+    }
+  };
 
-    let newlineIndex: number;
-    while ((newlineIndex = buffered.indexOf('\n')) !== -1) {
-      const line = buffered.slice(0, newlineIndex);
-      handleLine(line.trimEnd());
-      lineStart += Buffer.byteLength(line, 'utf8') + 1;
-      buffered = buffered.slice(newlineIndex + 1);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      const text = done ? decoder.decode() : decoder.decode(value, { stream: true });
+      buffered += text;
+
+      let newlineIndex: number;
+      while ((newlineIndex = buffered.indexOf('\n')) !== -1) {
+        const line = buffered.slice(0, newlineIndex);
+        handleLine(line.trimEnd());
+        lineStart += Buffer.byteLength(line, 'utf8') + 1;
+        buffered = buffered.slice(newlineIndex + 1);
+      }
+
+      if (openDays.size > FLUSH_DAY_COUNT) {
+        // The offset stays at the start of the still-open day so the next run
+        // re-reads and re-finalizes it.
+        finalizeClosedDays();
+        await flushDays(pendingRows, source.kind, source.stateKey, currentDayStart);
+        pendingRows = [];
+      }
+
+      if (done) {
+        break;
+      }
     }
 
-    if (pendingRows.length >= FLUSH_DAY_COUNT * 10) {
-      // The offset stays at the start of the still-open day so the next run
-      // re-reads and re-finalizes it.
+    // The last (incomplete) day is intentionally not finalized.
+    finalizeClosedDays();
+    if (pendingRows.length > 0) {
       await flushDays(pendingRows, source.kind, source.stateKey, currentDayStart);
-      pendingRows = [];
     }
-
-    if (done) {
-      break;
-    }
-  }
-
-  // The last (incomplete) day is intentionally not finalized.
-  if (pendingRows.length > 0) {
-    await flushDays(pendingRows, source.kind, source.stateKey, currentDayStart);
+  } finally {
+    await reader.cancel().catch(() => undefined);
   }
 }
 

@@ -5,7 +5,7 @@ import {
   parseUtcDay,
   processRollupDayJobs,
 } from "@teerank/teerank";
-import { prisma } from "../prisma";
+import { rollupPrisma } from "../prisma";
 import { iterateSnapshots } from "../snapshots";
 import { DayAggregator } from "../rollup/aggregateDay";
 import { writeDayRollup } from "../rollup/writeDayRollup";
@@ -14,7 +14,7 @@ const ROLLUP_BATCH_SIZE = getEnvInt('ROLLUP_BATCH_SIZE', 2000);
 const ROLLUP_TIME_BUDGET_MS = getEnvInt('ROLLUP_TIME_BUDGET_MS', 10 * 60 * 1000);
 
 export async function isDayRolledUp(day: Date) {
-  const existing = await prisma.globalDay.findUnique({
+  const existing = await rollupPrisma.globalDay.findUnique({
     where: { day },
     select: { day: true },
   });
@@ -38,14 +38,25 @@ export async function rollupDay(data: RollupDayJobData) {
   }
 
   const aggregator = new DayAggregator();
+  let snapshotCount = 0;
 
   for await (const snapshot of iterateSnapshots({
     from: day,
     to: dayEnd,
     batchSize: ROLLUP_BATCH_SIZE,
+    prisma: rollupPrisma,
   })) {
     if (Date.now() - startedAt > ROLLUP_TIME_BUDGET_MS) {
-      throw new Error(`Rollup for ${data.day} exceeded time budget, nothing written`);
+      throw new Error(
+        `Rollup for ${data.day} exceeded time budget after ${snapshotCount} snapshots, nothing written`
+      );
+    }
+
+    snapshotCount += 1;
+    if (snapshotCount % 50_000 === 0) {
+      console.log(
+        `Rollup for ${data.day}: ${snapshotCount} snapshots read in ${Math.round((Date.now() - startedAt) / 1000)}s`
+      );
     }
 
     aggregator.addSnapshot({
